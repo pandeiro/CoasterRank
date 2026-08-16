@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Environment (single root .env holds everything; Vite reads it via envDir: '..')
+.env
+.env.*
+!.env.example
+
+# Supabase CLI link state & dotfiles
+supabase/.temp/
+supabase/.branches/
+supabase/.env.keys
+supabase/.env.local
+supabase/.env.*.local
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*

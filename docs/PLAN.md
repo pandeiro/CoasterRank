@@ -212,9 +212,50 @@ CoasterRank/
 └── AGENTS.md                          # commands, runbooks, conventions for AI agents & humans
 ```
 
-## 8. Phasing (milestones)
+## 8. Environment & credentials
 
-- **Phase 0 — Scaffold**: `git init`; Vite + React + TS + Tailwind; Vitest; ESLint + Prettier; `supabase init` + local Docker; `.env.example`; `AGENTS.md` with verified commands.
+A single `.env` at the repo root (gitignored) holds everything. Vite reads it via `envDir: '..'` in `app/vite.config.ts` so the SPA picks up `VITE_*` vars during `npm run dev`. `.env.example` (committed) documents the keys with empty values.
+
+| Variable | Vite-exposed? | Used by |
+| --- | --- | --- |
+| `SUPABASE_ACCESS_TOKEN` | no | Supabase CLI (migrations, function deploy); also a GitHub repo secret in CI |
+| `PROJECT_REF` | no | `supabase link` + CI deploy job |
+| `SUPABASE_URL` | no | scripts (CSV importer), Edge Function config |
+| `SUPABASE_ANON_KEY` | no | scripts |
+| `SUPABASE_SERVICE_ROLE_KEY` | no (never) | Edge Function + import script — bypasses RLS |
+| `SUPABASE_DB_URL` | no | CSV import script (direct Postgres) |
+| `VITE_SUPABASE_URL` | **yes** | SPA client |
+| `VITE_SUPABASE_ANON_KEY` | **yes** | SPA client (public by design; protected by RLS) |
+| `RECOMPUTE_AUTH_SECRET` | no | shared secret authorizing the pg_cron → Edge Function call |
+
+**Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
+
+GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`.
+Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
+
+## 9. Deployment & CI/CD
+
+### 9.1 Branch policy
+`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The deploy job runs only after merge to `main` (not on PRs).
+
+### 9.2 CI workflow (`.github/workflows/ci.yml`)
+- **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
+- **`deploy` job**: runs only on `main`, path-filtered on `supabase/**`, gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
+
+### 9.3 SPA hosting — Netlify
+- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploys on push to `main` (Netlify watches the repo itself, independent of the Supabase deploy Actions).
+- SPA fallback: `app/public/_redirects` → `/*  /index.html  200` (already in the scaffold).
+- Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+- A free `*.netlify.app` URL works end-to-end before any custom domain.
+
+### 9.4 Custom domain (whenever you go public)
+1. Register the domain (~$10–15/yr).
+2. Netlify → Domain settings → Add custom domain (apex + `www` DNS per Netlify's instructions). HTTPS (Let's Encrypt) is auto-provisioned.
+3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
+
+## 10. Phasing (milestones)
+
+- **Phase 0 — Scaffold**: git repo + branch protection (PRs required); Vite + React 18 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands + runbooks; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).
 - **Phase 1 — Schema + RLS**: every table above, `handle_new_user()` trigger, indexes, RLS policies, `v_coaster_rankings` view, the email-confirmed gate.
 - **Phase 2 — Reference import**: download CC0 CSV; write/idempotently-run `import-coasters.ts` → `parks` + `coasters`; verify counts.
 - **Phase 3 — Auth + profile**: signup, login, session handling, `handle_new_user`, protected routes, profile page, email-confirmation gate.
@@ -224,7 +265,7 @@ CoasterRank/
 - **Phase 7 — Admin & moderation**: admin role/RLS, submission queue UI, add/edit coaster forms, recompute-trigger UI.
 - **Phase 8 — Hardening**: pagination everywhere, empty/loading/error states, rate limits/anti-abuse on signup + ranking, docs polish.
 
-## 9. Future considerations (explicitly out of v1 scope)
+## 11. Future considerations (explicitly out of v1 scope)
 
 - OAuth providers (Google, GitHub, etc.).
 - Public user profiles + shareable ranked lists.
@@ -233,7 +274,7 @@ CoasterRank/
 - Forking to a "parks ranking" and "manufacturer ranking" from the same pairwise data.
 - ADR-style decision records in `docs/decisions/` if decision churn warrants it (for now this PLAN.md is the single source).
 
-## 10. Open knobs (to revisit later)
+## 12. Open knobs (to revisit later)
 
 - **Pseudo-comparison baseline weight**: the synthetic "average" anchor's contribution — tuned empirically once we have real pairwise data.
 - **L2 regularization strength**: a config constant; tune to avoid ±∞ blow-ups on sparse coasters.
