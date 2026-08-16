@@ -11,18 +11,36 @@ A multi-user webapp where roller-coaster enthusiasts rank the coasters they've r
 
 ## Status
 
-Early development — see [`docs/PLAN.md`](docs/PLAN.md) for the full, current lifecycle plan (architecture, data model, algorithm, phasing).
+Phase 0 (scaffold) in progress. See [`docs/PLAN.md`](docs/PLAN.md) for the full lifecycle plan (architecture, data model, algorithm, environment, deployment, phasing).
 
 ## Tech stack
 
 - **Frontend**: React + Vite + TypeScript SPA (Tailwind CSS)
-- **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security)
+- **Lint/format**: oxlint + Prettier
+- **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security) — dedicated instance, develop against prod
 - **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
+- **Hosting**: Netlify (SPA, auto-deploy on push to `main`)
+- **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tests**: Vitest
 
 ## Getting started
 
-> Coming in Phase 0. For now, see the plan.
+Prereqs: Node 22+, npm, the Supabase CLI (`npm i -g supabase`).
+
+```bash
+# 1. Copy env and fill in values from the Supabase dashboard (just-in-time before Phase 1)
+cp .env.example .env
+
+# 2. Install SPA deps and run the dev server (talks to prod Supabase under RLS)
+cd app
+npm install
+npm run dev          # http://localhost:5173
+
+# 3. Quality gates (run before every commit; CI runs the same)
+npm run typecheck && npm run lint && npm run test:run && npm run format:check
+```
+
+See [`AGENTS.md`](AGENTS.md) for the full command reference, environment rules, multi-account Supabase CLI auth, and operational runbooks.
 
 ## Docs
 
