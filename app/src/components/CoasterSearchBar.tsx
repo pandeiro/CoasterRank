@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
-import { useAddRide } from '../lib/rides'
 
 type Props = {
   existingCoasterIds: Set<string>
+  onAdd: (coasterId: string, coasterName: string) => void
 }
 
 const MAX_RESULTS = 8
 
-export default function CoasterSearchBar({ existingCoasterIds }: Props) {
+export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   const coasters = useAllCoasters()
   const parks = useParks()
-  const addRide = useAddRide()
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
 
   const [query, setQuery] = useState('')
@@ -45,15 +44,12 @@ export default function CoasterSearchBar({ existingCoasterIds }: Props) {
     setHighlightIndex(-1)
   }, [debouncedQuery])
 
-  const select = useCallback(
-    (row: RankingRow) => {
-      addRide.mutate(row.id)
-      setQuery('')
-      setIsOpen(false)
-      inputRef.current?.focus()
-    },
-    [addRide],
-  )
+  function select(row: RankingRow) {
+    onAdd(row.id, row.name)
+    setQuery('')
+    setIsOpen(false)
+    inputRef.current?.focus()
+  }
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (!isOpen || results.length === 0) return

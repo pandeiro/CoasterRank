@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -10,25 +11,38 @@ type Props = {
   rank: number
   park: Park | undefined
   onRemove: (coasterId: string) => void
+  highlight?: boolean
 }
 
-export default function RankedCoasterItem({ ride, rank, park, onRemove }: Props) {
+export default function RankedCoasterItem({ ride, rank, park, onRemove, highlight }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: ride.coaster_id,
   })
+  const liRef = useRef<HTMLLIElement>(null)
+
+  useEffect(() => {
+    if (highlight && liRef.current) {
+      liRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [highlight])
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
 
+  function mergedRef(node: HTMLLIElement | null) {
+    liRef.current = node
+    setNodeRef(node)
+  }
+
   return (
     <li
-      ref={setNodeRef}
+      ref={mergedRef}
       style={style}
-      className={`flex items-center gap-3 rounded border border-slate-200 bg-white px-3 py-2.5 text-sm ${
-        isDragging ? 'z-20 shadow-lg opacity-90' : ''
-      }`}
+      className={`flex items-center gap-3 rounded border bg-white px-3 py-2.5 text-sm transition-shadow ${
+        highlight ? 'border-blue-400 ring-2 ring-blue-400/30' : 'border-slate-200'
+      } ${isDragging ? 'z-20 shadow-lg opacity-90' : ''}`}
     >
       <button
         type="button"

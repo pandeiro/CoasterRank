@@ -20,9 +20,10 @@ import RankedCoasterItem from './RankedCoasterItem'
 
 type Props = {
   rides: UserRide[]
+  highlightId?: string | null
 }
 
-export default function RankedCoasterList({ rides }: Props) {
+export default function RankedCoasterList({ rides, highlightId }: Props) {
   const parks = useParks()
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
   const removeRide = useRemoveRide()
@@ -103,6 +104,7 @@ export default function RankedCoasterList({ rides }: Props) {
                 rank={0}
                 park={parkMap.get(ride.coaster.park_id)}
                 onRemove={handleRemove}
+                highlight={ride.coaster_id === highlightId}
               />
             ))}
           </ul>
