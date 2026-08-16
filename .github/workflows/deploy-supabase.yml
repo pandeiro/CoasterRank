@@ -13,28 +13,62 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Only deploy when the Supabase access token secret is configured.
-    # Skipping the whole job when secrets are absent keeps this workflow a no-op
-    # until the Supabase project exists and repo secrets are set.
-    if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-
+    # Failure model:
+    #   - The `secrets` context is NOT allowed in `if` expressions — only
+    #     github/needs/inputs/env/vars. So we surface the secrets as job-level
+    #     env vars (empty string when undefined) and gate every deploy step on
+    #     `env.<NAME> != ''`. When the repo secrets aren't set, every step
+    #     skips — a silent no-op (no step actually fails).
+    #   - When a step DOES run and fails, `supabase link` is the first auth-
+    #     requiring step, so its failure is almost always an EXPIRED or REVOKED
+    #     SUPABASE_ACCESS_TOKEN (we rotate these periodically), or a wrong
+    #     PROJECT_REF. The "Report failure cause" step below turns that into a
+    #     red annotation on the run summary so it's impossible to miss.
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.PROJECT_REF }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Supabase CLI
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         run: npm install -g supabase
 
       - name: Link project
+        id: link
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase link --project-ref "${{ secrets.PROJECT_REF }}"
 
       - name: Apply migrations
+        id: apply
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase db push
 
       - name: Deploy recompute-rankings edge function
+        id: deploy_fn
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy recompute-rankings
+
+      # Runs only if any step above actually failed (not skipped). Skipped steps
+      # don't trigger failure(), so the no-op-when-secrets-missing behavior is
+      # preserved. The ::error:: workflow commands surface as red annotations
+      # on the run summary, not just buried in the log.
+      - name: Report failure cause
+        if: ${{ failure() }}
+        run: |
+          echo "::error::deploy-supabase failed. Most likely cause by step:"
+          if [ "${{ steps.link.outcome }}" = "failure" ]; then
+            echo "::error::'Link project' failed — almost always an EXPIRED or REVOKED SUPABASE_ACCESS_TOKEN (these are rotated periodically), or a wrong PROJECT_REF. Fix: regenerate the token at the Supabase dashboard (Account → Access Tokens), update the SUPABASE_ACCESS_TOKEN repo secret, then re-run this workflow from the Actions tab."
+          fi
+          if [ "${{ steps.apply.outcome }}" = "failure" ]; then
+            echo "::error::'Apply migrations' failed — usually a SQL error in a migration (see the 'Apply migrations' log for the offending statement). If the log mentions auth/401, treat it as an expired SUPABASE_ACCESS_TOKEN and rotate it."
+          fi
+          if [ "${{ steps.deploy_fn.outcome }}" = "failure" ]; then
+            echo "::error::'Deploy recompute-rankings' failed — usually a missing/renamed function directory (expected at supabase/functions/recompute-rankings/). If the log mentions auth/401, treat it as an expired SUPABASE_ACCESS_TOKEN and rotate it."
+          fi
