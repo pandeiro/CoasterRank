@@ -1,13 +1,21 @@
 import { Link } from 'react-router-dom'
-import { capitalize, formatNumber, formatScore, isFewVotes, type RankingRow } from '../lib/coasters'
+import {
+  capitalize,
+  formatNumber,
+  formatScore,
+  isFewVotes,
+  type Park,
+  type RankingRow,
+} from '../lib/coasters'
 import FewVotesBadge from './FewVotesBadge'
 
 type Props = {
   rows: RankingRow[]
   showPark?: boolean
+  parks?: Map<string, Park>
 }
 
-export default function CoasterTable({ rows, showPark = true }: Props) {
+export default function CoasterTable({ rows, showPark = true, parks = new Map() }: Props) {
   if (rows.length === 0) {
     return <p className="py-12 text-center text-slate-500">No coasters match those filters.</p>
   }
@@ -27,41 +35,51 @@ export default function CoasterTable({ rows, showPark = true }: Props) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-              <td className="px-4 py-3 font-mono text-slate-500">{row.rank}</td>
-              <td className="px-4 py-3">
-                <Link
-                  to={`/coasters/${row.slug}`}
-                  className="font-medium text-slate-900 hover:underline"
-                >
-                  {row.name}
-                </Link>
-                {isFewVotes(row.comparisons) && (
-                  <span className="ml-2">
-                    <FewVotesBadge comparisons={row.comparisons} />
-                  </span>
-                )}
-              </td>
-              {showPark && (
-                <td className="px-4 py-3 text-slate-600">
-                  <Link to={`/parks/${row.park_slug}`} className="hover:underline">
-                    {row.park_name}
+          {rows.map((row) => {
+            const park = parks.get(row.park_id)
+            return (
+              <tr
+                key={row.id}
+                className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+              >
+                <td className="px-4 py-3 font-mono text-slate-500">{row.rank}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    to={`/coasters/${row.slug}`}
+                    className="font-medium text-slate-900 hover:underline"
+                  >
+                    {row.name}
                   </Link>
+                  {isFewVotes(row.comparisons) && (
+                    <span className="ml-2">
+                      <FewVotesBadge comparisons={row.comparisons} />
+                    </span>
+                  )}
                 </td>
-              )}
-              <td className="px-4 py-3 capitalize text-slate-600">{capitalize(row.material)}</td>
-              <td className="px-4 py-3 text-right font-mono text-slate-900">
-                {row.score === null ? '—' : formatScore(row.score)}
-              </td>
-              <td className="px-4 py-3 text-right text-slate-600">
-                {row.comparisons === null ? '—' : formatNumber(row.comparisons)}
-              </td>
-              <td className="hidden px-4 py-3 text-right text-slate-600 sm:table-cell">
-                {row.participants === null ? '—' : formatNumber(row.participants)}
-              </td>
-            </tr>
-          ))}
+                {showPark && (
+                  <td className="px-4 py-3 text-slate-600">
+                    {park ? (
+                      <Link to={`/parks/${park.slug}`} className="hover:underline">
+                        {park.name}
+                      </Link>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                )}
+                <td className="px-4 py-3 capitalize text-slate-600">{capitalize(row.material)}</td>
+                <td className="px-4 py-3 text-right font-mono text-slate-900">
+                  {row.score === null ? '—' : formatScore(row.score)}
+                </td>
+                <td className="px-4 py-3 text-right text-slate-600">
+                  {row.comparisons === null ? '—' : formatNumber(row.comparisons)}
+                </td>
+                <td className="hidden px-4 py-3 text-right text-slate-600 sm:table-cell">
+                  {row.participants === null ? '—' : formatNumber(row.participants)}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

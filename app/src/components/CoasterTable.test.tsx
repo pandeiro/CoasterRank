@@ -2,16 +2,19 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import CoasterTable from './CoasterTable'
-import { makeRankingRow } from '../test/fixtures'
-import { FEW_VOTES_THRESHOLD } from '../lib/coasters'
+import { buildParkMap, FEW_VOTES_THRESHOLD, type Park } from '../lib/coasters'
+import { makePark, makeRankingRow } from '../test/fixtures'
 
-function renderTable(overrides: Parameters<typeof makeRankingRow>[0][] = []) {
+const park: Park = makePark({ id: 'park-1', name: 'Test Park', slug: 'test-park' })
+const parks = buildParkMap([park])
+
+function renderTable(overrides: Parameters<typeof makeRankingRow>[0][] = [], showPark = true) {
   const rows = overrides.length
     ? overrides.map((o) => makeRankingRow(o))
     : [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })]
   return render(
     <MemoryRouter>
-      <CoasterTable rows={rows} />
+      <CoasterTable rows={rows} parks={parks} showPark={showPark} />
     </MemoryRouter>,
   )
 }
@@ -37,6 +40,12 @@ describe('CoasterTable', () => {
     )
   })
 
+  it('shows an em dash for a park missing from the map', () => {
+    renderTable([{ name: 'Orphan', park_id: 'unknown-park' }])
+    const dashes = screen.getAllByText('—')
+    expect(dashes.length).toBeGreaterThanOrEqual(1)
+  })
+
   it('shows an em dash for missing scores', () => {
     renderTable([{ name: 'Unrated', score: null, comparisons: null, participants: null }])
     expect(screen.getByText('Unrated')).toBeInTheDocument()
@@ -55,19 +64,14 @@ describe('CoasterTable', () => {
   })
 
   it('hides the park column when showPark is false', () => {
-    const rows = [makeRankingRow({ name: 'Twisted' })]
-    render(
-      <MemoryRouter>
-        <CoasterTable rows={rows} showPark={false} />
-      </MemoryRouter>,
-    )
+    renderTable([{ name: 'Twisted' }], false)
     expect(screen.queryByRole('link', { name: 'Test Park' })).not.toBeInTheDocument()
   })
 
   it('renders an empty message for no rows', () => {
     render(
       <MemoryRouter>
-        <CoasterTable rows={[]} />
+        <CoasterTable rows={[]} parks={parks} />
       </MemoryRouter>,
     )
     expect(screen.getByText('No coasters match those filters.')).toBeInTheDocument()

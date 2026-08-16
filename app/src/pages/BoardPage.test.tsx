@@ -4,14 +4,20 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useRankings, useParks, useCountries, useManufacturers } from '../lib/coasters'
-import { makeRankingRow } from '../test/fixtures'
+import {
+  PAGE_SIZE,
+  useAllCoasters,
+  useParks,
+  useCountries,
+  useManufacturers,
+} from '../lib/coasters'
+import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
   return {
     ...actual,
-    useRankings: vi.fn(),
+    useAllCoasters: vi.fn(),
     useParks: vi.fn(),
     useCountries: vi.fn(),
     useManufacturers: vi.fn(),
@@ -54,23 +60,36 @@ function renderBoard(initialEntries = ['/']) {
   )
 }
 
-const rows = [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })]
+const park = makePark()
+
+function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
+  vi.mocked(useAllCoasters).mockReturnValue({
+    data: data.length ? data.map((o) => makeRankingRow(o)) : [],
+    isPending: false,
+    isError: false,
+  } as never)
+}
 
 describe('BoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     observeCallback = null
-    vi.mocked(useParks).mockReturnValue({ data: [] } as never)
-    vi.mocked(useCountries).mockReturnValue({ data: [] } as never)
-    vi.mocked(useManufacturers).mockReturnValue({ data: [] } as never)
-    vi.mocked(useRankings).mockReturnValue({
-      data: { pages: [rows], pageParams: [0] },
+    vi.mocked(useParks).mockReturnValue({
+      data: [park],
       isPending: false,
       isError: false,
-      hasNextPage: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
     } as never)
+    vi.mocked(useCountries).mockReturnValue({
+      data: ['US'],
+      isPending: false,
+      isError: false,
+    } as never)
+    vi.mocked(useManufacturers).mockReturnValue({
+      data: [],
+      isPending: false,
+      isError: false,
+    } as never)
+    mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
   })
 
   it('renders the CoasterRank heading', () => {
@@ -79,35 +98,32 @@ describe('BoardPage', () => {
   })
 
   it('shows a loading state while pending', () => {
-    vi.mocked(useRankings).mockReturnValue({
+    vi.mocked(useAllCoasters).mockReturnValue({
       data: undefined,
       isPending: true,
       isError: false,
-      hasNextPage: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
     } as never)
     renderBoard()
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
   it('shows an error state on failure', () => {
-    vi.mocked(useRankings).mockReturnValue({
+    vi.mocked(useAllCoasters).mockReturnValue({
       data: undefined,
       isPending: false,
       isError: true,
-      hasNextPage: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
     } as never)
     renderBoard()
     expect(screen.getByText("Couldn't load the board.")).toBeInTheDocument()
   })
 
-  it('renders the ranked rows', () => {
+  it('renders the ranked rows and links to the park', () => {
     renderBoard()
     expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
-    expect(screen.getByText('Test Park')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Test Park' })).toHaveAttribute(
+      'href',
+      '/parks/test-park',
+    )
   })
 
   it('keeps the default URL clean (no querystring)', () => {
@@ -125,47 +141,49 @@ describe('BoardPage', () => {
   })
 
   it('reads filters from the URL', () => {
-    vi.mocked(useRankings).mockReturnValue({
-      data: { pages: [rows], pageParams: [0] },
-      isPending: false,
-      isError: false,
-      hasNextPage: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
-    } as never)
     renderBoard(['/?status=all'])
     expect(screen.getByLabelText('Status')).toHaveValue('all')
   })
 
-  it('loads the next page when scrolled to the bottom', async () => {
-    const fetchNextPage = vi.fn()
-    vi.mocked(useRankings).mockReturnValue({
-      data: { pages: [rows], pageParams: [0] },
-      isPending: false,
-      isError: false,
-      hasNextPage: true,
-      fetchNextPage,
-      isFetchingNextPage: false,
-    } as never)
+  it('shows only operating coasters by default and all when status=all', async () => {
+    mockAllCoasters([
+      { name: 'Live', status: 'operating' },
+      { name: 'Gone', status: 'defunct' },
+    ])
     renderBoard()
-    observeCallback?.([{ isIntersecting: true }])
+    expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.queryByText('Gone')).not.toBeInTheDocument()
+
+    const user = userEvent.setup()
+    await user.selectOptions(screen.getByLabelText('Status'), 'all')
     await waitFor(() => {
-      expect(fetchNextPage).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('Gone')).toBeInTheDocument()
     })
+    expect(screen.getByText('Live')).toBeInTheDocument()
   })
 
-  it('does not fetch more when there is no next page', () => {
-    const fetchNextPage = vi.fn()
-    vi.mocked(useRankings).mockReturnValue({
-      data: { pages: [rows], pageParams: [0] },
-      isPending: false,
-      isError: false,
-      hasNextPage: false,
-      fetchNextPage,
-      isFetchingNextPage: false,
-    } as never)
+  it('renders the first page and loads the rest on scroll', async () => {
+    const many = Array.from({ length: PAGE_SIZE + 10 }, (_, i) => ({
+      name: `Coaster ${i}`,
+      slug: `coaster-${i}`,
+    }))
+    mockAllCoasters(many)
     renderBoard()
+
+    expect(screen.getByText('Coaster 0')).toBeInTheDocument()
+    expect(screen.queryByText(`Coaster ${PAGE_SIZE}`)).not.toBeInTheDocument()
+    expect(screen.queryByText('End of list')).not.toBeInTheDocument()
+
     observeCallback?.([{ isIntersecting: true }])
-    expect(fetchNextPage).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.getByText(`Coaster ${PAGE_SIZE}`)).toBeInTheDocument()
+    })
+    expect(screen.getByText('End of list')).toBeInTheDocument()
+  })
+
+  it('shows the end-of-list marker when everything fits on the first page', () => {
+    mockAllCoasters([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
+    renderBoard()
+    expect(screen.getByText('End of list')).toBeInTheDocument()
   })
 })

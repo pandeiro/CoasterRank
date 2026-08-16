@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ParkDetailPage from './ParkDetailPage'
-import { usePark, useParkCoasters } from '../lib/coasters'
-import { makeRankingRow } from '../test/fixtures'
+import { useAllCoasters, usePark } from '../lib/coasters'
+import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
   return {
     ...actual,
     usePark: vi.fn(),
-    useParkCoasters: vi.fn(),
+    useAllCoasters: vi.fn(),
   }
 })
 
@@ -24,14 +24,14 @@ function renderPage(slug = 'cedar-point') {
   )
 }
 
-const park = {
+const park = makePark({
   id: 'p1',
   name: 'Cedar Point',
   slug: 'cedar-point',
   country: 'US',
   region: 'Ohio',
   city: 'Sandusky',
-}
+})
 
 describe('ParkDetailPage', () => {
   beforeEach(() => {
@@ -41,10 +41,21 @@ describe('ParkDetailPage', () => {
       isPending: false,
       isError: false,
     } as never)
-    vi.mocked(useParkCoasters).mockReturnValue({
+    vi.mocked(useAllCoasters).mockReturnValue({
       data: [
-        makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance', rank: 3 }),
-        makeRankingRow({ name: 'Millennium Force', slug: 'millennium-force', rank: 12 }),
+        makeRankingRow({
+          park_id: 'p1',
+          name: 'Steel Vengeance',
+          slug: 'steel-vengeance',
+          rank: 3,
+        }),
+        makeRankingRow({
+          park_id: 'p1',
+          name: 'Millennium Force',
+          slug: 'millennium-force',
+          rank: 12,
+        }),
+        makeRankingRow({ park_id: 'p2', name: 'Somewhere Else', slug: 'somewhere-else' }),
       ],
       isPending: false,
       isError: false,
@@ -58,10 +69,11 @@ describe('ParkDetailPage', () => {
     expect(screen.getByText(/2 coasters/)).toBeInTheDocument()
   })
 
-  it('lists the park coasters ordered by rank', () => {
+  it('lists only the park coasters', () => {
     renderPage()
     expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
     expect(screen.getByText('Millennium Force')).toBeInTheDocument()
+    expect(screen.queryByText('Somewhere Else')).not.toBeInTheDocument()
   })
 
   it('omits the park column on its own page', () => {

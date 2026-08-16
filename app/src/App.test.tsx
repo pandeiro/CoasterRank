@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from './App'
-import { useRankings, useParks, useCountries, useManufacturers } from './lib/coasters'
+import { useAllCoasters, useParks, useCountries, useManufacturers } from './lib/coasters'
 import { supabase } from './lib/supabase'
-import { makeRankingRow } from './test/fixtures'
+import { makePark, makeRankingRow } from './test/fixtures'
 
 vi.mock('./lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./lib/coasters')>()
   return {
     ...actual,
-    useRankings: vi.fn(),
+    useAllCoasters: vi.fn(),
     useParks: vi.fn(),
     useCountries: vi.fn(),
     useManufacturers: vi.fn(),
@@ -35,19 +35,21 @@ describe('App', () => {
     vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     } as never)
-    vi.mocked(useParks).mockReturnValue({ data: [] } as never)
-    vi.mocked(useCountries).mockReturnValue({ data: [] } as never)
-    vi.mocked(useManufacturers).mockReturnValue({ data: [] } as never)
-    vi.mocked(useRankings).mockReturnValue({
-      data: {
-        pages: [[makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })]],
-        pageParams: [0],
-      },
+    vi.mocked(useParks).mockReturnValue({
+      data: [makePark()],
       isPending: false,
       isError: false,
-      hasNextPage: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
+    } as never)
+    vi.mocked(useCountries).mockReturnValue({ data: [], isPending: false, isError: false } as never)
+    vi.mocked(useManufacturers).mockReturnValue({
+      data: [],
+      isPending: false,
+      isError: false,
+    } as never)
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })],
+      isPending: false,
+      isError: false,
     } as never)
 
     render(<App />)
