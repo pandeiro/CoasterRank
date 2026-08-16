@@ -23,6 +23,11 @@ export function renumberRanks(coasterIds: string[]): { coaster_id: string; rank:
   return coasterIds.map((id, i) => ({ coaster_id: id, rank: i + 1 }))
 }
 
+export function insertIdAt(ids: string[], newId: string, index: number): string[] {
+  const clamped = Math.max(0, Math.min(index, ids.length))
+  return [...ids.slice(0, clamped), newId, ...ids.slice(clamped)]
+}
+
 export function useMyRides() {
   const { user } = useAuth()
   return useQuery({
@@ -47,23 +52,6 @@ export function useMyRides() {
         rank: row.rank,
         coaster: row.coasters[0],
       }))
-    },
-  })
-}
-
-export function useAddRide() {
-  const { user } = useAuth()
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (coasterId: string) => {
-      if (!user) throw new Error('Not authenticated')
-      const { error } = await supabase
-        .from('user_rides')
-        .insert({ user_id: user.id, coaster_id: coasterId, ridden: true, rank: null })
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
     },
   })
 }

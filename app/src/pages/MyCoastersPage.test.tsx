@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useMyRides } from '../lib/rides'
@@ -8,10 +9,6 @@ import MyCoastersPage from './MyCoastersPage'
 
 vi.mock('../lib/rides', () => ({
   useMyRides: vi.fn(),
-  useAddRide: vi.fn(),
-  useRemoveRide: vi.fn(),
-  useSaveRanks: vi.fn(),
-  renumberRanks: vi.fn(),
 }))
 
 vi.mock('../lib/auth-context', () => ({
@@ -19,12 +16,32 @@ vi.mock('../lib/auth-context', () => ({
 }))
 
 vi.mock('../components/CoasterSearchBar', () => ({
-  default: () => <div data-testid="search-bar" />,
+  default: ({ onAdd }: { onAdd: (id: string, name: string) => void }) => (
+    <button type="button" data-testid="search-bar" onClick={() => onAdd('c9', 'New Coaster')}>
+      search
+    </button>
+  ),
 }))
 
 vi.mock('../components/RankedCoasterList', () => ({
-  default: ({ rides }: { rides: unknown[] }) => (
-    <div data-testid="ranked-list">{rides.length} items</div>
+  default: ({
+    rides,
+    onInserted,
+    onError,
+  }: {
+    rides: unknown[]
+    onInserted?: (id: string, name: string, rank: number) => void
+    onError?: (message: string) => void
+  }) => (
+    <div data-testid="ranked-list">
+      {rides.length} items
+      <button type="button" onClick={() => onInserted?.('c9', 'New Coaster', 3)}>
+        fire-inserted
+      </button>
+      <button type="button" onClick={() => onError?.('Something failed')}>
+        fire-error
+      </button>
+    </div>
   ),
 }))
 
@@ -41,6 +58,18 @@ function renderPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+function mockConfirmed(ridesData: unknown[] = []) {
+  vi.mocked(useAuth).mockReturnValue({
+    user: { email: 'test@example.com' },
+    isConfirmed: true,
+  } as never)
+  vi.mocked(useMyRides).mockReturnValue({
+    data: ridesData,
+    isPending: false,
+    isError: false,
+  } as never)
 }
 
 describe('MyCoastersPage', () => {
@@ -60,11 +89,7 @@ describe('MyCoastersPage', () => {
   })
 
   it('shows the search bar and list when confirmed', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { email: 'test@example.com' },
-      isConfirmed: true,
-    } as never)
-    vi.mocked(useMyRides).mockReturnValue({ data: [], isPending: false, isError: false } as never)
+    mockConfirmed()
     renderPage()
     expect(screen.getByTestId('search-bar')).toBeInTheDocument()
     expect(screen.getByTestId('ranked-list')).toBeInTheDocument()
@@ -100,45 +125,64 @@ describe('MyCoastersPage', () => {
   })
 
   it('shows ranked count when rides exist', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { email: 'test@example.com' },
-      isConfirmed: true,
-    } as never)
-    vi.mocked(useMyRides).mockReturnValue({
-      data: [
-        {
-          coaster_id: 'c1',
-          rank: 1,
-          coaster: {
-            id: 'c1',
-            name: 'A',
-            slug: 'a',
-            status: 'operating',
-            material: 'steel',
-            park_id: 'p1',
-            score: 1,
-            comparisons: 10,
-          },
+    mockConfirmed([
+      {
+        coaster_id: 'c1',
+        rank: 1,
+        coaster: {
+          id: 'c1',
+          name: 'A',
+          slug: 'a',
+          status: 'operating',
+          material: 'steel',
+          park_id: 'p1',
+          score: 1,
+          comparisons: 10,
         },
-        {
-          coaster_id: 'c2',
-          rank: 2,
-          coaster: {
-            id: 'c2',
-            name: 'B',
-            slug: 'b',
-            status: 'operating',
-            material: 'wood',
-            park_id: 'p1',
-            score: 0.8,
-            comparisons: 8,
-          },
+      },
+      {
+        coaster_id: 'c2',
+        rank: 2,
+        coaster: {
+          id: 'c2',
+          name: 'B',
+          slug: 'b',
+          status: 'operating',
+          material: 'wood',
+          park_id: 'p1',
+          score: 0.8,
+          comparisons: 8,
         },
-      ],
-      isPending: false,
-      isError: false,
-    } as never)
+      },
+    ])
     renderPage()
     expect(screen.getByText('2 coasters ranked')).toBeInTheDocument()
+  })
+
+  it('enters pending-add mode from the search bar and can cancel', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+    await user.click(screen.getByTestId('search-bar'))
+    expect(screen.getByText('New Coaster')).toBeInTheDocument()
+    expect(screen.getByText(/choose a position below/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByText(/choose a position below/i)).not.toBeInTheDocument()
+  })
+
+  it('shows a success toast with rank when a coaster is inserted', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'fire-inserted' }))
+    expect(await screen.findByText('Added New Coaster at #3')).toBeInTheDocument()
+  })
+
+  it('shows an error toast when the list reports a failure', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'fire-error' }))
+    expect(await screen.findByText('Something failed')).toBeInTheDocument()
   })
 })

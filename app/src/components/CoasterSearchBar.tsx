@@ -8,6 +8,7 @@ type Props = {
 }
 
 const MAX_RESULTS = 8
+const LISTBOX_ID = 'coaster-search-listbox'
 
 export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   const coasters = useAllCoasters()
@@ -19,7 +20,6 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLUListElement>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query.trim()), 200)
@@ -68,6 +68,11 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   }
 
   const isSearching = debouncedQuery.length >= 2 && coasters.isLoading
+  const showList = isOpen && (debouncedQuery.length >= 2 || isSearching)
+  const activeOptionId =
+    highlightIndex >= 0 && results[highlightIndex]
+      ? `coaster-option-${results[highlightIndex].id}`
+      : undefined
 
   return (
     <div className="relative">
@@ -76,7 +81,11 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
         <input
           ref={inputRef}
           type="search"
+          role="combobox"
           aria-label="Add coasters to your list"
+          aria-expanded={showList}
+          aria-controls={LISTBOX_ID}
+          aria-activedescendant={activeOptionId}
           placeholder="Search coasters to add…"
           value={query}
           onChange={(e) => {
@@ -89,22 +98,27 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
           className="w-full rounded border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none"
         />
       </div>
-      {isOpen && (debouncedQuery.length >= 2 || isSearching) && (
+      {showList && (
         <ul
-          ref={listRef}
+          id={LISTBOX_ID}
           role="listbox"
           className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-slate-200 bg-white shadow-lg"
         >
           {isSearching ? (
-            <li className="px-4 py-3 text-sm text-slate-500">Searching…</li>
+            <li className="px-4 py-3 text-sm text-slate-500" role="presentation">
+              Searching…
+            </li>
           ) : results.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-slate-500">No coasters found.</li>
+            <li className="px-4 py-3 text-sm text-slate-500" role="presentation">
+              No coasters found.
+            </li>
           ) : (
             results.map((row, i) => {
               const park = parkMap.get(row.park_id)
               return (
                 <li
                   key={row.id}
+                  id={`coaster-option-${row.id}`}
                   role="option"
                   aria-selected={i === highlightIndex}
                   className={`flex cursor-pointer items-center justify-between px-4 py-2 text-sm ${
