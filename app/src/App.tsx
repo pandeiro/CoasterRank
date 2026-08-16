@@ -4,8 +4,10 @@ import Layout from './components/Layout'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider } from './lib/auth'
 import BoardPage from './pages/BoardPage'
+import CoasterDetailPage from './pages/CoasterDetailPage'
 import LoginPage from './pages/LoginPage'
 import MyCoastersPage from './pages/MyCoastersPage'
+import ParkDetailPage from './pages/ParkDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import SignupPage from './pages/SignupPage'
 
@@ -19,6 +21,8 @@ export default function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<BoardPage />} />
+              <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
+              <Route path="/parks/:slug" element={<ParkDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route element={<RequireAuth />}>
