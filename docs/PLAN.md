@@ -95,7 +95,7 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
 - **`coaster_ratings`(coaster_id PK→coasters, score numeric, comparisons int, wins int, participants int, updated_at)**
   - `score` = Bradley-Terry latent strength.
   - `comparisons`/`wins`/`participants` are diagnostics/transparency metrics surfaced on the public board.
-- **`v_coaster_rankings`** (view): `coasters.*` + `score`, `comparisons`, `participants`, `rank = row_number() over (order by score desc)`, filtered to `status = 'operating'`. The SPA board reads this view.
+- **`v_coaster_rankings`** (view): `coasters.*` + park/manufacturer display names (`park_name`, `park_slug`, `park_country`, `park_city`, `manufacturer_name`, `manufacturer_slug`) + `score`, `comparisons`, `participants`, `rank = row_number() over (order by score desc nulls last)`. **Not** filtered by status — the SPA defaults to `status = 'operating'` (clean URL `/`) and opts into other statuses via `?status=` (e.g. `?status=all`). The SPA board reads this view.
 
 ### 4.5 Indexes (non-exhaustive)
 
@@ -278,7 +278,7 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 - **Phase 1 — Schema + RLS**: every table above, `handle_new_user()` trigger, indexes, RLS policies, `v_coaster_rankings` view, the email-confirmed gate.
 - **Phase 2 — Reference import** ✅: downloaded CC0 `coaster_db.csv` (committed at `data/`); wrote `scripts/import-coasters.ts` (direct Postgres via `SUPABASE_DB_URL`, idempotent `ON CONFLICT … WHERE source = 'open-csv'`, dry-run by default / `--apply` to write); seeded prod → **101 manufacturers, 279 parks, 1,087 coasters** (status: 668 operating / 213 unknown / 146 defunct / 34 sbno / 26 under-construction). Maps `Type_Main`→`material` and `Status`→`coaster_status` with a documented bucket map; deterministic intra-park slug disambiguation via `year_introduced`. **250 coasters** with source `Location = "Other"` land in a single synthetic `Other (unknown location)` park (no geo) — admin-re-homeable in Phase 7. Re-run is safe and reconciles the catalog to the CSV.
 - **Phase 3 — Auth + profile**: signup, login, session handling, `handle_new_user`, protected routes, profile page, email-confirmation gate.
-- **Phase 4 — Public board + detail pages**: reads `v_coaster_rankings` (with a naive interim rating backfilled so the board isn't empty before BT ships); coaster/park detail pages; filters; pagination.
+- **Phase 4 — Public board + detail pages** ✅: board reads `v_coaster_rankings` live (unrated coasters sort last with a `—` score — no naive interim backfill); infinite scroll in 250-row pages (vanilla `IntersectionObserver` sentinel); search/park/country/manufacturer/material/status filters mirrored to URL search params; operating-only is the default with a clean `/` URL and `?status=` reveals defunct/sbno/etc.; coaster + park detail pages.
 - **Phase 5 — "My Coasters"**: add/remove ridden, `@dnd-kit` drag-sort, save to `user_rides`; rank renumbering; per-user view of own lists.
 - **Phase 6 — BT batch**: `packages/bt` MM + unit tests; Edge Function `recompute-rankings`; pg_cron schedule; admin trigger; backfill `coaster_ratings` once real preferences exist.
 - **Phase 7 — Admin & moderation**: admin role/RLS, submission queue UI, add/edit coaster forms, recompute-trigger UI.
@@ -298,4 +298,4 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 - **Pseudo-comparison baseline weight**: the synthetic "average" anchor's contribution — tuned empirically once we have real pairwise data.
 - **L2 regularization strength**: a config constant; tune to avoid ±∞ blow-ups on sparse coasters.
 - **Per-user-weighting variant**: pure `1/n` (current), vs. `1/sqrt(n)`, vs. a tunable knob — revisit after seeing effect on a real dataset.
-- **"Operating only" filter on the live board**: whether `defunct`/`sbno` coasters appear by default or only behind a toggle.
+- **"Operating only" filter on the live board**: resolved in Phase 4 — the board defaults to `status = 'operating'` (clean `/` URL); `?status=all` or `?status=<specific>` reveals other statuses. No toggle persists in the UI beyond the status filter.

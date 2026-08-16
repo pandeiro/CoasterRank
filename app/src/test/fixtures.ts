@@ -1,0 +1,35 @@
+import type { RankingRow } from '../lib/coasters'
+
+let seq = 0
+
+export function makeRankingRow(overrides: Partial<RankingRow> = {}): RankingRow {
+  seq += 1
+  const id = `coaster-${seq}`
+  return {
+    id,
+    park_id: 'park-1',
+    name: `Coaster ${seq}`,
+    slug: `coaster-${seq}`,
+    manufacturer_id: null,
+    model: null,
+    opening_date: null,
+    status: 'operating',
+    material: 'steel',
+    height_m: null,
+    speed_kmh: null,
+    length_m: null,
+    inversions: null,
+    type: null,
+    park_name: 'Test Park',
+    park_slug: 'test-park',
+    park_country: 'US',
+    park_city: null,
+    manufacturer_name: null,
+    manufacturer_slug: null,
+    score: 1.0,
+    comparisons: 100,
+    participants: 12,
+    rank: seq,
+    ...overrides,
+  }
+}
