@@ -48,15 +48,35 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase db push
 
-      - name: Deploy recompute-rankings edge function
+      - name: Deploy edge functions
         id: deploy_fn
-        # Skips until the function entrypoint exists (it's created in Phase 6).
-        # hashFiles returns '' when the file is absent, so the step is skipped
-        # rather than failing on a missing directory.
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' && hashFiles('supabase/functions/recompute-rankings/index.ts') != '' }}
+        # Deploys EVERY function directory under supabase/functions/ that has an
+        # entrypoint (index.ts or index.js). This auto-picks up new functions
+        # without workflow edits, and skips gracefully when supabase/functions/
+        # is empty or doesn't exist yet (e.g. before Phase 6) — the loop just
+        # finds nothing and exits 0, so the step stays green (not red).
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy recompute-rankings
+        shell: bash
+        run: |
+          set -e
+          shopt -s nullglob  # supabase/functions/*/ expands to nothing if absent
+          dirs=(supabase/functions/*/)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "No function directories under supabase/functions/ — nothing to deploy."
+            exit 0
+          fi
+          for d in "${dirs[@]}"; do
+            name=$(basename "$d")
+            if [ -f "$d/index.ts" ] || [ -f "$d/index.js" ]; then
+              echo "::group::Deploying function: $name"
+              supabase functions deploy "$name"
+              echo "::endgroup::"
+            else
+              echo "Skipping $name — no index.ts/index.js entrypoint found."
+            fi
+          done
 
       # Runs only if any step above actually failed (not skipped). Skipped steps
       # don't trigger failure(), so the no-op-when-secrets-missing behavior is
@@ -73,5 +93,5 @@ jobs:
             echo "::error::'Apply migrations' failed — usually a SQL error in a migration (see the 'Apply migrations' log for the offending statement). If the log mentions auth/401, treat it as an expired SUPABASE_ACCESS_TOKEN and rotate it."
           fi
           if [ "${{ steps.deploy_fn.outcome }}" = "failure" ]; then
-            echo "::error::'Deploy recompute-rankings' failed — usually a TypeScript bundle/import error in the function source, or a missing/renamed entrypoint (expected at supabase/functions/recompute-rankings/index.ts). If the log mentions auth/401, treat it as an expired SUPABASE_ACCESS_TOKEN and rotate it."
+            echo "::error::'Deploy edge functions' failed — usually a TypeScript bundle/import error in one of the function directories under supabase/functions/ (the failed function is named in the log above). If the log mentions auth/401, treat it as an expired SUPABASE_ACCESS_TOKEN and rotate it."
           fi
