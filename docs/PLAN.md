@@ -84,6 +84,7 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
 - **`profiles`(id→auth.users PK, username UNIQUE, display_name, avatar_url, is_admin bool default false)**
   - Created automatically by a `handle_new_user()` trigger on `auth.users` INSERT.
   - `username` is the public-facing handle; `display_name` can change freely.
+  - If the signup-metadata username is already taken, the trigger falls back to `NULL` rather than failing the signup; the user claims one later on the profile page.
 - **`user_rides`(user_id→auth.users, coaster_id→coasters, ridden bool default true, rank int null, PK(user_id, coaster_id))**
   - `rank = 1` is the **top** of the user's personal list; `null` = ridden but unranked.
   - Drag-sort reorders in batches; ranks renumbered (gapless positive integers) on save.
@@ -113,7 +114,7 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
   );
   ```
   Documented in `AGENTS.md` too.
-- **Email confirmation**: enable in Supabase dashboard (Auth → Email); the SPA enforces a "confirm your email before ranking" gate client-side + RLS denies `user_rides` writes until `email_confirmed_at` is set.
+- **Email confirmation**: enabled in the Supabase dashboard (Auth → Email); the SPA enforces a "confirm your email before ranking" gate client-side + RLS denies `user_rides` writes until `email_confirmed_at` is set.
 
 ## 5. Bradley-Terry batch job
 
@@ -257,6 +258,19 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 1. Register the domain (~$10–15/yr).
 2. Netlify → Domain settings → Add custom domain (apex + `www` DNS per Netlify's instructions). HTTPS (Let's Encrypt) is auto-provisioned.
 3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
+
+### 9.5 Go-live checklist
+
+Run once before sharing the site publicly; re-run the **auth-critical** steps whenever the
+public URL changes (Netlify URL → custom domain, §9.4). If these are missed, signup and
+confirmation emails point at the wrong host and new accounts can never confirm on prod.
+
+- [ ] **Netlify deploy green** — site connected per the AGENTS.md runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
+- [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
+- [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
+- [ ] **Admin bootstrapped** — SQL runbook in AGENTS.md; verify the admin badge shows on `/me/profile` on prod.
+- [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
+- [ ] **Reference data present** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
 
 ## 10. Phasing (milestones)
 
