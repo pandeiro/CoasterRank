@@ -84,6 +84,7 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
 - **`profiles`(id→auth.users PK, username UNIQUE, display_name, avatar_url, is_admin bool default false)**
   - Created automatically by a `handle_new_user()` trigger on `auth.users` INSERT.
   - `username` is the public-facing handle; `display_name` can change freely.
+  - If the signup-metadata username is already taken, the trigger falls back to `NULL` rather than failing the signup; the user claims one later on the profile page.
 - **`user_rides`(user_id→auth.users, coaster_id→coasters, ridden bool default true, rank int null, PK(user_id, coaster_id))**
   - `rank = 1` is the **top** of the user's personal list; `null` = ridden but unranked.
   - Drag-sort reorders in batches; ranks renumbered (gapless positive integers) on save.
