@@ -206,7 +206,12 @@ CoasterRank/
 │   ├── functions/recompute-rankings/ # Deno index.ts + mm.ts
 │   └── seed.sql
 ├── packages/bt/                      # pure TS Bradley-Terry MM (shared edge fn + tests)
-├── scripts/import-coasters.ts       # CC0 CSV → parks + coasters (service-role, idempotent)
+├── data/
+│   └── coaster_db.csv                # Rob Mulla's CC0 seed dataset (committed; ~1,087 coasters)
+├── scripts/                          # data-engineering package (own package.json: tsx, pg, csv-parse, dotenv)
+│   ├── import-coasters.ts            # CC0 CSV → parks + coasters (direct Postgres, idempotent)
+│   ├── package.json
+│   └── tsconfig.json
 ├── tests/
 ├── .env.example
 └── AGENTS.md                          # commands, runbooks, conventions for AI agents & humans
@@ -257,7 +262,7 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 
 - **Phase 0 — Scaffold**: git repo + branch protection (PRs required); Vite + React 18 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands + runbooks; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).
 - **Phase 1 — Schema + RLS**: every table above, `handle_new_user()` trigger, indexes, RLS policies, `v_coaster_rankings` view, the email-confirmed gate.
-- **Phase 2 — Reference import**: download CC0 CSV; write/idempotently-run `import-coasters.ts` → `parks` + `coasters`; verify counts.
+- **Phase 2 — Reference import** ✅: downloaded CC0 `coaster_db.csv` (committed at `data/`); wrote `scripts/import-coasters.ts` (direct Postgres via `SUPABASE_DB_URL`, idempotent `ON CONFLICT … WHERE source = 'open-csv'`, dry-run by default / `--apply` to write); seeded prod → **101 manufacturers, 279 parks, 1,087 coasters** (status: 668 operating / 213 unknown / 146 defunct / 34 sbno / 26 under-construction). Maps `Type_Main`→`material` and `Status`→`coaster_status` with a documented bucket map; deterministic intra-park slug disambiguation via `year_introduced`. **250 coasters** with source `Location = "Other"` land in a single synthetic `Other (unknown location)` park (no geo) — admin-re-homeable in Phase 7. Re-run is safe and reconciles the catalog to the CSV.
 - **Phase 3 — Auth + profile**: signup, login, session handling, `handle_new_user`, protected routes, profile page, email-confirmation gate.
 - **Phase 4 — Public board + detail pages**: reads `v_coaster_rankings` (with a naive interim rating backfilled so the board isn't empty before BT ships); coaster/park detail pages; filters; pagination.
 - **Phase 5 — "My Coasters"**: add/remove ridden, `@dnd-kit` drag-sort, save to `user_rides`; rank renumbering; per-user view of own lists.

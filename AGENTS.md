@@ -12,7 +12,9 @@ supabase/            # Supabase CLI config + migrations + edge functions
   functions/         # Deno Edge Functions
 docs/PLAN.md         # authoritative project plan & decision log
 packages/bt/         # (Phase 6) pure TS Bradley-Terry MM
-scripts/             # (Phase 2) CSV import + ops scripts
+data/                # (Phase 2) reference datasets (CC0 coaster_db.csv committed here)
+scripts/             # (Phase 2) data-engineering package — own package.json (tsx, pg, csv-parse, dotenv)
+  import-coasters.ts # CC0 CSV → parks + coasters, idempotent, direct Postgres via SUPABASE_DB_URL
 ```
 
 ## Commands
@@ -41,13 +43,31 @@ supabase functions deploy <fn>  # CI runs this on merge to main — do NOT run m
 supabase functions serve <fn>   # (not used — we develop against prod)
 ```
 
+Scripts (data-engineering) commands run from `scripts/` — it has its **own** `package.json` (separate from `app/`):
+
+```bash
+cd scripts
+npm install                       # one-time, after cloning / after deps change
+npm run import-coasters           # dry-run: parse + report counts, no DB connection
+npm run import-coasters -- --apply  # write/refresh prod via SUPABASE_DB_URL (idempotent)
+npm run import-coasters -- data/coaster_db.csv      # optional: explicit CSV path (positional)
+npm run typecheck                 # tsc --noEmit for the scripts package
+```
+
+The importer is idempotent: re-runs upsert by `(park_id, slug)` and only refresh rows whose
+`source = 'open-csv'`, so admin-created/community rows are never clobbered. It maps `Status`→
+`coaster_status` and `Type_Main`→`coaster_material`; 250 coasters with source `Location = "Other"`
+land in a synthetic `Other (unknown location)` park. Run from repo root also works as
+`cd scripts && npm run import-coasters` (the CSV defaults to `../data/coaster_db.csv`).
+
 ## Required quality gates (run before every commit)
 
 ```bash
 cd app && npm run typecheck && npm run lint && npm run test:run && npm run format:check
 ```
 
-All must pass. CI runs the same set on every PR.
+All must pass. CI runs the same set on every PR. If you changed `scripts/`, also run
+`cd scripts && npm run typecheck` (the scripts package has its own `tsc` setup; not yet in CI).
 
 ## Environment
 
