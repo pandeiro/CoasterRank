@@ -1,12 +1,28 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
 
-// Data access strategy (see PLAN §4.4 / Phase 4): the board batch-fetches the
-// full `v_coaster_rankings` view once and filters/paginates in the browser.
-// Reference data (parks, manufacturers, countries) is small and fetched in
-// parallel on load, cached by TanStack Query, and joined client-side — the view
-// stays normalized (no park/manufacturer names repeated per row). This keeps
-// filter changes instant (pure JS) and avoids refetching on every filter.
+// Data access strategy (see PLAN §4.4 / Phase 4) — the "why" behind how the
+// board and detail pages load data:
+//
+// - The board batch-fetches the FULL `v_coaster_rankings` view once, then
+//   filters and paginates in the browser (see filterCoasters / BoardPage).
+//   The dataset is small enough for this (~1k coasters today, up to ~6.6k if
+//   we adopt the full RCDB list), and it makes every filter change instant
+//   pure JS with no server round-trip. The tradeoff is a heavier first load
+//   (~3 MB raw / ~500 KB gzipped at 6.6k rows); if the catalog ever grows far
+//   beyond that, revisit server-side filtering.
+//
+// - Reference tables (parks, manufacturers, countries) are small and fetched
+//   in PARALLEL with the coasters on load, then cached by TanStack Query and
+//   joined client-side (buildParkMap, filterCoasters). The DB view stays
+//   NORMALIZED — park/manufacturer names are not repeated on every coaster
+//   row — which keeps the batch payload lean and gives us a single source of
+//   truth for display names. Detail pages reuse the same cached reference
+//   data (their own query hooks fire independently if deep-linked).
+//
+// - Incremental rendering (250-row slices via an IntersectionObserver
+//   sentinel) keeps the initial DOM small even though all rows are already
+//   in memory.
 
 export const PAGE_SIZE = 250
 export const FEW_VOTES_THRESHOLD = 10
