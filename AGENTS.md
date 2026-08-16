@@ -36,8 +36,8 @@ Supabase CLI commands run from the repo root:
 ```bash
 supabase migration new <name>   # create supabase/migrations/<timestamp>_<name>.sql
 supabase link --project-ref <ref>  # bind this dir to the remote project (one-time)
-supabase db push                # apply pending migrations to the linked project
-supabase functions deploy <fn>  # deploy an Edge Function
+supabase db push                # CI runs this on merge to main — do NOT run manually
+supabase functions deploy <fn>  # CI runs this on merge to main — do NOT run manually
 supabase functions serve <fn>   # (not used — we develop against prod)
 ```
 
@@ -76,6 +76,10 @@ used in CI (as a GitHub repo secret).
   SPA fallback via `app/public/_redirects` (`/* /index.html 200`). Custom domain + HTTPS added later.
 - **Schema + functions**: GitHub Actions on merge to `main` runs `supabase db push` then
   `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**`).
+  **Never run `supabase db push` or `supabase functions deploy` manually for routine changes.**
+  Migrations and edge-function changes go through a PR → merge → CI deploy. The deploy job
+  authenticates with the `SUPABASE_ACCESS_TOKEN` and `PROJECT_REF` repo secrets (no direct DB
+  connection string in CI); it is a silent no-op if those secrets are missing.
 - **Branch policy**: PRs required to merge into `main`. CI runs the quality gates on every PR; the
   deploy job only runs after merge.
 
