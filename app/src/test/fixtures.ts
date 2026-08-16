@@ -1,4 +1,5 @@
 import type { Manufacturer, Park, RankingRow } from '../lib/coasters'
+import type { UserRide, UserRideCoaster } from '../lib/rides'
 
 let seq = 0
 
@@ -45,6 +46,31 @@ export function makeManufacturer(overrides: Partial<Manufacturer> = {}): Manufac
     id: 'mfg-1',
     name: 'Test Mfg',
     slug: 'test-mfg',
+    ...overrides,
+  }
+}
+
+export function makeUserRideCoaster(overrides: Partial<UserRideCoaster> = {}): UserRideCoaster {
+  seq += 1
+  return {
+    id: `coaster-${seq}`,
+    name: `Coaster ${seq}`,
+    slug: `coaster-${seq}`,
+    status: 'operating',
+    material: 'steel',
+    park_id: 'park-1',
+    score: 1.0,
+    comparisons: 100,
+    ...overrides,
+  }
+}
+
+export function makeUserRide(overrides: Partial<UserRide> = {}): UserRide {
+  const coaster = overrides.coaster ?? makeUserRideCoaster()
+  return {
+    coaster_id: coaster.id,
+    rank: 1,
+    coaster,
     ...overrides,
   }
 }

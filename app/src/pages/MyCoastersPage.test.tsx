@@ -1,36 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import type { User } from '@supabase/supabase-js'
-import MyCoastersPage from './MyCoastersPage'
+import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useMyRides } from '../lib/rides'
 import { useAuth } from '../lib/auth-context'
-import { supabase } from '../lib/supabase'
+import MyCoastersPage from './MyCoastersPage'
+
+vi.mock('../lib/rides', () => ({
+  useMyRides: vi.fn(),
+  useAddRide: vi.fn(),
+  useRemoveRide: vi.fn(),
+  useSaveRanks: vi.fn(),
+  renumberRanks: vi.fn(),
+}))
 
 vi.mock('../lib/auth-context', () => ({
   useAuth: vi.fn(),
 }))
 
-vi.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      resend: vi.fn(),
-    },
-  },
+vi.mock('../components/CoasterSearchBar', () => ({
+  default: () => <div data-testid="search-bar" />,
 }))
 
-function mockAuth({ confirmed }: { confirmed: boolean }) {
-  const user = {
-    id: 'u1',
-    email: 'a@example.com',
-    email_confirmed_at: confirmed ? '2026-01-01' : null,
-  } as unknown as User
-  vi.mocked(useAuth).mockReturnValue({
-    session: null,
-    user,
-    isLoading: false,
-    isConfirmed: confirmed,
-    signOut: vi.fn(),
-  })
+vi.mock('../components/RankedCoasterList', () => ({
+  default: ({ rides }: { rides: unknown[] }) => (
+    <div data-testid="ranked-list">{rides.length} items</div>
+  ),
+}))
+
+vi.mock('../components/ConfirmEmailGate', () => ({
+  default: ({ email }: { email?: string }) => <div data-testid="confirm-gate">{email}</div>,
+}))
+
+function renderPage() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <MyCoastersPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 describe('MyCoastersPage', () => {
@@ -38,27 +48,97 @@ describe('MyCoastersPage', () => {
     vi.clearAllMocks()
   })
 
-  it('shows the list placeholder for confirmed users', () => {
-    mockAuth({ confirmed: true })
-    render(<MyCoastersPage />)
-    expect(screen.getByText(/drag-sort editor arrives in phase 5/i)).toBeInTheDocument()
+  it('shows the email gate when not confirmed', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { email: 'test@example.com' },
+      isConfirmed: false,
+    } as never)
+    vi.mocked(useMyRides).mockReturnValue({ data: [], isPending: false, isError: false } as never)
+    renderPage()
+    expect(screen.getByTestId('confirm-gate')).toBeInTheDocument()
+    expect(screen.queryByTestId('search-bar')).not.toBeInTheDocument()
   })
 
-  it('gates unconfirmed users behind email confirmation', () => {
-    mockAuth({ confirmed: false })
-    render(<MyCoastersPage />)
-    expect(screen.getByText('Confirm your email')).toBeInTheDocument()
-    expect(screen.queryByText(/drag-sort editor/i)).not.toBeInTheDocument()
+  it('shows the search bar and list when confirmed', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { email: 'test@example.com' },
+      isConfirmed: true,
+    } as never)
+    vi.mocked(useMyRides).mockReturnValue({ data: [], isPending: false, isError: false } as never)
+    renderPage()
+    expect(screen.getByTestId('search-bar')).toBeInTheDocument()
+    expect(screen.getByTestId('ranked-list')).toBeInTheDocument()
+    expect(screen.queryByTestId('confirm-gate')).not.toBeInTheDocument()
   })
 
-  it('lets unconfirmed users resend the confirmation email', async () => {
-    mockAuth({ confirmed: false })
-    vi.mocked(supabase.auth.resend).mockResolvedValue({ data: {}, error: null } as never)
-    render(<MyCoastersPage />)
+  it('shows loading state', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { email: 'test@example.com' },
+      isConfirmed: true,
+    } as never)
+    vi.mocked(useMyRides).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.getByText(/loading your rides/i)).toBeInTheDocument()
+  })
 
-    await userEvent.click(screen.getByRole('button', { name: /resend confirmation email/i }))
+  it('shows error state', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { email: 'test@example.com' },
+      isConfirmed: true,
+    } as never)
+    vi.mocked(useMyRides).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: true,
+    } as never)
+    renderPage()
+    expect(screen.getByText(/couldn't load your rides/i)).toBeInTheDocument()
+  })
 
-    expect(supabase.auth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'a@example.com' })
-    expect(await screen.findByText('Confirmation email sent')).toBeInTheDocument()
+  it('shows ranked count when rides exist', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { email: 'test@example.com' },
+      isConfirmed: true,
+    } as never)
+    vi.mocked(useMyRides).mockReturnValue({
+      data: [
+        {
+          coaster_id: 'c1',
+          rank: 1,
+          coaster: {
+            id: 'c1',
+            name: 'A',
+            slug: 'a',
+            status: 'operating',
+            material: 'steel',
+            park_id: 'p1',
+            score: 1,
+            comparisons: 10,
+          },
+        },
+        {
+          coaster_id: 'c2',
+          rank: 2,
+          coaster: {
+            id: 'c2',
+            name: 'B',
+            slug: 'b',
+            status: 'operating',
+            material: 'wood',
+            park_id: 'p1',
+            score: 0.8,
+            comparisons: 8,
+          },
+        },
+      ],
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.getByText('2 coasters ranked')).toBeInTheDocument()
   })
 })
