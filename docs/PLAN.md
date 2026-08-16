@@ -259,6 +259,19 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 2. Netlify → Domain settings → Add custom domain (apex + `www` DNS per Netlify's instructions). HTTPS (Let's Encrypt) is auto-provisioned.
 3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
 
+### 9.5 Go-live checklist
+
+Run once before sharing the site publicly; re-run the **auth-critical** steps whenever the
+public URL changes (Netlify URL → custom domain, §9.4). If these are missed, signup and
+confirmation emails point at the wrong host and new accounts can never confirm on prod.
+
+- [ ] **Netlify deploy green** — site connected per the AGENTS.md runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
+- [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
+- [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (§4.6).
+- [ ] **Admin bootstrapped** — SQL runbook in AGENTS.md; verify the admin badge shows on `/me/profile` on prod.
+- [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
+- [ ] **Reference data present** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
+
 ## 10. Phasing (milestones)
 
 - **Phase 0 — Scaffold**: git repo + branch protection (PRs required); Vite + React 18 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands + runbooks; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).

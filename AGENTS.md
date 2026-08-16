@@ -142,6 +142,8 @@ delete from auth.users where email = 'test@example.com';
 4. Add the Netlify URL (`https://<site>.netlify.app`) plus `http://localhost:5173` to Supabase Auth
    → Redirect URLs.
 
+Once connected, run the **go-live checklist** (`docs/PLAN.md` §9.5) before sharing the URL.
+
 ### Point a custom domain at Netlify (whenever you go public)
 
 1. Buy the domain (~$10-15/yr) from any registrar.
@@ -149,6 +151,7 @@ delete from auth.users where email = 'test@example.com';
    (apex + www CNAME/A records). HTTPS (Let's Encrypt) is provisioned automatically.
 3. In Supabase: Auth → URL Configuration → set Site URL to `https://<your-domain>` and add
    `https://<your-domain>/**` (plus `http://localhost:5173/**`) to Redirect URLs.
+4. Re-run the **auth-critical** steps of the go-live checklist (`docs/PLAN.md` §9.5).
 
 ## Conventions
 
