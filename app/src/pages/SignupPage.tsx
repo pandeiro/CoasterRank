@@ -36,7 +36,7 @@ export default function SignupPage() {
       return
     }
     if (data.session) {
-      // Email confirmation disabled (dev convenience): straight in.
+      // Confirmation off (dev/test): a session is returned immediately.
       navigate('/me', { replace: true })
     } else {
       setAwaitingConfirmation(true)

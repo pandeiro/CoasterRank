@@ -114,7 +114,7 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
   );
   ```
   Documented in `AGENTS.md` too.
-- **Email confirmation**: enable in Supabase dashboard (Auth → Email); the SPA enforces a "confirm your email before ranking" gate client-side + RLS denies `user_rides` writes until `email_confirmed_at` is set.
+- **Email confirmation**: enabled in the Supabase dashboard (Auth → Email); the SPA enforces a "confirm your email before ranking" gate client-side + RLS denies `user_rides` writes until `email_confirmed_at` is set.
 
 ## 5. Bradley-Terry batch job
 
@@ -267,7 +267,7 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 
 - [ ] **Netlify deploy green** — site connected per the AGENTS.md runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
 - [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
-- [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (§4.6).
+- [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
 - [ ] **Admin bootstrapped** — SQL runbook in AGENTS.md; verify the admin badge shows on `/me/profile` on prod.
 - [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
 - [ ] **Reference data present** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
