@@ -49,6 +49,10 @@ as $$
 $$;
 
 revoke execute on function public.pairwise_wins() from public, anon, authenticated;
+-- The Edge Function calls this via PostgREST with the service-role key; grant
+-- explicitly so the revoke above can never strand the pipeline (defaults alone
+-- would probably cover it, but be certain).
+grant execute on function public.pairwise_wins() to service_role;
 
 -- Distinct users ranking each coaster (participants column) ---------------
 create or replace function public.ranked_participants()
@@ -65,6 +69,7 @@ as $$
 $$;
 
 revoke execute on function public.ranked_participants() from public, anon, authenticated;
+grant execute on function public.ranked_participants() to service_role;
 
 -- Cron entrypoint: vault-configured POST to the Edge Function -------------
 -- Vault secret names (set once, see AGENTS.md):
@@ -96,13 +101,19 @@ begin
     return;
   end if;
 
+  -- A full recompute (2 aggregate RPCs + MM fit + chunked upserts) can easily
+  -- exceed pg_net's ~5s default; give it a minute. pg_net's timeout only
+  -- bounds how long we await the response — the Edge Function itself keeps
+  -- running to completion either way, but a short timeout would log errors
+  -- in cron.run_details on every backfill-sized run.
   perform net.http_post(
     url := v_url,
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || v_secret,
       'Content-Type', 'application/json'
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 60000
   );
 end;
 $$;

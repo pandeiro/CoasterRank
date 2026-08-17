@@ -109,7 +109,9 @@ used in CI (as a GitHub repo secret).
 - **SPA**: Netlify, auto-deploys on push to `main`. Build `npm run build` in `app/`; publish `app/dist`.
   SPA fallback via `app/public/_redirects` (`/* /index.html 200`). Custom domain + HTTPS added later.
 - **Schema + functions**: GitHub Actions on merge to `main` runs `supabase db push` then
-  `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**`).
+  `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**` **and
+  `packages/bt/**`** — the Edge Function bundles `packages/bt/src/mm.ts` at deploy time, so
+  algorithm changes must redeploy it).
   **Never run `supabase db push` or `supabase functions deploy` manually for routine changes.**
   Migrations and edge-function changes go through a PR → merge → CI deploy. The deploy job
   authenticates with the `SUPABASE_ACCESS_TOKEN` and `PROJECT_REF` repo secrets (no direct DB
@@ -162,11 +164,14 @@ own env. After the Phase 6 migration + function deploy land on prod:
    source .env && supabase secrets set RECOMPUTE_AUTH_SECRET="$RECOMPUTE_AUTH_SECRET"
    ```
 
-3. Store the two Vault secrets in the Supabase SQL editor:
+3. Store the two Vault secrets in the Supabase SQL editor. **Copy the function URL from the
+   dashboard** (Edge Functions → recompute-rankings) — newer projects use a region-qualified
+   host (`https://<PROJECT_REF>.<REGION>.supabase.co/functions/v1/recompute-rankings`), not the
+   legacy `https://<PROJECT_REF>.supabase.co/...` form:
 
    ```sql
    select vault.create_secret(
-     'https://<PROJECT_REF>.supabase.co/functions/v1/recompute-rankings',
+     'https://<PROJECT_REF>.<REGION>.supabase.co/functions/v1/recompute-rankings',
      'recompute_function_url'
    );
    select vault.create_secret('<RECOMPUTE_AUTH_SECRET>', 'recompute_auth_secret');

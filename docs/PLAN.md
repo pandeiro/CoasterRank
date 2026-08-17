@@ -247,7 +247,7 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
-- **`deploy` job**: runs only on `main`, path-filtered on `supabase/**`, gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
+- **`deploy` job**: runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it), gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
 
 ### 9.3 SPA hosting — Netlify
 - Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploys on push to `main` (Netlify watches the repo itself, independent of the Supabase deploy Actions).

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
-import { supabase } from '../lib/supabase'
+import { fetchProfile } from '../lib/profile'
 
 /**
  * Gate for admin routes (PLAN §6). Anonymous visitors bounce to /login like
@@ -16,15 +16,7 @@ export default function RequireAdmin() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', session?.user?.id],
     enabled: Boolean(session?.user?.id),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', session!.user!.id)
-        .single()
-      if (error) throw error
-      return data as { is_admin: boolean }
-    },
+    queryFn: () => fetchProfile(session!.user!.id),
   })
 
   if (isLoading || (Boolean(session) && profileLoading)) {
