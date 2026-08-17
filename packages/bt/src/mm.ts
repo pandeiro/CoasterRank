@@ -41,17 +41,18 @@ export type Pair = {
    * total influence sums to ~1 regardless of list length. Feeds the fit.
    */
   weight: number
-  /** Raw win count (diagnostic; integer). */
+  /** Raw win count for this directed pair (diagnostic; integer). */
   wins: number
-  /** Raw comparison count between the pair (diagnostic; integer). */
-  comparisons: number
 }
 
 export type RankingRow = {
   coasterId: string
   /** Fitted strength; 1.0 = "average" given the anchor (see above). */
   score: number
-  /** Raw comparisons involving this coaster (both directions). */
+  /**
+   * Raw comparisons involving this coaster: wins by this coaster plus wins
+   * against it, summed across all directed pairs.
+   */
   comparisons: number
   /** Raw wins by this coaster. */
   wins: number
@@ -123,8 +124,10 @@ export function computeRankings(
     }
     byLoser.set(winner, (byLoser.get(winner) ?? 0) + weight)
     bump(rawWins, winner, pair.wins)
-    bump(rawComparisons, winner, pair.comparisons)
-    bump(rawComparisons, loser, pair.comparisons)
+    // Every win is also one comparison for both sides (the loser was involved
+    // too), so both coasters accumulate the raw count.
+    bump(rawComparisons, winner, pair.wins)
+    bump(rawComparisons, loser, pair.wins)
   }
 
   const ids = [...opponents.keys()]

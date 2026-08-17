@@ -1,8 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/Layout'
+import RequireAdmin from './components/RequireAdmin'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider } from './lib/auth'
+import AdminPage from './pages/AdminPage'
 import BoardPage from './pages/BoardPage'
 import CoasterDetailPage from './pages/CoasterDetailPage'
 import LoginPage from './pages/LoginPage'
@@ -28,6 +30,9 @@ export default function App() {
               <Route element={<RequireAuth />}>
                 <Route path="/me" element={<MyCoastersPage />} />
                 <Route path="/me/profile" element={<ProfilePage />} />
+              </Route>
+              <Route element={<RequireAdmin />}>
+                <Route path="/admin" element={<AdminPage />} />
               </Route>
             </Route>
           </Routes>

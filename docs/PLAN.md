@@ -160,19 +160,20 @@ where `n(i,j)` = total weighted comparisons between `i` and `j`, `wins(i,j)` = w
 
 ### 5.4 Triggering
 
-- **Scheduled**: `pg_cron` every 15 minutes calls `pg_net` → HTTP POST to the Edge Function.
-- **Manual**: admin "Recompute now" button hits the same function with a service-role key.
-- **Output**: the function upserts rows in `coaster_ratings`; the view `v_coaster_rankings` is read-live by the SPA.
+- **Scheduled**: `pg_cron` every 15 minutes calls a `recompute_rankings_cron()` SQL function, which reads the Edge Function URL + shared secret from **Supabase Vault** (no environment values in migrations; one-time bootstrap in AGENTS.md) and POSTs via `pg_net`.
+- **Manual**: admin "Recompute now" button on `/admin` calls the same function via `supabase.functions.invoke` — the user's JWT travels as the Bearer token and the function checks `profiles.is_admin` server-side. No secret ships to the browser.
+- **Aggregation**: the function reads pairwise wins via two security-definer RPCs (`pairwise_wins()`, `ranked_participants()`); `EXECUTE` is revoked from anon/authenticated, so only the service_role (or the cron job, in-database) reaches them.
+- **Output**: the function upserts rows in `coaster_ratings`; the view `v_coaster_rankings` is read-live by the SPA. Coasters that drop out of every pair get their rating rows deleted (back to "unrated"), and an all-unranked state clears the table.
 
 ### 5.5 Edge function contract
 
 ```
 POST /functions/v1/recompute-rankings
-Authorization: Bearer <SERVICE_ROLE_KEY or pg_cron secret>
-→ 200 { updated: <int>, durationMs: <int>, iterations: <int> }
+Authorization: Bearer <RECOMPUTE_AUTH_SECRET | SERVICE_ROLE_KEY | admin user JWT>
+→ 200 { updated: <int>, durationMs: <int>, iterations: <int>, converged: <bool> }
 ```
 
-Reads aggregated pairwise wins from PostgREST (or pgbouncer), runs MM in memory, upserts scores. Stateless and idempotent.
+Admin JWTs are validated against GoTrue (`/auth/v1/user`) and then checked against `profiles.is_admin`. Reads aggregated pairwise wins from PostgREST RPCs, runs MM in memory (`packages/bt`), upserts scores. Stateless and idempotent.
 
 ## 6. SPA routes
 
@@ -204,9 +205,9 @@ CoasterRank/
 │   │   0003_rls_policies.sql
 │   │   0004_rankings_views.sql
 │   │   0005_edgemap_pg_cron.sql
-│   ├── functions/recompute-rankings/ # Deno index.ts + mm.ts
+│   ├── functions/recompute-rankings/ # Deno index.ts (imports packages/bt/src/mm.ts)
 │   └── seed.sql
-├── packages/bt/                      # pure TS Bradley-Terry MM (shared edge fn + tests)
+├── packages/bt/                      # pure TS Bradley-Terry MM (own package.json; shared edge fn + tests)
 ├── data/
 │   └── coaster_db.csv                # Rob Mulla's CC0 seed dataset (committed; ~1,087 coasters)
 ├── scripts/                          # data-engineering package (own package.json: tsx, pg, csv-parse, dotenv)
@@ -280,7 +281,7 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 - **Phase 3 — Auth + profile**: signup, login, session handling, `handle_new_user`, protected routes, profile page, email-confirmation gate.
 - **Phase 4 — Public board + detail pages** ✅: board batch-fetches the full `v_coaster_rankings` view once and filters/paginates **client-side** (unrated coasters sort last with a `—` score — no naive interim backfill); parks/manufacturers/countries are fetched in parallel, cached by TanStack Query, and joined client-side (view stays normalized); incremental rendering in 250-row slices (vanilla `IntersectionObserver` sentinel); search/park/country/manufacturer/material/status filters mirrored to URL search params; operating-only is the default with a clean `/` URL and `?status=` reveals defunct/sbno/etc.; coaster + park detail pages.
 - **Phase 5 — "My Coasters"** ✅: search/autocomplete to add coasters from the catalog via a two-step flow (pick coaster → pick position: top / bottom / any index via inline insert dividers); single atomic upsert inserts the new row + shifts ranks; `@dnd-kit` drag-sort with auto-save on drop; gapless 1-indexed renumbering on every change (including after remove); optimistic updates with error toasts and state reversion; local order resyncs from server data; per-user view with ranked count summary; legacy unranked rows can be ranked via an inline action.
-- **Phase 6 — BT batch**: `packages/bt` MM + unit tests; Edge Function `recompute-rankings`; pg_cron schedule; admin trigger; backfill `coaster_ratings` once real preferences exist.
+- **Phase 6 — BT batch** ✅: `packages/bt` MM (Hunter 2004) with anchor + pseudo-count (L2-equivalent) regularization, 12 Vitest tests; Edge Function `recompute-rankings` accepting three Bearer auths (cron shared secret / service-role key / admin JWT checked server-side via `is_admin`); `pairwise_wins()` + `ranked_participants()` security-definer RPCs (execute revoked from anon/authenticated) with per-user normalization (PLAN §5.1); pg_cron every 15 min via a Vault-backed `recompute_rankings_cron()` (URL + secret in Supabase Vault, no env values in migrations; one-time bootstrap runbook in AGENTS.md); `/admin` page with "Recompute now" (JWT via `functions.invoke`) + admin-gated route/nav; stale-rating cleanup (coasters leaving all pairs drop back to unrated). Backfill happens on the first scheduled run once real preferences exist.
 - **Phase 7 — Admin & moderation**: admin role/RLS, submission queue UI, add/edit coaster forms, recompute-trigger UI.
 - **Phase 8 — Hardening**: pagination everywhere, empty/loading/error states, rate limits/anti-abuse on signup + ranking, docs polish.
 

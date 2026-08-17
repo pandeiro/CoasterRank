@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../lib/auth-context'
+import { supabase } from '../lib/supabase'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? 'font-medium text-slate-900' : 'text-slate-600 hover:text-slate-900'
@@ -8,6 +10,22 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 export default function Layout() {
   const { user, isLoading, signOut } = useAuth()
   const navigate = useNavigate()
+
+  // Same queryKey as ProfilePage/RequireAdmin, so the fetch is shared; we only
+  // need the admin flag here to decide whether to show the Admin link.
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user!.id)
+        .single()
+      if (error) throw error
+      return data as { is_admin: boolean }
+    },
+  })
 
   async function onSignOut() {
     await signOut()
@@ -27,6 +45,11 @@ export default function Layout() {
                 <NavLink to="/me" className={navLinkClass}>
                   My Coasters
                 </NavLink>
+                {profile?.is_admin && (
+                  <NavLink to="/admin" className={navLinkClass}>
+                    Admin
+                  </NavLink>
+                )}
                 <NavLink to="/me/profile" className={navLinkClass}>
                   Profile
                 </NavLink>

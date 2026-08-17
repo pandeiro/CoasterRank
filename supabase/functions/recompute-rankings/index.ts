@@ -30,7 +30,7 @@ function json(body: unknown, status: number): Response {
   })
 }
 
-type PairRow = { winner: string; loser: string; weight: number; wins: number; comparisons: number }
+type PairRow = { winner: string; loser: string; weight: number; wins: number }
 type ParticipantRow = { coaster_id: string; participants: number }
 type RecomputeResult = { updated: number; durationMs: number; iterations: number; converged: boolean }
 
@@ -114,13 +114,7 @@ Deno.serve(async (req) => {
 
     const { rows, iterations, converged } = computeRankings(
       pairs.map((r): Pair => {
-        return {
-          winner: r.winner,
-          loser: r.loser,
-          weight: r.weight,
-          wins: r.wins,
-          comparisons: r.comparisons,
-        }
+        return { winner: r.winner, loser: r.loser, weight: r.weight, wins: r.wins }
       }),
     )
 

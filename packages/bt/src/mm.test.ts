@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { computeRankings, type Pair } from './mm'
 
 function pair(winner: string, loser: string, weight = 1): Pair {
-  return { winner, loser, weight, wins: 1, comparisons: 1 }
+  return { winner, loser, weight, wins: 1 }
 }
 
 function scoresOf(result: { rows: { coasterId: string; score: number }[] }) {
@@ -47,7 +47,7 @@ describe('computeRankings', () => {
   it('keeps an undefeated coaster finite (anchor regularization)', () => {
     const pairs: Pair[] = []
     for (let i = 0; i < 100; i++) {
-      pairs.push({ winner: 'a', loser: `l${i}`, weight: 1, wins: 1, comparisons: 1 })
+      pairs.push({ winner: 'a', loser: `l${i}`, weight: 1, wins: 1 })
     }
     const result = computeRankings(pairs)
     const score = scoresOf(result).get('a')!
@@ -72,12 +72,12 @@ describe('computeRankings', () => {
 
   it('reports raw win/comparison diagnostics summed across both directions', () => {
     const result = computeRankings([
-      { winner: 'a', loser: 'b', weight: 0.5, wins: 3, comparisons: 5 },
-      { winner: 'b', loser: 'c', weight: 0.25, wins: 2, comparisons: 2 },
+      { winner: 'a', loser: 'b', weight: 0.5, wins: 3 },
+      { winner: 'b', loser: 'c', weight: 0.25, wins: 2 },
     ])
     const byId = new Map(result.rows.map((r) => [r.coasterId, r]))
-    expect(byId.get('a')).toMatchObject({ wins: 3, comparisons: 5 })
-    expect(byId.get('b')).toMatchObject({ wins: 2, comparisons: 7 })
+    expect(byId.get('a')).toMatchObject({ wins: 3, comparisons: 3 })
+    expect(byId.get('b')).toMatchObject({ wins: 2, comparisons: 5 })
     expect(byId.get('c')).toMatchObject({ wins: 0, comparisons: 2 })
   })
 
