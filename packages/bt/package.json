@@ -1,0 +1,17 @@
+{
+  "name": "bt",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Bradley-Terry latent-strength fitting via the MM algorithm (Hunter 2004). Pure TypeScript, zero runtime dependencies, Deno-compatible (imported by the recompute-rankings Edge Function).",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.10"
+  }
+}
