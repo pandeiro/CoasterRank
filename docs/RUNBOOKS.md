@@ -85,9 +85,37 @@ Once connected, run the **go-live checklist** (`docs/PLAN.md` §9.5) before shar
 
 ## Point a custom domain at Netlify (whenever you go public)
 
-1. Buy the domain (~$10-15/yr) from any registrar.
-2. In Netlify: Site → Domain settings → Add custom domain; follow DNS instructions
-   (apex + www CNAME/A records). HTTPS (Let's Encrypt) is provisioned automatically.
+Prerequisite: you own the domain (any registrar). **Netlify handles the TLS certificate for you** —
+it automatically provisions, issues, and renews a free Let's Encrypt cert once DNS points at
+Netlify, for both DNS options below. No cert tooling on your side.
+
+### Option A — Netlify DNS (recommended; less to configure)
+
+1. Netlify: Site → Domain settings → Add custom domain → enter the apex domain; accept the
+   `www.<your-domain>` alias when offered.
+2. Netlify shows 4 nameservers (`dns1.p0x.nsone.net`-style). Set them as the domain's nameservers
+   at your registrar.
+3. **Disable DNSSEC at the registrar first** if it's enabled — Netlify DNS does not support
+   DNSSEC, and resolution breaks if it stays on. (If you require DNSSEC, use Option B.)
+
+### Option B — External DNS (keep your registrar's DNS)
+
+1. At your registrar / DNS provider:
+   - Apex: `A` record → `75.2.60.5` (Netlify's load balancer). An `ALIAS`/`ANAME` record works
+     too if the provider supports it.
+   - `www`: `CNAME` → `<site>.netlify.app`.
+2. Netlify: Site → Domain settings → Add custom domain → enter the apex; add the `www` alias.
+
+Don't mix the two options: either the registrar's nameservers point at Netlify (A) **or** you
+keep external DNS and add the records yourself (B).
+
+### After DNS (both options)
+
+1. Wait for propagation — usually minutes, up to 24–48 h. Netlify retries cert provisioning every
+   ~10 min for the first 24 h, then hourly. Status: Domain settings → HTTPS.
+2. Once the certificate shows active, enable **Force HTTPS** (Domain settings → HTTPS).
 3. In Supabase: Auth → URL Configuration → set Site URL to `https://<your-domain>` and add
    `https://<your-domain>/**` (plus `http://localhost:5173/**`) to Redirect URLs.
-4. Re-run the **auth-critical** steps of the go-live checklist (`docs/PLAN.md` §9.5).
+4. Verify: `https://<your-domain>` loads the board over HTTPS, and a fresh signup's confirmation
+   email links back to the custom domain.
+5. Re-run the **auth-critical** steps of the go-live checklist (`docs/PLAN.md` §9.5).
