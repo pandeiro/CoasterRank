@@ -51,7 +51,7 @@ No custom backend. The only server-side code is the Deno Edge Function plus clie
 
 ### 3.1 Tech stack
 
-- **Frontend**: React 18, Vite, TypeScript, React Router, TanStack Query, `@supabase/supabase-js`, Tailwind CSS, `@dnd-kit/sortable`, lucide-react.
+- **Frontend**: React 19, Vite, TypeScript, React Router, TanStack Query, `@supabase/supabase-js`, Tailwind CSS, `@dnd-kit/sortable`, lucide-react.
 - **Edge**: Deno (Supabase Edge Functions) for the BT recompute job.
 - **Migrations/seed**: Supabase CLI (`supabase/migrations`, `supabase/seed.sql`).
 - **Quality**: ESLint + Prettier, `tsc --noEmit`, **Vitest**. Commands documented in `AGENTS.md`.
@@ -216,7 +216,7 @@ CoasterRank/
 │   └── tsconfig.json
 ├── tests/
 ├── .env.example
-└── AGENTS.md                          # commands, runbooks, conventions for AI agents & humans
+└── AGENTS.md                          # commands & conventions for AI agents & humans (runbooks live in docs/RUNBOOKS.md)
 ```
 
 ## 8. Environment & credentials
@@ -266,22 +266,22 @@ Run once before sharing the site publicly; re-run the **auth-critical** steps wh
 public URL changes (Netlify URL → custom domain, §9.4). If these are missed, signup and
 confirmation emails point at the wrong host and new accounts can never confirm on prod.
 
-- [ ] **Netlify deploy green** — site connected per the AGENTS.md runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
+- [ ] **Netlify deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
 - [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
 - [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
-- [ ] **Admin bootstrapped** — SQL runbook in AGENTS.md; verify the admin badge shows on `/me/profile` on prod.
+- [ ] **Admin bootstrapped** — SQL runbook in `docs/RUNBOOKS.md`; verify the admin badge shows on `/me/profile` on prod.
 - [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
 - [ ] **Reference data present** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
 
 ## 10. Phasing (milestones)
 
-- **Phase 0 — Scaffold**: git repo + branch protection (PRs required); Vite + React 18 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands + runbooks; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).
+- **Phase 0 — Scaffold**: git repo + branch protection (PRs required); Vite + React 19 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).
 - **Phase 1 — Schema + RLS**: every table above, `handle_new_user()` trigger, indexes, RLS policies, `v_coaster_rankings` view, the email-confirmed gate.
 - **Phase 2 — Reference import** ✅: downloaded CC0 `coaster_db.csv` (committed at `data/`); wrote `scripts/import-coasters.ts` (direct Postgres via `SUPABASE_DB_URL`, idempotent `ON CONFLICT … WHERE source = 'open-csv'`, dry-run by default / `--apply` to write); seeded prod → **101 manufacturers, 279 parks, 1,087 coasters** (status: 668 operating / 213 unknown / 146 defunct / 34 sbno / 26 under-construction). Maps `Type_Main`→`material` and `Status`→`coaster_status` with a documented bucket map; deterministic intra-park slug disambiguation via `year_introduced`. **250 coasters** with source `Location = "Other"` land in a single synthetic `Other (unknown location)` park (no geo) — admin-re-homeable in Phase 7. Re-run is safe and reconciles the catalog to the CSV.
 - **Phase 3 — Auth + profile**: signup, login, session handling, `handle_new_user`, protected routes, profile page, email-confirmation gate.
 - **Phase 4 — Public board + detail pages** ✅: board batch-fetches the full `v_coaster_rankings` view once and filters/paginates **client-side** (unrated coasters sort last with a `—` score — no naive interim backfill); parks/manufacturers/countries are fetched in parallel, cached by TanStack Query, and joined client-side (view stays normalized); incremental rendering in 250-row slices (vanilla `IntersectionObserver` sentinel); search/park/country/manufacturer/material/status filters mirrored to URL search params; operating-only is the default with a clean `/` URL and `?status=` reveals defunct/sbno/etc.; coaster + park detail pages.
 - **Phase 5 — "My Coasters"** ✅: search/autocomplete to add coasters from the catalog via a two-step flow (pick coaster → pick position: top / bottom / any index via inline insert dividers); single atomic upsert inserts the new row + shifts ranks; `@dnd-kit` drag-sort with auto-save on drop; gapless 1-indexed renumbering on every change (including after remove); optimistic updates with error toasts and state reversion; local order resyncs from server data; per-user view with ranked count summary; legacy unranked rows can be ranked via an inline action.
-- **Phase 6 — BT batch** ✅: `packages/bt` MM (Hunter 2004) with anchor + pseudo-count (L2-equivalent) regularization, 12 Vitest tests; Edge Function `recompute-rankings` accepting three Bearer auths (cron shared secret / service-role key / admin JWT checked server-side via `is_admin`); `pairwise_wins()` + `ranked_participants()` security-definer RPCs (execute revoked from anon/authenticated) with per-user normalization (PLAN §5.1); pg_cron every 15 min via a Vault-backed `recompute_rankings_cron()` (URL + secret in Supabase Vault, no env values in migrations; one-time bootstrap runbook in AGENTS.md); `/admin` page with "Recompute now" (JWT via `functions.invoke`) + admin-gated route/nav; stale-rating cleanup (coasters leaving all pairs drop back to unrated). Backfill happens on the first scheduled run once real preferences exist.
+- **Phase 6 — BT batch** ✅: `packages/bt` MM (Hunter 2004) with anchor + pseudo-count (L2-equivalent) regularization, 12 Vitest tests; Edge Function `recompute-rankings` accepting three Bearer auths (cron shared secret / service-role key / admin JWT checked server-side via `is_admin`); `pairwise_wins()` + `ranked_participants()` security-definer RPCs (execute revoked from anon/authenticated) with per-user normalization (PLAN §5.1); pg_cron every 15 min via a Vault-backed `recompute_rankings_cron()` (URL + secret in Supabase Vault, no env values in migrations; one-time bootstrap runbook in `docs/RUNBOOKS.md`); `/admin` page with "Recompute now" (JWT via `functions.invoke`) + admin-gated route/nav; stale-rating cleanup (coasters leaving all pairs drop back to unrated). Backfill happens on the first scheduled run once real preferences exist.
 - **Phase 7 — Admin & moderation**: admin role/RLS, submission queue UI, add/edit coaster forms, recompute-trigger UI.
 - **Phase 8 — Hardening**: pagination everywhere, empty/loading/error states, rate limits/anti-abuse on signup + ranking, docs polish.
 

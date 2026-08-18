@@ -9,26 +9,46 @@ A multi-user webapp where roller-coaster enthusiasts rank the coasters they've r
 - The ranking is computed by a **Bradley-Terry** model fed from pairwise wins implied by each user's ordered list. Each user contributes roughly one unit of influence regardless of list length, so a casual fan's voice isn't drowned out by someone who's ridden 500 coasters.
 - The reference catalog of coasters starts from an open, public-domain dataset and grows via an admin + community submission queue (RCDB data is intentionally avoided for licensing reasons).
 
+## Features
+
+- **Live public board** — global ranking recomputed every 15 minutes by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required.
+- **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates.
+- **Seeded catalog** — 1,087 coasters / 279 parks / 101 manufacturers imported from a CC0 public-domain dataset.
+- **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params; operating-only by default.
+- **Coaster & park detail pages**, plus an admin page with a manual rankings-recompute trigger.
+
 ## Status
 
-Phase 0 (scaffold) in progress. See [`docs/PLAN.md`](docs/PLAN.md) for the full lifecycle plan (architecture, data model, algorithm, environment, deployment, phasing).
+Phases 0–6 complete (scaffold → live Bradley-Terry rankings). Next: Phase 7 (admin & moderation). See [`docs/PLAN.md`](docs/PLAN.md) for the full lifecycle plan (architecture, data model, algorithm, environment, deployment, phasing).
 
 ## Tech stack
 
-- **Frontend**: React + Vite + TypeScript SPA (Tailwind CSS)
-- **Lint/format**: oxlint + Prettier
+- **Frontend**: React 19 + Vite + TypeScript SPA (Tailwind CSS, TanStack Query, React Router)
 - **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security) — dedicated instance, develop against prod
 - **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
 - **Hosting**: Netlify (SPA, auto-deploy on push to `main`)
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
-- **Tests**: Vitest
+- **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)
+
+## Repo layout
+
+```
+app/            # Vite + React + TypeScript SPA (the whole frontend)
+supabase/       # CLI config, SQL migrations, Edge Functions (Deno)
+packages/bt/    # pure-TS Bradley-Terry MM fitting — own package.json
+scripts/        # data-engineering (CC0 coaster import) — own package.json
+data/           # reference datasets (coaster_db.csv, CC0)
+docs/           # PLAN.md (plan & decisions), RUNBOOKS.md (ops runbooks)
+```
+
+Note: `app/`, `scripts/`, and `packages/bt/` each have their **own** `package.json` (no root workspace).
 
 ## Getting started
 
 Prereqs: Node 22+, npm, the Supabase CLI (`npm i -g supabase`).
 
 ```bash
-# 1. Copy env and fill in values from the Supabase dashboard (just-in-time before Phase 1)
+# 1. Copy env and fill in values from the Supabase dashboard
 cp .env.example .env
 
 # 2. Install SPA deps and run the dev server (talks to prod Supabase under RLS)
@@ -40,11 +60,18 @@ npm run dev          # http://localhost:5173
 npm run typecheck && npm run lint && npm run test:run && npm run format:check
 ```
 
-See [`AGENTS.md`](AGENTS.md) for the full command reference, environment rules, multi-account Supabase CLI auth, and operational runbooks.
+Optional packages (only needed for their specific tasks):
+
+```bash
+cd scripts && npm install      # coaster catalog import (npm run import-coasters)
+cd packages/bt && npm install  # Bradley-Terry algorithm work + tests
+```
 
 ## Docs
 
 - [`docs/PLAN.md`](docs/PLAN.md) — authoritative project plan and decision log
+- [`AGENTS.md`](AGENTS.md) — command reference, environment rules, multi-account Supabase CLI auth
+- [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md) — operational runbooks (one-time setup, manual ops)
 
 ## License
 
