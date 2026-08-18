@@ -4,6 +4,13 @@
 # working directory name when running `supabase init`.
 project_id = "CoasterRank"
 
+# Edge Function deploy settings, consumed by `supabase functions deploy` (CI on merge to main).
+# recompute-rankings does its own 3-way Bearer auth (cron secret / service-role key / admin JWT),
+# so the platform-level JWT check must stay off — otherwise pg_cron calls are rejected with 401
+# before the function code runs.
+[functions.recompute-rankings]
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.
