@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'supabase/**'
+      # The Edge Function bundles packages/bt/src/mm.ts at deploy time, so
+      # algorithm/knob changes must redeploy the function too.
+      - 'packages/bt/**'
       - '.github/workflows/deploy-supabase.yml'
 
 permissions:

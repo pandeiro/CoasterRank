@@ -1,16 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../lib/auth-context'
+import { fetchProfile, type Profile } from '../lib/profile'
 import { supabase } from '../lib/supabase'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 
-type Profile = {
-  id: string
-  username: string | null
-  display_name: string | null
-  avatar_url: string | null
-  is_admin: boolean
-}
+export type { Profile }
 
 export default function ProfilePage() {
   const { user } = useAuth()
@@ -27,15 +22,7 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ['profile', user?.id],
     enabled: Boolean(user),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, is_admin')
-        .eq('id', user!.id)
-        .single()
-      if (error) throw error
-      return data as Profile
-    },
+    queryFn: () => fetchProfile(user!.id),
   })
 
   useEffect(() => {

@@ -11,7 +11,9 @@ supabase/            # Supabase CLI config + migrations + edge functions
   migrations/        # SQL migrations (created via `supabase migration new`)
   functions/         # Deno Edge Functions
 docs/PLAN.md         # authoritative project plan & decision log
-packages/bt/         # (Phase 6) pure TS Bradley-Terry MM
+packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
+  src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
+supabase/functions/recompute-rankings/  # Deno Edge Function: pairwise RPCs -> MM -> upsert coaster_ratings
 data/                # (Phase 2) reference datasets (CC0 coaster_db.csv committed here)
 scripts/             # (Phase 2) data-engineering package — own package.json (tsx, pg, csv-parse, dotenv)
   import-coasters.ts # CC0 CSV → parks + coasters, idempotent, direct Postgres via SUPABASE_DB_URL
@@ -54,6 +56,15 @@ npm run import-coasters -- data/coaster_db.csv      # optional: explicit CSV pat
 npm run typecheck                 # tsc --noEmit for the scripts package
 ```
 
+The Bradley-Terry package (`packages/bt`) also has its **own** `package.json` (same standalone-package pattern as `scripts/` — no root workspace):
+
+```bash
+cd packages/bt
+npm install                       # one-time, after cloning / after deps change
+npm run typecheck                 # tsc --noEmit
+npm test                          # vitest run (single pass)
+```
+
 The importer is idempotent: re-runs upsert by `(park_id, slug)` and only refresh rows whose
 `source = 'open-csv'`, so admin-created/community rows are never clobbered. It maps `Status`→
 `coaster_status` and `Type_Main`→`coaster_material`; 250 coasters with source `Location = "Other"`
@@ -68,6 +79,9 @@ cd app && npm run typecheck && npm run lint && npm run test:run && npm run forma
 
 All must pass. CI runs the same set on every PR. If you changed `scripts/`, also run
 `cd scripts && npm run typecheck` (the scripts package has its own `tsc` setup; not yet in CI).
+If you changed `packages/bt/` or the Edge Function, also run
+`cd packages/bt && npm run typecheck && npm test` (Edge Function imports `packages/bt/src/mm.ts`
+via relative path; Deno type-checks it at deploy time).
 
 ## Environment
 
@@ -95,7 +109,9 @@ used in CI (as a GitHub repo secret).
 - **SPA**: Netlify, auto-deploys on push to `main`. Build `npm run build` in `app/`; publish `app/dist`.
   SPA fallback via `app/public/_redirects` (`/* /index.html 200`). Custom domain + HTTPS added later.
 - **Schema + functions**: GitHub Actions on merge to `main` runs `supabase db push` then
-  `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**`).
+  `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**` **and
+  `packages/bt/**`** — the Edge Function bundles `packages/bt/src/mm.ts` at deploy time, so
+  algorithm changes must redeploy it).
   **Never run `supabase db push` or `supabase functions deploy` manually for routine changes.**
   Migrations and edge-function changes go through a PR → merge → CI deploy. The deploy job
   authenticates with the `SUPABASE_ACCESS_TOKEN` and `PROJECT_REF` repo secrets (no direct DB
@@ -132,6 +148,47 @@ table. To remove one:
 -- in the Supabase SQL editor
 delete from auth.users where email = 'test@example.com';
 -- user_rides/profiles rows cascade or are cleaned by the handle_new_user trigger relationship
+```
+
+### Bootstrap the rankings recompute (one-time, after the Phase 6 deploy)
+
+The 15-minute pg_cron → Edge Function pipeline reads its URL + shared secret from Supabase Vault
+(no environment values live in migrations), and the Edge Function reads the same secret from its
+own env. After the Phase 6 migration + function deploy land on prod:
+
+1. Generate a strong secret and put it in `.env` as `RECOMPUTE_AUTH_SECRET=...` (and in the
+   GitHub repo secret of the same name, if you want CI parity).
+2. Set it as an Edge Function secret (from the repo root; CLI uses `SUPABASE_ACCESS_TOKEN`):
+
+   ```bash
+   source .env && supabase secrets set RECOMPUTE_AUTH_SECRET="$RECOMPUTE_AUTH_SECRET"
+   ```
+
+3. Store the two Vault secrets in the Supabase SQL editor. **Copy the function URL from the
+   dashboard** (Edge Functions → recompute-rankings) — newer projects use a region-qualified
+   host (`https://<PROJECT_REF>.<REGION>.supabase.co/functions/v1/recompute-rankings`), not the
+   legacy `https://<PROJECT_REF>.supabase.co/...` form:
+
+   ```sql
+   select vault.create_secret(
+     'https://<PROJECT_REF>.<REGION>.supabase.co/functions/v1/recompute-rankings',
+     'recompute_function_url'
+   );
+   select vault.create_secret('<RECOMPUTE_AUTH_SECRET>', 'recompute_auth_secret');
+   ```
+
+4. Verify: call `select public.recompute_rankings_cron();` in the SQL editor, then check
+   `coaster_ratings` rows / the board. Until step 3 runs, the cron job warns + skips (harmless).
+
+### Trigger a rankings recompute manually
+
+Admins can click "Recompute now" on `/admin` (JWT-authenticated; the function checks `is_admin`
+server-side). For ops debugging with the service-role key:
+
+```bash
+source .env && curl -s -X POST \
+  "$SUPABASE_URL/functions/v1/recompute-rankings" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 
 ### Connect Netlify (just-in-time, before Phase 4)
