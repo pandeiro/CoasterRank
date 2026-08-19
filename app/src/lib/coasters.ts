@@ -290,7 +290,83 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   if (statusError) throw statusError
 }
 
+// ... existing types ...
+export type Coaster = {
+  id: string
+  park_id: string
+  name: string
+  slug: string
+  manufacturer_id: string | null
+  model: string | null
+  opening_date: string | null
+  status: CoasterStatus
+  material: CoasterMaterial
+  height_m: number | null
+  speed_kmh: number | null
+  length_m: number | null
+  inversions: number | null
+  type: string | null
+  source: string
+  external_id: string | null
+}
+
+export async function getAllCoastersAdmin() {
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('*, parks(name)')
+    .order('name')
+  if (error) throw error
+  return data as any[]
+}
+
+export async function updateCoaster(id: string, updates: Partial<Coaster>) {
+  const { error } = await supabase
+    .from('coasters')
+    .update(updates)
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function createCoaster(data: Partial<Coaster>) {
+  const { data: result, error } = await supabase
+    .from('coasters')
+    .insert(data)
+    .select()
+    .single()
+  if (error) throw error
+  return result
+}
+
+export async function getOtherParkId() {
+  const { data, error } = await supabase
+    .from('parks')
+    .select('id')
+    .eq('name', 'Other (unknown location)')
+    .maybeSingle()
+  if (error) throw error
+  return data?.id
+}
+
+export async function getCoastersInPark(parkId: string) {
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('*')
+    .eq('park_id', parkId)
+    .order('name')
+  if (error) throw error
+  return data as Coaster[]
+}
+
+export async function moveCoasterToPark(coasterId: string, newParkId: string) {
+  const { error } = await supabase
+    .from('coasters')
+    .update({ park_id: newParkId })
+    .eq('id', coasterId)
+  if (error) throw error
+}
+
 // The whole board dataset, fetched once. Ordered by BT score so filtering
+// ... rest of file ...
 // ... rest of file ...
 // ... rest of file ...
 // preserves the ranking. Filters and pagination happen client-side.
