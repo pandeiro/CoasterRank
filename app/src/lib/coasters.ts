@@ -341,7 +341,6 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   if (statusError) throw statusError
 }
 
-// ... existing types ...
 export type Coaster = {
   id: string
   park_id: string
@@ -411,9 +410,6 @@ export async function moveCoasterToPark(coasterId: string, newParkId: string) {
 }
 
 // The whole board dataset, fetched once. Ordered by BT score so filtering
-// ... rest of file ...
-// ... rest of file ...
-// ... rest of file ...
 // preserves the ranking. Filters and pagination happen client-side.
 export function useAllCoasters() {
   return useQuery({
