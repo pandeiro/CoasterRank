@@ -12,6 +12,7 @@ import MyCoastersPage from './pages/MyCoastersPage'
 import ParkDetailPage from './pages/ParkDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import SignupPage from './pages/SignupPage'
+import SubmitPage from './pages/SubmitPage'
 
 const queryClient = new QueryClient()
 
@@ -30,6 +31,7 @@ export default function App() {
               <Route element={<RequireAuth />}>
                 <Route path="/me" element={<MyCoastersPage />} />
                 <Route path="/me/profile" element={<ProfilePage />} />
+                <Route path="/submit" element={<SubmitPage />} />
               </Route>
               <Route element={<RequireAdmin />}>
                 <Route path="/admin" element={<AdminPage />} />

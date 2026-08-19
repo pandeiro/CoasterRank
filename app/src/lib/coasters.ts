@@ -178,7 +178,191 @@ export function yearFromDate(date: string | null): number | null {
   return Number.isFinite(year) ? year : null
 }
 
+// ... existing types ...
+export type CoasterSubmission = {
+  id: string
+  coaster_name: string
+  park_name: string
+  park_id: string | null
+  suggested_fields: any
+  submitted_by: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewer_note: string | null
+  reviewed_by: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+export async function submitCoaster(data: {
+  coaster_name: string
+  park_name: string
+  park_id: string | null
+  suggested_fields: any
+}) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: submission, error } = await supabase
+    .from('coaster_submissions')
+    .insert({
+      coaster_name: data.coaster_name,
+      park_name: data.park_name,
+      park_id: data.park_id,
+      suggested_fields: data.suggested_fields,
+      submitted_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return submission
+}
+
+export async function getPendingSubmissions() {
+  const { data, error } = await supabase
+    .from('coaster_submissions')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as CoasterSubmission[]
+}
+
+export async function rejectSubmission(id: string, note: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { error } = await supabase
+    .from('coaster_submissions')
+    .update({
+      status: 'rejected',
+      reviewer_note: note,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function approveSubmission(id: string, submission: CoasterSubmission) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Logic to create/link park and manufacturer.
+  // 1. Handle Park
+  let parkId = submission.park_id
+  if (!parkId) {
+    const { data: park, error: parkError } = await supabase
+      .from('parks')
+      .insert({
+        name: submission.park_name,
+        slug: submission.park_name.toLowerCase().replace(/\s+/g, '-'),
+        source: 'community',
+      })
+      .select()
+      .single()
+    if (parkError) throw parkError
+    parkId = park.id
+  }
+
+  // 2. Create Coaster
+  const { error: coasterError } = await supabase.from('coasters').insert({
+    park_id: parkId,
+    name: submission.coaster_name,
+    slug: submission.coaster_name.toLowerCase().replace(/\s+/g, '-'),
+    source: 'community',
+    ...submission.suggested_fields,
+  })
+
+  if (coasterError) throw coasterError
+
+  // 3. Update Submission Status
+  const { error: statusError } = await supabase
+    .from('coaster_submissions')
+    .update({
+      status: 'approved',
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (statusError) throw statusError
+}
+
+// ... existing types ...
+export type Coaster = {
+  id: string
+  park_id: string
+  name: string
+  slug: string
+  manufacturer_id: string | null
+  model: string | null
+  opening_date: string | null
+  status: CoasterStatus
+  material: CoasterMaterial
+  height_m: number | null
+  speed_kmh: number | null
+  length_m: number | null
+  inversions: number | null
+  type: string | null
+  source: string
+  external_id: string | null
+}
+
+export async function getAllCoastersAdmin() {
+  const { data, error } = await supabase.from('coasters').select('*, parks(name)').order('name')
+  if (error) throw error
+  return data as any[]
+}
+
+export async function updateCoaster(id: string, updates: Partial<Coaster>) {
+  const { error } = await supabase.from('coasters').update(updates).eq('id', id)
+  if (error) throw error
+}
+
+export async function createCoaster(data: Partial<Coaster>) {
+  const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
+  if (error) throw error
+  return result
+}
+
+export async function getOtherParkId() {
+  const { data, error } = await supabase
+    .from('parks')
+    .select('id')
+    .eq('name', 'Other (unknown location)')
+    .maybeSingle()
+  if (error) throw error
+  return data?.id
+}
+
+export async function getCoastersInPark(parkId: string) {
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('*')
+    .eq('park_id', parkId)
+    .order('name')
+  if (error) throw error
+  return data as Coaster[]
+}
+
+export async function moveCoasterToPark(coasterId: string, newParkId: string) {
+  const { error } = await supabase
+    .from('coasters')
+    .update({ park_id: newParkId })
+    .eq('id', coasterId)
+  if (error) throw error
+}
+
 // The whole board dataset, fetched once. Ordered by BT score so filtering
+// ... rest of file ...
+// ... rest of file ...
+// ... rest of file ...
 // preserves the ranking. Filters and pagination happen client-side.
 export function useAllCoasters() {
   return useQuery({
