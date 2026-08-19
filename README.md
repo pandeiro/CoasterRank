@@ -16,7 +16,8 @@ A multi-user webapp where roller-coaster enthusiasts rank the coasters they've r
 - **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params; operating-only by default.
 - **Seeded catalog** — 1,087 coasters / 279 parks / 101 manufacturers imported from a CC0 public-domain dataset.
 - **Submissions & moderation** — users propose missing coasters; admins review the queue, add or edit entries, and re-home orphaned rows.
-- **Coaster & park detail pages**, plus an admin dashboard with a manual rankings-recompute trigger.
+- **Coaster & park detail pages**.
+- **Admin dashboard** — manage coaster entries, moderate user submissions, re-home orphaned rows, and manually trigger rankings recompute.
 
 ## Status
 
