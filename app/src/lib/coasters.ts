@@ -26,6 +26,9 @@ import { supabase } from './supabase'
 
 export const PAGE_SIZE = 250
 export const FEW_VOTES_THRESHOLD = 10
+// Mirrors the RLS insert policy on coaster_submissions (migration
+// submission_cap): a user may have at most this many PENDING submissions.
+export const SUBMISSION_PENDING_CAP = 5
 
 export const COASTER_STATUSES = [
   'operating',
@@ -178,13 +181,23 @@ export function yearFromDate(date: string | null): number | null {
   return Number.isFinite(year) ? year : null
 }
 
-// ... existing types ...
+// Optional stats a user suggests for a new coaster (stored as jsonb on
+// coaster_submissions.suggested_fields and spread into the coaster row on
+// approval).
+export type SuggestedFields = {
+  height_m: number | null
+  speed_kmh: number | null
+  length_m: number | null
+  inversions: number | null
+  material: CoasterMaterial | null
+}
+
 export type CoasterSubmission = {
   id: string
   coaster_name: string
   park_name: string
   park_id: string | null
-  suggested_fields: any
+  suggested_fields: SuggestedFields
   submitted_by: string
   status: 'pending' | 'approved' | 'rejected'
   reviewer_note: string | null
@@ -197,7 +210,7 @@ export async function submitCoaster(data: {
   coaster_name: string
   park_name: string
   park_id: string | null
-  suggested_fields: any
+  suggested_fields: SuggestedFields
 }) {
   const {
     data: { user },
@@ -225,6 +238,17 @@ export async function getPendingSubmissions() {
     .from('coaster_submissions')
     .select('*')
     .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as CoasterSubmission[]
+}
+
+// The caller's own submissions (RLS filters select to submitted_by = uid for
+// non-admins), newest first — shown on /submit so users can track status.
+export async function getMySubmissions() {
+  const { data, error } = await supabase
+    .from('coaster_submissions')
+    .select('*')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data as CoasterSubmission[]
