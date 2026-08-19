@@ -30,6 +30,32 @@ Phases 0–6 complete (scaffold → live Bradley-Terry rankings). Next: Phase 7 
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)
 
+## Deployment Workflow
+
+```mermaid
+graph TD
+    Dev[Developer] -->|Submit PR| PR[Pull Request]
+    PR -->|Trigger| CI[GitHub Action: ci/check]
+    CI -->|Pass| Merge[Merge to main]
+    CI -->|Fail| Dev
+
+    Merge -->|Trigger| GH_Deploy[GitHub Action: deploy]
+    Merge -->|Trigger| Netlify[Netlify Auto-deploy]
+
+    subgraph Supabase [Supabase Infrastructure]
+        GH_Deploy -->|if supabase/** or packages/bt/** changed| DB[supabase db push]
+        DB --> Func[supabase functions deploy]
+    end
+
+    subgraph Frontend [Frontend Hosting]
+        Netlify --> Build[npm run build]
+        Build --> Deploy[Publish app/dist]
+    end
+
+    Func --> Site[Live Production Site]
+    Deploy --> Site
+```
+
 ## Repo layout
 
 ```
