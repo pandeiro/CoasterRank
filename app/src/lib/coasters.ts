@@ -95,8 +95,12 @@ export type RankingFilters = {
 
 export const DEFAULT_FILTERS: RankingFilters = { status: 'operating' }
 
-function isCoasterStatus(value: string | null): value is CoasterStatus {
-  return value !== null && (COASTER_STATUSES as readonly string[]).includes(value)
+export function isCoasterStatus(value: unknown): value is CoasterStatus {
+  return typeof value === 'string' && (COASTER_STATUSES as readonly string[]).includes(value)
+}
+
+export function isCoasterMaterial(value: unknown): value is CoasterMaterial {
+  return typeof value === 'string' && (COASTER_MATERIALS as readonly string[]).includes(value)
 }
 
 // Parse URL search params into filters. Default (no status param) = operating.
@@ -338,10 +342,14 @@ export type Coaster = {
   external_id: string | null
 }
 
+// A coaster row as the admin console sees it: the full row plus the joined
+// park name used for display in the management table.
+export type AdminCoaster = Coaster & { parks: { name: string } | null }
+
 export async function getAllCoastersAdmin() {
   const { data, error } = await supabase.from('coasters').select('*, parks(name)').order('name')
   if (error) throw error
-  return data as any[]
+  return data as AdminCoaster[]
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {

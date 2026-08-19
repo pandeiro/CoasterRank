@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Check, X, Edit, Plus, Home, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import Toast from '../components/Toast'
 import {
   getPendingSubmissions,
   rejectSubmission,
   approveSubmission,
+  isCoasterMaterial,
+  isCoasterStatus,
   type CoasterSubmission,
   getAllCoastersAdmin,
   updateCoaster,
@@ -25,10 +28,34 @@ type RecomputeResponse = {
   converged: boolean
 }
 
+type ToastState = { id: number; message: string; tone: 'info' | 'error' }
+
+const COASTER_PAGE_SIZE = 50
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+}
+
+function numberOrNull(value: FormDataEntryValue | null): number | null {
+  if (value === null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export default function AdminPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'submissions' | 'coasters' | 'rehome'>('submissions')
   const [message, setMessage] = useState<string | null>(null)
+
+  const [toast, setToast] = useState<ToastState | null>(null)
+  const toastSeq = useRef(0)
+  const notify = (message: string, tone: ToastState['tone'] = 'info') => {
+    toastSeq.current += 1
+    setToast({ id: toastSeq.current, message, tone })
+  }
 
   // Submissions state
   const [rejectNote, setRejectNote] = useState('')
@@ -38,6 +65,9 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCoaster, setEditingCoaster] = useState<Partial<Coaster> | null>(null)
   const [isAddingCoaster, setIsAddingCoaster] = useState(false)
+  const [coasterLimit, setCoasterLimit] = useState(COASTER_PAGE_SIZE)
+  const [formPark, setFormPark] = useState<Park | null>(null)
+  const [formParkSearch, setFormParkSearch] = useState('')
 
   // Re-home state
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
@@ -45,26 +75,38 @@ export default function AdminPage() {
 
   const { data: allParks = [] } = useParks()
 
-  const { data: submissions = [], isLoading: submissionsLoading } = useQuery({
+  const {
+    data: submissions = [],
+    isLoading: submissionsLoading,
+    isError: submissionsError,
+  } = useQuery({
     queryKey: ['submissions'],
     queryFn: getPendingSubmissions,
     enabled: activeTab === 'submissions',
   })
 
-  const { data: allCoasters = [], isLoading: coastersLoading } = useQuery({
+  const {
+    data: allCoasters = [],
+    isLoading: coastersLoading,
+    isError: coastersError,
+  } = useQuery({
     queryKey: ['coasters-admin'],
     queryFn: getAllCoastersAdmin,
     enabled: activeTab === 'coasters',
   })
 
-  const { data: otherParkId } = useQuery({
+  const { data: otherParkId, isError: otherParkError } = useQuery({
     queryKey: ['other-park-id'],
     queryFn: getOtherParkId,
     enabled: activeTab === 'rehome',
   })
 
-  const { data: otherCoasters = [], isLoading: otherCoastersLoading } = useQuery({
-    queryKey: ['other-coasters'],
+  const {
+    data: otherCoasters = [],
+    isLoading: otherCoastersLoading,
+    isError: otherCoastersError,
+  } = useQuery({
+    queryKey: ['other-coasters', otherParkId],
     queryFn: () => (otherParkId ? getCoastersInPark(otherParkId) : Promise.resolve([])),
     enabled: activeTab === 'rehome' && !!otherParkId,
   })
@@ -97,6 +139,11 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
       queryClient.invalidateQueries({ queryKey: ['rankings'] })
+      queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      notify('Submission approved and coaster created.')
+    },
+    onError: (error) => {
+      notify(`Couldn't approve submission: ${error.message}`, 'error')
     },
   })
 
@@ -108,6 +155,10 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
       setActiveRejectId(null)
       setRejectNote('')
+      notify('Submission rejected.')
+    },
+    onError: (error) => {
+      notify(`Couldn't reject submission: ${error.message}`, 'error')
     },
   })
 
@@ -123,6 +174,10 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
       setEditingCoaster(null)
       setIsAddingCoaster(false)
+      notify('Coaster saved.')
+    },
+    onError: (error) => {
+      notify(`Couldn't save coaster: ${error.message}`, 'error')
     },
   })
 
@@ -132,18 +187,86 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['other-coasters'] })
+      queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      notify('Coaster re-homed.')
+    },
+    onError: (error) => {
+      notify(`Couldn't re-home coaster: ${error.message}`, 'error')
     },
   })
 
-  const filteredCoasters = allCoasters.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.parks?.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredCoasters = useMemo(
+    () =>
+      allCoasters.filter(
+        (c) =>
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.parks?.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [allCoasters, searchQuery],
   )
+
+  // A new search restarts the incremental window.
+  useEffect(() => {
+    setCoasterLimit(COASTER_PAGE_SIZE)
+  }, [searchQuery])
+
+  const visibleCoasters = filteredCoasters.slice(0, coasterLimit)
+  const hasMoreCoasters = coasterLimit < filteredCoasters.length
 
   const filteredRehomeParks = allParks
     .filter((p) => p.name.toLowerCase().includes(rehomeSearchPark.toLowerCase()))
     .slice(0, 5)
+
+  const filteredFormParks = allParks
+    .filter((p) => p.name.toLowerCase().includes(formParkSearch.toLowerCase()))
+    .slice(0, 5)
+
+  function openAddForm() {
+    setEditingCoaster(null)
+    setIsAddingCoaster(true)
+    setFormPark(null)
+    setFormParkSearch('')
+  }
+
+  function openEditForm(coaster: Partial<Coaster>) {
+    setEditingCoaster(coaster)
+    setIsAddingCoaster(false)
+    setFormPark(allParks.find((p) => p.id === coaster.park_id) ?? null)
+    setFormParkSearch('')
+  }
+
+  function closeForm() {
+    setEditingCoaster(null)
+    setIsAddingCoaster(false)
+    setFormPark(null)
+    setFormParkSearch('')
+  }
+
+  function onCoasterSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!formPark) {
+      notify('Pick a park for the coaster first.', 'error')
+      return
+    }
+    const formData = new FormData(e.currentTarget)
+    const name = (formData.get('name') as string).trim()
+    const statusValue = formData.get('status')
+    const materialValue = formData.get('material')
+    const data: Partial<Coaster> = {
+      id: editingCoaster?.id,
+      name,
+      slug: editingCoaster?.slug ?? slugify(name),
+      park_id: formPark.id,
+      status: isCoasterStatus(statusValue) ? statusValue : 'operating',
+      material: isCoasterMaterial(materialValue) ? materialValue : 'steel',
+      height_m: numberOrNull(formData.get('height')),
+      speed_kmh: numberOrNull(formData.get('speed')),
+      length_m: numberOrNull(formData.get('length')),
+      inversions: numberOrNull(formData.get('inversions')),
+      source: 'admin',
+    }
+    saveCoaster.mutate(data)
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -173,6 +296,8 @@ export default function AdminPage() {
               <h2 className="font-medium text-slate-900 mb-4">Submission Queue</h2>
               {submissionsLoading ? (
                 <p className="text-sm text-slate-500">Loading submissions...</p>
+              ) : submissionsError ? (
+                <p className="text-sm text-red-600">Couldn&apos;t load submissions.</p>
               ) : submissions.length === 0 ? (
                 <p className="text-sm text-slate-500">No pending submissions.</p>
               ) : (
@@ -241,10 +366,7 @@ export default function AdminPage() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-medium text-slate-900">Coaster Management</h2>
                 <button
-                  onClick={() => {
-                    setEditingCoaster(null)
-                    setIsAddingCoaster(true)
-                  }}
+                  onClick={openAddForm}
                   className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
                 >
                   <Plus size={14} /> Add Coaster
@@ -266,40 +388,54 @@ export default function AdminPage() {
 
               {coastersLoading ? (
                 <p className="text-sm text-slate-500">Loading coasters...</p>
+              ) : coastersError ? (
+                <p className="text-sm text-red-600">Couldn&apos;t load coasters.</p>
+              ) : filteredCoasters.length === 0 ? (
+                <p className="text-sm text-slate-500">No coasters match that search.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-slate-500">
-                        <th className="pb-2 font-medium">Name</th>
-                        <th className="pb-2 font-medium">Park</th>
-                        <th className="pb-2 font-medium">Status</th>
-                        <th className="pb-2 text-right font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredCoasters.map((c) => (
-                        <tr key={c.id} className="hover:bg-slate-50">
-                          <td className="py-2">{c.name}</td>
-                          <td className="py-2 text-slate-600">{c.parks?.name || 'Unknown'}</td>
-                          <td className="py-2">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-600">
-                              {c.status}
-                            </span>
-                          </td>
-                          <td className="py-2 text-right">
-                            <button
-                              onClick={() => setEditingCoaster(c)}
-                              className="p-1 text-slate-400 hover:text-slate-600"
-                            >
-                              <Edit size={14} />
-                            </button>
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-slate-500">
+                          <th className="pb-2 font-medium">Name</th>
+                          <th className="pb-2 font-medium">Park</th>
+                          <th className="pb-2 font-medium">Status</th>
+                          <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {visibleCoasters.map((c) => (
+                          <tr key={c.id} className="hover:bg-slate-50">
+                            <td className="py-2">{c.name}</td>
+                            <td className="py-2 text-slate-600">{c.parks?.name || 'Unknown'}</td>
+                            <td className="py-2">
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-600">
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="py-2 text-right">
+                              <button
+                                onClick={() => openEditForm(c)}
+                                className="p-1 text-slate-400 hover:text-slate-600"
+                              >
+                                <Edit size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {hasMoreCoasters && (
+                    <button
+                      onClick={() => setCoasterLimit((n) => n + COASTER_PAGE_SIZE)}
+                      className="mt-4 w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                    >
+                      Show more ({filteredCoasters.length - coasterLimit} remaining)
+                    </button>
+                  )}
+                </>
               )}
 
               {(isAddingCoaster || editingCoaster) && (
@@ -307,29 +443,7 @@ export default function AdminPage() {
                   <h3 className="font-medium text-blue-900 mb-4">
                     {isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
                   </h3>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      const formData = new FormData(e.currentTarget)
-                      const data = {
-                        id: editingCoaster?.id,
-                        name: formData.get('name') as string,
-                        slug: (formData.get('name') as string).toLowerCase().replace(/\s+/g, '-'),
-                        park_id: formData.get('park_id') as string,
-                        status: formData.get('status') as any,
-                        material: formData.get('material') as any,
-                        height_m: formData.get('height') ? Number(formData.get('height')) : null,
-                        speed_kmh: formData.get('speed') ? Number(formData.get('speed')) : null,
-                        length_m: formData.get('length') ? Number(formData.get('length')) : null,
-                        inversions: formData.get('inversions')
-                          ? Number(formData.get('inversions'))
-                          : null,
-                        source: 'admin',
-                      }
-                      saveCoaster.mutate(data)
-                    }}
-                    className="grid gap-4 md:grid-cols-2"
-                  >
+                  <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Name *</label>
                       <input
@@ -339,20 +453,43 @@ export default function AdminPage() {
                         className="rounded border p-1.5 text-sm"
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Park ID *</label>
+                    <div className="flex flex-col gap-1 relative">
+                      <label className="text-xs font-medium">Park *</label>
                       <input
-                        name="park_id"
                         required
-                        defaultValue={editingCoaster?.park_id}
+                        value={formPark ? formPark.name : formParkSearch}
+                        onChange={(e) => {
+                          setFormParkSearch(e.target.value)
+                          setFormPark(null)
+                        }}
+                        placeholder="Search for a park..."
                         className="rounded border p-1.5 text-sm"
                       />
+                      {formParkSearch && !formPark && filteredFormParks.length > 0 && (
+                        <ul className="absolute z-10 w-full rounded border bg-white shadow-lg top-full">
+                          {filteredFormParks.map((p) => (
+                            <li
+                              key={p.id}
+                              className="cursor-pointer p-2 text-sm hover:bg-gray-100"
+                              onClick={() => {
+                                setFormPark(p)
+                                setFormParkSearch(p.name)
+                              }}
+                            >
+                              {p.name} <span className="text-xs text-gray-500">({p.country})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {formPark && (
+                        <span className="text-xs text-slate-500">Selected: {formPark.name}</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Status</label>
                       <select
                         name="status"
-                        defaultValue={editingCoaster?.status}
+                        defaultValue={editingCoaster?.status ?? 'operating'}
                         className="rounded border p-1.5 text-sm"
                       >
                         <option value="operating">Operating</option>
@@ -367,7 +504,7 @@ export default function AdminPage() {
                       <label className="text-xs font-medium">Material</label>
                       <select
                         name="material"
-                        defaultValue={editingCoaster?.material}
+                        defaultValue={editingCoaster?.material ?? 'steel'}
                         className="rounded border p-1.5 text-sm"
                       >
                         <option value="steel">Steel</option>
@@ -418,10 +555,7 @@ export default function AdminPage() {
                     <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditingCoaster(null)
-                          setIsAddingCoaster(false)
-                        }}
+                        onClick={closeForm}
                         className="px-3 py-1 text-xs text-slate-600 hover:underline"
                       >
                         Cancel
@@ -494,6 +628,8 @@ export default function AdminPage() {
 
               {otherCoastersLoading ? (
                 <p className="text-sm text-slate-500">Loading coasters...</p>
+              ) : otherParkError || otherCoastersError ? (
+                <p className="text-sm text-red-600">Couldn&apos;t load the re-home list.</p>
               ) : otherCoasters.length === 0 ? (
                 <p className="text-sm text-slate-500">No coasters found in the 'Other' park.</p>
               ) : (
@@ -507,7 +643,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           if (!selectedRehomePark) {
-                            alert('Please select a target park first.')
+                            notify('Select a target park first.', 'error')
                             return
                           }
                           rehome.mutate({ coasterId: c.id, parkId: selectedRehomePark.id })
@@ -554,6 +690,15 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          tone={toast.tone}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   )
 }
