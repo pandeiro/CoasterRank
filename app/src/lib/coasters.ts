@@ -167,6 +167,15 @@ export function isFewVotes(comparisons: number | null): boolean {
   return comparisons !== null && comparisons < FEW_VOTES_THRESHOLD
 }
 
+// URL-safe slug from a display name: lowercase, spaces → dashes, strip the
+// rest. Used for admin-created parks/coasters and approved submissions.
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 }
@@ -290,12 +299,17 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
       .from('parks')
       .insert({
         name: submission.park_name,
-        slug: submission.park_name.toLowerCase().replace(/\s+/g, '-'),
+        slug: slugify(submission.park_name),
         source: 'community',
       })
       .select()
       .single()
-    if (parkError) throw parkError
+    if (parkError) {
+      // parks.slug UNIQUE — a near-identical park name already exists.
+      throw parkError.code === '23505'
+        ? new Error(`A park named "${submission.park_name}" already exists.`)
+        : parkError
+    }
     parkId = park.id
   }
 
@@ -303,12 +317,17 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   const { error: coasterError } = await supabase.from('coasters').insert({
     park_id: parkId,
     name: submission.coaster_name,
-    slug: submission.coaster_name.toLowerCase().replace(/\s+/g, '-'),
+    slug: slugify(submission.coaster_name),
     source: 'community',
     ...submission.suggested_fields,
   })
 
-  if (coasterError) throw coasterError
+  if (coasterError) {
+    // coasters UNIQUE(park_id, slug) — same name already in that park.
+    throw coasterError.code === '23505'
+      ? new Error(`A coaster named "${submission.coaster_name}" already exists in that park.`)
+      : coasterError
+  }
 
   // 3. Update Submission Status
   const { error: statusError } = await supabase

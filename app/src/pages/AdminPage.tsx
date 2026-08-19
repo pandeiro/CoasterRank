@@ -16,6 +16,7 @@ import {
   getOtherParkId,
   getCoastersInPark,
   moveCoasterToPark,
+  slugify,
   type Coaster,
   useParks,
   type Park,
@@ -31,13 +32,6 @@ type RecomputeResponse = {
 type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-}
 
 function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
