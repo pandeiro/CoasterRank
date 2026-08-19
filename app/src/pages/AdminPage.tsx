@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Check, X, Edit, Plus, Home, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { 
-  getPendingSubmissions, 
-  rejectSubmission, 
-  approveSubmission, 
+import {
+  getPendingSubmissions,
+  rejectSubmission,
+  approveSubmission,
   type CoasterSubmission,
   getAllCoastersAdmin,
   updateCoaster,
@@ -15,7 +15,7 @@ import {
   moveCoasterToPark,
   type Coaster,
   useParks,
-  type Park
+  type Park,
 } from '../lib/coasters'
 
 type RecomputeResponse = {
@@ -29,7 +29,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'submissions' | 'coasters' | 'rehome'>('submissions')
   const [message, setMessage] = useState<string | null>(null)
-  
+
   // Submissions state
   const [rejectNote, setRejectNote] = useState('')
   const [activeRejectId, setActiveRejectId] = useState<string | null>(null)
@@ -65,7 +65,7 @@ export default function AdminPage() {
 
   const { data: otherCoasters = [], isLoading: otherCoastersLoading } = useQuery({
     queryKey: ['other-coasters'],
-    queryFn: () => otherParkId ? getCoastersInPark(otherParkId) : Promise.resolve([]),
+    queryFn: () => (otherParkId ? getCoastersInPark(otherParkId) : Promise.resolve([])),
     enabled: activeTab === 'rehome' && !!otherParkId,
   })
 
@@ -135,13 +135,14 @@ export default function AdminPage() {
     },
   })
 
-  const filteredCoasters = allCoasters.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.parks?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCoasters = allCoasters.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.parks?.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const filteredRehomeParks = allParks
-    .filter(p => p.name.toLowerCase().includes(rehomeSearchPark.toLowerCase()))
+    .filter((p) => p.name.toLowerCase().includes(rehomeSearchPark.toLowerCase()))
     .slice(0, 5)
 
   return (
@@ -149,12 +150,14 @@ export default function AdminPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-slate-900">Admin</h1>
         <div className="flex bg-slate-100 p-1 rounded-lg">
-          {(['submissions', 'coasters', 'rehome'] as const).map(tab => (
+          {(['submissions', 'coasters', 'rehome'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                activeTab === tab ? 'bg-white shadow-sm text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'
+                activeTab === tab
+                  ? 'bg-white shadow-sm text-slate-900 font-medium'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -249,7 +252,10 @@ export default function AdminPage() {
               </div>
 
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
                 <input
                   className="w-full rounded border border-slate-200 pl-10 pr-4 py-2 text-sm"
                   placeholder="Search coasters or parks..."
@@ -301,7 +307,7 @@ export default function AdminPage() {
                   <h3 className="font-medium text-blue-900 mb-4">
                     {isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
                   </h3>
-                  <form 
+                  <form
                     onSubmit={(e) => {
                       e.preventDefault()
                       const formData = new FormData(e.currentTarget)
@@ -315,7 +321,9 @@ export default function AdminPage() {
                         height_m: formData.get('height') ? Number(formData.get('height')) : null,
                         speed_kmh: formData.get('speed') ? Number(formData.get('speed')) : null,
                         length_m: formData.get('length') ? Number(formData.get('length')) : null,
-                        inversions: formData.get('inversions') ? Number(formData.get('inversions')) : null,
+                        inversions: formData.get('inversions')
+                          ? Number(formData.get('inversions'))
+                          : null,
                         source: 'admin',
                       }
                       saveCoaster.mutate(data)
@@ -324,25 +332,29 @@ export default function AdminPage() {
                   >
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Name *</label>
-                      <input 
-                        name="name" 
-                        required 
-                        defaultValue={editingCoaster?.name} 
-                        className="rounded border p-1.5 text-sm" 
+                      <input
+                        name="name"
+                        required
+                        defaultValue={editingCoaster?.name}
+                        className="rounded border p-1.5 text-sm"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Park ID *</label>
-                      <input 
-                        name="park_id" 
-                        required 
-                        defaultValue={editingCoaster?.park_id} 
-                        className="rounded border p-1.5 text-sm" 
+                      <input
+                        name="park_id"
+                        required
+                        defaultValue={editingCoaster?.park_id}
+                        className="rounded border p-1.5 text-sm"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Status</label>
-                      <select name="status" defaultValue={editingCoaster?.status} className="rounded border p-1.5 text-sm">
+                      <select
+                        name="status"
+                        defaultValue={editingCoaster?.status}
+                        className="rounded border p-1.5 text-sm"
+                      >
                         <option value="operating">Operating</option>
                         <option value="defunct">Defunct</option>
                         <option value="sbno">SBNO</option>
@@ -353,7 +365,11 @@ export default function AdminPage() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Material</label>
-                      <select name="material" defaultValue={editingCoaster?.material} className="rounded border p-1.5 text-sm">
+                      <select
+                        name="material"
+                        defaultValue={editingCoaster?.material}
+                        className="rounded border p-1.5 text-sm"
+                      >
                         <option value="steel">Steel</option>
                         <option value="wood">Wood</option>
                         <option value="hybrid">Hybrid</option>
@@ -362,30 +378,56 @@ export default function AdminPage() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Height (m)</label>
-                      <input name="height" type="number" step="0.1" defaultValue={editingCoaster?.height_m ?? ''} className="rounded border p-1.5 text-sm" />
+                      <input
+                        name="height"
+                        type="number"
+                        step="0.1"
+                        defaultValue={editingCoaster?.height_m ?? ''}
+                        className="rounded border p-1.5 text-sm"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Speed (km/h)</label>
-                      <input name="speed" type="number" step="0.1" defaultValue={editingCoaster?.speed_kmh ?? ''} className="rounded border p-1.5 text-sm" />
+                      <input
+                        name="speed"
+                        type="number"
+                        step="0.1"
+                        defaultValue={editingCoaster?.speed_kmh ?? ''}
+                        className="rounded border p-1.5 text-sm"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Length (m)</label>
-                      <input name="length" type="number" step="0.1" defaultValue={editingCoaster?.length_m ?? ''} className="rounded border p-1.5 text-sm" />
+                      <input
+                        name="length"
+                        type="number"
+                        step="0.1"
+                        defaultValue={editingCoaster?.length_m ?? ''}
+                        className="rounded border p-1.5 text-sm"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium">Inversions</label>
-                      <input name="inversions" type="number" defaultValue={editingCoaster?.inversions ?? ''} className="rounded border p-1.5 text-sm" />
+                      <input
+                        name="inversions"
+                        type="number"
+                        defaultValue={editingCoaster?.inversions ?? ''}
+                        className="rounded border p-1.5 text-sm"
+                      />
                     </div>
                     <div className="md:col-span-2 flex justify-end gap-2 mt-2">
-                      <button 
-                        type="button" 
-                        onClick={() => { setEditingCoaster(null); setIsAddingCoaster(false); }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCoaster(null)
+                          setIsAddingCoaster(false)
+                        }}
                         className="px-3 py-1 text-xs text-slate-600 hover:underline"
                       >
                         Cancel
                       </button>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         disabled={saveCoaster.isPending}
                         className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
                       >
@@ -405,12 +447,17 @@ export default function AdminPage() {
                 <h2 className="font-medium text-slate-900">Re-home Coasters</h2>
               </div>
               <p className="text-sm text-slate-600 mb-6">
-                Move coasters from the <code className="bg-slate-100 px-1 rounded">Other (unknown location)</code> park to their correct locations.
+                Move coasters from the{' '}
+                <code className="bg-slate-100 px-1 rounded">Other (unknown location)</code> park to
+                their correct locations.
               </p>
 
               <div className="flex gap-4 mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                  />
                   <input
                     className="w-full rounded border border-slate-200 pl-10 pr-4 py-2 text-sm"
                     placeholder="Search for target park..."
@@ -452,7 +499,10 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-3">
                   {otherCoasters.map((c) => (
-                    <div key={c.id} className="flex justify-between items-center p-3 rounded border border-slate-100 hover:bg-slate-50">
+                    <div
+                      key={c.id}
+                      className="flex justify-between items-center p-3 rounded border border-slate-100 hover:bg-slate-50"
+                    >
                       <span className="text-sm font-medium">{c.name}</span>
                       <button
                         onClick={() => {
@@ -495,7 +545,9 @@ export default function AdminPage() {
               {recompute.isPending ? 'Recomputing…' : 'Recompute now'}
             </button>
             {message && (
-              <p className={`mt-4 text-sm ${recompute.isError ? 'text-red-600' : 'text-green-700'}`}>
+              <p
+                className={`mt-4 text-sm ${recompute.isError ? 'text-red-600' : 'text-green-700'}`}
+              >
                 {message}
               </p>
             )}

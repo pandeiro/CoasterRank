@@ -199,7 +199,9 @@ export async function submitCoaster(data: {
   park_id: string | null
   suggested_fields: any
 }) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   const { data: submission, error } = await supabase
@@ -229,7 +231,9 @@ export async function getPendingSubmissions() {
 }
 
 export async function rejectSubmission(id: string, note: string) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   const { error } = await supabase
@@ -245,7 +249,9 @@ export async function rejectSubmission(id: string, note: string) {
 }
 
 export async function approveSubmission(id: string, submission: CoasterSubmission) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   // Logic to create/link park and manufacturer.
@@ -254,10 +260,10 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   if (!parkId) {
     const { data: park, error: parkError } = await supabase
       .from('parks')
-      .insert({ 
-        name: submission.park_name, 
-        slug: submission.park_name.toLowerCase().replace(/\s+/g, '-'), 
-        source: 'community' 
+      .insert({
+        name: submission.park_name,
+        slug: submission.park_name.toLowerCase().replace(/\s+/g, '-'),
+        source: 'community',
       })
       .select()
       .single()
@@ -266,15 +272,13 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   }
 
   // 2. Create Coaster
-  const { error: coasterError } = await supabase
-    .from('coasters')
-    .insert({
-      park_id: parkId,
-      name: submission.coaster_name,
-      slug: submission.coaster_name.toLowerCase().replace(/\s+/g, '-'),
-      source: 'community',
-      ...submission.suggested_fields,
-    })
+  const { error: coasterError } = await supabase.from('coasters').insert({
+    park_id: parkId,
+    name: submission.coaster_name,
+    slug: submission.coaster_name.toLowerCase().replace(/\s+/g, '-'),
+    source: 'community',
+    ...submission.suggested_fields,
+  })
 
   if (coasterError) throw coasterError
 
@@ -311,28 +315,18 @@ export type Coaster = {
 }
 
 export async function getAllCoastersAdmin() {
-  const { data, error } = await supabase
-    .from('coasters')
-    .select('*, parks(name)')
-    .order('name')
+  const { data, error } = await supabase.from('coasters').select('*, parks(name)').order('name')
   if (error) throw error
   return data as any[]
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {
-  const { error } = await supabase
-    .from('coasters')
-    .update(updates)
-    .eq('id', id)
+  const { error } = await supabase.from('coasters').update(updates).eq('id', id)
   if (error) throw error
 }
 
 export async function createCoaster(data: Partial<Coaster>) {
-  const { data: result, error } = await supabase
-    .from('coasters')
-    .insert(data)
-    .select()
-    .single()
+  const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
   if (error) throw error
   return result
 }
