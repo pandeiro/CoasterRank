@@ -42,7 +42,9 @@ export default function CoasterTable({ rows, showPark = true, parks = new Map() 
                 key={row.id}
                 className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
               >
-                <td className="px-4 py-3 font-mono text-slate-500">{row.rank}</td>
+                <td className="px-4 py-3 font-mono text-slate-500">
+                  {row.rank === null ? '—' : row.rank}
+                </td>
                 <td className="px-4 py-3">
                   <Link
                     to={`/coasters/${row.slug}`}
