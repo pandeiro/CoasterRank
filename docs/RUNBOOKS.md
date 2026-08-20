@@ -18,6 +18,7 @@ see `AGENTS.md`; for architecture and decisions see `docs/PLAN.md`.
 3. Add env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Netlify site settings.
 4. Add the Netlify URL (`https://<site>.netlify.app`) plus `http://localhost:5173` to Supabase Auth
    → Redirect URLs.
+5. **Site access: Public** — Netlify Dashboard → Site settings → Access control → Site access → **Public** (new sites default to password-protected; deploy previews have a separate "Deploy previews" toggle below this).
 
 Once connected, run the **go-live checklist** (`docs/PLAN.md` §9.5) before sharing the URL.
 
@@ -67,6 +68,14 @@ editor, replacing the email with yours:
 update public.profiles set is_admin = true
 where id = (select id from auth.users where email = 'you@example.com');
 ```
+
+**Verify on prod:**
+1. Visit `/me/profile` → admin badge visible next to username
+2. Visit `/admin` → all three tabs load (Submissions, Coasters, Rehome) without 403/redirect
+3. On Submissions tab: "No pending submissions" or list renders
+4. On Coasters tab: table loads with search, "Add Coaster" button works
+5. On Rehome tab: "No coasters found in 'Other' park" or list renders
+6. Rankings card: "Recompute now" button enabled, click triggers function (check toast)
 
 ## Cleanup a test user created in prod
 

@@ -269,9 +269,22 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 - [ ] **Netlify deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
 - [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
 - [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
-- [ ] **Admin bootstrapped** — SQL runbook in `docs/RUNBOOKS.md`; verify the admin badge shows on `/me/profile` on prod.
-- [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
-- [ ] **Reference data present** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
+- [ ] **Netlify Site access public** — Netlify Dashboard → Site settings → Access control → Site access → **Public** (defaults to password-protected on new sites; deploy previews have a separate "Deploy previews" toggle below).
+- [ ] **Admin bootstrapped** —
+  - Run SQL in Supabase SQL editor: `update public.profiles set is_admin = true where id = (select id from auth.users where email = 'you@example.com');`
+  - Verify: on prod, visit `/me/profile` → admin badge visible
+  - Verify: on prod, visit `/admin` → all three tabs (Submissions, Coasters, Rehome) load without 403
+- [ ] **End-to-end smoke on prod** —
+  - Sign up with a real email inbox (not a disposable)
+  - Click confirmation link in email → lands on prod URL, not localhost
+  - Log in → `/me` loads, shows "My Coasters" page
+  - Search for a coaster, add to ridden list, drag-sort a rank, save → toast confirms
+  - Visit `/submit` → form loads (email-confirmed gate passes)
+  - Submit a test coaster → appears in admin queue on `/admin` (Submissions tab)
+  - On `/admin`, approve the submission → coaster created, appears on board
+  - Log out → board (`/`) loads publicly, shows rankings
+- [ ] **Reference data imported** — `cd scripts && npm run import-coasters -- --apply` has been run; the board lists coasters.
+  - **Note:** Current CC0 seed (~1,087 coasters) is a starting point only — incomplete, status mappings approximate, 250 coasters in synthetic "Other (unknown location)" park. **Data cleanup/expansion is a separate Phase 9+ effort** (deduplication, status verification, park geocoding, manufacturer enrichment, RCDB cross-reference if licensing permits). This checklist item only confirms the import pipeline works and data renders.
 
 ## 10. Phasing (milestones)
 
