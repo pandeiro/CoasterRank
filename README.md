@@ -1,5 +1,7 @@
 # CoasterRank
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/c219262e-804f-4f45-b26e-fde0f8740205/deploy-status)](https://app.netlify.com/projects/coasterrank/deploys)
+
 A multi-user webapp where roller-coaster enthusiasts rank the coasters they've ridden, and every visitor sees a live global ranking derived from everyone's input.
 
 ## Vision
