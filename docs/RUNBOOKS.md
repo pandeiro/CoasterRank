@@ -119,3 +119,25 @@ source .env && curl -s -X POST \
   "$SUPABASE_URL/functions/v1/recompute-rankings" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
+
+## Anti-abuse & rate limits (what's already in place)
+
+Most abuse protection is delegated to Supabase's built-in, server-side limits rather than custom
+code; this section records what that is and where the app adds its own guards.
+
+- **Signup / login / email sends**: Supabase Auth applies per-IP rate limits on signups, sign-ins,
+  and confirmation-email sends by default (tunable in the dashboard under Auth → Rate Limits). No
+  client code is needed for these; tune the dashboard thresholds if the defaults prove too loose or
+  too tight.
+- **Ranking writes (`user_rides`)**: gated behind a confirmed email (RLS `user_email_verified()`),
+  which is the main barrier to throwaway-account spam.
+- **Coaster submissions**: capped at `SUBMISSION_PENDING_CAP` (5) *pending* submissions per user,
+  enforced in the RLS insert policy (`submission_within_cap()`, migration `submission_cap`) and
+  pre-checked in the SPA for a friendlier message. Reviewed submissions stop counting, so a
+  responsive moderation queue unblocks users.
+- **Reference-table writes** (`parks`/`coasters`/`manufacturers`): admin-only via RLS `is_admin()`,
+  so they are not a public abuse surface.
+
+If spam appears despite the above, the first knobs to reach for are the Supabase Auth rate-limit
+settings and tightening `SUBMISSION_PENDING_CAP`; only add custom server-side throttling if those
+prove insufficient.

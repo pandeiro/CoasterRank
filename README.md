@@ -13,13 +13,15 @@ A multi-user webapp where roller-coaster enthusiasts rank the coasters they've r
 
 - **Live public board** — global ranking recomputed every 15 minutes by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required.
 - **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates.
-- **Seeded catalog** — 1,087 coasters / 279 parks / 101 manufacturers imported from a CC0 public-domain dataset.
 - **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params; operating-only by default.
-- **Coaster & park detail pages**, plus an admin page with a manual rankings-recompute trigger.
+- **Seeded catalog** — 1,087 coasters / 279 parks / 101 manufacturers imported from a CC0 public-domain dataset.
+- **Submissions & moderation** — users propose missing coasters; admins review the queue, add or edit entries, and re-home orphaned rows.
+- **Coaster & park detail pages**.
+- **Admin dashboard** — manage coaster entries, moderate user submissions, re-home orphaned rows, and manually trigger rankings recompute.
 
 ## Status
 
-Phases 0–6 complete (scaffold → live Bradley-Terry rankings). Next: Phase 7 (admin & moderation). See [`docs/PLAN.md`](docs/PLAN.md) for the full lifecycle plan (architecture, data model, algorithm, environment, deployment, phasing).
+All v1 phases complete (scaffold → live Bradley-Terry rankings → admin & moderation). Go-live checklist pending. See [`docs/PLAN.md`](docs/PLAN.md) for the full lifecycle plan (architecture, data model, algorithm, environment, deployment, phasing).
 
 ## Tech stack
 
@@ -36,6 +38,7 @@ Phases 0–6 complete (scaffold → live Bradley-Terry rankings). Next: Phase 7 
 graph TD
     Dev[Developer] -->|Submit PR| PR[Pull Request]
     PR -->|Trigger| CI[GitHub Action: ci/check]
+    PR -.->|Netlify auto-deploys branch| Preview[Deploy Preview]
     CI -->|Pass| Merge[Merge to main]
     CI -->|Fail| Dev
 

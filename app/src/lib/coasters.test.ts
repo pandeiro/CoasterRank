@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
+  approveSubmission,
   buildParkMap,
   FEW_VOTES_THRESHOLD,
   filterCoasters,
@@ -7,9 +8,19 @@ import {
   filtersToSearchParams,
   isFewVotes,
   capitalize,
+  slugify,
   yearFromDate,
+  type CoasterSubmission,
 } from './coasters'
+import { supabase } from './supabase'
 import { makeManufacturer, makePark, makeRankingRow } from '../test/fixtures'
+
+vi.mock('./supabase', () => ({
+  supabase: {
+    auth: { getUser: vi.fn() },
+    from: vi.fn(),
+  },
+}))
 
 describe('filtersFromSearchParams', () => {
   it('defaults to operating with no params (clean URL)', () => {
@@ -174,5 +185,93 @@ describe('yearFromDate', () => {
   it('returns null for empty or partial dates', () => {
     expect(yearFromDate(null)).toBeNull()
     expect(yearFromDate('')).toBeNull()
+  })
+})
+
+describe('slugify', () => {
+  it('lowercases and dashes spaces', () => {
+    expect(slugify('Steel Vengeance')).toBe('steel-vengeance')
+  })
+
+  it('collapses runs of whitespace and strips punctuation', () => {
+    expect(slugify('  Kingda  Ka! (2005) ')).toBe('kingda-ka-2005')
+  })
+})
+
+describe('approveSubmission', () => {
+  const insertSingle = vi.fn()
+  const coasterInsert = vi.fn()
+  const submissionUpdateEq = vi.fn()
+
+  const submission = {
+    id: 's1',
+    coaster_name: 'Test Coaster',
+    park_name: 'Test Park',
+    park_id: null,
+    suggested_fields: {
+      height_m: null,
+      speed_kmh: null,
+      length_m: null,
+      inversions: null,
+      material: null,
+    },
+    submitted_by: 'u1',
+    status: 'pending',
+    reviewer_note: null,
+    reviewed_by: null,
+    created_at: '',
+    reviewed_at: null,
+  } satisfies CoasterSubmission
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'u1' } } } as never)
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'parks') {
+        return { insert: () => ({ select: () => ({ single: insertSingle }) }) }
+      }
+      if (table === 'coasters') {
+        return { insert: coasterInsert }
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) }
+    }) as never)
+    insertSingle.mockResolvedValue({ data: { id: 'p9' }, error: null })
+    coasterInsert.mockResolvedValue({ error: null })
+    submissionUpdateEq.mockResolvedValue({ error: null })
+  })
+
+  it('creates the park and coaster with slugified slugs', async () => {
+    await approveSubmission('s1', submission)
+    expect(vi.mocked(supabase.from)).toHaveBeenCalledWith('parks')
+    expect(insertSingle).toHaveBeenCalled()
+    expect(coasterInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ park_id: 'p9', slug: 'test-coaster', source: 'community' }),
+    )
+    expect(submissionUpdateEq).toHaveBeenCalledWith('id', 's1')
+  })
+
+  it('maps a park slug collision to a friendly error', async () => {
+    insertSingle.mockResolvedValue({
+      data: null,
+      error: { code: '23505', message: 'duplicate key' },
+    })
+    await expect(approveSubmission('s1', submission)).rejects.toThrow(
+      'A park named "Test Park" already exists.',
+    )
+    expect(coasterInsert).not.toHaveBeenCalled()
+  })
+
+  it('maps a coaster slug collision to a friendly error', async () => {
+    coasterInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
+    await expect(approveSubmission('s1', submission)).rejects.toThrow(
+      'A coaster named "Test Coaster" already exists in that park.',
+    )
+    expect(submissionUpdateEq).not.toHaveBeenCalled()
+  })
+
+  it('skips park creation when the submission already has a park', async () => {
+    await approveSubmission('s1', { ...submission, park_id: 'p1' })
+    expect(insertSingle).not.toHaveBeenCalled()
+    expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p1' }))
   })
 })

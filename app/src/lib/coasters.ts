@@ -26,6 +26,9 @@ import { supabase } from './supabase'
 
 export const PAGE_SIZE = 250
 export const FEW_VOTES_THRESHOLD = 10
+// Mirrors the RLS insert policy on coaster_submissions (migration
+// submission_cap): a user may have at most this many PENDING submissions.
+export const SUBMISSION_PENDING_CAP = 5
 
 export const COASTER_STATUSES = [
   'operating',
@@ -92,8 +95,12 @@ export type RankingFilters = {
 
 export const DEFAULT_FILTERS: RankingFilters = { status: 'operating' }
 
-function isCoasterStatus(value: string | null): value is CoasterStatus {
-  return value !== null && (COASTER_STATUSES as readonly string[]).includes(value)
+export function isCoasterStatus(value: unknown): value is CoasterStatus {
+  return typeof value === 'string' && (COASTER_STATUSES as readonly string[]).includes(value)
+}
+
+export function isCoasterMaterial(value: unknown): value is CoasterMaterial {
+  return typeof value === 'string' && (COASTER_MATERIALS as readonly string[]).includes(value)
 }
 
 // Parse URL search params into filters. Default (no status param) = operating.
@@ -160,6 +167,15 @@ export function isFewVotes(comparisons: number | null): boolean {
   return comparisons !== null && comparisons < FEW_VOTES_THRESHOLD
 }
 
+// URL-safe slug from a display name: lowercase, spaces → dashes, strip the
+// rest. Used for admin-created parks/coasters and approved submissions.
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 }
@@ -178,13 +194,23 @@ export function yearFromDate(date: string | null): number | null {
   return Number.isFinite(year) ? year : null
 }
 
-// ... existing types ...
+// Optional stats a user suggests for a new coaster (stored as jsonb on
+// coaster_submissions.suggested_fields and spread into the coaster row on
+// approval).
+export type SuggestedFields = {
+  height_m: number | null
+  speed_kmh: number | null
+  length_m: number | null
+  inversions: number | null
+  material: CoasterMaterial | null
+}
+
 export type CoasterSubmission = {
   id: string
   coaster_name: string
   park_name: string
   park_id: string | null
-  suggested_fields: any
+  suggested_fields: SuggestedFields
   submitted_by: string
   status: 'pending' | 'approved' | 'rejected'
   reviewer_note: string | null
@@ -197,7 +223,7 @@ export async function submitCoaster(data: {
   coaster_name: string
   park_name: string
   park_id: string | null
-  suggested_fields: any
+  suggested_fields: SuggestedFields
 }) {
   const {
     data: { user },
@@ -225,6 +251,17 @@ export async function getPendingSubmissions() {
     .from('coaster_submissions')
     .select('*')
     .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as CoasterSubmission[]
+}
+
+// The caller's own submissions (RLS filters select to submitted_by = uid for
+// non-admins), newest first — shown on /submit so users can track status.
+export async function getMySubmissions() {
+  const { data, error } = await supabase
+    .from('coaster_submissions')
+    .select('*')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data as CoasterSubmission[]
@@ -262,12 +299,17 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
       .from('parks')
       .insert({
         name: submission.park_name,
-        slug: submission.park_name.toLowerCase().replace(/\s+/g, '-'),
+        slug: slugify(submission.park_name),
         source: 'community',
       })
       .select()
       .single()
-    if (parkError) throw parkError
+    if (parkError) {
+      // parks.slug UNIQUE — a near-identical park name already exists.
+      throw parkError.code === '23505'
+        ? new Error(`A park named "${submission.park_name}" already exists.`)
+        : parkError
+    }
     parkId = park.id
   }
 
@@ -275,12 +317,17 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   const { error: coasterError } = await supabase.from('coasters').insert({
     park_id: parkId,
     name: submission.coaster_name,
-    slug: submission.coaster_name.toLowerCase().replace(/\s+/g, '-'),
+    slug: slugify(submission.coaster_name),
     source: 'community',
     ...submission.suggested_fields,
   })
 
-  if (coasterError) throw coasterError
+  if (coasterError) {
+    // coasters UNIQUE(park_id, slug) — same name already in that park.
+    throw coasterError.code === '23505'
+      ? new Error(`A coaster named "${submission.coaster_name}" already exists in that park.`)
+      : coasterError
+  }
 
   // 3. Update Submission Status
   const { error: statusError } = await supabase
@@ -294,7 +341,6 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   if (statusError) throw statusError
 }
 
-// ... existing types ...
 export type Coaster = {
   id: string
   park_id: string
@@ -314,10 +360,14 @@ export type Coaster = {
   external_id: string | null
 }
 
+// A coaster row as the admin console sees it: the full row plus the joined
+// park name used for display in the management table.
+export type AdminCoaster = Coaster & { parks: { name: string } | null }
+
 export async function getAllCoastersAdmin() {
   const { data, error } = await supabase.from('coasters').select('*, parks(name)').order('name')
   if (error) throw error
-  return data as any[]
+  return data as AdminCoaster[]
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {
@@ -360,9 +410,6 @@ export async function moveCoasterToPark(coasterId: string, newParkId: string) {
 }
 
 // The whole board dataset, fetched once. Ordered by BT score so filtering
-// ... rest of file ...
-// ... rest of file ...
-// ... rest of file ...
 // preserves the ranking. Filters and pagination happen client-side.
 export function useAllCoasters() {
   return useQuery({

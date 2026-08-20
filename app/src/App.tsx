@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage'
 import MyCoastersPage from './pages/MyCoastersPage'
 import ParkDetailPage from './pages/ParkDetailPage'
 import ProfilePage from './pages/ProfilePage'
+import NotFoundPage from './pages/NotFoundPage'
 import SignupPage from './pages/SignupPage'
 import SubmitPage from './pages/SubmitPage'
 
@@ -36,6 +37,7 @@ export default function App() {
               <Route element={<RequireAdmin />}>
                 <Route path="/admin" element={<AdminPage />} />
               </Route>
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
         </BrowserRouter>
