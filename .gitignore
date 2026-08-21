@@ -26,6 +26,7 @@ supabase/.env.*.local
 !.vscode/extensions.json
 .idea/
 *.sw?
+.kiro
 
 # Logs
 *.log
