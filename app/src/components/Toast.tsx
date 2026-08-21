@@ -30,7 +30,7 @@ export default function Toast({ message, onDismiss, durationMs = 3000, tone = 'i
       role={tone === 'error' ? 'alert' : 'status'}
       aria-live="polite"
       className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-sm text-white shadow-lg transition-opacity duration-300 ${
-        tone === 'error' ? 'bg-red-600' : 'bg-slate-900'
+        tone === 'error' ? 'bg-danger' : 'bg-ink'
       } ${visible ? 'opacity-100' : 'opacity-0'}`}
     >
       {message}
