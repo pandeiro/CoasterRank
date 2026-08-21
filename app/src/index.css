@@ -1,3 +1,63 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-ink: 26 26 46;
+  --color-ink-soft: 47 46 72;
+  --color-canvas: 254 252 243;
+  --color-surface: 245 240 232;
+  --color-surface-bright: 255 255 255;
+  --color-line: 224 219 209;
+  --color-muted: 74 74 90;
+  --color-accent: 72 202 228;
+  --color-accent-strong: 21 154 184;
+  --color-coral: 232 93 117;
+  --color-success: 46 139 115;
+  --color-warning: 183 121 31;
+  --color-danger: 194 65 86;
+}
+
+@layer base {
+  html {
+    background: rgb(var(--color-canvas));
+  }
+
+  body {
+    min-width: 320px;
+    background: rgb(var(--color-canvas));
+    color: rgb(var(--color-ink));
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgb(var(--color-accent) / 0.35);
+    color: rgb(var(--color-ink));
+  }
+
+  :focus-visible {
+    outline: 3px solid rgb(var(--color-accent) / 0.7);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page-container {
+    width: min(100% - 2rem, 72rem);
+    margin-inline: auto;
+  }
+
+  .display-heading {
+    font-family: 'Racing Sans One', Arial, sans-serif;
+    letter-spacing: 0.01em;
+  }
+}

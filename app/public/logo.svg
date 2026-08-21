@@ -1,0 +1,7 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>CoasterRank</title>
+  <path d="M12 90V70h8v20h8V50h8v40h8V30h8v60h8V10h8v80h8V55h8v35h8V40h8v50h8" stroke="#48CAE4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m10 90 20-35 20 20 20-35 20 25 20-45" stroke="#E85D75" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="70" cy="40" r="4" fill="#E85D75"/>
+  <circle cx="110" cy="20" r="4" fill="#E85D75"/>
+</svg>
