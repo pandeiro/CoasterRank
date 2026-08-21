@@ -39,14 +39,17 @@ export default function CoasterTable({ rows, showPark = true, parks = new Map() 
           <tbody className="divide-y divide-line/70">
             {rows.map((row) => {
               const park = parks.get(row.park_id)
+              const isTopRank = row.rank !== null && row.rank <= 3
+              const rankLabel = row.rank === null ? '—' : row.rank
+
               return (
                 <tr key={row.id} className="group transition-colors hover:bg-canvas">
                   <td
                     className={`display-heading px-4 py-3 text-2xl ${
-                      row.rank <= 3 ? 'text-coral' : 'text-muted'
+                      isTopRank ? 'text-coral' : 'text-muted'
                     }`}
                   >
-                    {row.rank}
+                    {rankLabel}
                   </td>
                   <td className="px-4 py-3">
                     <Link

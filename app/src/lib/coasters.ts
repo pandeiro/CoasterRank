@@ -64,7 +64,7 @@ export type RankingRow = {
   score: number | null
   comparisons: number | null
   participants: number | null
-  rank: number
+  rank: number | null
 }
 
 export type Park = {
