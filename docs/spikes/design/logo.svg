@@ -1,0 +1,13 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Coaster track / data bars -->
+  <path d="M12 90 L12 70 L20 70 L20 90 L28 90 L28 50 L36 50 L36 90 L44 90 L44 30 L52 30 L52 90 L60 90 L60 10 L68 10 L68 90 L76 90 L76 55 L84 55 L84 90 L92 90 L92 40 L100 40 L100 90 L108 90 L108 90" 
+        stroke="#00D4FF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Lift hill accent -->
+  <path d="M10 90 L30 55 L50 75 L70 40 L90 65 L110 20" 
+        stroke="#E85D75" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Small track detail -->
+  <circle cx="70" cy="40" r="4" fill="#E85D75"/>
+  <circle cx="110" cy="20" r="4" fill="#E85D75"/>
+</svg>
