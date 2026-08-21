@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
 import ScrollSentinel from '../components/ScrollSentinel'
+import { Badge, MessageState, PageHeader } from '../components/ui'
 import {
   buildParkMap,
   filterCoasters,
@@ -62,22 +63,26 @@ export default function BoardPage() {
 
   return (
     <>
-      <h1 className="text-3xl font-semibold text-slate-900">CoasterRank</h1>
-      <p className="mt-2 text-slate-600">
-        The live community ranking of the world&apos;s roller coasters.
-      </p>
+      <PageHeader
+        eyebrow="The community board"
+        title="CoasterRank"
+        description="A live ranking of the world's roller coasters, built from the rides people have actually experienced."
+        action={<Badge tone="accent">Live board</Badge>}
+      />
       <FilterBar filters={filters} onChange={onFiltersChange} />
       <div className="mt-6">
         {isError ? (
-          <p className="py-16 text-center text-red-600">Couldn&apos;t load the board.</p>
+          <MessageState tone="danger">Couldn&apos;t load the board.</MessageState>
         ) : isPending ? (
-          <p className="py-16 text-center text-slate-500">Loading…</p>
+          <MessageState>Loading…</MessageState>
         ) : (
           <>
             <CoasterTable rows={visibleRows} parks={parkMap} />
             <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
             {!hasNextPage && visibleRows.length > 0 && (
-              <p className="py-8 text-center text-xs text-slate-400">End of list</p>
+              <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">
+                End of list
+              </p>
             )}
           </>
         )}

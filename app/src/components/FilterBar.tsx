@@ -9,6 +9,7 @@ import {
   useParks,
   type RankingFilters,
 } from '../lib/coasters'
+import { fieldClassName, Panel, selectClassName } from './ui'
 
 type Props = {
   filters: RankingFilters
@@ -48,26 +49,26 @@ export default function FilterBar({ filters, onChange }: Props) {
   }
 
   return (
-    <div className="mt-6 space-y-3 rounded border border-slate-200 bg-white p-4">
+    <Panel className="mt-8 space-y-4 p-3 sm:p-4">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           type="search"
           aria-label="Search coasters"
           placeholder="Search coasters…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded border border-slate-300 py-2 pl-9 pr-3"
+          className={`${fieldClassName} py-3 pl-9 pr-3`}
         />
       </div>
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           Status
           <select
             aria-label="Status"
             value={filters.status}
             onChange={(e) => update({ status: e.target.value as RankingFilters['status'] })}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className={selectClassName}
           >
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -76,7 +77,7 @@ export default function FilterBar({ filters, onChange }: Props) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           Material
           <select
             aria-label="Material"
@@ -84,7 +85,7 @@ export default function FilterBar({ filters, onChange }: Props) {
             onChange={(e) =>
               update({ material: (e.target.value || undefined) as RankingFilters['material'] })
             }
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className={selectClassName}
           >
             <option value="">Any</option>
             {MATERIAL_OPTIONS.map((o) => (
@@ -94,13 +95,13 @@ export default function FilterBar({ filters, onChange }: Props) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           Country
           <select
             aria-label="Country"
             value={filters.country ?? ''}
             onChange={(e) => update({ country: e.target.value || undefined })}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className={selectClassName}
           >
             <option value="">Any</option>
             {countries.data?.map((c) => (
@@ -110,13 +111,13 @@ export default function FilterBar({ filters, onChange }: Props) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           Park
           <select
             aria-label="Park"
             value={filters.park ?? ''}
             onChange={(e) => update({ park: e.target.value || undefined })}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className={selectClassName}
           >
             <option value="">Any</option>
             {parks.data?.map((p) => (
@@ -126,13 +127,13 @@ export default function FilterBar({ filters, onChange }: Props) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           Manufacturer
           <select
             aria-label="Manufacturer"
             value={filters.manufacturer ?? ''}
             onChange={(e) => update({ manufacturer: e.target.value || undefined })}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className={selectClassName}
           >
             <option value="">Any</option>
             {manufacturers.data?.map((m) => (
@@ -143,6 +144,6 @@ export default function FilterBar({ filters, onChange }: Props) {
           </select>
         </label>
       </div>
-    </div>
+    </Panel>
   )
 }
