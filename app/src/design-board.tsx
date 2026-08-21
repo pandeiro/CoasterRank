@@ -77,7 +77,9 @@ export function DesignBoard() {
               <p className="text-xs text-canvas/65">Design board · v1</p>
             </div>
           </div>
-          <Badge tone="accent">Live reference</Badge>
+          <Badge tone="accent" className="bg-accent/25 text-canvas">
+            Live reference
+          </Badge>
         </div>
       </header>
 
