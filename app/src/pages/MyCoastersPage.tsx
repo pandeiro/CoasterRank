@@ -3,6 +3,7 @@ import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
 import RankedCoasterList, { type PendingAdd } from '../components/RankedCoasterList'
 import Toast from '../components/Toast'
+import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { useMyRides } from '../lib/rides'
 
@@ -46,7 +47,7 @@ export default function MyCoastersPage() {
   if (!isConfirmed) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">My Coasters</h1>
+        <h1 className="display-heading text-4xl text-ink">My Coasters</h1>
         <div className="mt-6">
           <ConfirmEmailGate email={user?.email} />
         </div>
@@ -56,17 +57,20 @@ export default function MyCoastersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">My Coasters</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        {rankedCount > 0
-          ? `${rankedCount} coaster${rankedCount === 1 ? '' : 's'} ranked`
-          : 'Search for coasters below to start building your list.'}
-      </p>
+      <PageHeader
+        eyebrow="Your ride log"
+        title="My Coasters"
+        description={
+          rankedCount > 0
+            ? `${rankedCount} coaster${rankedCount === 1 ? '' : 's'} ranked`
+            : 'Search for coasters below to start building your list.'
+        }
+      />
 
-      <div className="sticky top-0 z-10 -mx-8 bg-slate-50 px-8 pb-4 pt-4">
+      <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 pb-4 pt-4 backdrop-blur sm:-mx-8 sm:px-8">
         <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
         {pendingAdd && (
-          <div className="mt-2 flex items-center justify-between gap-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-slate-700">
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
             <span>
               Adding <span className="font-medium">{pendingAdd.name}</span> — choose a position
               below.
@@ -74,7 +78,7 @@ export default function MyCoastersPage() {
             <button
               type="button"
               onClick={clearPendingAdd}
-              className="shrink-0 rounded px-2 py-1 text-xs text-slate-500 hover:bg-blue-100 hover:text-slate-700"
+              className="shrink-0 rounded-full px-2.5 py-1 text-xs text-muted hover:bg-accent/20 hover:text-ink"
             >
               Cancel
             </button>
@@ -84,9 +88,9 @@ export default function MyCoastersPage() {
 
       <div>
         {isPending ? (
-          <p className="py-8 text-center text-sm text-slate-500">Loading your rides…</p>
+          <MessageState>Loading your rides…</MessageState>
         ) : isError ? (
-          <p className="py-8 text-center text-sm text-red-600">Couldn&apos;t load your rides.</p>
+          <MessageState tone="danger">Couldn&apos;t load your rides.</MessageState>
         ) : (
           <RankedCoasterList
             rides={rides}

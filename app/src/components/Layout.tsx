@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
-  return isActive ? 'font-medium text-slate-900' : 'text-slate-600 hover:text-slate-900'
+  return isActive ? 'font-medium text-ink' : 'text-muted transition-colors hover:text-ink'
 }
 
 export default function Layout() {
@@ -25,13 +25,16 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between p-4">
-          <Link to="/" className="text-lg font-semibold text-slate-900">
-            CoasterRank
+    <div className="min-h-screen bg-canvas">
+      <header className="sticky top-0 z-30 border-b border-line/80 bg-canvas/95 backdrop-blur">
+        <div className="page-container flex min-h-16 items-center justify-between gap-6">
+          <Link to="/" className="flex shrink-0 items-center gap-2 text-ink">
+            <img src="/logo.svg" alt="" className="h-8 w-8" />
+            <span className="display-heading text-xl tracking-wide">
+              Coaster<span className="text-coral">Rank</span>
+            </span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex items-center gap-3 text-sm sm:gap-5">
             {isLoading ? null : user ? (
               <>
                 <NavLink to="/me" className={navLinkClass}>
@@ -48,7 +51,7 @@ export default function Layout() {
                 <button
                   type="button"
                   onClick={onSignOut}
-                  className="text-slate-600 hover:text-slate-900"
+                  className="text-muted transition-colors hover:text-ink"
                 >
                   Sign out
                 </button>
@@ -60,7 +63,7 @@ export default function Layout() {
                 </NavLink>
                 <Link
                   to="/signup"
-                  className="rounded bg-slate-900 px-3 py-1.5 text-white hover:bg-slate-700"
+                  className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
                 >
                   Sign up
                 </Link>
@@ -69,7 +72,7 @@ export default function Layout() {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl p-8">
+      <main className="page-container py-8 sm:py-10">
         <Outlet />
       </main>
     </div>

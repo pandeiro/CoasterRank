@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { Button, fieldClassName } from '../components/ui'
 
 type LocationState = { from?: string }
 
@@ -37,10 +38,10 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-semibold text-slate-900">Log in</h1>
+      <h1 className="display-heading text-4xl text-ink">Log in</h1>
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="block text-sm font-medium text-ink-soft">
             Email
           </label>
           <input
@@ -50,11 +51,11 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className={`mt-1 ${fieldClassName}`}
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="password" className="block text-sm font-medium text-ink-soft">
             Password
           </label>
           <input
@@ -64,35 +65,31 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className={`mt-1 ${fieldClassName}`}
           />
         </div>
         {error && (
-          <div className="text-sm text-red-600">
+          <div className="text-sm text-danger">
             <p>{error}</p>
             {emailNotConfirmed && !resent && (
               <button
                 type="button"
                 onClick={resendConfirmation}
-                className="mt-1 underline hover:text-red-800"
+                className="mt-1 underline underline-offset-4 hover:text-danger/80"
               >
                 Resend confirmation email
               </button>
             )}
-            {resent && <p className="mt-1 text-slate-600">Confirmation email sent.</p>}
+            {resent && <p className="mt-1 text-muted">Confirmation email sent.</p>}
           </div>
         )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Logging in…' : 'Log in'}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-sm text-slate-600">
+      <p className="mt-4 text-sm text-muted">
         No account?{' '}
-        <Link to="/signup" className="text-slate-900 underline">
+        <Link to="/signup" className="font-medium text-ink underline underline-offset-4">
           Sign up
         </Link>
       </p>

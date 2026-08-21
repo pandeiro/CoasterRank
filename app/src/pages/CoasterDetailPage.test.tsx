@@ -95,6 +95,7 @@ describe('CoasterDetailPage', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({
         name: 'Mystery',
+        rank: null,
         score: null,
         comparisons: null,
         participants: null,
@@ -107,6 +108,7 @@ describe('CoasterDetailPage', () => {
       isError: false,
     } as never)
     renderPage('mystery')
+    expect(screen.getByText('Not yet ranked')).toBeInTheDocument()
     expect(screen.getByText('No ratings yet')).toBeInTheDocument()
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(6)
   })

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
+import { fieldClassName } from './ui'
 
 type Props = {
   existingCoasterIds: Set<string>
@@ -77,7 +78,7 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   return (
     <div className="relative">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           ref={inputRef}
           type="search"
@@ -95,21 +96,21 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
           onKeyDown={onKeyDown}
-          className="w-full rounded border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none"
+          className={`${fieldClassName} py-3 pl-9 pr-3`}
         />
       </div>
       {showList && (
         <ul
           id={LISTBOX_ID}
           role="listbox"
-          className="absolute z-10 mt-1 w-full overflow-hidden rounded border border-slate-200 bg-white shadow-lg"
+          className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift"
         >
           {isSearching ? (
-            <li className="px-4 py-3 text-sm text-slate-500" role="presentation">
+            <li className="px-4 py-3 text-sm text-muted" role="presentation">
               Searching…
             </li>
           ) : results.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-slate-500" role="presentation">
+            <li className="px-4 py-3 text-sm text-muted" role="presentation">
               No coasters found.
             </li>
           ) : (
@@ -122,18 +123,18 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
                   role="option"
                   aria-selected={i === highlightIndex}
                   className={`flex cursor-pointer items-center justify-between px-4 py-2 text-sm ${
-                    i === highlightIndex ? 'bg-slate-100' : 'hover:bg-slate-50'
+                    i === highlightIndex ? 'bg-surface' : 'hover:bg-canvas'
                   }`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(row)}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-slate-900">{row.name}</span>
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="block truncate font-medium text-ink">{row.name}</span>
+                    <span className="block truncate text-xs text-muted">
                       {park?.name ?? 'Unknown park'}
                     </span>
                   </span>
-                  <Plus className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+                  <Plus className="ml-2 h-4 w-4 shrink-0 text-accent-strong" />
                 </li>
               )
             })

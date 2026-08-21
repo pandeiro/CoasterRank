@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
+import { MessageState } from './ui'
 
 /**
  * Gate for admin routes (PLAN §6). Anonymous visitors bounce to /login like
@@ -20,7 +21,7 @@ export default function RequireAdmin() {
   })
 
   if (isLoading || (Boolean(session) && profileLoading)) {
-    return <p className="py-16 text-center text-slate-500">Loading…</p>
+    return <MessageState>Loading…</MessageState>
   }
 
   if (!session) {
@@ -28,7 +29,7 @@ export default function RequireAdmin() {
   }
 
   if (!profile?.is_admin) {
-    return <p className="py-16 text-center text-slate-500">Admins only.</p>
+    return <MessageState>Admins only.</MessageState>
   }
 
   return <Outlet />

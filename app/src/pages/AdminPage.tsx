@@ -4,6 +4,14 @@ import { RefreshCw, Check, X, Edit, Plus, Home, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import {
+  Badge,
+  Button,
+  fieldClassName,
+  MessageState,
+  Panel,
+  selectClassName,
+} from '../components/ui'
+import {
   getPendingSubmissions,
   rejectSubmission,
   approveSubmission,
@@ -263,18 +271,23 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Admin</h1>
-        <div className="flex bg-slate-100 p-1 rounded-lg">
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+            Track operations
+          </p>
+          <h1 className="display-heading text-4xl text-ink">Admin</h1>
+        </div>
+        <div className="flex rounded-full bg-surface p-1">
           {(['submissions', 'coasters', 'rehome'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
                 activeTab === tab
-                  ? 'bg-white shadow-sm text-slate-900 font-medium'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-surface-bright font-medium text-ink shadow-sm'
+                  : 'text-muted hover:text-ink'
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -286,23 +299,23 @@ export default function AdminPage() {
       <div className="grid gap-6 md:grid-cols-4">
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'submissions' && (
-            <section className="rounded border border-slate-200 bg-white p-6">
-              <h2 className="font-medium text-slate-900 mb-4">Submission Queue</h2>
+            <Panel className="p-6">
+              <h2 className="mb-4 text-lg font-semibold text-ink">Submission Queue</h2>
               {submissionsLoading ? (
-                <p className="text-sm text-slate-500">Loading submissions...</p>
+                <MessageState>Loading submissions...</MessageState>
               ) : submissionsError ? (
-                <p className="text-sm text-red-600">Couldn&apos;t load submissions.</p>
+                <MessageState tone="danger">Couldn&apos;t load submissions.</MessageState>
               ) : submissions.length === 0 ? (
-                <p className="text-sm text-slate-500">No pending submissions.</p>
+                <MessageState>No pending submissions.</MessageState>
               ) : (
                 <div className="space-y-4">
                   {submissions.map((s) => (
-                    <div key={s.id} className="rounded border border-slate-100 p-4 bg-slate-50">
+                    <div key={s.id} className="rounded-xl border border-line bg-surface p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h3 className="font-semibold">{s.coaster_name}</h3>
-                          <p className="text-sm text-slate-600">{s.park_name}</p>
-                          <div className="mt-2 text-xs font-mono bg-white p-2 rounded border border-slate-200 overflow-auto max-h-24">
+                          <p className="text-sm text-muted">{s.park_name}</p>
+                          <div className="mt-2 max-h-24 overflow-auto rounded-lg border border-line bg-surface-bright p-2 font-mono text-xs">
                             <pre>{JSON.stringify(s.suggested_fields, null, 2)}</pre>
                           </div>
                         </div>
@@ -310,7 +323,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => approve.mutate({ id: s.id, submission: s })}
                             disabled={approve.isPending}
-                            className="p-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                            className="rounded-full bg-success p-2 text-white hover:bg-success/90 disabled:opacity-50"
                             title="Approve"
                           >
                             <Check size={16} />
@@ -318,7 +331,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => setActiveRejectId(s.id)}
                             disabled={reject.isPending}
-                            className="p-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            className="rounded-full bg-danger p-2 text-white hover:bg-danger/90 disabled:opacity-50"
                             title="Reject"
                           >
                             <X size={16} />
@@ -328,7 +341,7 @@ export default function AdminPage() {
                       {activeRejectId === s.id && (
                         <div className="mt-4 flex gap-2">
                           <input
-                            className="flex-1 rounded border p-1 text-sm"
+                            className={`flex-1 ${fieldClassName}`}
                             placeholder="Reason for rejection..."
                             value={rejectNote}
                             onChange={(e) => setRejectNote(e.target.value)}
@@ -336,13 +349,13 @@ export default function AdminPage() {
                           <button
                             onClick={() => reject.mutate({ id: s.id, note: rejectNote })}
                             disabled={!rejectNote}
-                            className="rounded bg-red-900 px-3 py-1 text-xs text-white hover:bg-red-800 disabled:opacity-50"
+                            className="rounded-full bg-danger px-3 py-1.5 text-xs text-white hover:bg-danger/90 disabled:opacity-50"
                           >
                             Confirm Reject
                           </button>
                           <button
                             onClick={() => setActiveRejectId(null)}
-                            className="rounded bg-slate-200 px-3 py-1 text-xs hover:bg-slate-300"
+                            className="rounded-full bg-surface px-3 py-1.5 text-xs text-muted hover:bg-line"
                           >
                             Cancel
                           </button>
@@ -352,28 +365,22 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-            </section>
+            </Panel>
           )}
 
           {activeTab === 'coasters' && (
-            <section className="rounded border border-slate-200 bg-white p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-medium text-slate-900">Coaster Management</h2>
-                <button
-                  onClick={openAddForm}
-                  className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
-                >
+            <Panel className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-ink">Coaster Management</h2>
+                <Button variant="coral" size="sm" onClick={openAddForm}>
                   <Plus size={14} /> Add Coaster
-                </button>
+                </Button>
               </div>
 
               <div className="relative mb-4">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={16}
-                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
                 <input
-                  className="w-full rounded border border-slate-200 pl-10 pr-4 py-2 text-sm"
+                  className={`${fieldClassName} pl-10 pr-4`}
                   placeholder="Search coasters or parks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -381,37 +388,35 @@ export default function AdminPage() {
               </div>
 
               {coastersLoading ? (
-                <p className="text-sm text-slate-500">Loading coasters...</p>
+                <MessageState>Loading coasters...</MessageState>
               ) : coastersError ? (
-                <p className="text-sm text-red-600">Couldn&apos;t load coasters.</p>
+                <MessageState tone="danger">Couldn&apos;t load coasters.</MessageState>
               ) : filteredCoasters.length === 0 ? (
-                <p className="text-sm text-slate-500">No coasters match that search.</p>
+                <MessageState>No coasters match that search.</MessageState>
               ) : (
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                       <thead>
-                        <tr className="border-b border-slate-100 text-slate-500">
+                        <tr className="border-b border-line text-muted">
                           <th className="pb-2 font-medium">Name</th>
                           <th className="pb-2 font-medium">Park</th>
                           <th className="pb-2 font-medium">Status</th>
                           <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-line/70">
                         {visibleCoasters.map((c) => (
-                          <tr key={c.id} className="hover:bg-slate-50">
+                          <tr key={c.id} className="transition-colors hover:bg-canvas">
                             <td className="py-2">{c.name}</td>
-                            <td className="py-2 text-slate-600">{c.parks?.name || 'Unknown'}</td>
+                            <td className="py-2 text-muted">{c.parks?.name || 'Unknown'}</td>
                             <td className="py-2">
-                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase font-bold text-slate-600">
-                                {c.status}
-                              </span>
+                              <Badge>{c.status}</Badge>
                             </td>
                             <td className="py-2 text-right">
                               <button
                                 onClick={() => openEditForm(c)}
-                                className="p-1 text-slate-400 hover:text-slate-600"
+                                className="rounded-full p-2 text-muted hover:bg-surface hover:text-ink"
                               >
                                 <Edit size={14} />
                               </button>
@@ -424,7 +429,7 @@ export default function AdminPage() {
                   {hasMoreCoasters && (
                     <button
                       onClick={() => setCoasterLimit((n) => n + COASTER_PAGE_SIZE)}
-                      className="mt-4 w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                      className="mt-4 w-full rounded-full border border-line px-3 py-2 text-xs text-muted hover:bg-surface"
                     >
                       Show more ({filteredCoasters.length - coasterLimit} remaining)
                     </button>
@@ -433,8 +438,8 @@ export default function AdminPage() {
               )}
 
               {(isAddingCoaster || editingCoaster) && (
-                <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-6">
-                  <h3 className="font-medium text-blue-900 mb-4">
+                <div className="mt-6 rounded-xl border border-accent/30 bg-accent/10 p-6">
+                  <h3 className="mb-4 font-semibold text-ink">
                     {isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
                   </h3>
                   <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
@@ -444,7 +449,7 @@ export default function AdminPage() {
                         name="name"
                         required
                         defaultValue={editingCoaster?.name}
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       />
                     </div>
                     <div className="flex flex-col gap-1 relative">
@@ -457,26 +462,26 @@ export default function AdminPage() {
                           setFormPark(null)
                         }}
                         placeholder="Search for a park..."
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       />
                       {formParkSearch && !formPark && filteredFormParks.length > 0 && (
-                        <ul className="absolute z-10 w-full rounded border bg-white shadow-lg top-full">
+                        <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
                           {filteredFormParks.map((p) => (
                             <li
                               key={p.id}
-                              className="cursor-pointer p-2 text-sm hover:bg-gray-100"
+                              className="cursor-pointer p-2 text-sm hover:bg-canvas"
                               onClick={() => {
                                 setFormPark(p)
                                 setFormParkSearch(p.name)
                               }}
                             >
-                              {p.name} <span className="text-xs text-gray-500">({p.country})</span>
+                              {p.name} <span className="text-xs text-muted">({p.country})</span>
                             </li>
                           ))}
                         </ul>
                       )}
                       {formPark && (
-                        <span className="text-xs text-slate-500">Selected: {formPark.name}</span>
+                        <span className="text-xs text-muted">Selected: {formPark.name}</span>
                       )}
                     </div>
                     <div className="flex flex-col gap-1">
@@ -484,7 +489,7 @@ export default function AdminPage() {
                       <select
                         name="status"
                         defaultValue={editingCoaster?.status ?? 'operating'}
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       >
                         <option value="operating">Operating</option>
                         <option value="defunct">Defunct</option>
@@ -499,7 +504,7 @@ export default function AdminPage() {
                       <select
                         name="material"
                         defaultValue={editingCoaster?.material ?? 'steel'}
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       >
                         <option value="steel">Steel</option>
                         <option value="wood">Wood</option>
@@ -514,7 +519,7 @@ export default function AdminPage() {
                         type="number"
                         step="0.1"
                         defaultValue={editingCoaster?.height_m ?? ''}
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -524,7 +529,7 @@ export default function AdminPage() {
                         type="number"
                         step="0.1"
                         defaultValue={editingCoaster?.speed_kmh ?? ''}
-                        className="rounded border p-1.5 text-sm"
+                        className={fieldClassName}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -534,7 +539,7 @@ export default function AdminPage() {
                         type="number"
                         step="0.1"
                         defaultValue={editingCoaster?.length_m ?? ''}
-                        className="rounded border p-1.5 text-sm"
+                        className={selectClassName}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -543,21 +548,21 @@ export default function AdminPage() {
                         name="inversions"
                         type="number"
                         defaultValue={editingCoaster?.inversions ?? ''}
-                        className="rounded border p-1.5 text-sm"
+                        className={selectClassName}
                       />
                     </div>
-                    <div className="md:col-span-2 flex justify-end gap-2 mt-2">
+                    <div className="mt-2 flex justify-end gap-2 md:col-span-2">
                       <button
                         type="button"
                         onClick={closeForm}
-                        className="px-3 py-1 text-xs text-slate-600 hover:underline"
+                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={saveCoaster.isPending}
-                        className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
                       >
                         {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
                       </button>
@@ -565,29 +570,29 @@ export default function AdminPage() {
                   </form>
                 </div>
               )}
-            </section>
+            </Panel>
           )}
 
           {activeTab === 'rehome' && (
-            <section className="rounded border border-slate-200 bg-white p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Home size={20} className="text-slate-900" />
-                <h2 className="font-medium text-slate-900">Re-home Coasters</h2>
+            <Panel className="p-6">
+              <div className="mb-4 flex items-center gap-2">
+                <Home size={20} className="text-ink" />
+                <h2 className="text-lg font-semibold text-ink">Re-home Coasters</h2>
               </div>
-              <p className="text-sm text-slate-600 mb-6">
+              <p className="mb-6 text-sm text-muted">
                 Move coasters from the{' '}
-                <code className="bg-slate-100 px-1 rounded">Other (unknown location)</code> park to
+                <code className="rounded bg-surface px-1">Other (unknown location)</code> park to
                 their correct locations.
               </p>
 
-              <div className="flex gap-4 mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
+              <div className="mb-6 flex gap-4 rounded-xl border border-line bg-surface p-4">
                 <div className="flex-1 relative">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
                     size={16}
                   />
                   <input
-                    className="w-full rounded border border-slate-200 pl-10 pr-4 py-2 text-sm"
+                    className={`${fieldClassName} pl-10 pr-4`}
                     placeholder="Search for target park..."
                     value={rehomeSearchPark}
                     onChange={(e) => {
@@ -596,24 +601,24 @@ export default function AdminPage() {
                     }}
                   />
                   {rehomeSearchPark && !selectedRehomePark && filteredRehomeParks.length > 0 && (
-                    <ul className="absolute z-10 w-full rounded border bg-white shadow-lg mt-1">
+                    <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
                       {filteredRehomeParks.map((p) => (
                         <li
                           key={p.id}
-                          className="cursor-pointer p-2 text-sm hover:bg-gray-100"
+                          className="cursor-pointer p-2 text-sm hover:bg-canvas"
                           onClick={() => {
                             setSelectedRehomePark(p)
                             setRehomeSearchPark(p.name)
                           }}
                         >
-                          {p.name} <span className="text-xs text-gray-500">({p.country})</span>
+                          {p.name} <span className="text-xs text-muted">({p.country})</span>
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Selected:</span>
+                  <span className="text-xs text-muted">Selected:</span>
                   <span className="text-sm font-medium">
                     {selectedRehomePark ? selectedRehomePark.name : 'None'}
                   </span>
@@ -621,17 +626,17 @@ export default function AdminPage() {
               </div>
 
               {otherCoastersLoading ? (
-                <p className="text-sm text-slate-500">Loading coasters...</p>
+                <MessageState>Loading coasters...</MessageState>
               ) : otherParkError || otherCoastersError ? (
-                <p className="text-sm text-red-600">Couldn&apos;t load the re-home list.</p>
+                <MessageState tone="danger">Couldn&apos;t load the re-home list.</MessageState>
               ) : otherCoasters.length === 0 ? (
-                <p className="text-sm text-slate-500">No coasters found in the 'Other' park.</p>
+                <MessageState>No coasters found in the 'Other' park.</MessageState>
               ) : (
                 <div className="space-y-3">
                   {otherCoasters.map((c) => (
                     <div
                       key={c.id}
-                      className="flex justify-between items-center p-3 rounded border border-slate-100 hover:bg-slate-50"
+                      className="flex items-center justify-between rounded-xl border border-line p-3 transition-colors hover:bg-canvas"
                     >
                       <span className="text-sm font-medium">{c.name}</span>
                       <button
@@ -643,7 +648,7 @@ export default function AdminPage() {
                           rehome.mutate({ coasterId: c.id, parkId: selectedRehomePark.id })
                         }}
                         disabled={rehome.isPending}
-                        className="text-xs bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-100 disabled:opacity-50"
+                        className="rounded-full border border-line bg-surface-bright px-2 py-1 text-xs text-muted hover:bg-surface disabled:opacity-50"
                       >
                         Move to {selectedRehomePark?.name || 'Selected Park'}
                       </button>
@@ -651,37 +656,35 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-            </section>
+            </Panel>
           )}
         </div>
 
         <div className="space-y-6">
-          <div className="rounded border border-slate-200 bg-white p-6">
-            <h2 className="font-medium text-slate-900">Rankings</h2>
-            <p className="mt-1 text-sm text-slate-600">
+          <Panel className="p-6">
+            <h2 className="text-lg font-semibold text-ink">Rankings</h2>
+            <p className="mt-1 text-sm text-muted">
               Refits Bradley-Terry strengths from all ranked lists and upserts{' '}
-              <code className="rounded bg-slate-100 px-1 text-xs">coaster_ratings</code>.
+              <code className="rounded bg-surface px-1 text-xs">coaster_ratings</code>.
             </p>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setMessage(null)
                 recompute.mutate()
               }}
               disabled={recompute.isPending}
-              className="mt-4 inline-flex items-center gap-2 rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50"
+              className="mt-4"
             >
               <RefreshCw className={recompute.isPending ? 'animate-spin' : ''} size={16} />
               {recompute.isPending ? 'Recomputing…' : 'Recompute now'}
-            </button>
+            </Button>
             {message && (
-              <p
-                className={`mt-4 text-sm ${recompute.isError ? 'text-red-600' : 'text-green-700'}`}
-              >
+              <p className={`mt-4 text-sm ${recompute.isError ? 'text-danger' : 'text-success'}`}>
                 {message}
               </p>
             )}
-          </div>
+          </Panel>
         </div>
       </div>
 

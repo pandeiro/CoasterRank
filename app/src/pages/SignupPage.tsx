@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
+import { Button, fieldClassName, Panel } from '../components/ui'
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -45,25 +46,28 @@ export default function SignupPage() {
 
   if (awaitingConfirmation) {
     return (
-      <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Check your email</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <Panel className="mx-auto max-w-md p-6 text-center">
+        <h1 className="display-heading text-3xl text-ink">Check your email</h1>
+        <p className="mt-2 text-sm text-muted">
           We sent a confirmation link to <strong>{email}</strong>. Confirm your address, then log in
           to start ranking.
         </p>
-        <Link to="/login" className="mt-4 inline-block text-sm text-slate-900 underline">
+        <Link
+          to="/login"
+          className="mt-4 inline-block text-sm font-medium text-ink underline underline-offset-4"
+        >
           Go to login
         </Link>
-      </div>
+      </Panel>
     )
   }
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-semibold text-slate-900">Sign up</h1>
+      <h1 className="display-heading text-4xl text-ink">Sign up</h1>
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
             Username
           </label>
           <input
@@ -73,12 +77,12 @@ export default function SignupPage() {
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className={`mt-1 ${fieldClassName}`}
           />
-          <p className="mt-1 text-xs text-slate-500">{USERNAME_RULES}</p>
+          <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="block text-sm font-medium text-ink-soft">
             Email
           </label>
           <input
@@ -88,11 +92,11 @@ export default function SignupPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className={`mt-1 ${fieldClassName}`}
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="password" className="block text-sm font-medium text-ink-soft">
             Password
           </label>
           <input
@@ -103,22 +107,18 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className={`mt-1 ${fieldClassName}`}
           />
-          <p className="mt-1 text-xs text-slate-500">At least 6 characters.</p>
+          <p className="mt-1 text-xs text-muted">At least 6 characters.</p>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
-        >
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Creating account…' : 'Create account'}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-sm text-slate-600">
+      <p className="mt-4 text-sm text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="text-slate-900 underline">
+        <Link to="/login" className="font-medium text-ink underline underline-offset-4">
           Log in
         </Link>
       </p>

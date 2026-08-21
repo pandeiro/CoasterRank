@@ -47,10 +47,12 @@ describe('CoasterTable', () => {
   })
 
   it('shows an em dash for missing scores', () => {
-    renderTable([{ name: 'Unrated', score: null, comparisons: null, participants: null }])
+    renderTable([
+      { name: 'Unrated', rank: null, score: null, comparisons: null, participants: null },
+    ])
     expect(screen.getByText('Unrated')).toBeInTheDocument()
     const dashes = screen.getAllByText('—')
-    expect(dashes.length).toBeGreaterThanOrEqual(3)
+    expect(dashes.length).toBeGreaterThanOrEqual(4)
   })
 
   it('shows the few-votes badge for low-comparison coasters', () => {
