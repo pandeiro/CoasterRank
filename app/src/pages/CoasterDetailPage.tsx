@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import FewVotesBadge from '../components/FewVotesBadge'
 import StatBlock from '../components/StatBlock'
+import { MessageState } from '../components/ui'
 import {
   capitalize,
   formatNumber,
@@ -18,15 +19,15 @@ export default function CoasterDetailPage() {
   const manufacturers = useManufacturers()
 
   if (isPending) {
-    return <p className="py-16 text-center text-slate-500">Loading…</p>
+    return <MessageState>Loading…</MessageState>
   }
 
   if (isError) {
-    return <p className="py-16 text-center text-red-600">Couldn&apos;t load that coaster.</p>
+    return <MessageState tone="danger">Couldn&apos;t load that coaster.</MessageState>
   }
 
   if (!coaster) {
-    return <p className="py-16 text-center text-slate-500">Coaster not found.</p>
+    return <MessageState>Coaster not found.</MessageState>
   }
 
   const park = parks.data?.find((p) => p.id === coaster.park_id)
@@ -36,9 +37,11 @@ export default function CoasterDetailPage() {
 
   return (
     <div>
-      <p className="text-sm text-slate-500">#{coaster.rank} on the board</p>
-      <h1 className="mt-1 text-3xl font-semibold text-slate-900">{coaster.name}</h1>
-      <p className="mt-1 text-slate-600">
+      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">
+        #{coaster.rank} on the board
+      </p>
+      <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
+      <p className="mt-2 text-muted">
         {park && (
           <Link to={`/parks/${park.slug}`} className="font-medium hover:underline">
             {park.name}
@@ -49,13 +52,13 @@ export default function CoasterDetailPage() {
       </p>
       <div className="mt-2">
         {coaster.comparisons === null ? (
-          <span className="text-sm text-slate-500">No ratings yet</span>
+          <span className="text-sm text-muted">No ratings yet</span>
         ) : (
           <FewVotesBadge comparisons={coaster.comparisons} />
         )}
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatBlock
           label="Score"
           value={coaster.score === null ? '—' : formatScore(coaster.score)}
@@ -89,13 +92,13 @@ export default function CoasterDetailPage() {
       </dl>
 
       {(coaster.model || coaster.type || openingYear) && (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-muted">
           {[coaster.model, coaster.type, openingYear].filter(Boolean).join(' · ')}
         </p>
       )}
 
       <div className="mt-8">
-        <Link to="/" className="text-sm text-slate-600 hover:underline">
+        <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
           ← Back to the board
         </Link>
       </div>

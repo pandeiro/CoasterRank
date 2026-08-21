@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Button, Panel } from './ui'
 
 /**
  * Client-side email-confirmation gate (PLAN §4.6): shown in place of ranking
@@ -16,9 +17,9 @@ export default function ConfirmEmailGate({ email }: { email?: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-lg border border-amber-200 bg-amber-50 p-6 text-center">
-      <h2 className="text-lg font-semibold text-amber-900">Confirm your email</h2>
-      <p className="mt-2 text-sm text-amber-800">
+    <Panel className="mx-auto max-w-md border-warning/25 bg-warning/5 p-6 text-center">
+      <h2 className="display-heading text-2xl text-ink">Confirm your email</h2>
+      <p className="mt-2 text-sm text-muted">
         You&apos;ll be able to rank coasters once your email is confirmed.
         {email && (
           <>
@@ -28,22 +29,22 @@ export default function ConfirmEmailGate({ email }: { email?: string }) {
         )}
       </p>
       {email && (
-        <button
+        <Button
           type="button"
           onClick={resend}
           disabled={status === 'sending' || status === 'sent'}
-          className="mt-4 rounded bg-amber-900 px-4 py-2 text-sm text-white hover:bg-amber-800 disabled:opacity-50"
+          className="mt-4"
         >
           {status === 'sent'
             ? 'Confirmation email sent'
             : status === 'sending'
               ? 'Sending…'
               : 'Resend confirmation email'}
-        </button>
+        </Button>
       )}
       {status === 'error' && (
-        <p className="mt-2 text-sm text-red-600">Couldn&apos;t resend — try again later.</p>
+        <p className="mt-2 text-sm text-danger">Couldn&apos;t resend — try again later.</p>
       )}
-    </div>
+    </Panel>
   )
 }

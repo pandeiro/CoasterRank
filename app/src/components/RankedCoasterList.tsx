@@ -20,6 +20,7 @@ import { Plus } from 'lucide-react'
 import { useParks, buildParkMap } from '../lib/coasters'
 import { useRemoveRide, useSaveRanks, renumberRanks, insertIdAt, type UserRide } from '../lib/rides'
 import RankedCoasterItem from './RankedCoasterItem'
+import { MessageState } from './ui'
 
 export type PendingAdd = { id: string; name: string }
 
@@ -65,12 +66,12 @@ function InsertDivider({ label, onClick }: { label: string; onClick: () => void 
       <button
         type="button"
         onClick={onClick}
-        className="group flex w-full items-center gap-2 py-0.5 text-xs font-medium text-slate-400 hover:text-blue-600"
+        className="group flex w-full items-center gap-2 py-1 text-xs font-medium text-muted hover:text-accent-strong"
       >
-        <span className="h-px flex-1 rounded bg-slate-200 group-hover:bg-blue-300" />
+        <span className="h-px flex-1 rounded bg-line group-hover:bg-accent" />
         <Plus className="h-3 w-3" />
         {label}
-        <span className="h-px flex-1 rounded bg-slate-200 group-hover:bg-blue-300" />
+        <span className="h-px flex-1 rounded bg-line group-hover:bg-accent" />
       </button>
     </li>
   )
@@ -189,9 +190,7 @@ export default function RankedCoasterList({
   return (
     <div>
       {showEmptyState ? (
-        <p className="py-8 text-center text-sm text-slate-500">
-          No coasters ranked yet. Search above to add some!
-        </p>
+        <MessageState>No coasters ranked yet. Search above to add some!</MessageState>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -218,7 +217,7 @@ export default function RankedCoasterList({
                         highlight={id === highlightId}
                       />
                     ) : (
-                      <li className="flex items-center gap-3 rounded border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-400">
+                      <li className="flex items-center gap-3 rounded-xl border border-line bg-surface-bright px-3 py-3 text-sm text-muted">
                         Saving…
                       </li>
                     )}
@@ -238,7 +237,7 @@ export default function RankedCoasterList({
 
       {unranked.length > 0 && (
         <div className="mt-6">
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
             Added but not ranked
           </h3>
           <ul className="space-y-2">

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { GripVertical, ListPlus, X } from 'lucide-react'
 import { capitalize, type Park } from '../lib/coasters'
 import type { UserRide } from '../lib/rides'
+import { Badge } from './ui'
 
 type Props = {
   ride: UserRide
@@ -46,40 +47,38 @@ export default function RankedCoasterItem({
     <li
       ref={mergedRef}
       style={style}
-      className={`flex items-center gap-3 rounded border bg-white px-3 py-2.5 text-sm transition-shadow ${
-        highlight ? 'border-blue-400 ring-2 ring-blue-400/30' : 'border-slate-200'
+      className={`flex items-center gap-3 rounded-xl border bg-surface-bright px-3 py-3 text-sm transition-all ${
+        highlight ? 'border-accent-strong shadow-accent' : 'border-line'
       } ${dragging ? 'z-20 shadow-lg opacity-90' : ''}`}
     >
       {handleProps && (
         <button
           type="button"
-          className="cursor-grab touch-none text-slate-400 hover:text-slate-600 active:cursor-grabbing"
+          className="cursor-grab touch-none text-muted transition-colors hover:text-ink active:cursor-grabbing"
           aria-label="Drag to reorder"
           {...handleProps}
         >
           <GripVertical className="h-4 w-4" />
         </button>
       )}
-      <span className="w-6 text-center font-mono text-xs text-slate-400">
+      <span className="display-heading w-8 text-center text-lg text-muted">
         {rank > 0 ? rank : '—'}
       </span>
       <div className="min-w-0 flex-1">
         <Link
           to={`/coasters/${ride.coaster.slug}`}
-          className="font-medium text-slate-900 hover:underline"
+          className="font-semibold text-ink underline-offset-4 hover:underline"
         >
           {ride.coaster.name}
         </Link>
-        <span className="ml-2 text-xs text-slate-500">{park?.name ?? ''}</span>
+        <span className="ml-2 text-xs text-muted">{park?.name ?? ''}</span>
       </div>
-      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs capitalize text-slate-600">
-        {capitalize(ride.coaster.material)}
-      </span>
+      <Badge className="hidden shrink-0 sm:inline-flex">{capitalize(ride.coaster.material)}</Badge>
       {onRank && (
         <button
           type="button"
           onClick={() => onRank(ride.coaster_id)}
-          className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600"
+          className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-success"
           aria-label={`Add ${ride.coaster.name} to ranking`}
         >
           <ListPlus className="h-4 w-4" />
@@ -88,7 +87,7 @@ export default function RankedCoasterItem({
       <button
         type="button"
         onClick={() => onRemove(ride.coaster_id)}
-        className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-red-600"
+        className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-danger"
         aria-label={`Remove ${ride.coaster.name}`}
       >
         <X className="h-4 w-4" />

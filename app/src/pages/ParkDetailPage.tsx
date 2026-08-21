@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
+import { MessageState } from '../components/ui'
 import { useAllCoasters, usePark } from '../lib/coasters'
 
 export default function ParkDetailPage() {
@@ -15,23 +16,23 @@ export default function ParkDetailPage() {
   }, [coasters.data, park.data])
 
   if (park.isPending || coasters.isPending) {
-    return <p className="py-16 text-center text-slate-500">Loading…</p>
+    return <MessageState>Loading…</MessageState>
   }
 
   if (park.isError || coasters.isError) {
-    return <p className="py-16 text-center text-red-600">Couldn&apos;t load that park.</p>
+    return <MessageState tone="danger">Couldn&apos;t load that park.</MessageState>
   }
 
   if (!park.data) {
-    return <p className="py-16 text-center text-slate-500">Park not found.</p>
+    return <MessageState>Park not found.</MessageState>
   }
 
   const location = [park.data.city, park.data.region, park.data.country].filter(Boolean).join(' · ')
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold text-slate-900">{park.data.name}</h1>
-      <p className="mt-1 text-slate-600">
+      <h1 className="display-heading text-4xl text-ink">{park.data.name}</h1>
+      <p className="mt-2 text-muted">
         {location ? `${location} · ` : ''}
         {parkCoasters.length} coasters
       </p>
@@ -39,7 +40,7 @@ export default function ParkDetailPage() {
         <CoasterTable rows={parkCoasters} showPark={false} />
       </div>
       <div className="mt-8">
-        <Link to="/" className="text-sm text-slate-600 hover:underline">
+        <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
           ← Back to the board
         </Link>
       </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth-context'
 import { fetchProfile, type Profile } from '../lib/profile'
 import { supabase } from '../lib/supabase'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
+import { Badge, Button, fieldClassName, MessageState, Panel } from '../components/ui'
 
 export type { Profile }
 
@@ -64,58 +65,58 @@ export default function ProfilePage() {
   }
 
   if (isLoading) {
-    return <p className="py-16 text-center text-slate-500">Loading…</p>
+    return <MessageState>Loading…</MessageState>
   }
 
   if (isError) {
-    return <p className="py-16 text-center text-red-600">Couldn&apos;t load your profile.</p>
+    return <MessageState tone="danger">Couldn&apos;t load your profile.</MessageState>
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-semibold text-slate-900">Profile</h1>
-      <p className="mt-1 text-sm text-slate-600">
+    <div className="mx-auto max-w-lg">
+      <h1 className="display-heading text-4xl text-ink">Profile</h1>
+      <p className="mt-1 text-sm text-muted">
         {user?.email}
         {profile?.is_admin && (
-          <span className="ml-2 rounded bg-slate-900 px-2 py-0.5 text-xs text-white">admin</span>
+          <Badge tone="coral" className="ml-2">
+            admin
+          </Badge>
         )}
       </p>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="username" className="block text-sm font-medium text-slate-700">
-            Username
-          </label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <p className="mt-1 text-xs text-slate-500">{USERNAME_RULES}</p>
-        </div>
-        <div>
-          <label htmlFor="displayName" className="block text-sm font-medium text-slate-700">
-            Display name
-          </label>
-          <input
-            id="displayName"
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-        </div>
-        {formError && <p className="text-sm text-red-600">{formError}</p>}
-        {saved && <p className="text-sm text-green-700">Saved.</p>}
-        <button
-          type="submit"
-          disabled={save.isPending}
-          className="w-full rounded bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
-        >
-          {save.isPending ? 'Saving…' : 'Save'}
-        </button>
-      </form>
+      <Panel className="mt-6 p-5 sm:p-6">
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className={`mt-1 ${fieldClassName}`}
+            />
+            <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
+          </div>
+          <div>
+            <label htmlFor="displayName" className="block text-sm font-medium text-ink-soft">
+              Display name
+            </label>
+            <input
+              id="displayName"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className={`mt-1 ${fieldClassName}`}
+            />
+          </div>
+          {formError && <p className="text-sm text-danger">{formError}</p>}
+          {saved && <p className="text-sm text-success">Saved.</p>}
+          <Button type="submit" disabled={save.isPending} className="w-full">
+            {save.isPending ? 'Saving…' : 'Save'}
+          </Button>
+        </form>
+      </Panel>
     </div>
   )
 }
