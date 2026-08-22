@@ -91,8 +91,8 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
 - [x] 4. Checkpoint — verify infrastructure compiles
   - Run `cd scripts && npm run typecheck`; ensure zero errors across `src/llm/`, `src/db/`, and config files. Stop and ask the user if any type errors arise.
 
-- [ ] 5. Phase 1 — Name normalization script
-  - [ ] 5.1 Implement `scripts/src/normalize-names.ts`
+- [x] 5. Phase 1 — Name normalization script
+  - [x] 5.1 Implement `scripts/src/normalize-names.ts`
     - Parse CLI flags: `--apply`, `--batch-size <n>` (default 10), `--reprocess`
     - Fetch `review_state = 'active'` rows from `coasters` (skip already-processed unless `--reprocess`)
     - Chunk into batches of `--batch-size`; call `normalizeBatch` for each chunk
@@ -103,7 +103,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print final summary: total fetched, `issue=none`, skipped (already processed), name updated, state-only flagged, parse failures
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [ ] 5.2 Write property tests for normalization logic (*) (`src/__tests__/normalize-logic.test.ts`)
+  - [x]* 5.2 Write property tests for normalization logic (*) (`src/__tests__/normalize-logic.test.ts`)
     - **Property: Normalization correctly partitions high/low confidence records (disjoint, collectively exhaustive)**
     - **Property: Normalization is idempotent for already-processed records**
     - **Property: Normalization summary counts are mutually exclusive and sum to N**
