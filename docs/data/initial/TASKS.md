@@ -88,7 +88,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - **Property: normalizeBatch throw marks all N batch records as needs_review**
     - **Property: adjudicateOne throw sets verdict=needs_human, verdict_confidence=null, verdict_reasoning=llm_parse_failure**
 
-- [ ] 4. Checkpoint — verify infrastructure compiles
+- [x] 4. Checkpoint — verify infrastructure compiles
   - Run `cd scripts && npm run typecheck`; ensure zero errors across `src/llm/`, `src/db/`, and config files. Stop and ask the user if any type errors arise.
 
 - [ ] 5. Phase 1 — Name normalization script
