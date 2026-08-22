@@ -11,7 +11,6 @@ The pipeline phases run in this order (Phase 7 can run in parallel with Phases 1
 ```
     Phase 0 (migration)
       → Phase 1 (normalize coaster names)
-      → Phase 3 (manufacturers dedup) ─┴─ (Phase 3 can run in parallel)
       → Phase 4 (coaster dupe candidates — requires Phase 3 done)
       → Phase 5 (LLM adjudication)
       → Phase 6 (merge review)
@@ -39,7 +38,6 @@ flowchart TD
         ML[(coaster_merge_log)]
         DC[(coaster_dupe_candidates)]
         PDC[(park_dupe_candidates)]
-        MDC[(manufacturer_dupe_candidates)]
     end
 
     subgraph scripts["scripts/ package (Node/TypeScript, tsx runner)"]
@@ -58,15 +56,13 @@ flowchart TD
         subgraph pipeline["scripts/src/"]
             p1["normalize-names.ts\nPhase 1"]
             p2a["generate-park-candidates.ts\nPhase 2"]
-            p3a["generate-manufacturer-candidates.ts\nPhase 3"]
             p4["generate-dupe-candidates.ts\nPhase 4"]
             p5["adjudicate-dupes.ts\nPhase 5"]
             p7["triage-status.ts\nPhase 7"]
         end
-
+    
         subgraph review_["scripts/src/review/"]
             p2b["review-parks.ts\nPhase 2"]
-            p3b["review-manufacturers.ts\nPhase 3"]
             p6["review-dupes.ts\nPhase 6"]
         end
 
@@ -134,12 +130,11 @@ flowchart TD
 | 0 | PR merged to `main` → CI runs `supabase db push` automatically | — | Schema changes to Supabase |
 | 1 | `npm run normalize-names -- --apply` | `coasters` (active rows) | `coasters` (name, review_state, needs_review_reason) |
 | 2 | `npm run generate-park-candidates -- --apply` then `npm run adjudicate-parks -- --apply` then `npm run review-parks` | `parks` | `park_dupe_candidates`, `parks` (delete), `coasters` (park_id repoint) |
-| 3 | `npm run generate-manufacturer-candidates -- --apply` then `npm run adjudicate-manufacturers -- --apply` then `npm run review-manufacturers` | `manufacturers` | `manufacturer_dupe_candidates`, `manufacturers` (delete), `coasters` (manufacturer_id repoint) |
-| 4 | `npm run generate-dupe-candidates -- --apply` | `coasters` | `coaster_dupe_candidates` |
-| 5 | `npm run adjudicate-dupes -- --apply` | `coaster_dupe_candidates`, `coasters` | `coaster_dupe_candidates` (verdict fields) |
-| 6 | `npm run review-dupes` | `coaster_dupe_candidates`, `coasters` | `coasters` (delete), `coaster_merge_log`, `coaster_dupe_candidates` |
-| 6 | `npm run triage-status -- --apply --input <path>` | `coasters`, input JSON | `coasters` (status fields) |
-| 7 | `npm run check-coverage` | `coasters`, `golden-ticket-2025.json` | nothing |
+| 3 | `npm run generate-dupe-candidates -- --apply` | `coasters` | `coaster_dupe_candidates` |
+| 4 | `npm run adjudicate-dupes -- --apply` | `coaster_dupe_candidates`, `coasters` | `coaster_dupe_candidates` (verdict fields) |
+| 5 | `npm run review-dupes` | `coaster_dupe_candidates`, `coasters` | `coasters` (delete), `coaster_merge_log`, `coaster_dupe_candidates` |
+| 5 | `npm run triage-status -- --apply --input <path>` | `coasters`, input JSON | `coasters` (status fields) |
+| 6 | `npm run check-coverage` | `coasters`, `golden-ticket-2025.json` | nothing |
 
 ---
 
