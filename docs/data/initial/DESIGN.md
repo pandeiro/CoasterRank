@@ -9,20 +9,19 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
 The pipeline phases run in this order (Phase 7 can run in parallel with Phases 1–6):
 
 ```
-Phase 0 (migration)
-  → Phase 1 (normalize coaster names)
-  → Phase 2 (parks dedup) ─────────┐
-  → Phase 3 (manufacturers dedup) ─┴─ (Phases 2+3 can run in parallel)
-  → Phase 4 (coaster dupe candidates — requires Phases 2+3 done)
-  → Phase 5 (LLM adjudication)
-  → Phase 6 (merge review)
-  → Phase 8 (coverage QA)
-
-Phase 7 (status triage) ─────────────────── parallel to Phases 1–6
-```
-
-**Critical sequencing constraint:** Coaster candidate generation (Phase 4) uses same-park blocking. That blocking is only reliable after duplicate parks have been collapsed and `coasters.park_id` re-pointed (Phase 2). Run Phase 2 (and Phase 3 for manufacturers) to completion before Phase 4.
-
+    Phase 0 (migration)
+      → Phase 1 (normalize coaster names)
+      → Phase 3 (manufacturers dedup) ─┴─ (Phase 3 can run in parallel)
+      → Phase 4 (coaster dupe candidates — requires Phase 3 done)
+      → Phase 5 (LLM adjudication)
+      → Phase 6 (merge review)
+      → Phase 8 (coverage QA)
+    
+    Phase 7 (status triage) ─────────────────── parallel to Phases 1–6
+    ```
+    
+    **Critical sequencing constraint:** Coaster candidate generation (Phase 4) uses same-park blocking. That blocking is only reliable after duplicate manufacturers have been collapsed and `coasters.manufacturer_id` re-pointed (Phase 3). Run Phase 3 to completion before Phase 4.
+    
 Each phase produces durable output that feeds the next, making the pipeline restartable at any phase boundary.
 
 ---
