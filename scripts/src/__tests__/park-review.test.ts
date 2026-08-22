@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as fc from 'fast-check'
 
 describe('Park Review Logic - Property Tests', () => {
-  describe('Merge atomicity', () => {
-    it('Park merge either fully succeeds or fully rolls back (Property 16)', () => {
+  describe('Merge atomicity (pattern)', () => {
+    it('Atomic transaction pattern: all operations succeed or all roll back', () => {
       fc.assert(
         fc.property(
           fc.array(

@@ -324,7 +324,7 @@ async function main(): Promise<void> {
         validate: (v) => (v.trim() ? null : 'Reason is required'),
       })
 
-      const success = await applyMerge(parkA.id, parkB.id, candidate.id, reason, dryRun)
+      const success = await mergeParks(parkA.id, parkB.id, candidate.id, reason, dryRun)
       if (success) {
         summary.merged++
       } else {
