@@ -13,7 +13,6 @@ This document is the step-by-step guide for a human executing the Track A data q
 | After each agent PR | Review and merge the PR — schema changes and code land only via merged PRs |
 | Phase 1 | Spot-check LLM normalization output before applying |
 | Phase 2 | Run `review-parks` interactively; decide each merge or rejection |
-| Phase 3 | Run `review-manufacturers` interactively; decide each merge or rejection |
 | Phase 5 | Run `review-dupes` interactively; decide each coaster merge or rejection |
 | Phase 7 | Fill in the status triage JSON with research findings; apply it |
 | Phase 8 | Hand-transcribe the Golden Ticket fixture; investigate any `MISSING` entries |
@@ -55,56 +54,6 @@ This document is the step-by-step guide for a human executing the Track A data q
 
 ## Phase 2 — Parks dedup
 
-**Who does this:** the agent writes `generate-park-candidates.ts`, `adjudicate-parks.ts`, and `review-parks.ts`, and opens a PR.
-
-**Your job:**
-1. Review and merge the PR.
-2. Generate candidates (dry-run first):
-   ```bash
-   cd scripts
-   npm run generate-park-candidates
-   # review the count, then:
-   npm run generate-park-candidates -- --apply
-   ```
-3. Run the LLM adjudication pass:
-   ```bash
-   npm run adjudicate-parks -- --apply
-   ```
-   This labels each candidate pair as `duplicate`, `not_duplicate`, or `needs_human`. It doesn't merge anything — that's your job.
-4. Run the interactive review:
-   ```bash
-   npm run review-parks
-   ```
-   For each pair:
-   - The LLM verdict and reasoning are shown alongside the raw data — use them as a triage aid, not a final answer.
-   - Press **`y`** to confirm a merge (you'll be prompted for a reason), **`n`** to reject, **`s`** to skip for later.
-   - A confirmed merge re-points all `coasters.park_id` rows from the duplicate to the canonical park and deletes the duplicate.
-   - When in doubt, press `n` — a false negative is a skipped merge; a false positive silently loses a park record.
-5. Re-run with `--filter 0.85` first to clear the high-confidence cases quickly, then drop the threshold to review the remainder.
-
-**Stop condition:** all `park_dupe_candidates` rows have `resolved = true` before moving to Phase 4.
-
----
-
-## Phase 3 — Manufacturers dedup
-
-**Who does this:** the agent writes `generate-manufacturer-candidates.ts`, `adjudicate-manufacturers.ts`, and `review-manufacturers.ts`, and opens a PR.
-
-**Your job:** same pattern as Phase 2.
-```bash
-npm run generate-manufacturer-candidates
-npm run generate-manufacturer-candidates -- --apply
-npm run adjudicate-manufacturers -- --apply
-npm run review-manufacturers
-```
-
-Manufacturer dedup is usually faster — 101 rows, typically few near-duplicates. Common cases: "Vekoma" vs "Vekoma Rides Manufacturing", "S&S" vs "S&S Worldwide". The canonical record is whichever has richer data.
-
-**Phases 2 and 3 can run in parallel** if two people are available.
-
-**Stop condition:** all `manufacturer_dupe_candidates` rows have `resolved = true` before moving to Phase 4.
-
----
 
 ## Phase 4 — Coaster duplicate candidate generation
 

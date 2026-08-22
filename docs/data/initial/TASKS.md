@@ -21,7 +21,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
   - [x] 1.1 Pin new dependencies and extend `scripts/package.json`
     - Add `openai`, `zod`, and `@supabase/supabase-js` as exact-pinned production dependencies (no `^` or `~`) in `scripts/package.json`
     - Add `fast-check`, `vitest`, and `@vitest/coverage-v8` as exact-pinned dev dependencies
-    - Add all new npm scripts to the `"scripts"` section: `normalize-names`, `generate-park-candidates`, `adjudicate-parks`, `review-parks`, `generate-manufacturer-candidates`, `adjudicate-manufacturers`, `review-manufacturers`, `generate-dupe-candidates`, `adjudicate-dupes`, `review-dupes`, `triage-status`, `check-coverage`, `test`, `test:watch`
+    - Add all new npm scripts to the `"scripts"` section: `normalize-names`, `generate-park-candidates`, `adjudicate-parks`, `review-parks`, `generate-dupe-candidates`, `adjudicate-dupes`, `review-dupes`, `triage-status`, `check-coverage`, `test`, `test:watch`
     - _Requirements: 12.1, 4.1, 5.1, 5.4, 5.7, 6.1, 6.4, 6.7, 7.1, 8.1, 9.1, 10.1, 11.6_
 
   - [x] 1.2 Update `scripts/tsconfig.json` for strict mode and full source coverage
