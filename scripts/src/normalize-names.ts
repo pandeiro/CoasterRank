@@ -1,18 +1,7 @@
 import { supabaseAdmin } from './db/client.js'
-import { normalizeBatch, type NormalizeInput, type NormalizationResult } from './llm/tasks.js'
 
 const APPLY = process.argv.includes('--apply')
 const REPROCESS = process.argv.includes('--reprocess')
-const BATCH_SIZE = (() => {
-  const idx = process.argv.indexOf('--batch-size')
-  if (idx === -1) return 10
-  const val = Number(process.argv[idx + 1])
-  if (!Number.isFinite(val) || val < 1) {
-    console.error('Error: --batch-size must be a positive integer')
-    process.exit(1)
-  }
-  return val
-})()
 const LIMIT = (() => {
   const idx = process.argv.indexOf('--limit')
   if (idx === -1) return Infinity
@@ -24,35 +13,25 @@ const LIMIT = (() => {
   return val
 })()
 
+// Strip trailing parenthesized text: "Name (Park)" → "Name"
+// Also handles "Name (roller coaster)", "Name (disambiguation)", etc.
+export function normalizeName(name: string): { cleaned: string; changed: boolean } {
+  const cleaned = name.replace(/\s*\(.*\)\s*$/, '').trim()
+  return { cleaned, changed: cleaned !== name }
+}
+
 type Summary = {
   totalFetched: number
-  issueNone: number
-  skipped: number
   nameUpdated: number
-  stateOnlyFlagged: number
-  parseFailures: number
+  unchanged: number
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size))
-  }
-  return chunks
-}
-
-async function fetchCoasters(): Promise<
-  { id: string; name: string; park_name: string }[]
-> {
-  let query = supabaseAdmin
-    .from('coasters')
-    .select('id, name, park_name:parks(name)')
+async function fetchCoasters(): Promise<{ id: string; name: string }[]> {
+  let query = supabaseAdmin.from('coasters').select('id, name')
 
   if (!REPROCESS) {
-    // Default: only process active records
     query = query.eq('review_state', 'active')
   }
-  // With --reprocess: fetch all records regardless of state
 
   const { data, error } = await query
   if (error) {
@@ -60,161 +39,67 @@ async function fetchCoasters(): Promise<
     process.exit(1)
   }
 
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    park_name: row.park_name?.name ?? 'Unknown Park',
-  }))
-}
-
-async function applyHighConfidence(
-  updates: { id: string; cleaned_name: string }[],
-): Promise<number> {
-  if (updates.length === 0) return 0
-  let count = 0
-  for (const u of updates) {
-    const { error } = await supabaseAdmin
-      .from('coasters')
-      .update({
-        name: u.cleaned_name,
-        review_state: 'needs_review',
-        needs_review_reason: 'name_normalized',
-      })
-      .eq('id', u.id)
-    if (error) {
-      console.error(`  Failed to update coaster ${u.id}:`, error.message)
-    } else {
-      count++
-    }
-  }
-  return count
-}
-
-async function applyLowConfidence(
-  updates: { id: string }[],
-): Promise<number> {
-  if (updates.length === 0) return 0
-  let count = 0
-  for (const u of updates) {
-    const { error } = await supabaseAdmin
-      .from('coasters')
-      .update({
-        review_state: 'needs_review',
-        needs_review_reason: 'low_confidence_normalization',
-      })
-      .eq('id', u.id)
-    if (error) {
-      console.error(`  Failed to flag coaster ${u.id}:`, error.message)
-    } else {
-      count++
-    }
-  }
-  return count
-}
-
-async function applyParseFailure(failedIds: string[]): Promise<void> {
-  for (const id of failedIds) {
-    await supabaseAdmin
-      .from('coasters')
-      .update({
-        review_state: 'needs_review',
-        needs_review_reason: 'llm_parse_failure',
-      })
-      .eq('id', id)
-  }
+  return data ?? []
 }
 
 async function main(): Promise<void> {
-  console.log('CoasterRank name normalization')
-  console.log('  mode:   ', APPLY ? 'APPLY (write to DB)' : 'DRY-RUN (no DB writes)')
+  console.log('CoasterRank name normalization (regex)')
+  console.log('  mode:    ', APPLY ? 'APPLY (write to DB)' : 'DRY-RUN (no DB writes)')
   console.log('  reprocess:', REPROCESS ? 'yes' : 'no (skip already-processed)')
-  console.log('  batch_size:', BATCH_SIZE)
-  if (LIMIT !== Infinity) console.log('  limit:', LIMIT)
+  if (LIMIT !== Infinity) console.log('  limit:   ', LIMIT)
 
   const allCoasters = await fetchCoasters()
   const coasters = LIMIT !== Infinity ? allCoasters.slice(0, LIMIT) : allCoasters
-  console.log(`\nFetched ${allCoasters.length} active coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`)
+  console.log(`\nFetched ${allCoasters.length} coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`)
 
   const summary: Summary = {
     totalFetched: coasters.length,
-    issueNone: 0,
-    skipped: 0,
     nameUpdated: 0,
-    stateOnlyFlagged: 0,
-    parseFailures: 0,
+    unchanged: 0,
   }
 
-  const batches = chunk(coasters, BATCH_SIZE)
+  const updates: { id: string; cleaned: string }[] = []
 
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i]!
-    const batchNum = i + 1
-    console.log(`\nBatch ${batchNum}/${batches.length} (${batch.length} records)`)
-
-    let results: NormalizationResult[]
-    try {
-      results = await normalizeBatch(
-        batch.map((c) => ({
-          coaster_id: c.id,
-          name: c.name,
-          park_name: c.park_name,
-        })),
-      )
-    } catch (err) {
-      console.error(`  Batch ${batchNum} failed: ${(err as Error).message}`)
-      summary.parseFailures += batch.length
-      if (APPLY) {
-        await applyParseFailure(batch.map((c) => c.id))
-      }
-      continue
-    }
-
-    const highConfidenceUpdates: { id: string; cleaned_name: string }[] = []
-    const lowConfidenceUpdates: { id: string }[] = []
-
-    for (const r of results) {
-      if (r.issue === 'none') {
-        summary.issueNone++
-        continue
-      }
-
+  for (const c of coasters) {
+    const { cleaned, changed } = normalizeName(c.name)
+    if (changed) {
       if (!APPLY) {
-        console.log(
-          `  [DRY-RUN] ${r.coaster_id} | "${batch.find((c) => c.id === r.coaster_id)?.name ?? '?'}" → "${r.cleaned_name}" | issue=${r.issue} confidence=${r.confidence}`,
-        )
+        console.log(`  [DRY-RUN] ${c.id} | "${c.name}" → "${cleaned}"`)
       }
-
-      if (r.confidence >= 0.7) {
-        highConfidenceUpdates.push({ id: r.coaster_id, cleaned_name: r.cleaned_name })
-      } else {
-        lowConfidenceUpdates.push({ id: r.coaster_id })
-      }
-    }
-
-    if (APPLY) {
-      const updated = await applyHighConfidence(highConfidenceUpdates)
-      const flagged = await applyLowConfidence(lowConfidenceUpdates)
-      summary.nameUpdated += updated
-      summary.stateOnlyFlagged += flagged
-      console.log(`  Applied: ${updated} name updates, ${flagged} low-confidence flags`)
+      updates.push({ id: c.id, cleaned })
     } else {
-      summary.nameUpdated += highConfidenceUpdates.length
-      summary.stateOnlyFlagged += lowConfidenceUpdates.length
-      console.log(
-        `  [DRY-RUN] Would update: ${highConfidenceUpdates.length} names, ${lowConfidenceUpdates.length} low-confidence flags`,
-      )
+      summary.unchanged++
     }
+  }
 
-    console.log(`  Batch ${batchNum} done (issue=none: ${results.filter((r) => r.issue === 'none').length})`)
+  if (APPLY) {
+    let applied = 0
+    for (const u of updates) {
+      const { error } = await supabaseAdmin
+        .from('coasters')
+        .update({
+          name: u.cleaned,
+          review_state: 'needs_review',
+          needs_review_reason: 'name_normalized',
+        })
+        .eq('id', u.id)
+      if (error) {
+        console.error(`  Failed to update ${u.id}:`, error.message)
+      } else {
+        applied++
+      }
+    }
+    summary.nameUpdated = applied
+    console.log(`\nApplied: ${applied} name updates`)
+  } else {
+    summary.nameUpdated = updates.length
+    console.log(`\n[DRY-RUN] Would update: ${updates.length} names`)
   }
 
   console.log('\n--- Summary ---')
-  console.log(`  Total fetched:       ${summary.totalFetched}`)
-  console.log(`  issue=none:          ${summary.issueNone}`)
-  console.log(`  Skipped:             ${summary.skipped}`)
-  console.log(`  Name updated:        ${summary.nameUpdated}`)
-  console.log(`  State-only flagged:  ${summary.stateOnlyFlagged}`)
-  console.log(`  Parse failures:      ${summary.parseFailures}`)
+  console.log(`  Total fetched: ${summary.totalFetched}`)
+  console.log(`  Name updated:  ${summary.nameUpdated}`)
+  console.log(`  Unchanged:     ${summary.unchanged}`)
 }
 
 main().catch((err) => {
