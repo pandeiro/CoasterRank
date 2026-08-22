@@ -8,6 +8,8 @@
     "import-coasters": "tsx import-coasters.ts",
     "normalize-names": "tsx src/normalize-names.ts",
     "normalize-names-llm": "tsx src/normalize-names-llm.ts",
+    "backfill-park-locations": "tsx src/backfill-park-locations.ts",
+    "fix-missing-regions-and-non-english": "tsx src/fix-missing-regions-and-non-english.ts",
     "generate-manufacturer-candidates": "tsx src/generate-manufacturer-candidates.ts",
     "adjudicate-manufacturers": "tsx src/adjudicate-manufacturers.ts",
     "review-manufacturers": "tsx src/review/review-manufacturers.ts",
