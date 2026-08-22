@@ -159,8 +159,12 @@ describe('callWithRetry retry behavior', () => {
   })
 
   it('retries on JSON parse error (markdown fences) and succeeds on second attempt', async () => {
-    const markdownResponse = '```json\n{"coaster_id":"test","cleaned_name":"Fury","issue":"none","confidence":1,"reasoning":"ok"}\n```'
-    const validResponse = makeValidNormalizationResponse({ coaster_id: 'test', cleaned_name: 'Fury' })
+    const markdownResponse =
+      '```json\n{"coaster_id":"test","cleaned_name":"Fury","issue":"none","confidence":1,"reasoning":"ok"}\n```'
+    const validResponse = makeValidNormalizationResponse({
+      coaster_id: 'test',
+      cleaned_name: 'Fury',
+    })
     mockCreate
       .mockResolvedValueOnce({
         choices: [{ message: { content: markdownResponse } }],

@@ -2,7 +2,11 @@ import { z } from 'zod'
 import type OpenAI from 'openai'
 import { APIConnectionError } from 'openai'
 import { lmStudio, MODEL_ID } from './client.js'
-import { NORMALIZATION_SYSTEM_PROMPT, ADJUDICATION_SYSTEM_PROMPT } from './prompts.js'
+import {
+  NORMALIZATION_SYSTEM_PROMPT,
+  ADJUDICATION_SYSTEM_PROMPT,
+  PARK_ADJUDICATION_SYSTEM_PROMPT,
+} from './prompts.js'
 
 // --- Zod schemas ---
 
@@ -59,6 +63,25 @@ export type AdjudicateInput = {
   similarity: number
 }
 
+export type ParkAdjudicateInput = {
+  pair_id: string
+  park_a: {
+    park_id: string
+    name: string
+    country: string | null
+    region: string | null
+    city: string | null
+  }
+  park_b: {
+    park_id: string
+    name: string
+    country: string | null
+    region: string | null
+    city: string | null
+  }
+  similarity: number
+}
+
 // --- Retry helper ---
 
 function safeParseJSON(raw: string): { ok: true; data: unknown } | { ok: false; error: string } {
@@ -67,7 +90,10 @@ function safeParseJSON(raw: string): { ok: true; data: unknown } | { ok: false; 
     return { ok: true, data: JSON.parse(raw) }
   } catch {
     // Try stripping markdown fences
-    const stripped = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
+    const stripped = raw
+      .replace(/^```(?:json)?\s*\n?/i, '')
+      .replace(/\n?```\s*$/i, '')
+      .trim()
     try {
       return { ok: true, data: JSON.parse(stripped) }
     } catch {
@@ -203,6 +229,22 @@ export async function adjudicateOne(input: AdjudicateInput): Promise<Adjudicatio
       content: JSON.stringify({
         coaster_a: input.coaster_a,
         coaster_b: input.coaster_b,
+        similarity: input.similarity,
+      }),
+    },
+  ]
+  const result = await callWithRetry(messages, AdjudicationLLMOutput)
+  return { ...result, pair_id: input.pair_id }
+}
+
+export async function adjudicateParkOne(input: ParkAdjudicateInput): Promise<AdjudicationResult> {
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: PARK_ADJUDICATION_SYSTEM_PROMPT },
+    {
+      role: 'user',
+      content: JSON.stringify({
+        park_a: input.park_a,
+        park_b: input.park_b,
         similarity: input.similarity,
       }),
     },

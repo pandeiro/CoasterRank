@@ -41,12 +41,8 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks
 }
 
-async function fetchCoasters(): Promise<
-  { id: string; name: string; park_name: string }[]
-> {
-  let query = supabaseAdmin
-    .from('coasters')
-    .select('id, name, park_name:parks(name)')
+async function fetchCoasters(): Promise<{ id: string; name: string; park_name: string }[]> {
+  let query = supabaseAdmin.from('coasters').select('id, name, park_name:parks(name)')
 
   if (!REPROCESS) {
     // Default: only process active records
@@ -90,9 +86,7 @@ async function applyHighConfidence(
   return count
 }
 
-async function applyLowConfidence(
-  updates: { id: string }[],
-): Promise<number> {
+async function applyLowConfidence(updates: { id: string }[]): Promise<number> {
   if (updates.length === 0) return 0
   let count = 0
   for (const u of updates) {
@@ -133,7 +127,9 @@ async function main(): Promise<void> {
 
   const allCoasters = await fetchCoasters()
   const coasters = LIMIT !== Infinity ? allCoasters.slice(0, LIMIT) : allCoasters
-  console.log(`\nFetched ${allCoasters.length} active coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`)
+  console.log(
+    `\nFetched ${allCoasters.length} active coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`,
+  )
 
   const summary: Summary = {
     totalFetched: coasters.length,
@@ -205,7 +201,9 @@ async function main(): Promise<void> {
       )
     }
 
-    console.log(`  Batch ${batchNum} done (issue=none: ${results.filter((r) => r.issue === 'none').length})`)
+    console.log(
+      `  Batch ${batchNum} done (issue=none: ${results.filter((r) => r.issue === 'none').length})`,
+    )
   }
 
   console.log('\n--- Summary ---')

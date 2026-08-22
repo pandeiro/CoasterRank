@@ -25,7 +25,7 @@ Output: [{"coaster_id":"def","cleaned_name":"Maverick","issue":"truncated","conf
 
 Example 3:
 Input: [{"coaster_id":"ghi","name":"Nitro","park_name":"Six Flags Great Adventure"}]
-Output: [{"coaster_id":"ghi","cleaned_name":"Nitro","issue":"none","confidence":1.0,"reasoning":"Name is correct as-is"}]`;
+Output: [{"coaster_id":"ghi","cleaned_name":"Nitro","issue":"none","confidence":1.0,"reasoning":"Name is correct as-is"}]`
 
 export const ADJUDICATION_SYSTEM_PROMPT = `You are a roller coaster data quality assistant. Your task is to decide whether two database records represent the same physical roller coaster.
 
@@ -54,4 +54,34 @@ Output: {"verdict":"not_duplicate","confidence":0.9,"reasoning":"Same name but d
 
 Example 3:
 Input: {"coaster_a":{"coaster_id":"c1","name":"Racer","park_name":"Kings Island","manufacturer":"PTC","opening_date":"1972-04-29","height_m":14},"coaster_b":{"coaster_id":"c2","name":"Racer 75","park_name":"Kings Island","manufacturer":null,"opening_date":null,"height_m":null},"similarity":0.6}
-Output: {"verdict":"needs_human","confidence":0.5,"reasoning":"Similar names at same park — could be renamed or different coaster, needs review"}`;
+Output: {"verdict":"needs_human","confidence":0.5,"reasoning":"Similar names at same park — could be renamed or different coaster, needs review"}`
+
+export const PARK_ADJUDICATION_SYSTEM_PROMPT = `You are a roller coaster data quality assistant. Your task is to decide whether two database records represent the same physical amusement/theme park.
+
+You will receive a JSON object with two park records (park_a and park_b) and a similarity score. Base your verdict ONLY on the provided fields — do not use outside knowledge.
+
+Output a JSON object with "verdict", "confidence" (0-1), and "reasoning" (max 200 chars).
+
+Verdict options:
+- "duplicate": The two records almost certainly describe the same physical park
+- "not_duplicate": The two records describe different parks
+- "needs_human": You are uncertain and a human should review
+
+Key rules:
+- Same name in different countries/regions usually means NOT duplicates (different parks with the same name, e.g. "Six Flags" parks).
+- Similar names in the same city/region are likely duplicates (e.g. "Disneyland" vs "Disneyland Park", "Universal Studios" vs "Universal Studios Florida").
+- Franchise parks with location suffixes ("Six Flags Magic Mountain" vs "Six Flags Over Texas") are NOT duplicates — they are distinct parks.
+- Null fields on one side are NOT evidence that the records describe different parks — they simply mean one record has less data. When null fields reduce confidence but name and location match strongly, prefer "needs_human" over "not_duplicate".
+- When uncertain, output "needs_human" rather than guessing.
+
+Example 1:
+Input: {"park_a":{"park_id":"p1","name":"Cedar Point","country":"United States","region":"Ohio","city":"Sandusky"},"park_b":{"park_id":"p2","name":"Cedar Point ","country":"United States","region":"Ohio","city":null},"similarity":0.98}
+Output: {"verdict":"duplicate","confidence":0.95,"reasoning":"Identical name, same country/region; B has trailing space and missing city — import artifact"}
+
+Example 2:
+Input: {"park_a":{"park_id":"p3","name":"Six Flags Magic Mountain","country":"United States","region":"California","city":"Valencia"},"park_b":{"park_id":"p4","name":"Six Flags Over Texas","country":"United States","region":"Texas","city":"Arlington"},"similarity":0.72}
+Output: {"verdict":"not_duplicate","confidence":0.9,"reasoning":"Same franchise but different parks in different states — distinct physical locations"}
+
+Example 3:
+Input: {"park_a":{"park_id":"p5","name":"Disneyland","country":"United States","region":"California","city":"Anaheim"},"park_b":{"park_id":"p6","name":"Disneyland Park","country":"United States","region":"California","city":"Anaheim"},"similarity":0.85}
+Output: {"verdict":"duplicate","confidence":0.8,"reasoning":"Same location, name variant ('Disneyland' vs 'Disneyland Park') — likely same park with naming inconsistency"}`

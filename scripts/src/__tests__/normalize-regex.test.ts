@@ -33,7 +33,7 @@ describe('normalizeName', () => {
   it('does not strip parentheses in the middle of a name', () => {
     // Only strips trailing parens, not embedded ones
     expect(normalizeName('Space Mountain (Disney)').cleaned).toBe('Space Mountain')
-    expect(normalizeName('Rock \'n\' Roller Coaster').cleaned).toBe("Rock 'n' Roller Coaster")
+    expect(normalizeName("Rock 'n' Roller Coaster").cleaned).toBe("Rock 'n' Roller Coaster")
   })
 
   // Property: if name has trailing parens, cleaned name is shorter
@@ -51,7 +51,8 @@ describe('normalizeName', () => {
   it('names without parentheses are unchanged', () => {
     fc.assert(
       fc.property(
-        fc.string({ minLength: 1, maxLength: 50 })
+        fc
+          .string({ minLength: 1, maxLength: 50 })
           .filter((s) => !s.includes('(') && s.trim().length > 0),
         (name) => {
           const { cleaned, changed } = normalizeName(name)

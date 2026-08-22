@@ -33,7 +33,10 @@ async function fetchCoasters(): Promise<{ id: string; name: string }[]> {
   let offset = 0
 
   while (true) {
-    let query = supabaseAdmin.from('coasters').select('id, name').range(offset, offset + PAGE_SIZE - 1)
+    let query = supabaseAdmin
+      .from('coasters')
+      .select('id, name')
+      .range(offset, offset + PAGE_SIZE - 1)
 
     if (!REPROCESS) {
       query = query.eq('review_state', 'active')
@@ -61,7 +64,9 @@ async function main(): Promise<void> {
 
   const allCoasters = await fetchCoasters()
   const coasters = LIMIT !== Infinity ? allCoasters.slice(0, LIMIT) : allCoasters
-  console.log(`\nFetched ${allCoasters.length} coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`)
+  console.log(
+    `\nFetched ${allCoasters.length} coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`,
+  )
 
   const summary: Summary = {
     totalFetched: coasters.length,

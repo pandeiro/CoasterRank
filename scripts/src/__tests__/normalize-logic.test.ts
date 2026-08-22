@@ -73,12 +73,8 @@ describe('Normalization summary counts', () => {
         (results) => {
           const total = results.length
           const issueNone = results.filter((r) => r.issue === 'none').length
-          const highConf = results.filter(
-            (r) => r.issue !== 'none' && r.confidence >= 0.7,
-          ).length
-          const lowConf = results.filter(
-            (r) => r.issue !== 'none' && r.confidence < 0.7,
-          ).length
+          const highConf = results.filter((r) => r.issue !== 'none' && r.confidence >= 0.7).length
+          const lowConf = results.filter((r) => r.issue !== 'none' && r.confidence < 0.7).length
 
           // All four categories are disjoint and sum to total
           expect(issueNone + highConf + lowConf).toBe(total)
