@@ -17,20 +17,20 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
   - This document is the answer to "I'm the human — what do I do, in what order, and where are my decision points?"
   - _No code requirement — this is documentation that must exist before implementation begins_
 
-- [ ] 1. Extend scripts package infrastructure and shared clients
-  - [ ] 1.1 Pin new dependencies and extend `scripts/package.json`
+- [x] 1. Extend scripts package infrastructure and shared clients
+  - [x] 1.1 Pin new dependencies and extend `scripts/package.json`
     - Add `openai`, `zod`, and `@supabase/supabase-js` as exact-pinned production dependencies (no `^` or `~`) in `scripts/package.json`
     - Add `fast-check`, `vitest`, and `@vitest/coverage-v8` as exact-pinned dev dependencies
     - Add all new npm scripts to the `"scripts"` section: `normalize-names`, `generate-park-candidates`, `adjudicate-parks`, `review-parks`, `generate-manufacturer-candidates`, `adjudicate-manufacturers`, `review-manufacturers`, `generate-dupe-candidates`, `adjudicate-dupes`, `review-dupes`, `triage-status`, `check-coverage`, `test`, `test:watch`
     - _Requirements: 12.1, 4.1, 5.1, 5.4, 5.7, 6.1, 6.4, 6.7, 7.1, 8.1, 9.1, 10.1, 11.6_
 
-  - [ ] 1.2 Update `scripts/tsconfig.json` for strict mode and full source coverage
+  - [x] 1.2 Update `scripts/tsconfig.json` for strict mode and full source coverage
     - Ensure `"strict": true` is set
     - Ensure `include` contains `"./src/**/*.ts"` plus any root-level `.ts` files
     - Add `scripts/vitest.config.ts` with `{ test: { globals: true, environment: "node" } }`
     - _Requirements: 12.4, 12.5_
 
-  - [ ] 1.3 Implement `scripts/src/db/client.ts` — Supabase admin client
+  - [x] 1.3 Implement `scripts/src/db/client.ts` — Supabase admin client
     - Load `.env` via `dotenv` relative to the scripts package root (path: `../../.env`)
     - Read `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from environment
     - If either is absent or empty, write `"Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must both be set"` to stderr and call `process.exit(1)` before constructing the client

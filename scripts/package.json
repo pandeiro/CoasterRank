@@ -6,17 +6,37 @@
   "description": "Data-engineering scripts for CoasterRank (CSV imports, ops, maintenance). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
   "scripts": {
     "import-coasters": "tsx import-coasters.ts",
-    "typecheck": "tsc --noEmit"
+    "normalize-names": "tsx src/normalize-names.ts",
+    "generate-park-candidates": "tsx src/generate-park-candidates.ts",
+    "adjudicate-parks": "tsx src/adjudicate-parks.ts",
+    "review-parks": "tsx src/review/review-parks.ts",
+    "generate-manufacturer-candidates": "tsx src/generate-manufacturer-candidates.ts",
+    "adjudicate-manufacturers": "tsx src/adjudicate-manufacturers.ts",
+    "review-manufacturers": "tsx src/review/review-manufacturers.ts",
+    "generate-dupe-candidates": "tsx src/generate-dupe-candidates.ts",
+    "adjudicate-dupes": "tsx src/adjudicate-dupes.ts",
+    "review-dupes": "tsx src/review/review-dupes.ts",
+    "triage-status": "tsx src/triage-status.ts",
+    "check-coverage": "tsx src/qa/check-golden-ticket-coverage.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.112.3",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",
-    "pg": "^8.13.1"
+    "openai": "7.5.0",
+    "pg": "^8.13.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/pg": "^8.11.10",
+    "@vitest/coverage-v8": "4.1.11",
+    "fast-check": "4.9.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "4.1.11"
   }
 }
