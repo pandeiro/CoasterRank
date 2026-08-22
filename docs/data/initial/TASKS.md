@@ -54,33 +54,33 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Do not proceed to tasks 3+ until the PR has merged and the migration is live
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12, 1.13_
 
-- [ ] 3. LLM client, prompts, Zod schemas, and task functions
-  - [ ] 3.1 Implement `scripts/src/llm/client.ts`
+- [x] 3. LLM client, prompts, Zod schemas, and task functions
+  - [x] 3.1 Implement `scripts/src/llm/client.ts`
     - Export named `lmStudio` with `baseURL: "http://localhost:1234/v1"` and `apiKey: "lm-studio"`
     - Export constant `MODEL_ID = "qwen3.8-27b"` — no environment variable, no runtime guard needed
     - This is the only file that constructs an `OpenAI` instance targeting LM Studio
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.2 Implement `scripts/src/llm/prompts.ts`
+  - [x] 3.2 Implement `scripts/src/llm/prompts.ts`
     - Export `NORMALIZATION_SYSTEM_PROMPT`: classifies each name as `park_name_embedded`, `truncated`, `abbreviation`, or `none`; returns `cleaned_name`; outputs a JSON array; includes three worked examples; instructs to classify as `none` when uncertain
     - Export `ADJUDICATION_SYSTEM_PROMPT`: decides whether two records are the same physical coaster; same-name coasters at different parks default to not-duplicate; output `needs_human` when uncertain; includes three worked examples
     - _Requirements: 13.1, 13.2_
 
-  - [ ] 3.3 Implement Zod schemas and `callWithRetry` helper in `scripts/src/llm/tasks.ts`
+  - [x] 3.3 Implement Zod schemas and `callWithRetry` helper in `scripts/src/llm/tasks.ts`
     - Define and export `NormalizationResult` Zod schema and its TypeScript type
     - Define and export `AdjudicationResult` Zod schema and its TypeScript type
     - Export `NormalizationBatch = z.array(NormalizationResult)`
     - Implement private `callWithRetry<T>`: on Zod failure log full error + raw response to stderr, append schema-reminder user turn, retry once; on second failure log again and throw
     - _Requirements: 3.1, 3.5, 3.6, 13.6, 13.7_
 
-  - [ ] 3.4 Implement `normalizeOne`, `normalizeBatch`, and `adjudicateOne` in `scripts/src/llm/tasks.ts`
+  - [x] 3.4 Implement `normalizeOne`, `normalizeBatch`, and `adjudicateOne` in `scripts/src/llm/tasks.ts`
     - `normalizeOne(input: NormalizeInput): Promise<NormalizationResult>` — throws on double failure
     - `normalizeBatch(records: NormalizeInput[]): Promise<NormalizationBatch>` — batch as one call, throws on double failure
     - `adjudicateOne(input: AdjudicateInput): Promise<AdjudicationResult>` — throws on double failure
     - Export `NormalizeInput` and `AdjudicateInput` type aliases
     - _Requirements: 13.3, 13.4, 13.5_
 
-  - [ ] 3.5 Write property tests for Zod schemas and retry logic (*) (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
+  - [x]* 3.5 Write property tests for Zod schemas and retry logic (*) (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
     - **Property: NormalizationResult schema accepts valid objects and rejects constraint violations**
     - **Property: AdjudicationResult schema accepts valid objects and rejects constraint violations**
     - **Property: Zod validation is the only gate between LLM output and DB writes**
