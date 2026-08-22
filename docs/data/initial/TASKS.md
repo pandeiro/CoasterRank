@@ -80,7 +80,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Export `NormalizeInput` and `AdjudicateInput` type aliases
     - _Requirements: 13.3, 13.4, 13.5_
 
-  - [ ]* 3.5 Write property tests for Zod schemas and retry logic (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
+  - [ ] 3.5 Write property tests for Zod schemas and retry logic (*) (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
     - **Property: NormalizationResult schema accepts valid objects and rejects constraint violations**
     - **Property: AdjudicationResult schema accepts valid objects and rejects constraint violations**
     - **Property: Zod validation is the only gate between LLM output and DB writes**
@@ -103,7 +103,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print final summary: total fetched, `issue=none`, skipped (already processed), name updated, state-only flagged, parse failures
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [ ]* 5.2 Write property tests for normalization logic (`src/__tests__/normalize-logic.test.ts`)
+  - [ ] 5.2 Write property tests for normalization logic (*) (`src/__tests__/normalize-logic.test.ts`)
     - **Property: Normalization correctly partitions high/low confidence records (disjoint, collectively exhaustive)**
     - **Property: Normalization is idempotent for already-processed records**
     - **Property: Normalization summary counts are mutually exclusive and sum to N**
@@ -167,7 +167,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print completion summary
     - _Requirements: 6.7, 6.8, 6.9, 6.10, 6.11, 6.12_
 
-  - [ ]* 7.4 Write property tests for manufacturer review logic (`src/__tests__/manufacturer-review.test.ts`)
+  - [ ] 7.4 Write property tests for manufacturer review logic (*) (`src/__tests__/manufacturer-review.test.ts`)
     - **Property: Manufacturer merge atomically re-points all affected coasters and deletes duplicate — or rolls back entirely**
 
 - [ ] 8. Checkpoint — run `cd scripts && npm run typecheck` across all scripts so far; ensure zero errors. Stop and ask the user if issues arise.
@@ -219,7 +219,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - `--dry-run`: evaluate `user_rides` guard and report actions without writing
     - _Requirements: 9.4, 9.5, 9.7, 9.8, 9.9_
 
-  - [ ]* 11.3 Write property tests for review-dupes logic (`src/__tests__/review-dupes.test.ts`)
+  - [ ] 11.3 Write property tests for review-dupes logic (*) (`src/__tests__/review-dupes.test.ts`)
     - **Property: `sortCandidates` — high-confidence duplicates always precede all others with correct sub-ordering**
     - **Property: Merge atomicity — delete + log + resolved=true commit together or not at all**
     - **Property: Canonical coaster row always exists after any confirmed merge**
@@ -239,7 +239,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print summary: total entries, skipped (no resolution), skipped (unknown id), skipped (invalid status), applied
     - _Requirements: 10.3, 10.4, 10.5, 10.6, 10.7, 10.8_
 
-  - [ ]* 12.3 Write property tests for triage-status logic (`src/__tests__/triage-status.test.ts`)
+  - [ ] 12.3 Write property tests for triage-status logic (*) (`src/__tests__/triage-status.test.ts`)
     - **Property: Apply only updates entries with `resolution` field**
     - **Property: `review_state` is `'needs_review'` iff new status is `defunct` or `relocated`**
     - **Property: Triage summary counts sum to total input entries**
@@ -263,15 +263,15 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - **Property: Exit code is 1 iff at least one entry is MISSING**
 
 - [ ] 14. Unit tests for environment guards and fixture integrity
-  - [ ]* 14.1 Write unit tests for `db/client.ts` env guard
+  - [ ] 14.1 Write unit tests for `db/client.ts` env guard (*)
     - Test that `scripts/src/db/client.ts` exits with correct error message when env vars are absent
     - _Requirements: 12.3_
 
-  - [ ]* 14.2 Write unit tests for fixture file integrity
+  - [ ] 14.2 Write unit tests for fixture file integrity (*)
     - Assert `golden-ticket-2025.json` has exactly 50 steel + 50 wood entries with all required fields
     - _Requirements: 11.1_
 
-  - [ ]* 14.3 Write unit test for `generate-dupe-candidates.ts` warnings
+  - [ ] 14.3 Write unit test for `generate-dupe-candidates.ts` warnings (*)
     - Test stderr warning when unresolved park duplicates exist
     - Test stderr warning when `review_state = 'active'` coaster rows exist
     - _Requirements: 7.7, 7.8_
