@@ -103,7 +103,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print final summary: total fetched, `issue=none`, skipped (already processed), name updated, state-only flagged, parse failures
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [x]* 5.2 Write property tests for normalization logic (*) (`src/__tests__/normalize-logic.test.ts`)
+  - [x] 5.2 Write property tests for normalization logic (*) (`src/__tests__/normalize-logic.test.ts`)
     - **Property: Normalization correctly partitions high/low confidence records (disjoint, collectively exhaustive)**
     - **Property: Normalization is idempotent for already-processed records**
     - **Property: Normalization summary counts are mutually exclusive and sum to N**
@@ -136,7 +136,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print completion summary
     - _Requirements: 5.7, 5.8, 5.9, 5.10, 5.11, 5.12_
 
-  - [ ]* 6.4 Write property tests for park review logic (`src/__tests__/park-review.test.ts`)
+  - [ ] 6.4 Write property tests for park review logic (*) (`src/__tests__/park-review.test.ts`)
     - **Property: Park merge atomically re-points all affected coasters and deletes duplicate park — or rolls back entirely**
     - **Property: Park merge count summary is consistent (canonical row survives, duplicate gone)**
 
@@ -182,7 +182,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print summary: Pass 1 count, Pass 2 count, total candidate set size
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9_
 
-  - [ ]* 9.2 Write property tests for candidate generation logic (`src/__tests__/candidate-generation.test.ts`)
+  - [ ] 9.2 Write property tests for candidate generation logic (*) (`src/__tests__/candidate-generation.test.ts`)
     - **Property: Pass 1 and Pass 2 are disjoint (no pair appears in both)**
     - **Property: Candidate generation is idempotent (second run produces same count as first)**
 
@@ -196,7 +196,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print final summary: total processed, count per verdict, Zod parse failures
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ]* 10.2 Write property tests for adjudication logic (`src/__tests__/adjudicate-logic.test.ts`)
+  - [ ] 10.2 Write property tests for adjudication logic (*) (`src/__tests__/adjudicate-logic.test.ts`)
     - **Property: Adjudication dry-run writes nothing and outputs exactly one line per unresolved pair**
     - **Property: Adjudication summary counts sum to N**
 
@@ -258,7 +258,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Read-only — no DB writes
     - _Requirements: 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [ ]* 13.3 Write property tests for coverage logic (`src/__tests__/coverage.test.ts`)
+  - [ ] 13.3 Write property tests for coverage logic (*) (`src/__tests__/coverage.test.ts`)
     - **Property: Coverage classification is total and mutually exclusive (exactly one of FOUND/POSSIBLE/MISSING)**
     - **Property: Exit code is 1 iff at least one entry is MISSING**
 
@@ -283,7 +283,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
 
 ## Notes
 
-- Tasks marked with `*` are optional property/unit tests — skip for a faster MVP pass; run before treating the pipeline as production-ready
+- Tasks marked with appended `(*)` are optional property/unit tests — skip for a faster MVP pass; run before treating the pipeline as production-ready
 - Phases 2 and 3 (parks/manufacturers dedup) **must complete before** Phase 4 (coaster candidate generation) — same-park blocking is unreliable until park duplicates are resolved
 - The `apply_coaster_merge` Postgres function handles the atomic coaster merge; Node.js calls it via `supabaseAdmin.rpc`
 - Parks and manufacturer merges are implemented directly in the review CLI scripts (no separate DB function needed — the FK cascade logic is simpler)
