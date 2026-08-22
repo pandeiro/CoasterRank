@@ -62,10 +62,39 @@ export type AdjudicateInput = {
 // --- Retry helper ---
 
 function safeParseJSON(raw: string): { ok: true; data: unknown } | { ok: false; error: string } {
+  // First try parsing as-is
   try {
     return { ok: true, data: JSON.parse(raw) }
-  } catch (e) {
-    return { ok: false, error: (e as SyntaxError).message }
+  } catch {
+    // Try stripping markdown fences
+    const stripped = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
+    try {
+      return { ok: true, data: JSON.parse(stripped) }
+    } catch {
+      // Try merging multiple JSON arrays/objects separated by newlines
+      // Gemma sometimes outputs: [{...}]\n[{...}]\n[{...}] instead of [{...},{...},{...}]
+      const lines = stripped.split('\n').filter((l) => l.trim())
+      const items: unknown[] = []
+      let merged = false
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line.trim())
+          if (Array.isArray(parsed)) {
+            items.push(...parsed)
+            merged = true
+          } else {
+            items.push(parsed)
+            merged = true
+          }
+        } catch {
+          // Not valid JSON, skip
+        }
+      }
+      if (merged && items.length > 0) {
+        return { ok: true, data: items }
+      }
+      return { ok: false, error: `JSON parse error: all attempts failed` }
+    }
   }
 }
 
