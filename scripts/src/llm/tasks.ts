@@ -60,6 +60,14 @@ export type AdjudicateInput = {
 
 // --- Retry helper ---
 
+function safeParseJSON(raw: string): { ok: true; data: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, data: JSON.parse(raw) }
+  } catch (e) {
+    return { ok: false, error: (e as SyntaxError).message }
+  }
+}
+
 async function callWithRetry<T>(
   messages: OpenAI.Chat.ChatCompletionMessageParam[],
   schema: z.ZodType<T>,
@@ -73,11 +81,26 @@ async function callWithRetry<T>(
     return completion.choices[0]?.message.content ?? '{}'
   }
 
-  const rawFirst = await attempt(messages)
-  const firstParse = schema.safeParse(JSON.parse(rawFirst))
-  if (firstParse.success) return firstParse.data
+  const validate = (
+    raw: string,
+    attemptNum: number,
+  ): { ok: true; data: T } | { ok: false; reason: string } => {
+    const json = safeParseJSON(raw)
+    if (!json.ok) {
+      return { ok: false, reason: `JSON parse error: ${json.error}` }
+    }
+    const zodResult = schema.safeParse(json.data)
+    if (zodResult.success) {
+      return { ok: true, data: zodResult.data }
+    }
+    return { ok: false, reason: `Zod validation failed: ${zodResult.error.message}` }
+  }
 
-  process.stderr.write(`[llm] Zod validation failed (attempt 1): ${firstParse.error.message}\n`)
+  const rawFirst = await attempt(messages)
+  const first = validate(rawFirst, 1)
+  if (first.ok) return first.data
+
+  process.stderr.write(`[llm] ${first.reason} (attempt 1)\n`)
   process.stderr.write(`[llm] Raw response: ${rawFirst}\n`)
 
   const retryMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -91,10 +114,10 @@ async function callWithRetry<T>(
     },
   ]
   const rawRetry = await attempt(retryMessages)
-  const retryParse = schema.safeParse(JSON.parse(rawRetry))
-  if (retryParse.success) return retryParse.data
+  const second = validate(rawRetry, 2)
+  if (second.ok) return second.data
 
-  process.stderr.write(`[llm] Zod validation failed (attempt 2): ${retryParse.error.message}\n`)
+  process.stderr.write(`[llm] ${second.reason} (attempt 2)\n`)
   process.stderr.write(`[llm] Raw response: ${rawRetry}\n`)
   throw new Error('LLM response failed Zod validation after retry')
 }
@@ -112,6 +135,9 @@ export async function normalizeOne(input: NormalizeInput): Promise<Normalization
     },
   ]
   const batch = await callWithRetry(messages, NormalizationBatch)
+  if (batch.length === 0) {
+    throw new Error('LLM returned empty normalization batch')
+  }
   return batch[0]!
 }
 
