@@ -18,6 +18,20 @@ async function getCandidateCount(): Promise<number> {
   return count ?? 0
 }
 
+async function countCandidatesToInsert(): Promise<number> {
+  // Use the same logic as the RPC but as a SELECT count(*)
+  const { data, error } = await supabaseAdmin.rpc('count_park_candidates', {
+    p_threshold: 0.6,
+  })
+
+  if (error) {
+    console.error('Error counting candidates:', error.message)
+    process.exit(1)
+  }
+
+  return data ?? 0
+}
+
 async function generateCandidates(apply: boolean): Promise<CandidateSummary> {
   console.log('Generating park candidates via SQL self-join...')
 
@@ -35,31 +49,22 @@ async function generateCandidates(apply: boolean): Promise<CandidateSummary> {
     const totalCandidates = await getCandidateCount()
     return { wouldInsert: 0, inserted, totalCandidates }
   } else {
-    // Dry-run: count what would be inserted without writing
-    const { count, error } = await supabaseAdmin
-      .from('parks')
-      .select('id', { count: 'exact', head: true })
-
-    if (error) {
-      console.error('Error counting parks:', error.message)
-      process.exit(1)
-    }
-
-    // Estimate using a sampled query - just run the actual logic but don't insert
-    // For dry-run we can use the same RPC but it's write-only, so we'll just report
-    // the park count and note it's an estimate
-    console.log(`  Parks in database: ${count ?? 0}`)
-    console.log('  (Dry-run: exact candidate count requires running the similarity check)')
-
+    // Dry-run: count exactly what would be inserted without writing
+    const wouldInsert = await countCandidatesToInsert()
     const totalCandidates = await getCandidateCount()
-    return { wouldInsert: -1, inserted: 0, totalCandidates }
+
+    console.log(`  Would insert: ${wouldInsert} new candidate pairs`)
+
+    return { wouldInsert, inserted: 0, totalCandidates }
   }
 }
 
 async function main(): Promise<void> {
   program
     .name('generate-park-candidates')
-    .description('Generate park duplicate candidates using pg_trgm word_similarity (single SQL query)')
+    .description(
+      'Generate park duplicate candidates using pg_trgm word_similarity (single SQL query)',
+    )
     .option('--apply', 'Write candidates to database (default: dry-run)')
     .parse()
 
@@ -74,7 +79,7 @@ async function main(): Promise<void> {
   if (apply) {
     console.log(`  Candidates inserted: ${summary.inserted}`)
   } else {
-    console.log(`  Candidates would insert: run with --apply to see exact count`)
+    console.log(`  Candidates would insert: ${summary.wouldInsert}`)
   }
   console.log(`  Total candidate set size: ${summary.totalCandidates}`)
 }
