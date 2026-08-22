@@ -19,6 +19,8 @@
     "triage-status": "tsx src/triage-status.ts",
     "check-coverage": "tsx src/qa/check-golden-ticket-coverage.ts",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -35,6 +37,7 @@
     "@types/pg": "^8.11.10",
     "@vitest/coverage-v8": "4.1.11",
     "fast-check": "4.9.0",
+    "prettier": "^3.9.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "4.1.11"
