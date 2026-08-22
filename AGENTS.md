@@ -133,6 +133,7 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - Run `npm run format` before committing; CI enforces `format:check`.
 - No secrets in code. Secrets live in `.env` (local) or GitHub/Netlify secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
+- **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching more than 1000 rows — e.g., in `scripts/src/normalize-names.ts`.
 
 ## PR workflow
 
