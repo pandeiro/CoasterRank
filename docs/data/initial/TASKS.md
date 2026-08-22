@@ -108,15 +108,15 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - **Property: Normalization is idempotent for already-processed records**
     - **Property: Normalization summary counts are mutually exclusive and sum to N**
 
-- [ ] 6. Phase 2 — Parks dedup (run before coaster candidate generation)
-  - [ ] 6.1 Implement `scripts/src/generate-park-candidates.ts`
+- [x] 6. Phase 2 — Parks dedup (run before coaster candidate generation)
+  - [x] 6.1 Implement `scripts/src/generate-park-candidates.ts`
     - Parse CLI flag: `--apply`
     - In `--apply` mode: insert pairs from `parks` where `word_similarity(a.name, b.name) > 0.6` and `a.country = b.country`, using `a.id < b.id` and `ON CONFLICT DO NOTHING`
     - In dry-run mode: print count that would be inserted
     - Print completion summary: pairs inserted/would-insert, total candidate set size
     - _Requirements: 5.1, 5.2, 5.3_
 
-  - [ ] 6.2 Implement `scripts/src/adjudicate-parks.ts` — LLM adjudication for park candidates
+  - [x] 6.2 Implement `scripts/src/adjudicate-parks.ts` — LLM adjudication for park candidates
     - Parse CLI flags: `--apply`, `--dry-run`, `--reprocess`
     - Fetch unresolved `park_dupe_candidates`; skip rows where verdict is already set unless `--reprocess`
     - Process each pair individually via `adjudicateOne`, passing `name`, `country`, `region`, `city` for both parks; the adjudication prompt's null-field rule applies (null fields ≠ different entity)
@@ -125,7 +125,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print summary: total processed, count per verdict, parse failures
     - _Requirements: 5.4, 5.5, 5.6_
 
-  - [ ] 6.3 Implement `scripts/src/review/review-parks.ts` — interactive park review CLI
+  - [x] 6.3 Implement `scripts/src/review/review-parks.ts` — interactive park review CLI
     - Parse CLI flags: `--dry-run`, `--filter <threshold>`
     - Fetch unresolved `park_dupe_candidates` ordered by similarity descending; apply `--filter` if provided
     - Display for each pair: both park names, country, region, city, similarity score, LLM verdict, and LLM reasoning
@@ -136,7 +136,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Print completion summary
     - _Requirements: 5.7, 5.8, 5.9, 5.10, 5.11, 5.12_
 
-  - [ ] 6.4 Write property tests for park review logic (*) (`src/__tests__/park-review.test.ts`)
+  - [x] 6.4 Write property tests for park review logic (*) (`src/__tests__/park-review.test.ts`)
     - **Property: Park merge atomically re-points all affected coasters and deletes duplicate park — or rolls back entirely**
     - **Property: Park merge count summary is consistent (canonical row survives, duplicate gone)**
 

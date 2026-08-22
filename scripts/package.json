@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.3",
+    "commander": "^13.1.0",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",
     "openai": "7.5.0",
