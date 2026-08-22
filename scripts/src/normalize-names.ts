@@ -13,6 +13,16 @@ const BATCH_SIZE = (() => {
   }
   return val
 })()
+const LIMIT = (() => {
+  const idx = process.argv.indexOf('--limit')
+  if (idx === -1) return Infinity
+  const val = Number(process.argv[idx + 1])
+  if (!Number.isFinite(val) || val < 1) {
+    console.error('Error: --limit must be a positive integer')
+    process.exit(1)
+  }
+  return val
+})()
 
 type Summary = {
   totalFetched: number
@@ -119,9 +129,11 @@ async function main(): Promise<void> {
   console.log('  mode:   ', APPLY ? 'APPLY (write to DB)' : 'DRY-RUN (no DB writes)')
   console.log('  reprocess:', REPROCESS ? 'yes' : 'no (skip already-processed)')
   console.log('  batch_size:', BATCH_SIZE)
+  if (LIMIT !== Infinity) console.log('  limit:', LIMIT)
 
-  const coasters = await fetchCoasters()
-  console.log(`\nFetched ${coasters.length} active coasters`)
+  const allCoasters = await fetchCoasters()
+  const coasters = LIMIT !== Infinity ? allCoasters.slice(0, LIMIT) : allCoasters
+  console.log(`\nFetched ${allCoasters.length} active coasters${LIMIT !== Infinity ? ` (limited to ${LIMIT})` : ''}`)
 
   const summary: Summary = {
     totalFetched: coasters.length,

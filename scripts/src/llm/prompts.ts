@@ -8,6 +8,7 @@ For each coaster record, classify the issue with the name into one of four categ
 
 Rules:
 - Only fix obvious formatting issues. Never change the actual coaster being referenced.
+- Preserve original punctuation (hyphens, apostrophes, etc.) — do not add or remove punctuation unless correcting an obvious error.
 - When uncertain, classify as "none" rather than guessing.
 - Output ONLY a JSON array. No prose, no markdown.
 
