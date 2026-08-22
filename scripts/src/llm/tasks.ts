@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type OpenAI from 'openai'
+import { APIConnectionError } from 'openai'
 import { lmStudio, MODEL_ID } from './client.js'
 import { NORMALIZATION_SYSTEM_PROMPT, ADJUDICATION_SYSTEM_PROMPT } from './prompts.js'
 
@@ -73,12 +74,22 @@ async function callWithRetry<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   const attempt = async (msgs: OpenAI.Chat.ChatCompletionMessageParam[]) => {
-    const completion = await lmStudio.chat.completions.create({
-      model: MODEL_ID,
-      temperature: 0,
-      messages: msgs,
-    })
-    return completion.choices[0]?.message.content ?? '{}'
+    try {
+      const completion = await lmStudio.chat.completions.create({
+        model: MODEL_ID,
+        temperature: 0,
+        messages: msgs,
+      })
+      return completion.choices[0]?.message.content ?? '{}'
+    } catch (e) {
+      if (e instanceof APIConnectionError) {
+        throw new Error(
+          `Cannot connect to LM Studio at http://localhost:1234/v1. ` +
+            `Is LM Studio running? (Details: ${(e as Error).message})`,
+        )
+      }
+      throw e
+    }
   }
 
   const validate = (
