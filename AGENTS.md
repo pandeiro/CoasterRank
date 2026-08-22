@@ -133,3 +133,9 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - Run `npm run format` before committing; CI enforces `format:check`.
 - No secrets in code. Secrets live in `.env` (local) or GitHub/Netlify secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
+
+## PR workflow
+
+- **Always write PR descriptions and comments to a temp file first** (`/tmp/pr-comment.md`), then
+  use `gh pr comment <PR> --body-file /tmp/pr-comment.md` or `gh pr create --body-file /tmp/pr-comment.md`.
+  Backticks in shell arguments get mangled by zsh — writing to a file avoids this entirely.
