@@ -140,3 +140,14 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - **Always write PR descriptions and comments to a temp file first** (`/tmp/pr-comment.md`), then
   use `gh pr comment <PR> --body-file /tmp/pr-comment.md` or `gh pr create --body-file /tmp/pr-comment.md`.
   Backticks in shell arguments get mangled by zsh — writing to a file avoids this entirely.
+
+## Data Engineering Guardrails
+
+- **Always do exploratory data analysis before building pipelines.** Verify assumptions about data completeness, field populations, and distributions *before* writing candidate generation logic.
+  - Example: The park dedup pipeline assumed `country` was populated (it was 100% NULL), causing 0 candidates.
+  - Run quick `psql` queries to profile key columns (`select count(*), count(country) from parks;`) before implementing blocking/filtering logic.
+  - Test similarity thresholds against real data samples to calibrate precision/recall.
+- **Prefer relaxed constraints initially** (e.g., global self-join on small datasets) and add blocking filters only after confirming they don't eliminate valid matches.
+- **Dry-run mode must report real metrics** (exact candidate counts), not estimates or proxy metrics.
+- **Never run commands that mutate data (DB writes, migrations, `--apply` flags) without explicit user permission.** Dry-run is the default; `--apply` requires a clear go-ahead.
+- **Strictly adhere to the PR-only migration flow.** Never apply migrations or schema changes directly to the database via `psql` or similar tools, even when fixing a bug, without explicit user instruction to override the standard pipeline.
