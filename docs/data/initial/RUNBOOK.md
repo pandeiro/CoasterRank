@@ -192,24 +192,38 @@ Run `npm run review-dupes --dry-run` first to get a count of what's waiting.
 
 ## Phase 8 — Completeness QA
 
-**Who does this:** you (fixture creation); the agent (script implementation).
+**Who does this:** you (fixture creation / verification); the agent (script implementation).
 
 1. **Hand-transcribe the Golden Ticket fixture.** The agent creates the file stub; you fill in the data:
    - Go to the 2025 Amusement Today Golden Ticket Awards results (September 2025 issue).
    - Transcribe the Top 50 Steel Coasters and Top 50 Wood Coasters into `scripts/qa/fixtures/golden-ticket-2025.json`.
    - Each entry: `rank`, `category` ("steel" or "wood"), `name`, `park`, `country`.
 
-2. Run the coverage check:
-   ```bash
-   npm run check-coverage
-   ```
+2. **Fetch and verify the Wikidata New Openings fixture.**
+   - Run the Wikidata ETL script to pull recent roller coaster openings (2021–2026):
+     ```bash
+     cd scripts
+     npm run fetch-new-openings
+     ```
+   - This automatically fetches roller coasters from Wikidata and updates `scripts/qa/fixtures/new-openings-2021-2026.json`.
+   - Verify that the generated file contains entries and conforms to the expected schema.
 
-3. Review the output:
+3. **Run the coverage checks.** Run both coverage scripts to check the catalog:
+   - Golden Ticket coverage:
+     ```bash
+     npm run check-coverage
+     ```
+   - Wikidata/Wikipedia New Openings coverage:
+     ```bash
+     npm run check-new-openings
+     ```
+
+4. **Review the output of both scripts:**
    - `[FOUND]` — coaster is in the catalog, name matched exactly. ✓
    - `[POSSIBLE]` — fuzzy match found. Eyeball the suggested match — it's likely a normalization miss from Phase 1. If the coaster is present but misnamed, fix the name directly in the admin dashboard and re-run.
-   - `[MISSING]` — coaster is not in the catalog. Add it manually via the admin dashboard (Submit → Approve workflow), then re-run until the check passes clean.
+   - `[MISSING]` — coaster is not in the catalog. Add it manually via the admin dashboard (Submit → Approve workflow), then re-run until the checks pass clean.
 
-4. The script exits with code 1 if any entry is `MISSING` — aim for a clean exit 0 before launch.
+5. **Exit Codes:** Both scripts exit with code 1 if any entry is `MISSING` — aim for a clean exit 0 for both checks before launch.
 
 ---
 
@@ -223,7 +237,8 @@ Work through this checklist before declaring Track A complete:
 - [ ] All `coaster_dupe_candidates` rows have `resolved = true`
 - [ ] No `coasters` row has `review_state = 'active'` and `source = 'open-csv'` (all have been through the normalization pass)
 - [ ] No `coasters` row has `status in ('under_construction', 'unknown')` without either a resolved status or `review_state = 'needs_review'`
-- [ ] `npm run check-coverage` exits 0 (no `MISSING` entries)
+- [ ] `npm run check-coverage` exits 0 (no `MISSING` entries for Golden Ticket)
+- [ ] `npm run check-new-openings` exits 0 (no `MISSING` entries for 2021–2026 openings)
 - [ ] `scripts/output/` contains a completed triage report for sign-off reference
 
 ---

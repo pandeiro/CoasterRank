@@ -70,7 +70,7 @@ Same column names as the full Track B schema — nothing here needs re-migrating
 | 4 | LLM adjudication pass over candidate pairs | Phase 3 | LM Studio + TS script | `verdict`/`confidence`/`reasoning` filled in |
 | 5 | Human review of `needs_human`/low-confidence verdicts; apply accepted merges | Phase 4 | Manual (admin), or a small review script | Duplicates removed, `coaster_merge_log` populated |
 | 6 | Status triage for `under_construction`/`unknown` | Independent — can run in parallel with 1–5 | Manual/web search | `status`, `opening_date`, `last_verified_at` updated |
-| 7 | Completeness QA against Golden Ticket Awards + international counterpart | Best run after 2–6, so the catalog being checked is already clean | `scripts/qa` TS script + fixtures | Coverage report; missing coasters added |
+| 7 | Completeness QA against Golden Ticket Awards + Wikidata recent openings | Best run after 2–6, so the catalog being checked is already clean | `scripts/qa` TS script + fixtures | Coverage report; missing coasters added |
 
 Phase 6 has no dependency on the LLM tooling at all — if there are two people working this, it's the natural thing to split off and run concurrently with 1–5.
 
@@ -365,7 +365,7 @@ This phase doesn't depend on the LLM tooling and can run in parallel with Phases
 
 ---
 
-## 9. Completeness QA: Golden Ticket Awards + international check
+## 9. Completeness QA: Golden Ticket Awards + Wikidata recent openings
 
 ### 9.1 Deriving the list
 
@@ -380,7 +380,7 @@ Amusement Today's Golden Ticket Awards publish an annual Top 50 Steel / Top 25�
 ]
 ```
 
-Because the Golden Ticket voter base skews American, pair this with a non-US check before treating the combined list as globally representative — a short hand-curated list from Wikidata's notable-roller-coaster entries by country, or a comparable European award if one exists at similar scale (worth 10 minutes confirming before relying on it the same way).
+Because the Golden Ticket voter base skews American, we recognize this geographic bias. However, rather than curating a separate manual international counterpart list, we address this skew by implementing the Wikidata/Wikipedia recent openings check (covering major international coasters opened 2021–2026). The Golden Ticket Awards list is disregarded as a representative international standard and is treated purely as a smoke test to ensure major/famous historical coaster names are covered in the catalog. Completeness for international and modern coasters is achieved via the automated Wikidata/Wikipedia new openings coverage check instead.
 
 ### 9.2 Check script
 
@@ -431,5 +431,5 @@ A few Track A choices are deliberately shaped by the long-term architecture, eve
 - Every coaster name has been through the normalization pass; no known park-embedded/truncated/abbreviated names remain unflagged.
 - No duplicate pair above the high-confidence threshold remains unresolved in `coaster_dupe_candidates`.
 - No `under_construction`/`unknown` record lacks either a current-evidence status or an honest `needs_review` flag.
-- Golden Ticket Top Steel/Wood + the international counterpart list both come back clean (`FOUND` or accepted `POSSIBLE`) against the catalog.
+- Golden Ticket Top Steel/Wood + the Wikidata recent openings list both come back clean (`FOUND` or accepted `POSSIBLE`) against the catalog.
 - Nothing is silently presented as more certain than it is — every touched record has `last_verified_at`, `confidence`, and `review_state` reflecting what was actually established.

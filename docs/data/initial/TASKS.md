@@ -244,7 +244,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - **Property: `review_state` is `'needs_review'` iff new status is `defunct` or `relocated`**
     - **Property: Triage summary counts sum to total input entries**
 
-- [ ] 13. Phase 8 — Golden Ticket coverage QA
+- [ ] 13. Phase 8 — Golden Ticket and New Openings coverage QA
   - [ ] 13.1 Create `scripts/qa/fixtures/golden-ticket-2025.json`
     - Hand-transcribe exactly 50 steel and 50 wood entries from the 2025 Amusement Today Golden Ticket Awards
     - Each entry: `rank` (integer), `category` (`"steel"` or `"wood"`), `name`, `park`, `country`
@@ -262,6 +262,24 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - **Property: Coverage classification is total and mutually exclusive (exactly one of FOUND/POSSIBLE/MISSING)**
     - **Property: Exit code is 1 iff at least one entry is MISSING**
 
+  - [ ] 13.4 Implement `scripts/src/qa/fetch-new-openings.ts`
+    - Queries Wikidata SPARQL endpoint for roller coasters (Q204832 and subclasses) opened between 2021-01-01 and 2026-12-31
+    - Cleans/standardizes names, opening years, park names, and extracts 2-letter ISO country codes
+    - Writes the cleaned records to `scripts/qa/fixtures/new-openings-2021-2026.json`
+    - _Requirements: 16.1, 16.2, 16.3_
+
+  - [ ] 13.5 Implement `scripts/src/qa/check-new-openings-coverage.ts`
+    - Read Wikidata new openings fixture; fuzzy-matches each entry against `coasters` joined to parks
+    - Classify: `FOUND` (exact case-insensitive name match at matching park), `POSSIBLE` (`word_similarity >= 0.5` at matching park), `MISSING`
+    - Print one line per entry: `[STATUS] (<year>) <name> @ <park>`
+    - Print summary before exit; exit 1 if any `MISSING`, exit 0 otherwise
+    - Read-only — no DB writes
+    - _Requirements: 16.4, 16.5, 16.6, 16.7_
+
+  - [ ] 13.6 Write property tests for new openings coverage logic (*) (`src/__tests__/coverage.test.ts`)
+    - **Property: New openings coverage classification is total and mutually exclusive (exactly one of FOUND/POSSIBLE/MISSING)**
+    - **Property: New openings exit code is 1 iff at least one entry is MISSING**
+
 - [ ] 14. Unit tests for environment guards and fixture integrity
   - [ ] 14.1 Write unit tests for `db/client.ts` env guard (*)
     - Test that `scripts/src/db/client.ts` exits with correct error message when env vars are absent
@@ -275,6 +293,10 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Test stderr warning when unresolved park duplicates exist
     - Test stderr warning when `review_state = 'active'` coaster rows exist
     - _Requirements: 7.7, 7.8_
+
+  - [ ] 14.4 Write unit tests for new openings fixture integrity (*)
+    - Assert `new-openings-2021-2026.json` exists and is a valid JSON array of objects conforming to NewOpeningEntry schema
+    - _Requirements: 16.3_
 
 - [ ] 15. Final checkpoint — full quality gate
   - Run `cd scripts && npm run typecheck` and `npm run test`; verify zero TypeScript errors and all tests pass. Stop and ask the user if any issues arise.
@@ -308,9 +330,9 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     { "id": 8, "tasks": ["6.4", "7.4", "9.1"] },
     { "id": 9, "tasks": ["9.2", "10.1"] },
     { "id": 10, "tasks": ["10.2", "11.1"] },
-    { "id": 11, "tasks": ["11.2", "12.1", "13.1"] },
-    { "id": 12, "tasks": ["11.3", "12.2", "13.2"] },
-    { "id": 13, "tasks": ["12.3", "13.3", "14.1", "14.2", "14.3"] }
+    { "id": 11, "tasks": ["11.2", "12.1", "13.1", "13.4"] },
+    { "id": 12, "tasks": ["11.3", "12.2", "13.2", "13.5"] },
+    { "id": 13, "tasks": ["12.3", "13.3", "13.6", "14.1", "14.2", "14.3", "14.4"] }
   ]
 }
 ```

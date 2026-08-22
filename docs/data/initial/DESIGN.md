@@ -73,10 +73,13 @@ flowchart TD
 
         subgraph qa["scripts/src/qa/"]
             coverage["check-golden-ticket-coverage.ts\nPhase 8"]
+            fetch_new["fetch-new-openings.ts\nPhase 8 ETL"]
+            coverage_new["check-new-openings-coverage.ts\nPhase 8 check"]
         end
 
         subgraph fixtures["scripts/qa/fixtures/"]
             fx2["golden-ticket-2025.json\n100 GT Award entries"]
+            fx3["new-openings-2021-2026.json\nWikidata ETL entries"]
         end
 
         subgraph output["scripts/output/"]
@@ -175,10 +178,13 @@ scripts/
 
     qa/
       check-golden-ticket-coverage.ts  ← Phase 8 coverage check
+      fetch-new-openings.ts            ← Phase 8 Wikidata ETL fetcher
+      check-new-openings-coverage.ts   ← Phase 8 new openings check
 
   qa/
     fixtures/
       golden-ticket-2025.json          ← 100 GT Award entries (50 steel, 50 wood)
+      new-openings-2021-2026.json      ← Wikidata ETL openings data
 
   output/                              ← created by triage-status if absent
     status-triage-<YYYYMMDDTHHmmssZ>.json
@@ -628,6 +634,16 @@ type GTEntry = {
   park:     string;
   country:  string;
 };
+
+// scripts/qa/fixtures/new-openings-2021-2026.json — entry shape
+type NewOpeningEntry = {
+  year:         number;
+  name:         string;
+  park:         string;
+  country:      string;        // 2-letter ISO code
+  manufacturer?: string;       // optional enrichment
+  height?:      number;        // optional enrichment (meters)
+};
 ```
 
 ### Updated `scripts/package.json` Scripts Section
@@ -649,6 +665,8 @@ type GTEntry = {
     "review-dupes":                   "tsx src/review/review-dupes.ts",
     "triage-status":                  "tsx src/triage-status.ts",
     "check-coverage":                 "tsx src/qa/check-golden-ticket-coverage.ts",
+    "fetch-new-openings":             "tsx src/qa/fetch-new-openings.ts",
+    "check-new-openings":             "tsx src/qa/check-new-openings-coverage.ts",
     "test":                           "vitest --run",
     "test:watch":                     "vitest"
   }
@@ -793,15 +811,15 @@ type GTEntry = {
 
 ### Property 23: Coverage classification is total and correct
 
-*For any* fixture entry and catalog state, the coverage classification is exactly one of `FOUND`, `POSSIBLE`, or `MISSING`, where `FOUND` implies an exact case-insensitive name match at the matching park and `POSSIBLE` implies `word_similarity(coaster.name, fixture.name) >= 0.5` at the matching park. No entry can be classified as both FOUND and POSSIBLE.
+*For any* fixture entry (Golden Ticket or Wikipedia/Wikidata New Opening) and catalog state, the coverage classification is exactly one of `FOUND`, `POSSIBLE`, or `MISSING`, where `FOUND` implies an exact case-insensitive name match at the matching park and `POSSIBLE` implies `word_similarity(coaster.name, fixture.name) >= 0.5` at the matching park. No entry can be classified as both FOUND and POSSIBLE.
 
-**Validates: Requirements 10.3**
+**Validates: Requirements 11.3, 16.5**
 
 ### Property 24: Coverage exit code follows MISSING presence
 
-*For any* set of fixture classifications, exit code is 1 if and only if at least one entry is classified as `MISSING`; otherwise exit code is 0.
+*For any* set of fixture classifications (Golden Ticket or Wikipedia/Wikidata New Opening), exit code is 1 if and only if at least one entry is classified as `MISSING`; otherwise exit code is 0.
 
-**Validates: Requirements 10.5**
+**Validates: Requirements 11.5, 16.7**
 
 ### Property 25: Eval harness result entries contain all required fields
 
@@ -928,6 +946,7 @@ DB constraint properties (7 and 8) are validated by integration tests against a 
 - `db/client.ts`: exits with error and correct message when env vars are absent
 - `model-eval-set.json`: count between 25–40, all four issue types represented in normalization examples, all required adjudication case types present
 - `golden-ticket-2025.json`: exactly 50 steel + 50 wood entries, all required fields present on every entry
+- `new-openings-2021-2026.json`: conforms to Wikidata new openings array structure with all required fields present on every entry
 - `score-model-results.ts`: output contains all four required columns (model name, duplicate-verdict precision, normalization exact-match rate, median durationMs) for any result file set
 - `generate-dupe-candidates.ts`: warning printed to stderr when `review_state = 'active'` rows exist at candidate generation time
 
