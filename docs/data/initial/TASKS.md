@@ -37,8 +37,8 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Export named `supabaseAdmin` using `createClient` with `auth: { persistSession: false }`
     - _Requirements: 12.2, 12.3_
 
-- [ ] 2. Phase 0 — Schema migration
-  - [ ] 2.1 Create and land the schema migration via a PR
+- [x] 2. Phase 0 — Schema migration
+  - [x] 2.1 Create and land the schema migration via a PR
     - Run `supabase migration new coaster_review_metadata_and_dedup_staging` from the repo root to generate the migration file
     - Populate with all required SQL (see design §Data Models for the full verbatim text):
       - Add columns to `public.coasters` using `add column if not exists`: `last_verified_at timestamptz`, `confidence numeric check (confidence between 0 and 1)`, `review_state text not null default 'active'` with CHECK constraint for the five valid values, `needs_review_reason text`
