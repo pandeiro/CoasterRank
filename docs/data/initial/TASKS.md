@@ -80,7 +80,7 @@ The fixed LLM model is **Qwen3.8-27B** — no model selection step.
     - Export `NormalizeInput` and `AdjudicateInput` type aliases
     - _Requirements: 13.3, 13.4, 13.5_
 
-  - [x]* 3.5 Write property tests for Zod schemas and retry logic (*) (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
+  - [x] 3.5 Write property tests for Zod schemas and retry logic (*) (`src/__tests__/zod-schemas.test.ts`, `src/__tests__/retry-logic.test.ts`)
     - **Property: NormalizationResult schema accepts valid objects and rejects constraint violations**
     - **Property: AdjudicationResult schema accepts valid objects and rejects constraint violations**
     - **Property: Zod validation is the only gate between LLM output and DB writes**
