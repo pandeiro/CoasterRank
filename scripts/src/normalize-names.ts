@@ -31,18 +31,18 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks
 }
 
-async function fetchActiveCoasters(): Promise<
+async function fetchCoasters(): Promise<
   { id: string; name: string; park_name: string }[]
 > {
   let query = supabaseAdmin
     .from('coasters')
     .select('id, name, park_name:parks(name)')
-    .eq('review_state', 'active')
 
   if (!REPROCESS) {
-    // Default: skip already-processed (review_state != 'active')
-    // With --reprocess: re-process everything
+    // Default: only process active records
+    query = query.eq('review_state', 'active')
   }
+  // With --reprocess: fetch all records regardless of state
 
   const { data, error } = await query
   if (error) {
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
   console.log('  reprocess:', REPROCESS ? 'yes' : 'no (skip already-processed)')
   console.log('  batch_size:', BATCH_SIZE)
 
-  const coasters = await fetchActiveCoasters()
+  const coasters = await fetchCoasters()
   console.log(`\nFetched ${coasters.length} active coasters`)
 
   const summary: Summary = {
