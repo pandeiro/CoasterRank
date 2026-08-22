@@ -266,3 +266,27 @@ All scripts live in `scripts/` (Node.js/TypeScript, existing `package.json`). Th
 5. THE Scripts_Package SHALL export an `adjudicateOne` function from `scripts/src/llm/tasks.ts` that accepts a single pair record with both coasters' full fields, calls the LLM, validates the response with the adjudication Zod schema, and returns a typed `AdjudicationResult`; IF validation fails after retry, it SHALL throw.
 6. THE normalization Zod schema SHALL enforce: `coaster_id: string`, `cleaned_name: string`, `issue: z.enum(["park_name_embedded", "truncated", "abbreviation", "none"])`, `confidence: z.number().min(0).max(1)`, `reasoning: z.string().max(200)`.
 7. THE adjudication Zod schema SHALL enforce: `pair_id: string`, `verdict: z.enum(["duplicate", "not_duplicate", "needs_human"])`, `confidence: z.number().min(0).max(1)`, `reasoning: z.string().max(200)`.
+
+---
+
+### Requirement 16: Completeness QA — Wikidata/Wikipedia New Openings Coverage
+
+**User Story:** As a developer, I want an ETL script to fetch and format recent roller coaster openings (2021–2026) from Wikipedia/Wikidata and a coverage check script to report matches against our catalog, so that we systematically capture recent, major, or record-breaking coasters that are too new for popularity awards.
+
+#### Acceptance Criteria
+
+1. THE Fetch_Script SHALL be implemented at `scripts/src/qa/fetch-new-openings.ts` and SHALL be a read-only ETL script that queries the Wikidata SPARQL endpoint (`https://query.wikidata.org/sparql`) for roller coasters (`Q204832` / subclass) opened between `2021-01-01` and `2026-12-31`.
+2. THE Fetch_Script SHALL extract the opening year, coaster name, park name, and 2-letter ISO country code (`wdt:P297`), and write the cleaned records to a fixture JSON file at `scripts/qa/fixtures/new-openings-2021-2026.json`.
+3. THE Wikidata_Fixture SHALL be an array of objects conforming to the shape:
+   ```json
+   [{ "year": 2025, "name": "Falcons Flight", "park": "Six Flags Qiddiya City", "country": "SA" }]
+   ```
+   with optional fields allowed if the source provides them (e.g. `manufacturer`, `height`).
+4. THE New_Openings_Coverage_Script SHALL be implemented at `scripts/src/qa/check-new-openings-coverage.ts` and SHALL be a read-only script — it SHALL never write to the database.
+5. THE New_Openings_Coverage_Script SHALL classify each fixture entry as:
+   - `FOUND`: exact case-insensitive name match exists in `coasters` at a park whose name matches the fixture's `park` field (case-insensitive).
+   - `POSSIBLE`: no exact match but `word_similarity(coaster.name, fixture.name) >= 0.5` exists at the matching park.
+   - `MISSING`: no match meeting either threshold at the matching park.
+6. THE New_Openings_Coverage_Script SHALL print one line per entry in the format `[STATUS] (<year>) <name> @ <park>`.
+7. THE New_Openings_Coverage_Script SHALL exit with code `1` when any entry is `MISSING`, and exit with code `0` when all entries are `FOUND` or `POSSIBLE`. Before exiting, it SHALL print a one-line summary: total entries, count FOUND, count POSSIBLE, count MISSING.
+8. THE Scripts_Package SHALL expose a `fetch-new-openings` npm script to run the Fetch_Script and a `check-new-openings` npm script to run the New_Openings_Coverage_Script.
