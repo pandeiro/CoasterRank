@@ -149,3 +149,4 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
   - Test similarity thresholds against real data samples to calibrate precision/recall.
 - **Prefer relaxed constraints initially** (e.g., global self-join on small datasets) and add blocking filters only after confirming they don't eliminate valid matches.
 - **Dry-run mode must report real metrics** (exact candidate counts), not estimates or proxy metrics.
+- **Never run commands that mutate data (DB writes, migrations, `--apply` flags) without explicit user permission.** Dry-run is the default; `--apply` requires a clear go-ahead.
