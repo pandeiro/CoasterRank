@@ -150,3 +150,4 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - **Prefer relaxed constraints initially** (e.g., global self-join on small datasets) and add blocking filters only after confirming they don't eliminate valid matches.
 - **Dry-run mode must report real metrics** (exact candidate counts), not estimates or proxy metrics.
 - **Never run commands that mutate data (DB writes, migrations, `--apply` flags) without explicit user permission.** Dry-run is the default; `--apply` requires a clear go-ahead.
+- **Strictly adhere to the PR-only migration flow.** Never apply migrations or schema changes directly to the database via `psql` or similar tools, even when fixing a bug, without explicit user instruction to override the standard pipeline.
