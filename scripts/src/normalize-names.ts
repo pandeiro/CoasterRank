@@ -26,20 +26,31 @@ type Summary = {
   unchanged: number
 }
 
+const PAGE_SIZE = 1000
+
 async function fetchCoasters(): Promise<{ id: string; name: string }[]> {
-  let query = supabaseAdmin.from('coasters').select('id, name')
+  const all: { id: string; name: string }[] = []
+  let offset = 0
 
-  if (!REPROCESS) {
-    query = query.eq('review_state', 'active')
+  while (true) {
+    let query = supabaseAdmin.from('coasters').select('id, name').range(offset, offset + PAGE_SIZE - 1)
+
+    if (!REPROCESS) {
+      query = query.eq('review_state', 'active')
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error('Error fetching coasters:', error.message)
+      process.exit(1)
+    }
+
+    all.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
   }
 
-  const { data, error } = await query
-  if (error) {
-    console.error('Error fetching coasters:', error.message)
-    process.exit(1)
-  }
-
-  return data ?? []
+  return all
 }
 
 async function main(): Promise<void> {
