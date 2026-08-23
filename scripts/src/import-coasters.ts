@@ -6,11 +6,11 @@ import { parse as parseCsv } from 'csv-parse/sync'
 import { Pool } from 'pg'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: join(SCRIPT_DIR, '..', '.env') })
+dotenv.config({ path: join(SCRIPT_DIR, '..', '..', '.env') })
 
 const DB_URL = process.env.SUPABASE_DB_URL
 const APPLY = process.argv.includes('--apply')
-const CSV_PATH = resolve(SCRIPT_DIR, '..', firstPositionalArg() ?? 'data/coaster_db.csv')
+const CSV_PATH = resolve(SCRIPT_DIR, '..', firstPositionalArg() ?? 'data/ext/coaster_db.csv')
 
 type CoastStatus = 'operating' | 'defunct' | 'sbno' | 'under_construction' | 'relocated' | 'unknown'
 
