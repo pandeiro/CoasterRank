@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
@@ -7,6 +7,10 @@ import { Pool } from "pg";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, "..", "..", ".env") });
+const PARK_ALIASES_FILE = join(__dirname, "..", "..", "data", "coverage", "park-aliases.json");
+const PARK_ALIASES: Record<string, string> = existsSync(PARK_ALIASES_FILE)
+  ? (JSON.parse(readFileSync(PARK_ALIASES_FILE, "utf-8")) as Record<string, string>)
+  : {};
 
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DB_URL,
@@ -33,6 +37,26 @@ interface MatchResult {
   notes: string[];
 }
 
+async function findParkExactByName(
+  parkName: string,
+): Promise<{ id: string; name: string; slug: string; sim: number } | null> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT id, name, slug
+       FROM parks
+       WHERE lower(name) = lower($1)
+       LIMIT 1`,
+      [parkName],
+    );
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return { id: row.id, name: row.name, slug: row.slug, sim: 1 };
+  } finally {
+    client.release();
+  }
+}
+
 function parseEntries(text: string): Entry[] {
   const lines = text.split("\n").filter((l) => l.trim());
   return lines.map((line, i) => {
@@ -47,6 +71,15 @@ function parseEntries(text: string): Entry[] {
 }
 
 async function findPark(parkName: string): Promise<{ id: string; name: string; slug: string; sim: number } | null> {
+  const aliasName = PARK_ALIASES[parkName];
+  if (aliasName) {
+    const aliasMatch = await findParkExactByName(aliasName);
+    if (aliasMatch) return aliasMatch;
+  }
+
+  const exactMatch = await findParkExactByName(parkName);
+  if (exactMatch) return exactMatch;
+
   const client = await pool.connect();
   try {
     // pg_trgm similarity - works character-level, much better than word overlap

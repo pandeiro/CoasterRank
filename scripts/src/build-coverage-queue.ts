@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -6,6 +6,8 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const REPORT_FILE = join(SCRIPT_DIR, '..', '..', 'data', 'coverage', 'report.txt')
 const QUEUE_FILE = join(SCRIPT_DIR, '..', '..', 'data', 'coverage', 'queue.json')
 const SUMMARY_FILE = join(SCRIPT_DIR, '..', '..', 'data', 'coverage', 'queue-summary.md')
+const TRIAGE_FILE = join(SCRIPT_DIR, '..', '..', 'data', 'coverage', 'master-triage.md')
+const OVERRIDES_FILE = join(SCRIPT_DIR, '..', '..', 'data', 'coverage', 'queue-overrides.json')
 
 const AUTO_MATCH_THRESHOLD = 0.4
 
@@ -56,6 +58,24 @@ interface QueueItem {
   priority: 'high' | 'medium' | 'low'
   batchKey: string
   notes: string[]
+  overrideReason: string | null
+}
+
+interface QueueOverride {
+  action?: QueueAction
+  subtype?: string
+  confidence?: number
+  priority?: 'high' | 'medium' | 'low'
+  batchKey?: string
+  parkMatch?: Partial<ParsedParkMatch>
+  coasterMatch?: Partial<ParsedCoasterMatch>
+  extraNotes?: string[]
+  overrideReason: string
+}
+
+interface QueueOverridesFile {
+  schemaVersion: number
+  lineOverrides: Record<string, QueueOverride>
 }
 
 function normalizeAscii(input: string): string {
@@ -209,7 +229,7 @@ function classifyItem(
   parkMatch: ParsedParkMatch,
   coasterMatch: ParsedCoasterMatch,
   duplicateSourceParkCount: number
-): Omit<QueueItem, 'normalizedCoasterKey' | 'lineNumber' | 'sourceCoasterName' | 'sourceParkName' | 'reportIcon' | 'parkMatch' | 'coasterMatch' | 'notes'> {
+): Omit<QueueItem, 'normalizedCoasterKey' | 'lineNumber' | 'sourceCoasterName' | 'sourceParkName' | 'reportIcon' | 'parkMatch' | 'coasterMatch' | 'notes' | 'overrideReason'> {
   const isTravelling = normalizeKey(issue.parkName) === 'travelling'
   const parkConfidence = parkMatch.similarity ?? 0
   const coasterConfidence = coasterMatch.similarity ?? 0
@@ -338,6 +358,7 @@ function buildSummary(queue: QueueItem[]): string {
   const count = (action: QueueAction) => queue.filter((item) => item.action === action).length
   const missingParkGroups = new Map<string, number>()
   const humanReviewGroups = new Map<string, QueueItem[]>()
+  const overridden = queue.filter((item) => item.overrideReason)
 
   for (const item of queue) {
     if (item.action === 'create_missing_park') {
@@ -352,6 +373,7 @@ function buildSummary(queue: QueueItem[]): string {
   lines.push('# Coverage Queue Summary')
   lines.push('')
   lines.push('Generated from `data/coverage/report.txt` by `scripts/src/build-coverage-queue.ts`.')
+  lines.push('Manual overrides from `data/coverage/queue-overrides.json`.')
   lines.push('')
   lines.push('## Action Counts')
   lines.push('')
@@ -370,6 +392,16 @@ function buildSummary(queue: QueueItem[]): string {
   }
 
   lines.push('')
+
+  if (overridden.length > 0) {
+    lines.push('## Applied Overrides')
+    lines.push('')
+    for (const item of overridden) {
+      lines.push(`- [L${item.lineNumber}] ${item.sourceCoasterName} @ ${item.sourceParkName}: ${item.overrideReason}`)
+    }
+    lines.push('')
+  }
+
   lines.push('## Human Review')
   lines.push('')
 
@@ -389,9 +421,109 @@ function buildSummary(queue: QueueItem[]): string {
   return lines.join('\n')
 }
 
+function buildMasterTriage(queue: QueueItem[]): string {
+  const unresolved = queue.filter((item) => item.action !== 'accept_existing_match_no_change')
+  const grouped = new Map<string, QueueItem[]>()
+
+  for (const item of unresolved) {
+    const key = item.action === 'human_review' ? `human_review:${item.subtype}` : item.action
+    grouped.set(key, [...(grouped.get(key) ?? []), item])
+  }
+
+  const lines: string[] = []
+  lines.push('# Master Triage List')
+  lines.push('')
+  lines.push('Current unresolved items from the original 503-entry coverage checklist.')
+  lines.push('Generated from `data/coverage/queue.json`.')
+  lines.push('')
+  lines.push(`- Total unresolved items: ${unresolved.length}`)
+  lines.push('- Current coverage: see `report.txt` and `queue-summary.md`')
+  lines.push('')
+  lines.push('## How To Use')
+  lines.push('')
+  lines.push('- Use `L<number>` as the stable key when adding notes or overrides.')
+  lines.push('- `rehome_orphaned_coaster`: usually a targeted UPDATE against an existing row in `Other (unknown location)`.')
+  lines.push('- `rehome_after_park_alias_fix`: usually means the park naming is off, not that the coaster is missing.')
+  lines.push('- `human_review:*`: needs a person to decide between alias, create, rehome, or ignore.')
+  lines.push('')
+
+  const order = [
+    'rehome_orphaned_coaster',
+    'rehome_after_park_alias_fix',
+    'human_review:same_name_collision_or_wrong_park',
+    'human_review:clone_rehome_from_other',
+    'human_review:low_confidence_park_match',
+    'human_review:low_confidence_fuzzy_match',
+    'human_review:low_confidence_park_fuzzy_match',
+    'human_review:suspect_external_entry',
+  ]
+
+  for (const key of order) {
+    const items = grouped.get(key)
+    if (!items || items.length === 0) continue
+
+    const heading = key.startsWith('human_review:') ? key.replace('human_review:', '') : key
+    lines.push(`## ${heading}`)
+    lines.push('')
+
+    for (const item of items) {
+      lines.push(`### L${item.lineNumber} ${item.sourceCoasterName} @ ${item.sourceParkName}`)
+      lines.push('')
+      lines.push(`- Action: \`${item.action}\``)
+      lines.push(`- Priority: ${item.priority}`)
+      lines.push(`- Confidence: ${item.confidence}`)
+      if (item.parkMatch.matchedName) {
+        lines.push(`- Park match: ${item.parkMatch.status} -> ${item.parkMatch.matchedName}`)
+      }
+      if (item.coasterMatch.foundParkName) {
+        lines.push(`- Found elsewhere: ${item.coasterMatch.foundParkName}`)
+      }
+      if (item.coasterMatch.matchedName) {
+        lines.push(`- Coaster match: ${item.coasterMatch.status} -> ${item.coasterMatch.matchedName}`)
+      }
+      if (item.overrideReason) {
+        lines.push(`- Override: ${item.overrideReason}`)
+      }
+      lines.push('- Evidence:')
+      for (const note of item.notes) {
+        lines.push(`  - ${note}`)
+      }
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function loadOverrides(): Map<number, QueueOverride> {
+  if (!existsSync(OVERRIDES_FILE)) return new Map<number, QueueOverride>()
+
+  const parsed = JSON.parse(readFileSync(OVERRIDES_FILE, 'utf8')) as QueueOverridesFile
+  const entries = Object.entries(parsed.lineOverrides).map(([lineNumber, override]) => [Number(lineNumber), override] as const)
+  return new Map<number, QueueOverride>(entries)
+}
+
+function applyOverride(item: QueueItem, override: QueueOverride | undefined): QueueItem {
+  if (!override) return item
+
+  return {
+    ...item,
+    action: override.action ?? item.action,
+    subtype: override.subtype ?? item.subtype,
+    confidence: override.confidence ?? item.confidence,
+    priority: override.priority ?? item.priority,
+    batchKey: override.batchKey ?? item.batchKey,
+    parkMatch: override.parkMatch ? { ...item.parkMatch, ...override.parkMatch } : item.parkMatch,
+    coasterMatch: override.coasterMatch ? { ...item.coasterMatch, ...override.coasterMatch } : item.coasterMatch,
+    notes: override.extraNotes ? [...item.notes, ...override.extraNotes] : item.notes,
+    overrideReason: override.overrideReason,
+  }
+}
+
 function main() {
   const report = readFileSync(REPORT_FILE, 'utf8')
   const issues = parseIssueBlocks(report)
+  const overrides = loadOverrides()
 
   const sourceParkCountByCoaster = new Map<string, Set<string>>()
   for (const issue of issues) {
@@ -419,8 +551,10 @@ function main() {
         coasterMatch,
         notes: issue.notes,
         ...classified,
+        overrideReason: null,
       }
     })
+    .map((item) => applyOverride(item, overrides.get(item.lineNumber)))
     .sort((left, right) => {
       const actionOrder: Record<QueueAction, number> = {
         create_missing_park: 0,
@@ -449,6 +583,7 @@ function main() {
       deferNameCleanup: true,
       cloneRehomesNeedHumanReview: true,
     },
+    appliedOverrideCount: queue.filter((item) => item.overrideReason).length,
     counts: queue.reduce<Record<string, number>>((acc, item) => {
       acc[item.action] = (acc[item.action] ?? 0) + 1
       return acc
@@ -458,10 +593,12 @@ function main() {
 
   writeFileSync(QUEUE_FILE, JSON.stringify(payload, null, 2) + '\n')
   writeFileSync(SUMMARY_FILE, buildSummary(queue) + '\n')
+  writeFileSync(TRIAGE_FILE, buildMasterTriage(queue) + '\n')
 
   console.log(`Parsed ${issues.length} issue entries`)
   console.log(`Wrote ${QUEUE_FILE}`)
   console.log(`Wrote ${SUMMARY_FILE}`)
+  console.log(`Wrote ${TRIAGE_FILE}`)
 }
 
 main()
