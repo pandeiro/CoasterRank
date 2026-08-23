@@ -8,6 +8,7 @@ import {
   Button,
   fieldClassName,
   MessageState,
+  Modal,
   Panel,
   selectClassName,
 } from '../components/ui'
@@ -534,139 +535,138 @@ export default function AdminPage() {
                 </>
               )}
 
-              {(isAddingCoaster || editingCoaster) && (
-                <div className="mt-6 rounded-xl border border-accent/30 bg-accent/10 p-6">
-                  <h3 className="mb-4 font-semibold text-ink">
-                    {isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
-                  </h3>
-                  <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Name *</label>
-                      <input
-                        name="name"
-                        required
-                        defaultValue={editingCoaster?.name}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1 relative">
-                      <label className="text-xs font-medium">Park *</label>
-                      <input
-                        required
-                        value={formPark ? formPark.name : formParkSearch}
-                        onChange={(e) => {
-                          setFormParkSearch(e.target.value)
-                          setFormPark(null)
-                        }}
-                        placeholder="Search for a park..."
-                        className={fieldClassName}
-                      />
-                      {formParkSearch && !formPark && filteredFormParks.length > 0 && (
-                        <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
-                          {filteredFormParks.map((p) => (
-                            <li
-                              key={p.id}
-                              className="cursor-pointer p-2 text-sm hover:bg-canvas"
-                              onClick={() => {
-                                setFormPark(p)
-                                setFormParkSearch(p.name)
-                              }}
-                            >
-                              {p.name} <span className="text-xs text-muted">({p.country})</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {formPark && (
-                        <span className="text-xs text-muted">Selected: {formPark.name}</span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Status</label>
-                      <select
-                        name="status"
-                        defaultValue={editingCoaster?.status ?? 'operating'}
-                        className={fieldClassName}
-                      >
-                        <option value="operating">Operating</option>
-                        <option value="defunct">Defunct</option>
-                        <option value="sbno">SBNO</option>
-                        <option value="under_construction">Under Construction</option>
-                        <option value="relocated">Relocated</option>
-                        <option value="unknown">Unknown</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Material</label>
-                      <select
-                        name="material"
-                        defaultValue={editingCoaster?.material ?? 'steel'}
-                        className={fieldClassName}
-                      >
-                        <option value="steel">Steel</option>
-                        <option value="wood">Wood</option>
-                        <option value="hybrid">Hybrid</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Height (m)</label>
-                      <input
-                        name="height"
-                        type="number"
-                        step="0.1"
-                        defaultValue={editingCoaster?.height_m ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Speed (km/h)</label>
-                      <input
-                        name="speed"
-                        type="number"
-                        step="0.1"
-                        defaultValue={editingCoaster?.speed_kmh ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Length (m)</label>
-                      <input
-                        name="length"
-                        type="number"
-                        step="0.1"
-                        defaultValue={editingCoaster?.length_m ?? ''}
-                        className={selectClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Inversions</label>
-                      <input
-                        name="inversions"
-                        type="number"
-                        defaultValue={editingCoaster?.inversions ?? ''}
-                        className={selectClassName}
-                      />
-                    </div>
-                    <div className="mt-2 flex justify-end gap-2 md:col-span-2">
-                      <button
-                        type="button"
-                        onClick={closeForm}
-                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={saveCoaster.isPending}
-                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
-                      >
-                        {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
+              <Modal
+                isOpen={isAddingCoaster || !!editingCoaster}
+                onClose={closeForm}
+                title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
+              >
+                <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Name *</label>
+                    <input
+                      name="name"
+                      required
+                      defaultValue={editingCoaster?.name}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 relative">
+                    <label className="text-xs font-medium">Park *</label>
+                    <input
+                      required
+                      value={formPark ? formPark.name : formParkSearch}
+                      onChange={(e) => {
+                        setFormParkSearch(e.target.value)
+                        setFormPark(null)
+                      }}
+                      placeholder="Search for a park..."
+                      className={fieldClassName}
+                    />
+                    {formParkSearch && !formPark && filteredFormParks.length > 0 && (
+                      <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
+                        {filteredFormParks.map((p) => (
+                          <li
+                            key={p.id}
+                            className="cursor-pointer p-2 text-sm hover:bg-canvas"
+                            onClick={() => {
+                              setFormPark(p)
+                              setFormParkSearch(p.name)
+                            }}
+                          >
+                            {p.name} <span className="text-xs text-muted">({p.country})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {formPark && (
+                      <span className="text-xs text-muted">Selected: {formPark.name}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Status</label>
+                    <select
+                      name="status"
+                      defaultValue={editingCoaster?.status ?? 'operating'}
+                      className={fieldClassName}
+                    >
+                      <option value="operating">Operating</option>
+                      <option value="defunct">Defunct</option>
+                      <option value="sbno">SBNO</option>
+                      <option value="under_construction">Under Construction</option>
+                      <option value="relocated">Relocated</option>
+                      <option value="unknown">Unknown</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Material</label>
+                    <select
+                      name="material"
+                      defaultValue={editingCoaster?.material ?? 'steel'}
+                      className={fieldClassName}
+                    >
+                      <option value="steel">Steel</option>
+                      <option value="wood">Wood</option>
+                      <option value="hybrid">Hybrid</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Height (m)</label>
+                    <input
+                      name="height"
+                      type="number"
+                      step="0.1"
+                      defaultValue={editingCoaster?.height_m ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Speed (km/h)</label>
+                    <input
+                      name="speed"
+                      type="number"
+                      step="0.1"
+                      defaultValue={editingCoaster?.speed_kmh ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Length (m)</label>
+                    <input
+                      name="length"
+                      type="number"
+                      step="0.1"
+                      defaultValue={editingCoaster?.length_m ?? ''}
+                      className={selectClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Inversions</label>
+                    <input
+                      name="inversions"
+                      type="number"
+                      defaultValue={editingCoaster?.inversions ?? ''}
+                      className={selectClassName}
+                    />
+                  </div>
+                  <div className="mt-2 flex justify-end gap-2 md:col-span-2">
+                    <button
+                      type="button"
+                      onClick={closeForm}
+                      className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saveCoaster.isPending}
+                      className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                    >
+                      {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
+                    </button>
+                  </div>
+                </form>
+              </Modal>
             </Panel>
           )}
 
@@ -743,117 +743,116 @@ export default function AdminPage() {
                 </>
               )}
 
-              {(isAddingPark || editingPark) && (
-                <div className="mt-6 rounded-xl border border-accent/30 bg-accent/10 p-6">
-                  <h3 className="mb-4 font-semibold text-ink">
-                    {isAddingPark ? 'Add New Park' : 'Edit Park'}
-                  </h3>
-                  <form onSubmit={onParkSubmit} className="grid gap-4 md:grid-cols-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Name *</label>
-                      <input
-                        name="name"
-                        required
-                        defaultValue={editingPark?.name}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Slug</label>
-                      <input
-                        name="slug"
-                        defaultValue={editingPark?.slug ?? slugify(editingPark?.name ?? '')}
-                        placeholder="auto-generated"
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Source</label>
-                      <select
-                        name="source"
-                        defaultValue={editingPark?.source ?? 'admin'}
-                        className={fieldClassName}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="community">Community</option>
-                        <option value="open-csv">Open CSV</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Country</label>
-                      <input
-                        name="country"
-                        defaultValue={editingPark?.country ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Region</label>
-                      <input
-                        name="region"
-                        defaultValue={editingPark?.region ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">City</label>
-                      <input
-                        name="city"
-                        defaultValue={editingPark?.city ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Latitude</label>
-                      <input
-                        name="lat"
-                        type="number"
-                        step="0.000001"
-                        min="-90"
-                        max="90"
-                        defaultValue={editingPark?.lat ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">Longitude</label>
-                      <input
-                        name="lng"
-                        type="number"
-                        step="0.000001"
-                        min="-180"
-                        max="180"
-                        defaultValue={editingPark?.lng ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium">External ID</label>
-                      <input
-                        name="external_id"
-                        defaultValue={editingPark?.external_id ?? ''}
-                        className={fieldClassName}
-                      />
-                    </div>
-                    <div className="mt-2 flex justify-end gap-2 md:col-span-3">
-                      <button
-                        type="button"
-                        onClick={closeParkForm}
-                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={savePark.isPending}
-                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
-                      >
-                        {savePark.isPending ? 'Saving...' : 'Save Park'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
+              <Modal
+                isOpen={isAddingPark || !!editingPark}
+                onClose={closeParkForm}
+                title={isAddingPark ? 'Add New Park' : 'Edit Park'}
+              >
+                <form onSubmit={onParkSubmit} className="grid gap-4 md:grid-cols-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Name *</label>
+                    <input
+                      name="name"
+                      required
+                      defaultValue={editingPark?.name}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Slug</label>
+                    <input
+                      name="slug"
+                      defaultValue={editingPark?.slug ?? slugify(editingPark?.name ?? '')}
+                      placeholder="auto-generated"
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Source</label>
+                    <select
+                      name="source"
+                      defaultValue={editingPark?.source ?? 'admin'}
+                      className={fieldClassName}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="community">Community</option>
+                      <option value="open-csv">Open CSV</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Country</label>
+                    <input
+                      name="country"
+                      defaultValue={editingPark?.country ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Region</label>
+                    <input
+                      name="region"
+                      defaultValue={editingPark?.region ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">City</label>
+                    <input
+                      name="city"
+                      defaultValue={editingPark?.city ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Latitude</label>
+                    <input
+                      name="lat"
+                      type="number"
+                      step="0.000001"
+                      min="-90"
+                      max="90"
+                      defaultValue={editingPark?.lat ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Longitude</label>
+                    <input
+                      name="lng"
+                      type="number"
+                      step="0.000001"
+                      min="-180"
+                      max="180"
+                      defaultValue={editingPark?.lng ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">External ID</label>
+                    <input
+                      name="external_id"
+                      defaultValue={editingPark?.external_id ?? ''}
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="mt-2 flex justify-end gap-2 md:col-span-3">
+                    <button
+                      type="button"
+                      onClick={closeParkForm}
+                      className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savePark.isPending}
+                      className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                    >
+                      {savePark.isPending ? 'Saving...' : 'Save Park'}
+                    </button>
+                  </div>
+                </form>
+              </Modal>
             </Panel>
           )}
 
