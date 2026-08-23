@@ -81,6 +81,7 @@ export default function AdminPage() {
   // Re-home state
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
   const [selectedRehomePark, setSelectedRehomePark] = useState<Park | null>(null)
+  const [rehomeSearchName, setRehomeSearchName] = useState('')
 
   // Park Management state
   const [parkSearchQuery, setParkSearchQuery] = useState('')
@@ -135,6 +136,16 @@ export default function AdminPage() {
     queryFn: () => (otherParkId ? getCoastersInPark(otherParkId) : Promise.resolve([])),
     enabled: activeTab === 'rehome' && !!otherParkId,
   })
+
+  const filteredOtherCoasters = useMemo(() => {
+    if (!rehomeSearchName) return otherCoasters
+    try {
+      const re = new RegExp(rehomeSearchName, 'i')
+      return otherCoasters.filter((c) => re.test(c.name))
+    } catch {
+      return []
+    }
+  }, [otherCoasters, rehomeSearchName])
 
   const recompute = useMutation({
     mutationFn: async () => {
@@ -912,15 +923,27 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                <input
+                  className={`${fieldClassName} pl-10 pr-4`}
+                  placeholder="Filter coasters (eg /some-reg(e)x/)"
+                  value={rehomeSearchName}
+                  onChange={(e) => setRehomeSearchName(e.target.value)}
+                />
+              </div>
+
               {otherCoastersLoading ? (
                 <MessageState>Loading coasters...</MessageState>
               ) : otherParkError || otherCoastersError ? (
                 <MessageState tone="danger">Couldn&apos;t load the re-home list.</MessageState>
               ) : otherCoasters.length === 0 ? (
                 <MessageState>No coasters found in the 'Other' park.</MessageState>
+              ) : filteredOtherCoasters.length === 0 ? (
+                <MessageState>No coasters match that search.</MessageState>
               ) : (
                 <div className="space-y-3">
-                  {otherCoasters.map((c) => (
+                  {filteredOtherCoasters.map((c) => (
                     <div
                       key={c.id}
                       className="flex items-center justify-between rounded-xl border border-line p-3 transition-colors hover:bg-canvas"
