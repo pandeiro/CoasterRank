@@ -2,6 +2,18 @@
 
 Line numbers refer to `./queue-summary.md`
 
+---
+
+Missing parks
+
+## L25
+Legendia already exists in Parks
+
+## L39
+ZDT's already exists in Parks as ZDT's Amusement Park
+
+---
+
 ## L43
 Many of these coasters are common names and probably a case of missing coaster (ie, there are multiple coasters with the same name at different parks, not wrong park)
 
