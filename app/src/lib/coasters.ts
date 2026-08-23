@@ -373,7 +373,11 @@ export type Coaster = {
 export type AdminCoaster = Coaster & { parks: { name: string } | null }
 
 export async function getAllCoastersAdmin() {
-  const { data, error } = await supabase.from('coasters').select('*, parks(name)').order('name')
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('*, parks(name)')
+    .order('name')
+    .range(0, 9999)
   if (error) throw error
   return data as AdminCoaster[]
 }
@@ -396,6 +400,7 @@ export async function getAllParksAdmin() {
     .from('parks')
     .select('*, coaster_count:coasters(count)')
     .order('name')
+    .range(0, 9999)
   if (error) throw error
   return (data as Array<AdminPark & { coaster_count: [{ count: number }] }>).map((p) => ({
     ...p,
@@ -432,6 +437,7 @@ export async function getCoastersInPark(parkId: string) {
     .select('*')
     .eq('park_id', parkId)
     .order('name')
+    .range(0, 9999)
   if (error) throw error
   return data as Coaster[]
 }
