@@ -81,6 +81,7 @@ export type AdminPark = Park & {
   lng: number | null
   source: string
   external_id: string | null
+  coaster_count: number
 }
 
 export type Manufacturer = {
@@ -391,9 +392,15 @@ export async function createCoaster(data: Partial<Coaster>) {
 // Park admin CRUD ----------------------------------------------------------
 
 export async function getAllParksAdmin() {
-  const { data, error } = await supabase.from('parks').select('*').order('name')
+  const { data, error } = await supabase
+    .from('parks')
+    .select('*, coaster_count:coasters(count)')
+    .order('name')
   if (error) throw error
-  return data as AdminPark[]
+  return (data as Array<AdminPark & { coaster_count: [{ count: number }] }>).map((p) => ({
+    ...p,
+    coaster_count: p.coaster_count?.[0]?.count ?? 0,
+  }))
 }
 
 export async function updatePark(id: string, updates: Partial<AdminPark>) {

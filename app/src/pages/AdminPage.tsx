@@ -706,6 +706,7 @@ export default function AdminPage() {
                           <th className="pb-2 font-medium">Region</th>
                           <th className="pb-2 font-medium">City</th>
                           <th className="pb-2 font-medium">Source</th>
+                          <th className="pb-2 font-medium tabular-nums">Coasters</th>
                           <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
                       </thead>
@@ -718,6 +719,9 @@ export default function AdminPage() {
                             <td className="py-2 text-muted">{p.city || '—'}</td>
                             <td className="py-2">
                               <Badge>{p.source}</Badge>
+                            </td>
+                            <td className="py-2 tabular-nums font-mono text-sm">
+                              {p.coaster_count}
                             </td>
                             <td className="py-2 text-right">
                               <button
