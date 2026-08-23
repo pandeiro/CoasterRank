@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import {
   approveSubmission,
   getAllCoastersAdmin,
+  getAllParksAdmin,
   getCoastersInPark,
   getOtherParkId,
   getPendingSubmissions,
@@ -30,6 +31,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     useParks: vi.fn(),
     getPendingSubmissions: vi.fn(),
     getAllCoastersAdmin: vi.fn(),
+    getAllParksAdmin: vi.fn(),
     getOtherParkId: vi.fn(),
     getCoastersInPark: vi.fn(),
     approveSubmission: vi.fn(),
@@ -55,6 +57,7 @@ function mockBase() {
   vi.mocked(useParks).mockReturnValue({ data: parks } as never)
   vi.mocked(getPendingSubmissions).mockResolvedValue([])
   vi.mocked(getAllCoastersAdmin).mockResolvedValue([])
+  vi.mocked(getAllParksAdmin).mockResolvedValue([])
   vi.mocked(getOtherParkId).mockResolvedValue('other-park')
   vi.mocked(getCoastersInPark).mockResolvedValue([])
   vi.mocked(approveSubmission).mockResolvedValue(undefined)
@@ -170,6 +173,56 @@ describe('AdminPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /show more/i }))
       expect(await screen.findByText('Coaster 55')).toBeInTheDocument()
+    })
+  })
+
+  describe('parks tab', () => {
+    async function switchToParks() {
+      await userEvent.click(screen.getByRole('button', { name: 'Parks' }))
+    }
+
+    it('shows an error state when parks fail to load', async () => {
+      vi.mocked(getAllParksAdmin).mockRejectedValue(new Error('boom'))
+      renderPage()
+      await switchToParks()
+      expect(await screen.findByText("Couldn't load parks.")).toBeInTheDocument()
+    })
+
+    it('shows an empty state when no parks match', async () => {
+      renderPage()
+      await switchToParks()
+      expect(await screen.findByText('No parks match that search.')).toBeInTheDocument()
+    })
+
+    it('renders a table of parks', async () => {
+      vi.mocked(getAllParksAdmin).mockResolvedValue([
+        {
+          id: 'p1',
+          name: 'Cedar Point',
+          slug: 'cedar-point',
+          country: 'USA',
+          region: 'OH',
+          city: 'Sandusky',
+          lat: null,
+          lng: null,
+          source: 'admin',
+          external_id: null,
+        },
+      ])
+      renderPage()
+      await switchToParks()
+      expect(await screen.findByText('Cedar Point')).toBeInTheDocument()
+      expect(screen.getByText('USA')).toBeInTheDocument()
+      expect(screen.getByText('OH')).toBeInTheDocument()
+      expect(screen.getByText('Sandusky')).toBeInTheDocument()
+    })
+
+    it('opens the add park form', async () => {
+      renderPage()
+      await switchToParks()
+      await userEvent.click(screen.getByRole('button', { name: /add park/i }))
+      expect(await screen.findByText('Add New Park')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /save park/i })).toBeInTheDocument()
     })
   })
 

@@ -76,6 +76,13 @@ export type Park = {
   city: string | null
 }
 
+export type AdminPark = Park & {
+  lat: number | null
+  lng: number | null
+  source: string
+  external_id: string | null
+}
+
 export type Manufacturer = {
   id: string
   name: string
@@ -380,6 +387,27 @@ export async function createCoaster(data: Partial<Coaster>) {
   if (error) throw error
   return result
 }
+
+// Park admin CRUD ----------------------------------------------------------
+
+export async function getAllParksAdmin() {
+  const { data, error } = await supabase.from('parks').select('*').order('name')
+  if (error) throw error
+  return data as AdminPark[]
+}
+
+export async function updatePark(id: string, updates: Partial<AdminPark>) {
+  const { error } = await supabase.from('parks').update(updates).eq('id', id)
+  if (error) throw error
+}
+
+export async function createPark(data: Partial<AdminPark>) {
+  const { data: result, error } = await supabase.from('parks').insert(data).select().single()
+  if (error) throw error
+  return result as AdminPark
+}
+
+// Re-home helpers ----------------------------------------------------------
 
 export async function getOtherParkId() {
   const { data, error } = await supabase

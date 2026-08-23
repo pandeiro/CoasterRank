@@ -21,11 +21,15 @@ import {
   getAllCoastersAdmin,
   updateCoaster,
   createCoaster,
+  getAllParksAdmin,
+  updatePark,
+  createPark,
   getOtherParkId,
   getCoastersInPark,
   moveCoasterToPark,
   slugify,
   type Coaster,
+  type AdminPark,
   useParks,
   type Park,
 } from '../lib/coasters'
@@ -49,7 +53,9 @@ function numberOrNull(value: FormDataEntryValue | null): number | null {
 
 export default function AdminPage() {
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'submissions' | 'coasters' | 'rehome'>('submissions')
+  const [activeTab, setActiveTab] = useState<'submissions' | 'coasters' | 'parks' | 'rehome'>(
+    'submissions',
+  )
   const [message, setMessage] = useState<string | null>(null)
 
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -75,6 +81,12 @@ export default function AdminPage() {
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
   const [selectedRehomePark, setSelectedRehomePark] = useState<Park | null>(null)
 
+  // Park Management state
+  const [parkSearchQuery, setParkSearchQuery] = useState('')
+  const [editingPark, setEditingPark] = useState<Partial<AdminPark> | null>(null)
+  const [isAddingPark, setIsAddingPark] = useState(false)
+  const [parkLimit, setParkLimit] = useState(COASTER_PAGE_SIZE)
+
   const { data: allParks = [] } = useParks()
 
   const {
@@ -95,6 +107,16 @@ export default function AdminPage() {
     queryKey: ['coasters-admin'],
     queryFn: getAllCoastersAdmin,
     enabled: activeTab === 'coasters',
+  })
+
+  const {
+    data: allParksAdmin = [],
+    isLoading: parksLoading,
+    isError: parksError,
+  } = useQuery({
+    queryKey: ['parks-admin'],
+    queryFn: getAllParksAdmin,
+    enabled: activeTab === 'parks',
   })
 
   const { data: otherParkId, isError: otherParkError } = useQuery({
@@ -142,6 +164,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
       queryClient.invalidateQueries({ queryKey: ['rankings'] })
       queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
       notify('Submission approved and coaster created.')
     },
     onError: (error) => {
@@ -197,6 +220,26 @@ export default function AdminPage() {
     },
   })
 
+  const savePark = useMutation({
+    mutationFn: async (park: Partial<AdminPark>) => {
+      if (park.id) {
+        await updatePark(park.id, park)
+      } else {
+        await createPark(park)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
+      queryClient.invalidateQueries({ queryKey: ['parks'] })
+      setEditingPark(null)
+      setIsAddingPark(false)
+      notify('Park saved.')
+    },
+    onError: (error) => {
+      notify(`Couldn't save park: ${error.message}`, 'error')
+    },
+  })
+
   const filteredCoasters = useMemo(
     () =>
       allCoasters.filter(
@@ -222,6 +265,25 @@ export default function AdminPage() {
   const filteredFormParks = allParks
     .filter((p) => p.name.toLowerCase().includes(formParkSearch.toLowerCase()))
     .slice(0, 5)
+
+  // Park management filtering & pagination
+  const filteredParksAdmin = useMemo(
+    () =>
+      allParksAdmin.filter(
+        (p) =>
+          p.name.toLowerCase().includes(parkSearchQuery.toLowerCase()) ||
+          (p.country && p.country.toLowerCase().includes(parkSearchQuery.toLowerCase())) ||
+          (p.city && p.city.toLowerCase().includes(parkSearchQuery.toLowerCase())),
+      ),
+    [allParksAdmin, parkSearchQuery],
+  )
+
+  useEffect(() => {
+    setParkLimit(COASTER_PAGE_SIZE)
+  }, [parkSearchQuery])
+
+  const visibleParks = filteredParksAdmin.slice(0, parkLimit)
+  const hasMoreParks = parkLimit < filteredParksAdmin.length
 
   function openAddForm() {
     setEditingCoaster(null)
@@ -270,6 +332,41 @@ export default function AdminPage() {
     saveCoaster.mutate(data)
   }
 
+  function openAddParkForm() {
+    setEditingPark(null)
+    setIsAddingPark(true)
+  }
+
+  function openEditParkForm(park: AdminPark) {
+    setEditingPark(park)
+    setIsAddingPark(false)
+  }
+
+  function closeParkForm() {
+    setEditingPark(null)
+    setIsAddingPark(false)
+  }
+
+  function onParkSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const name = (formData.get('name') as string).trim()
+    const slugValue = editingPark?.slug ?? slugify(name)
+    const data: Partial<AdminPark> = {
+      id: editingPark?.id,
+      name,
+      slug: slugValue,
+      country: (formData.get('country') as string).trim() || null,
+      region: (formData.get('region') as string).trim() || null,
+      city: (formData.get('city') as string).trim() || null,
+      lat: numberOrNull(formData.get('lat')),
+      lng: numberOrNull(formData.get('lng')),
+      source: (formData.get('source') as string) || 'admin',
+      external_id: (formData.get('external_id') as string).trim() || null,
+    }
+    savePark.mutate(data)
+  }
+
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -280,7 +377,7 @@ export default function AdminPage() {
           <h1 className="display-heading text-4xl text-ink">Admin</h1>
         </div>
         <div className="flex rounded-full bg-surface p-1">
-          {(['submissions', 'coasters', 'rehome'] as const).map((tab) => (
+          {(['submissions', 'coasters', 'parks', 'rehome'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -565,6 +662,193 @@ export default function AdminPage() {
                         className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
                       >
                         {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </Panel>
+          )}
+
+          {activeTab === 'parks' && (
+            <Panel className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-ink">Park Management</h2>
+                <Button variant="coral" size="sm" onClick={openAddParkForm}>
+                  <Plus size={14} /> Add Park
+                </Button>
+              </div>
+
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                <input
+                  className={`${fieldClassName} pl-10 pr-4`}
+                  placeholder="Search parks by name, country, or city..."
+                  value={parkSearchQuery}
+                  onChange={(e) => setParkSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {parksLoading ? (
+                <MessageState>Loading parks...</MessageState>
+              ) : parksError ? (
+                <MessageState tone="danger">Couldn&apos;t load parks.</MessageState>
+              ) : filteredParksAdmin.length === 0 ? (
+                <MessageState>No parks match that search.</MessageState>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-line text-muted">
+                          <th className="pb-2 font-medium">Name</th>
+                          <th className="pb-2 font-medium">Country</th>
+                          <th className="pb-2 font-medium">Region</th>
+                          <th className="pb-2 font-medium">City</th>
+                          <th className="pb-2 font-medium">Source</th>
+                          <th className="pb-2 text-right font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line/70">
+                        {visibleParks.map((p) => (
+                          <tr key={p.id} className="transition-colors hover:bg-canvas">
+                            <td className="py-2">{p.name}</td>
+                            <td className="py-2 text-muted">{p.country || '—'}</td>
+                            <td className="py-2 text-muted">{p.region || '—'}</td>
+                            <td className="py-2 text-muted">{p.city || '—'}</td>
+                            <td className="py-2">
+                              <Badge>{p.source}</Badge>
+                            </td>
+                            <td className="py-2 text-right">
+                              <button
+                                onClick={() => openEditParkForm(p)}
+                                className="rounded-full p-2 text-muted hover:bg-surface hover:text-ink"
+                              >
+                                <Edit size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {hasMoreParks && (
+                    <button
+                      onClick={() => setParkLimit((n) => n + COASTER_PAGE_SIZE)}
+                      className="mt-4 w-full rounded-full border border-line px-3 py-2 text-xs text-muted hover:bg-surface"
+                    >
+                      Show more ({filteredParksAdmin.length - parkLimit} remaining)
+                    </button>
+                  )}
+                </>
+              )}
+
+              {(isAddingPark || editingPark) && (
+                <div className="mt-6 rounded-xl border border-accent/30 bg-accent/10 p-6">
+                  <h3 className="mb-4 font-semibold text-ink">
+                    {isAddingPark ? 'Add New Park' : 'Edit Park'}
+                  </h3>
+                  <form onSubmit={onParkSubmit} className="grid gap-4 md:grid-cols-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Name *</label>
+                      <input
+                        name="name"
+                        required
+                        defaultValue={editingPark?.name}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Slug</label>
+                      <input
+                        name="slug"
+                        defaultValue={editingPark?.slug ?? slugify(editingPark?.name ?? '')}
+                        placeholder="auto-generated"
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Source</label>
+                      <select
+                        name="source"
+                        defaultValue={editingPark?.source ?? 'admin'}
+                        className={fieldClassName}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="community">Community</option>
+                        <option value="open-csv">Open CSV</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Country</label>
+                      <input
+                        name="country"
+                        defaultValue={editingPark?.country ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Region</label>
+                      <input
+                        name="region"
+                        defaultValue={editingPark?.region ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">City</label>
+                      <input
+                        name="city"
+                        defaultValue={editingPark?.city ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Latitude</label>
+                      <input
+                        name="lat"
+                        type="number"
+                        step="0.000001"
+                        min="-90"
+                        max="90"
+                        defaultValue={editingPark?.lat ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">Longitude</label>
+                      <input
+                        name="lng"
+                        type="number"
+                        step="0.000001"
+                        min="-180"
+                        max="180"
+                        defaultValue={editingPark?.lng ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium">External ID</label>
+                      <input
+                        name="external_id"
+                        defaultValue={editingPark?.external_id ?? ''}
+                        className={fieldClassName}
+                      />
+                    </div>
+                    <div className="mt-2 flex justify-end gap-2 md:col-span-3">
+                      <button
+                        type="button"
+                        onClick={closeParkForm}
+                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savePark.isPending}
+                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                      >
+                        {savePark.isPending ? 'Saving...' : 'Save Park'}
                       </button>
                     </div>
                   </form>
