@@ -1,0 +1,4109 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-23T18:11:41.132Z",
+  "thresholds": {
+    "autoMatch": 0.4
+  },
+  "policy": {
+    "travellingSyntheticPark": true,
+    "deferNameCleanup": true,
+    "cloneRehomesNeedHumanReview": true
+  },
+  "appliedOverrideCount": 3,
+  "counts": {
+    "rehome_after_park_alias_fix": 1,
+    "rehome_orphaned_coaster": 4,
+    "human_review": 54,
+    "accept_existing_match_no_change": 87
+  },
+  "items": [
+    {
+      "lineNumber": 222,
+      "sourceCoasterName": "Leviathan",
+      "sourceParkName": "Sea World",
+      "normalizedCoasterKey": "leviathan",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Sea World (Australia)"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Sea World"
+      },
+      "notes": [
+        "Park exact: \"Sea World\" → \"Sea World (Australia)\"",
+        "Coaster NOT at Sea World (Australia) but found at Sea World (sim 1.00): \"Leviathan\""
+      ],
+      "overrideReason": null,
+      "action": "rehome_after_park_alias_fix",
+      "subtype": "park_alias_split",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "park-alias:sea-world"
+    },
+    {
+      "lineNumber": 441,
+      "sourceCoasterName": "TRON Lightcycle Power Run",
+      "sourceParkName": "Shanghai Disneyland",
+      "normalizedCoasterKey": "tron lightcycle power run",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Shanghai Disneyland"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Shanghai Disneyland\" → \"Shanghai Disneyland\"",
+        "Coaster NOT at Shanghai Disneyland but found at Other (unknown location) (sim 1.00): \"Tron Lightcycle Power Run\""
+      ],
+      "overrideReason": null,
+      "action": "rehome_orphaned_coaster",
+      "subtype": "orphan_in_other_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "rehome:shanghai-disneyland"
+    },
+    {
+      "lineNumber": 302,
+      "sourceCoasterName": "Powder Keg: A Blast in the Wilderness",
+      "sourceParkName": "Silver Dollar City",
+      "normalizedCoasterKey": "powder keg a blast in wilderness",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Silver Dollar City"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 0.9,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Silver Dollar City\" → \"Silver Dollar City\"",
+        "Coaster NOT at Silver Dollar City but found at Other (unknown location) (sim 0.90): \"Powder Keg: A Blast into the Wilderness\""
+      ],
+      "overrideReason": null,
+      "action": "rehome_orphaned_coaster",
+      "subtype": "orphan_in_other_park",
+      "confidence": 0.9,
+      "priority": "high",
+      "batchKey": "rehome:silver-dollar-city"
+    },
+    {
+      "lineNumber": 385,
+      "sourceCoasterName": "Superman - Ride of Steel",
+      "sourceParkName": "Six Flags America",
+      "normalizedCoasterKey": "superman ride of steel",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags America"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Six Flags America\" → \"Six Flags America\"",
+        "Coaster NOT at Six Flags America but found at Other (unknown location) (sim 1.00): \"Superman – Ride of Steel\""
+      ],
+      "overrideReason": null,
+      "action": "rehome_orphaned_coaster",
+      "subtype": "orphan_in_other_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "rehome:six-flags-america"
+    },
+    {
+      "lineNumber": 332,
+      "sourceCoasterName": "Rollin' Thunder",
+      "sourceParkName": "Tropic Falls Theme Park",
+      "normalizedCoasterKey": "rollin thunder",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Tropic Falls Theme Park"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 0.82,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Tropic Falls Theme Park\" → \"Tropic Falls Theme Park\"",
+        "Coaster NOT at Tropic Falls Theme Park but found at Other (unknown location) (sim 0.82): \"Rolling Thunder\""
+      ],
+      "overrideReason": null,
+      "action": "rehome_orphaned_coaster",
+      "subtype": "orphan_in_other_park",
+      "confidence": 0.82,
+      "priority": "high",
+      "batchKey": "rehome:tropic-falls-theme-park"
+    },
+    {
+      "lineNumber": 435,
+      "sourceCoasterName": "Tornado",
+      "sourceParkName": "Bakken",
+      "normalizedCoasterKey": "tornado",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Bakken"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Coney Island"
+      },
+      "notes": [
+        "Park exact: \"Bakken\" → \"Bakken\"",
+        "Coaster NOT at Bakken but found at Coney Island (sim 1.00): \"Tornado\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:tornado"
+    },
+    {
+      "lineNumber": 131,
+      "sourceCoasterName": "Freischutz",
+      "sourceParkName": "Bayern Park",
+      "normalizedCoasterKey": "freischutz",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.35,
+        "matchedName": "Battersea Park"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.35): \"Bayern Park\" → \"Battersea Park\"",
+        "Coaster NOT FOUND at Battersea Park: \"Freischutz\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.35,
+      "priority": "high",
+      "batchKey": "review:bayern-park"
+    },
+    {
+      "lineNumber": 81,
+      "sourceCoasterName": "Desperado",
+      "sourceParkName": "Buffalo Bill's Resort & Casino",
+      "normalizedCoasterKey": "desperado",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Buffalo Bill's Resort & Casino"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Primm Valley Resorts"
+      },
+      "notes": [
+        "Park exact: \"Buffalo Bill's Resort & Casino\" → \"Buffalo Bill's Resort & Casino\"",
+        "Coaster NOT at Buffalo Bill's Resort & Casino but found at Primm Valley Resorts (sim 1.00): \"Desperado\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:desperado"
+    },
+    {
+      "lineNumber": 11,
+      "sourceCoasterName": "Altair",
+      "sourceParkName": "Cinecitta World",
+      "normalizedCoasterKey": "altair",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.3,
+        "matchedName": "Sea World"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.30): \"Cinecitta World\" → \"Sea World\"",
+        "Coaster NOT FOUND at Sea World: \"Altair\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.3,
+      "priority": "high",
+      "batchKey": "review:cinecitta-world"
+    },
+    {
+      "lineNumber": 192,
+      "sourceCoasterName": "Inferno",
+      "sourceParkName": "Cinecitta World",
+      "normalizedCoasterKey": "inferno",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.3,
+        "matchedName": "Sea World"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.30): \"Cinecitta World\" → \"Sea World\"",
+        "Coaster NOT FOUND at Sea World: \"Inferno\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.3,
+      "priority": "high",
+      "batchKey": "review:cinecitta-world"
+    },
+    {
+      "lineNumber": 380,
+      "sourceCoasterName": "Storm Coaster",
+      "sourceParkName": "Dubai Hills Mall",
+      "normalizedCoasterKey": "storm coaster",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Dubai Hills Mall"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Sea World (Australia)"
+      },
+      "notes": [
+        "Park exact: \"Dubai Hills Mall\" → \"Dubai Hills Mall\"",
+        "Coaster NOT at Dubai Hills Mall but found at Sea World (Australia) (sim 1.00): \"Storm Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:storm-coaster"
+    },
+    {
+      "lineNumber": 72,
+      "sourceCoasterName": "Cú Chulainn",
+      "sourceParkName": "Emerald Park",
+      "normalizedCoasterKey": "cu chulainn",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Europa-Park"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Emerald Park\" → \"Europa-Park\"",
+        "Coaster NOT FOUND at Europa-Park: \"Cú Chulainn\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.32,
+      "priority": "high",
+      "batchKey": "review:emerald-park"
+    },
+    {
+      "lineNumber": 267,
+      "sourceCoasterName": "na Fianna Force",
+      "sourceParkName": "Emerald Park",
+      "normalizedCoasterKey": "na fianna force",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Europa-Park"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Emerald Park\" → \"Europa-Park\"",
+        "Coaster NOT FOUND at Europa-Park: \"na Fianna Force\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.32,
+      "priority": "high",
+      "batchKey": "review:emerald-park"
+    },
+    {
+      "lineNumber": 479,
+      "sourceCoasterName": "Wild Train",
+      "sourceParkName": "Fantasiana",
+      "normalizedCoasterKey": "wild train",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.3,
+        "matchedName": "Fantasy Island"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.30): \"Fantasiana\" → \"Fantasy Island\"",
+        "Coaster NOT FOUND at Fantasy Island: \"Wild Train\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.3,
+      "priority": "high",
+      "batchKey": "review:fantasiana"
+    },
+    {
+      "lineNumber": 14,
+      "sourceCoasterName": "Anaconda",
+      "sourceParkName": "Gold Reef City",
+      "normalizedCoasterKey": "anaconda",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Gold Reef City"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Walygator Parc"
+      },
+      "notes": [
+        "Park exact: \"Gold Reef City\" → \"Gold Reef City\"",
+        "Coaster NOT at Gold Reef City but found at Walygator Parc (sim 1.00): \"Anaconda\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:anaconda"
+    },
+    {
+      "lineNumber": 121,
+      "sourceCoasterName": "Flucht von Novgorod",
+      "sourceParkName": "Hansa Park",
+      "normalizedCoasterKey": "flucht von novgorod",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Hansa-Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.3,
+        "matchedName": "Escape of Novgorod",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Hansa Park\" → \"Hansa-Park\"",
+        "Coaster fuzzy (0.30) at Hansa-Park: \"Flucht von Novgorod\" → \"Escape of Novgorod\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:flucht-von-novgorod"
+    },
+    {
+      "lineNumber": 55,
+      "sourceCoasterName": "Bullet Coaster",
+      "sourceParkName": "Happy Valley Shenzhen",
+      "normalizedCoasterKey": "bullet coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.54,
+        "matchedName": "Happy Valley Shanghai"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.36,
+        "matchedName": "Diving Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.54): \"Happy Valley Shenzhen\" → \"Happy Valley Shanghai\"",
+        "Coaster fuzzy (0.36) at Happy Valley Shanghai: \"Bullet Coaster\" → \"Diving Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 0.54,
+      "priority": "medium",
+      "batchKey": "review:bullet-coaster"
+    },
+    {
+      "lineNumber": 501,
+      "sourceCoasterName": "Ziegel-Blitz",
+      "sourceParkName": "Jaderpark",
+      "normalizedCoasterKey": "ziegel blitz",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.33,
+        "matchedName": "PowerPark"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.33): \"Jaderpark\" → \"PowerPark\"",
+        "Coaster NOT FOUND at PowerPark: \"Ziegel-Blitz\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.33,
+      "priority": "high",
+      "batchKey": "review:jaderpark"
+    },
+    {
+      "lineNumber": 366,
+      "sourceCoasterName": "Starry Sky Ripper",
+      "sourceParkName": "Joyland",
+      "normalizedCoasterKey": "starry sky ripper",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "World Joyland"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Sky Scrapper",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.57): \"Joyland\" → \"World Joyland\"",
+        "Coaster fuzzy (0.32) at World Joyland: \"Starry Sky Ripper\" → \"Sky Scrapper\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 0.57,
+      "priority": "medium",
+      "batchKey": "review:starry-sky-ripper"
+    },
+    {
+      "lineNumber": 119,
+      "sourceCoasterName": "Flight of Fear",
+      "sourceParkName": "Kings Dominion",
+      "normalizedCoasterKey": "flight of fear",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kings Dominion"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Kings Dominion\" → \"Kings Dominion\"",
+        "Coaster NOT at Kings Dominion but found at Other (unknown location) (sim 1.00): \"Flight of Fear\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:flight-of-fear"
+    },
+    {
+      "lineNumber": 120,
+      "sourceCoasterName": "Flight of Fear",
+      "sourceParkName": "Kings Island",
+      "normalizedCoasterKey": "flight of fear",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kings Island"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.37,
+        "matchedName": "Flight Deck",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Kings Island\" → \"Kings Island\"",
+        "Coaster fuzzy (0.37) at Kings Island: \"Flight of Fear\" → \"Flight Deck\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:flight-of-fear"
+    },
+    {
+      "lineNumber": 311,
+      "sourceCoasterName": "Racer",
+      "sourceParkName": "Kings Island",
+      "normalizedCoasterKey": "racer",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kings Island"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Kennywood"
+      },
+      "notes": [
+        "Park exact: \"Kings Island\" → \"Kings Island\"",
+        "Coaster NOT at Kings Island but found at Kennywood (sim 1.00): \"Racer\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:racer"
+    },
+    {
+      "lineNumber": 488,
+      "sourceCoasterName": "Wood Coaster",
+      "sourceParkName": "Knight Valley",
+      "normalizedCoasterKey": "wood coaster",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.39,
+        "matchedName": "Lightwater Valley"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "OCT East"
+      },
+      "notes": [
+        "Park fuzzy (0.39): \"Knight Valley\" → \"Lightwater Valley\"",
+        "Coaster NOT at Lightwater Valley but found at OCT East (sim 1.00): \"Wood Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:wood-coaster"
+    },
+    {
+      "lineNumber": 57,
+      "sourceCoasterName": "Cannibal",
+      "sourceParkName": "Lagoon",
+      "normalizedCoasterKey": "cannibal",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Lagoon Amusement Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Cannibal",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Lagoon\" → \"Lagoon Amusement Park\"",
+        "Coaster exact: \"Cannibal\" → \"Cannibal\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_fuzzy_match",
+      "confidence": 0.32,
+      "priority": "medium",
+      "batchKey": "review:lagoon"
+    },
+    {
+      "lineNumber": 66,
+      "sourceCoasterName": "Colossus the Fire Dragon",
+      "sourceParkName": "Lagoon",
+      "normalizedCoasterKey": "colossus fire dragon",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Lagoon Amusement Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Colossus the Fire Dragon",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Lagoon\" → \"Lagoon Amusement Park\"",
+        "Coaster exact: \"Colossus the Fire Dragon\" → \"Colossus the Fire Dragon\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_fuzzy_match",
+      "confidence": 0.32,
+      "priority": "medium",
+      "batchKey": "review:lagoon"
+    },
+    {
+      "lineNumber": 303,
+      "sourceCoasterName": "Primordial",
+      "sourceParkName": "Lagoon",
+      "normalizedCoasterKey": "primordial",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Lagoon Amusement Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Primordial",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Lagoon\" → \"Lagoon Amusement Park\"",
+        "Coaster exact: \"Primordial\" → \"Primordial\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_fuzzy_match",
+      "confidence": 0.32,
+      "priority": "medium",
+      "batchKey": "review:lagoon"
+    },
+    {
+      "lineNumber": 473,
+      "sourceCoasterName": "Wicked",
+      "sourceParkName": "Lagoon",
+      "normalizedCoasterKey": "wicked",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Lagoon Amusement Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Wicked",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Lagoon\" → \"Lagoon Amusement Park\"",
+        "Coaster exact: \"Wicked\" → \"Wicked\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_fuzzy_match",
+      "confidence": 0.32,
+      "priority": "medium",
+      "batchKey": "review:lagoon"
+    },
+    {
+      "lineNumber": 294,
+      "sourceCoasterName": "Phobia Phear Coaster",
+      "sourceParkName": "Lake Compounce",
+      "normalizedCoasterKey": "phobia phear coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Lake Compounce"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.31,
+        "matchedName": "Kiddie Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Lake Compounce\" → \"Lake Compounce\"",
+        "Coaster fuzzy (0.31) at Lake Compounce: \"Phobia Phear Coaster\" → \"Kiddie Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:phobia-phear-coaster"
+    },
+    {
+      "lineNumber": 245,
+      "sourceCoasterName": "Maximus - Der Flug des Wächters",
+      "sourceParkName": "Legoland Deutschland",
+      "normalizedCoasterKey": "maximus der flug des wachters",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.36,
+        "matchedName": "Legoland Billund"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.36): \"Legoland Deutschland\" → \"Legoland Billund\"",
+        "Coaster NOT FOUND at Legoland Billund: \"Maximus - Der Flug des Wächters\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.36,
+      "priority": "high",
+      "batchKey": "review:legoland-deutschland"
+    },
+    {
+      "lineNumber": 73,
+      "sourceCoasterName": "Cyclone",
+      "sourceParkName": "Luna Park",
+      "normalizedCoasterKey": "cyclone",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.59,
+        "matchedName": "Luna Park Sydney"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Revere Beach"
+      },
+      "notes": [
+        "Park fuzzy (0.59): \"Luna Park\" → \"Luna Park Sydney\"",
+        "Coaster NOT at Luna Park Sydney but found at Revere Beach (sim 1.00): \"Cyclone\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:cyclone"
+    },
+    {
+      "lineNumber": 42,
+      "sourceCoasterName": "Big Dipper",
+      "sourceParkName": "Luna Park Sydney",
+      "normalizedCoasterKey": "big dipper",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Luna Park Sydney"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Blackpool Pleasure Beach"
+      },
+      "notes": [
+        "Park exact: \"Luna Park Sydney\" → \"Luna Park Sydney\"",
+        "Coaster NOT at Luna Park Sydney but found at Blackpool Pleasure Beach (sim 1.00): \"Big Dipper\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:big-dipper"
+    },
+    {
+      "lineNumber": 93,
+      "sourceCoasterName": "Dragon Mountain",
+      "sourceParkName": "Marineland Theme Park",
+      "normalizedCoasterKey": "dragon mountain",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.45,
+        "matchedName": "Lost Island Theme Park"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Marineland of Canada"
+      },
+      "notes": [
+        "Park fuzzy (0.45): \"Marineland Theme Park\" → \"Lost Island Theme Park\"",
+        "Coaster NOT at Lost Island Theme Park but found at Marineland of Canada (sim 1.00): \"Dragon Mountain\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:dragon-mountain"
+    },
+    {
+      "lineNumber": 167,
+      "sourceCoasterName": "Hades 360",
+      "sourceParkName": "Mount Olympus",
+      "normalizedCoasterKey": "hades 360",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Mount Olympus"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Mt. Olympus Water & Theme Park"
+      },
+      "notes": [
+        "Park exact: \"Mount Olympus\" → \"Mount Olympus\"",
+        "Coaster NOT at Mount Olympus but found at Mt. Olympus Water & Theme Park (sim 1.00): \"Hades 360\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:hades-360"
+    },
+    {
+      "lineNumber": 350,
+      "sourceCoasterName": "Silver Comet",
+      "sourceParkName": "Niagara Amusement Park & Splash World",
+      "normalizedCoasterKey": "silver comet",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.39,
+        "matchedName": "ZDT's Amusement Park"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Fantasy Island"
+      },
+      "notes": [
+        "Park fuzzy (0.39): \"Niagara Amusement Park & Splash World\" → \"ZDT's Amusement Park\"",
+        "Coaster NOT at ZDT's Amusement Park but found at Fantasy Island (sim 1.00): \"Silver Comet\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:silver-comet"
+    },
+    {
+      "lineNumber": 139,
+      "sourceCoasterName": "GaleForce",
+      "sourceParkName": "Playland's Castaway Cove",
+      "normalizedCoasterKey": "galeforce",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.38,
+        "matchedName": "Playland"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.38): \"Playland's Castaway Cove\" → \"Playland\"",
+        "Coaster NOT FOUND at Playland: \"GaleForce\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.38,
+      "priority": "high",
+      "batchKey": "review:playland-s-castaway-cove"
+    },
+    {
+      "lineNumber": 15,
+      "sourceCoasterName": "Anubis: The Ride",
+      "sourceParkName": "Plopsaland De Panne",
+      "normalizedCoasterKey": "anubis ride",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Plopsaland De Panne"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "The Ride to Happiness",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Plopsaland De Panne\" → \"Plopsaland De Panne\"",
+        "Coaster fuzzy (0.32) at Plopsaland De Panne: \"Anubis: The Ride\" → \"The Ride to Happiness\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:anubis-the-ride"
+    },
+    {
+      "lineNumber": 176,
+      "sourceCoasterName": "Heidi The Ride",
+      "sourceParkName": "Plopsaland De Panne",
+      "normalizedCoasterKey": "heidi ride",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Plopsaland De Panne"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.38,
+        "matchedName": "The Ride to Happiness",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Plopsaland De Panne\" → \"Plopsaland De Panne\"",
+        "Coaster fuzzy (0.38) at Plopsaland De Panne: \"Heidi The Ride\" → \"The Ride to Happiness\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_fuzzy_match",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:heidi-the-ride"
+    },
+    {
+      "lineNumber": 112,
+      "sourceCoasterName": "Expedition GeForce",
+      "sourceParkName": "Plopsaland Deutschland",
+      "normalizedCoasterKey": "expedition geforce",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.5,
+        "matchedName": "Plopsaland De Panne"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Holiday Park, Germany"
+      },
+      "notes": [
+        "Park fuzzy (0.50): \"Plopsaland Deutschland\" → \"Plopsaland De Panne\"",
+        "Coaster NOT at Plopsaland De Panne but found at Holiday Park, Germany (sim 1.00): \"Expedition GeForce\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:expedition-geforce"
+    },
+    {
+      "lineNumber": 298,
+      "sourceCoasterName": "Pitts Special",
+      "sourceParkName": "Powerland",
+      "normalizedCoasterKey": "pitts special",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.36,
+        "matchedName": "Everland"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "PowerPark"
+      },
+      "notes": [
+        "Park fuzzy (0.36): \"Powerland\" → \"Everland\"",
+        "Coaster NOT at Everland but found at PowerPark (sim 1.00): \"Pitts Special\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:pitts-special"
+    },
+    {
+      "lineNumber": 205,
+      "sourceCoasterName": "Junker",
+      "sourceParkName": "PowerLand",
+      "normalizedCoasterKey": "junker",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.36,
+        "matchedName": "Everland"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "PowerPark"
+      },
+      "notes": [
+        "Park fuzzy (0.36): \"PowerLand\" → \"Everland\"",
+        "Coaster NOT at Everland but found at PowerPark (sim 1.00): \"Junker\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:junker"
+    },
+    {
+      "lineNumber": 423,
+      "sourceCoasterName": "Thunderbird",
+      "sourceParkName": "PowerLand",
+      "normalizedCoasterKey": "thunderbird",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.36,
+        "matchedName": "Everland"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "PowerPark"
+      },
+      "notes": [
+        "Park fuzzy (0.36): \"PowerLand\" → \"Everland\"",
+        "Coaster NOT at Everland but found at PowerPark (sim 1.00): \"Thunderbird\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:thunderbird"
+    },
+    {
+      "lineNumber": 437,
+      "sourceCoasterName": "Tornado",
+      "sourceParkName": "Särkänniemi",
+      "normalizedCoasterKey": "tornado",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Särkänniemi"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Coney Island"
+      },
+      "notes": [
+        "Park exact: \"Särkänniemi\" → \"Särkänniemi\"",
+        "Coaster NOT at Särkänniemi but found at Coney Island (sim 1.00): \"Tornado\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:tornado"
+    },
+    {
+      "lineNumber": 396,
+      "sourceCoasterName": "Surf Coaster Leviathan",
+      "sourceParkName": "Sea Paradise",
+      "normalizedCoasterKey": "surf coaster leviathan",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.39,
+        "matchedName": "Chimelong Paradise"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.39): \"Sea Paradise\" → \"Chimelong Paradise\"",
+        "Coaster NOT FOUND at Chimelong Paradise: \"Surf Coaster Leviathan\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.39,
+      "priority": "high",
+      "batchKey": "review:sea-paradise"
+    },
+    {
+      "lineNumber": 239,
+      "sourceCoasterName": "Manta",
+      "sourceParkName": "SeaWorld Abu Dhabi",
+      "normalizedCoasterKey": "manta",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Ferrari World Abu Dhabi"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "SeaWorld Orlando"
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"SeaWorld Abu Dhabi\" → \"Ferrari World Abu Dhabi\"",
+        "Coaster NOT at Ferrari World Abu Dhabi but found at SeaWorld Orlando (sim 1.00): \"Manta\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:manta"
+    },
+    {
+      "lineNumber": 31,
+      "sourceCoasterName": "Batman The Ride",
+      "sourceParkName": "Six Flags Great Adventure",
+      "normalizedCoasterKey": "batman ride",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Great Adventure"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Great Adventure\" → \"Six Flags Great Adventure\"",
+        "Coaster NOT at Six Flags Great Adventure but found at Other (unknown location) (sim 1.00): \"Batman: The Ride\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:batman-the-ride"
+    },
+    {
+      "lineNumber": 248,
+      "sourceCoasterName": "Medusa",
+      "sourceParkName": "Six Flags Great Adventure",
+      "normalizedCoasterKey": "medusa",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Great Adventure"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Six Flags Discovery Kingdom"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Great Adventure\" → \"Six Flags Great Adventure\"",
+        "Coaster NOT at Six Flags Great Adventure but found at Six Flags Discovery Kingdom (sim 1.00): \"Medusa\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:medusa"
+    },
+    {
+      "lineNumber": 386,
+      "sourceCoasterName": "Superman - Ultimate Flight",
+      "sourceParkName": "Six Flags Great Adventure",
+      "normalizedCoasterKey": "superman ultimate flight",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Great Adventure"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Six Flags Discovery Kingdom"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Great Adventure\" → \"Six Flags Great Adventure\"",
+        "Coaster NOT at Six Flags Great Adventure but found at Six Flags Discovery Kingdom (sim 1.00): \"Superman: Ultimate Flight\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:superman-ultimate-flight"
+    },
+    {
+      "lineNumber": 387,
+      "sourceCoasterName": "Superman - Ultimate Flight",
+      "sourceParkName": "Six Flags Great America",
+      "normalizedCoasterKey": "superman ultimate flight",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Great America"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Six Flags Discovery Kingdom"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Great America\" → \"Six Flags Great America\"",
+        "Coaster NOT at Six Flags Great America but found at Six Flags Discovery Kingdom (sim 1.00): \"Superman: Ultimate Flight\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:superman-ultimate-flight"
+    },
+    {
+      "lineNumber": 33,
+      "sourceCoasterName": "Batman The Ride",
+      "sourceParkName": "Six Flags Magic Mountain",
+      "normalizedCoasterKey": "batman ride",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Magic Mountain"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.33,
+        "matchedName": "Apocalypse: The Ride",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags Magic Mountain\" → \"Six Flags Magic Mountain\"",
+        "Coaster fuzzy (0.33) at Six Flags Magic Mountain: \"Batman The Ride\" → \"Apocalypse: The Ride\""
+      ],
+      "overrideReason": "Human note: Batman The Ride likely does not exist at Six Flags Magic Mountain; keep in review.",
+      "action": "human_review",
+      "subtype": "suspect_external_entry",
+      "confidence": 1,
+      "priority": "medium",
+      "batchKey": "review:batman-the-ride"
+    },
+    {
+      "lineNumber": 34,
+      "sourceCoasterName": "Batman The Ride",
+      "sourceParkName": "Six Flags Over Georgia",
+      "normalizedCoasterKey": "batman ride",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Over Georgia"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Over Georgia\" → \"Six Flags Over Georgia\"",
+        "Coaster NOT at Six Flags Over Georgia but found at Other (unknown location) (sim 1.00): \"Batman: The Ride\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:batman-the-ride"
+    },
+    {
+      "lineNumber": 388,
+      "sourceCoasterName": "Superman - Ultimate Flight",
+      "sourceParkName": "Six Flags Over Georgia",
+      "normalizedCoasterKey": "superman ultimate flight",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Over Georgia"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Six Flags Discovery Kingdom"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Over Georgia\" → \"Six Flags Over Georgia\"",
+        "Coaster NOT at Six Flags Over Georgia but found at Six Flags Discovery Kingdom (sim 1.00): \"Superman: Ultimate Flight\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:superman-ultimate-flight"
+    },
+    {
+      "lineNumber": 35,
+      "sourceCoasterName": "Batman The Ride",
+      "sourceParkName": "Six Flags Over Texas",
+      "normalizedCoasterKey": "batman ride",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Over Texas"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Six Flags Over Texas\" → \"Six Flags Over Texas\"",
+        "Coaster NOT at Six Flags Over Texas but found at Other (unknown location) (sim 1.00): \"Batman: The Ride\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:batman-the-ride"
+    },
+    {
+      "lineNumber": 36,
+      "sourceCoasterName": "Batman The Ride",
+      "sourceParkName": "Six Flags St. Louis",
+      "normalizedCoasterKey": "batman ride",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags St. Louis"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Six Flags St. Louis\" → \"Six Flags St. Louis\"",
+        "Coaster NOT at Six Flags St. Louis but found at Other (unknown location) (sim 1.00): \"Batman: The Ride\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:batman-the-ride"
+    },
+    {
+      "lineNumber": 279,
+      "sourceCoasterName": "Olympia Looping",
+      "sourceParkName": "Travelling",
+      "normalizedCoasterKey": "olympia looping",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Travelling"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Oktoberfest"
+      },
+      "notes": [
+        "Park exact: \"Travelling\" → \"Travelling\"",
+        "Coaster NOT at Travelling but found at Oktoberfest (sim 1.00): \"Olympia Looping\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:olympia-looping"
+    },
+    {
+      "lineNumber": 365,
+      "sourceCoasterName": "Stardust Racers",
+      "sourceParkName": "Universal Epic Universe",
+      "normalizedCoasterKey": "stardust racers",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.32,
+        "matchedName": "Universal Studios Japan"
+      },
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.32): \"Universal Epic Universe\" → \"Universal Studios Japan\"",
+        "Coaster NOT FOUND at Universal Studios Japan: \"Stardust Racers\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "low_confidence_park_match",
+      "confidence": 0.32,
+      "priority": "high",
+      "batchKey": "review:universal-epic-universe"
+    },
+    {
+      "lineNumber": 322,
+      "sourceCoasterName": "Revenge of the Mummy",
+      "sourceParkName": "Universal Studios Florida",
+      "normalizedCoasterKey": "revenge of mummy",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Universal Studios Florida"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Universal Studios Florida\" → \"Universal Studios Florida\"",
+        "Coaster NOT at Universal Studios Florida but found at Other (unknown location) (sim 1.00): \"Revenge of the Mummy\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:revenge-of-the-mummy"
+    },
+    {
+      "lineNumber": 323,
+      "sourceCoasterName": "Revenge of the Mummy",
+      "sourceParkName": "Universal Studios Hollywood",
+      "normalizedCoasterKey": "revenge of mummy",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.53,
+        "matchedName": "Universal Studios Japan"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park fuzzy (0.53): \"Universal Studios Hollywood\" → \"Universal Studios Japan\"",
+        "Coaster NOT at Universal Studios Japan but found at Other (unknown location) (sim 1.00): \"Revenge of the Mummy\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:revenge-of-the-mummy"
+    },
+    {
+      "lineNumber": 324,
+      "sourceCoasterName": "Revenge of the Mummy",
+      "sourceParkName": "Universal Studios Singapore",
+      "normalizedCoasterKey": "revenge of mummy",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Universal Studios Singapore"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "notes": [
+        "Park exact: \"Universal Studios Singapore\" → \"Universal Studios Singapore\"",
+        "Coaster NOT at Universal Studios Singapore but found at Other (unknown location) (sim 1.00): \"Revenge of the Mummy\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "clone_rehome_from_other",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "clone:revenge-of-the-mummy"
+    },
+    {
+      "lineNumber": 259,
+      "sourceCoasterName": "Monster",
+      "sourceParkName": "Walygator Grand Est",
+      "normalizedCoasterKey": "monster",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.4,
+        "matchedName": "Walygator Parc"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Gröna Lund"
+      },
+      "notes": [
+        "Park fuzzy (0.40): \"Walygator Grand Est\" → \"Walygator Parc\"",
+        "Coaster NOT at Walygator Parc but found at Gröna Lund (sim 1.00): \"Monster\""
+      ],
+      "overrideReason": null,
+      "action": "human_review",
+      "subtype": "same_name_collision_or_wrong_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "review:monster"
+    },
+    {
+      "lineNumber": 257,
+      "sourceCoasterName": "Monster",
+      "sourceParkName": "Adventureland Iowa",
+      "normalizedCoasterKey": "monster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Adventureland (Iowa)"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "The Monster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Adventureland Iowa\" → \"Adventureland (Iowa)\"",
+        "Coaster fuzzy (0.67) at Adventureland (Iowa): \"Monster\" → \"The Monster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:adventureland-iowa"
+    },
+    {
+      "lineNumber": 443,
+      "sourceCoasterName": "Turbulance",
+      "sourceParkName": "Adventureland New York",
+      "normalizedCoasterKey": "turbulance",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Adventureland (New York)"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "Turbulence",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Adventureland New York\" → \"Adventureland (New York)\"",
+        "Coaster fuzzy (0.57) at Adventureland (New York): \"Turbulance\" → \"Turbulence\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.57,
+      "priority": "low",
+      "batchKey": "accept:adventureland-new-york"
+    },
+    {
+      "lineNumber": 270,
+      "sourceCoasterName": "Nemesis Reborn",
+      "sourceParkName": "Alton Towers",
+      "normalizedCoasterKey": "nemesis reborn",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Alton Towers"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.53,
+        "matchedName": "Nemesis",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Alton Towers\" → \"Alton Towers\"",
+        "Coaster fuzzy (0.53) at Alton Towers: \"Nemesis Reborn\" → \"Nemesis\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.53,
+      "priority": "low",
+      "batchKey": "accept:alton-towers"
+    },
+    {
+      "lineNumber": 355,
+      "sourceCoasterName": "Smiler",
+      "sourceParkName": "Alton Towers",
+      "normalizedCoasterKey": "smiler",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Alton Towers"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.64,
+        "matchedName": "The Smiler",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Alton Towers\" → \"Alton Towers\"",
+        "Coaster fuzzy (0.64) at Alton Towers: \"Smiler\" → \"The Smiler\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.64,
+      "priority": "low",
+      "batchKey": "accept:alton-towers"
+    },
+    {
+      "lineNumber": 211,
+      "sourceCoasterName": "Kentucky Rumbler",
+      "sourceParkName": "Beech Bend",
+      "normalizedCoasterKey": "kentucky rumbler",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.64,
+        "matchedName": "Beech Bend Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kentucky Rumbler",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.64): \"Beech Bend\" → \"Beech Bend Park\"",
+        "Coaster exact: \"Kentucky Rumbler\" → \"Kentucky Rumbler\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.64,
+      "priority": "low",
+      "batchKey": "accept:beech-bend-park"
+    },
+    {
+      "lineNumber": 44,
+      "sourceCoasterName": "Big One",
+      "sourceParkName": "Blackpool Pleasure Beach",
+      "normalizedCoasterKey": "big one",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Blackpool Pleasure Beach"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "The Big One",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Blackpool Pleasure Beach\" → \"Blackpool Pleasure Beach\"",
+        "Coaster fuzzy (0.67) at Blackpool Pleasure Beach: \"Big One\" → \"The Big One\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:blackpool-pleasure-beach"
+    },
+    {
+      "lineNumber": 60,
+      "sourceCoasterName": "Cheetah Hunt",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "cheetah hunt",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Cheetah Hunt",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"Cheetah Hunt\" → \"Cheetah Hunt\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 194,
+      "sourceCoasterName": "Iron Gwazi",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "iron gwazi",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Iron Gwazi",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"Iron Gwazi\" → \"Iron Gwazi\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 217,
+      "sourceCoasterName": "Kumba",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "kumba",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kumba",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"Kumba\" → \"Kumba\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 260,
+      "sourceCoasterName": "Montu",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "montu",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Montu",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"Montu\" → \"Montu\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 342,
+      "sourceCoasterName": "SheiKra",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "sheikra",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "SheiKra",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"SheiKra\" → \"SheiKra\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 426,
+      "sourceCoasterName": "Tigris",
+      "sourceParkName": "Busch Gardens Tampa",
+      "normalizedCoasterKey": "tigris",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.87,
+        "matchedName": "Busch Gardens Tampa Bay"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Tigris",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.87): \"Busch Gardens Tampa\" → \"Busch Gardens Tampa Bay\"",
+        "Coaster exact: \"Tigris\" → \"Tigris\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.87,
+      "priority": "low",
+      "batchKey": "accept:busch-gardens-tampa-bay"
+    },
+    {
+      "lineNumber": 289,
+      "sourceCoasterName": "Parrot Coaster",
+      "sourceParkName": "Chimelong Ocean Kingdom",
+      "normalizedCoasterKey": "parrot coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.81,
+        "matchedName": "Chime-Long Ocean Kingdom"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Parrot Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.81): \"Chimelong Ocean Kingdom\" → \"Chime-Long Ocean Kingdom\"",
+        "Coaster exact: \"Parrot Coaster\" → \"Parrot Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.81,
+      "priority": "low",
+      "batchKey": "accept:chime-long-ocean-kingdom"
+    },
+    {
+      "lineNumber": 191,
+      "sourceCoasterName": "Incredicoaster",
+      "sourceParkName": "Disney California Adventure Park",
+      "normalizedCoasterKey": "incredicoaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.85,
+        "matchedName": "Disney California Adventure"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Incredicoaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.85): \"Disney California Adventure Park\" → \"Disney California Adventure\"",
+        "Coaster exact: \"Incredicoaster\" → \"Incredicoaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.85,
+      "priority": "low",
+      "batchKey": "accept:disney-california-adventure"
+    },
+    {
+      "lineNumber": 110,
+      "sourceCoasterName": "Expedition Everest - Walt Disney World",
+      "sourceParkName": "Disney's Animal Kingdom",
+      "normalizedCoasterKey": "expedition everest walt disney world",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Disney's Animal Kingdom"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.51,
+        "matchedName": "Expedition Everest",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Disney's Animal Kingdom\" → \"Disney's Animal Kingdom\"",
+        "Coaster fuzzy (0.51) at Disney's Animal Kingdom: \"Expedition Everest - Walt Disney World\" → \"Expedition Everest\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.51,
+      "priority": "low",
+      "batchKey": "accept:disney-s-animal-kingdom"
+    },
+    {
+      "lineNumber": 45,
+      "sourceCoasterName": "Big Thunder Mountain - Disneyland Paris",
+      "sourceParkName": "Disneyland Park",
+      "normalizedCoasterKey": "big thunder mountain disneyland paris",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.84,
+        "matchedName": "Disneyland Park (Paris)"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Big Thunder Mountain - Disneyland Paris",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.84): \"Disneyland Park\" → \"Disneyland Park (Paris)\"",
+        "Coaster exact: \"Big Thunder Mountain - Disneyland Paris\" → \"Big Thunder Mountain - Disneyland Paris\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.84,
+      "priority": "low",
+      "batchKey": "accept:disneyland-park-paris"
+    },
+    {
+      "lineNumber": 364,
+      "sourceCoasterName": "Star Wars Hyperspace Mountain: Rebel Mission - Disneyland Paris",
+      "sourceParkName": "Disneyland Park",
+      "normalizedCoasterKey": "star wars hyperspace mountain rebel mission disneyland paris",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.84,
+        "matchedName": "Disneyland Park (Paris)"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.5,
+        "matchedName": "Star Wars Hyperspace Mountain",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.84): \"Disneyland Park\" → \"Disneyland Park (Paris)\"",
+        "Coaster fuzzy (0.50) at Disneyland Park (Paris): \"Star Wars Hyperspace Mountain: Rebel Mission - Disneyland Paris\" → \"Star Wars Hyperspace Mountain\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.5,
+      "priority": "low",
+      "batchKey": "accept:disneyland-park-paris"
+    },
+    {
+      "lineNumber": 90,
+      "sourceCoasterName": "DrageKongen",
+      "sourceParkName": "Djurs Sommerland",
+      "normalizedCoasterKey": "dragekongen",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Fårup Sommerland"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "DrageKongen",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Djurs Sommerland\" → \"Fårup Sommerland\"",
+        "Coaster exact: \"DrageKongen\" → \"DrageKongen\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:farup-sommerland"
+    },
+    {
+      "lineNumber": 206,
+      "sourceCoasterName": "Juvelen",
+      "sourceParkName": "Djurs Sommerland",
+      "normalizedCoasterKey": "juvelen",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Fårup Sommerland"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Juvelen",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Djurs Sommerland\" → \"Fårup Sommerland\"",
+        "Coaster exact: \"Juvelen\" → \"Juvelen\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:farup-sommerland"
+    },
+    {
+      "lineNumber": 297,
+      "sourceCoasterName": "Piraten",
+      "sourceParkName": "Djurs Sommerland",
+      "normalizedCoasterKey": "piraten",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Fårup Sommerland"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Piraten",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Djurs Sommerland\" → \"Fårup Sommerland\"",
+        "Coaster exact: \"Piraten\" → \"Piraten\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:farup-sommerland"
+    },
+    {
+      "lineNumber": 149,
+      "sourceCoasterName": "Gold Rush",
+      "sourceParkName": "Drayton Manor",
+      "normalizedCoasterKey": "gold rush",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.56,
+        "matchedName": "Drayton Manor Theme Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Gold Rush",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.56): \"Drayton Manor\" → \"Drayton Manor Theme Park\"",
+        "Coaster exact: \"Gold Rush\" → \"Gold Rush\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.56,
+      "priority": "low",
+      "batchKey": "accept:drayton-manor-theme-park"
+    },
+    {
+      "lineNumber": 417,
+      "sourceCoasterName": "The Wave",
+      "sourceParkName": "Drayton Manor",
+      "normalizedCoasterKey": "wave",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.56,
+        "matchedName": "Drayton Manor Theme Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "The Wave",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.56): \"Drayton Manor\" → \"Drayton Manor Theme Park\"",
+        "Coaster exact: \"The Wave\" → \"The Wave\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.56,
+      "priority": "low",
+      "batchKey": "accept:drayton-manor-theme-park"
+    },
+    {
+      "lineNumber": 465,
+      "sourceCoasterName": "Vliegende Hollander",
+      "sourceParkName": "Efteling",
+      "normalizedCoasterKey": "vliegende hollander",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Efteling"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.9,
+        "matchedName": "De Vliegende Hollander",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Efteling\" → \"Efteling\"",
+        "Coaster fuzzy (0.90) at Efteling: \"Vliegende Hollander\" → \"De Vliegende Hollander\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.9,
+      "priority": "low",
+      "batchKey": "accept:efteling"
+    },
+    {
+      "lineNumber": 21,
+      "sourceCoasterName": "Arthur",
+      "sourceParkName": "Europa Park",
+      "normalizedCoasterKey": "arthur",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Europa-Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.44,
+        "matchedName": "Arthur – The Ride",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Europa Park\" → \"Europa-Park\"",
+        "Coaster fuzzy (0.44) at Europa-Park: \"Arthur\" → \"Arthur – The Ride\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.44,
+      "priority": "low",
+      "batchKey": "accept:europa-park"
+    },
+    {
+      "lineNumber": 50,
+      "sourceCoasterName": "blue fire Megacoaster",
+      "sourceParkName": "Europa Park",
+      "normalizedCoasterKey": "blue fire megacoaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Europa-Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.45,
+        "matchedName": "Blue Fire",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Europa Park\" → \"Europa-Park\"",
+        "Coaster fuzzy (0.45) at Europa-Park: \"blue fire Megacoaster\" → \"Blue Fire\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.45,
+      "priority": "low",
+      "batchKey": "accept:europa-park"
+    },
+    {
+      "lineNumber": 467,
+      "sourceCoasterName": "Voltron",
+      "sourceParkName": "Europa Park",
+      "normalizedCoasterKey": "voltron",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Europa-Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.53,
+        "matchedName": "Voltron Nevera",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Europa Park\" → \"Europa-Park\"",
+        "Coaster fuzzy (0.53) at Europa-Park: \"Voltron\" → \"Voltron Nevera\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.53,
+      "priority": "low",
+      "batchKey": "accept:europa-park"
+    },
+    {
+      "lineNumber": 129,
+      "sourceCoasterName": "Formule X",
+      "sourceParkName": "Familliepark Drievliet",
+      "normalizedCoasterKey": "formule x",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.69,
+        "matchedName": "Drievliet Family Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Formule X",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.69): \"Familliepark Drievliet\" → \"Drievliet Family Park\"",
+        "Coaster exact: \"Formule X\" → \"Formule X\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.69,
+      "priority": "low",
+      "batchKey": "accept:drievliet-family-park"
+    },
+    {
+      "lineNumber": 281,
+      "sourceCoasterName": "Orkanen",
+      "sourceParkName": "Fårup Sommerland",
+      "normalizedCoasterKey": "orkanen",
+      "reportIcon": "⚠️",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Fårup Sommerland"
+      },
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Fårup Sommarland"
+      },
+      "notes": [
+        "Park exact: \"Fårup Sommerland\" → \"Fårup Sommerland\"",
+        "Coaster NOT at Fårup Sommerland but found at Fårup Sommarland (sim 1.00): \"Orkanen\""
+      ],
+      "overrideReason": "Human note: Orkanen is already in the DB; treat the alternate park spelling as resolved for this launch checklist.",
+      "action": "accept_existing_match_no_change",
+      "subtype": "human_confirmed_existing_by_alias",
+      "confidence": 1,
+      "priority": "low",
+      "batchKey": "accept:farup-sommerland"
+    },
+    {
+      "lineNumber": 216,
+      "sourceCoasterName": "Kumali",
+      "sourceParkName": "Flamingo Land",
+      "normalizedCoasterKey": "kumali",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "Flamingo Land Resort"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kumali",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.67): \"Flamingo Land\" → \"Flamingo Land Resort\"",
+        "Coaster exact: \"Kumali\" → \"Kumali\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:flamingo-land-resort"
+    },
+    {
+      "lineNumber": 347,
+      "sourceCoasterName": "Sik",
+      "sourceParkName": "Flamingo Land",
+      "normalizedCoasterKey": "sik",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "Flamingo Land Resort"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Sik",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.67): \"Flamingo Land\" → \"Flamingo Land Resort\"",
+        "Coaster exact: \"Sik\" → \"Sik\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:flamingo-land-resort"
+    },
+    {
+      "lineNumber": 108,
+      "sourceCoasterName": "Excalibur",
+      "sourceParkName": "Funtown Splashtown U.S.A.",
+      "normalizedCoasterKey": "excalibur",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.71,
+        "matchedName": "Funtown Splashtown USA"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Excalibur",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.71): \"Funtown Splashtown U.S.A.\" → \"Funtown Splashtown USA\"",
+        "Coaster exact: \"Excalibur\" → \"Excalibur\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.71,
+      "priority": "low",
+      "batchKey": "accept:funtown-splashtown-usa"
+    },
+    {
+      "lineNumber": 65,
+      "sourceCoasterName": "Colossos - Kampf der Giganten",
+      "sourceParkName": "Heide Park Resort",
+      "normalizedCoasterKey": "colossos kampf der giganten",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.61,
+        "matchedName": "Heide Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Colossos - Kampf der Giganten",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.61): \"Heide Park Resort\" → \"Heide Park\"",
+        "Coaster exact: \"Colossos - Kampf der Giganten\" → \"Colossos - Kampf der Giganten\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.61,
+      "priority": "low",
+      "batchKey": "accept:heide-park"
+    },
+    {
+      "lineNumber": 80,
+      "sourceCoasterName": "Desert Race",
+      "sourceParkName": "Heide Park Resort",
+      "normalizedCoasterKey": "desert race",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.61,
+        "matchedName": "Heide Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Desert Race",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.61): \"Heide Park Resort\" → \"Heide Park\"",
+        "Coaster exact: \"Desert Race\" → \"Desert Race\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.61,
+      "priority": "low",
+      "batchKey": "accept:heide-park"
+    },
+    {
+      "lineNumber": 122,
+      "sourceCoasterName": "Flug der Dämonen",
+      "sourceParkName": "Heide Park Resort",
+      "normalizedCoasterKey": "flug der damonen",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.61,
+        "matchedName": "Heide Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Flug der Dämonen",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.61): \"Heide Park Resort\" → \"Heide Park\"",
+        "Coaster exact: \"Flug der Dämonen\" → \"Flug der Dämonen\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.61,
+      "priority": "low",
+      "batchKey": "accept:heide-park"
+    },
+    {
+      "lineNumber": 214,
+      "sourceCoasterName": "Krake",
+      "sourceParkName": "Heide Park Resort",
+      "normalizedCoasterKey": "krake",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.61,
+        "matchedName": "Heide Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Krake",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.61): \"Heide Park Resort\" → \"Heide Park\"",
+        "Coaster exact: \"Krake\" → \"Krake\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.61,
+      "priority": "low",
+      "batchKey": "accept:heide-park"
+    },
+    {
+      "lineNumber": 480,
+      "sourceCoasterName": "Wildcat's Revenge",
+      "sourceParkName": "Hersheypark",
+      "normalizedCoasterKey": "wildcat s revenge",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Hersheypark"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.44,
+        "matchedName": "Wildcat",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Hersheypark\" → \"Hersheypark\"",
+        "Coaster fuzzy (0.44) at Hersheypark: \"Wildcat's Revenge\" → \"Wildcat\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.44,
+      "priority": "low",
+      "batchKey": "accept:hersheypark"
+    },
+    {
+      "lineNumber": 111,
+      "sourceCoasterName": "Expedition GeForce",
+      "sourceParkName": "Holiday Park",
+      "normalizedCoasterKey": "expedition geforce",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.62,
+        "matchedName": "Holiday Park, Germany"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Expedition GeForce",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.62): \"Holiday Park\" → \"Holiday Park, Germany\"",
+        "Coaster exact: \"Expedition GeForce\" → \"Expedition GeForce\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.62,
+      "priority": "low",
+      "batchKey": "accept:holiday-park-germany"
+    },
+    {
+      "lineNumber": 353,
+      "sourceCoasterName": "Sky Scream",
+      "sourceParkName": "Holiday Park",
+      "normalizedCoasterKey": "sky scream",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.62,
+        "matchedName": "Holiday Park, Germany"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Sky Scream",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.62): \"Holiday Park\" → \"Holiday Park, Germany\"",
+        "Coaster exact: \"Sky Scream\" → \"Sky Scream\""
+      ],
+      "overrideReason": "Human note: the Six Flags Magic Mountain match is a false positive; treat Sky Scream as missing at Holiday Park, Germany.",
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.62,
+      "priority": "low",
+      "batchKey": "accept:holiday-park-germany"
+    },
+    {
+      "lineNumber": 220,
+      "sourceCoasterName": "Legend",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "legend",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.64,
+        "matchedName": "The Legend",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster fuzzy (0.64) at Holiday World & Splashin' Safari: \"Legend\" → \"The Legend\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.64,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 317,
+      "sourceCoasterName": "Raven",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "raven",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "The Raven",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster fuzzy (0.60) at Holiday World & Splashin' Safari: \"Raven\" → \"The Raven\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 414,
+      "sourceCoasterName": "The Legend",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "legend",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "The Legend",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster exact: \"The Legend\" → \"The Legend\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 415,
+      "sourceCoasterName": "The Raven",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "raven",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "The Raven",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster exact: \"The Raven\" → \"The Raven\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 416,
+      "sourceCoasterName": "The Voyage",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "voyage",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "The Voyage",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster exact: \"The Voyage\" → \"The Voyage\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 422,
+      "sourceCoasterName": "Thunderbird",
+      "sourceParkName": "Holiday World",
+      "normalizedCoasterKey": "thunderbird",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.48,
+        "matchedName": "Holiday World & Splashin' Safari"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Thunderbird",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.48): \"Holiday World\" → \"Holiday World & Splashin' Safari\"",
+        "Coaster exact: \"Thunderbird\" → \"Thunderbird\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.48,
+      "priority": "low",
+      "batchKey": "accept:holiday-world-splashin-safari"
+    },
+    {
+      "lineNumber": 362,
+      "sourceCoasterName": "Spider-Man Doc Ock's Revenge",
+      "sourceParkName": "IMG Worlds of Adventure",
+      "normalizedCoasterKey": "spider man doc ock s revenge",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "Adventure World"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Spider-Man Doc Ock's Revenge",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.60): \"IMG Worlds of Adventure\" → \"Adventure World\"",
+        "Coaster exact: \"Spider-Man Doc Ock's Revenge\" → \"Spider-Man Doc Ock's Revenge\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:adventure-world"
+    },
+    {
+      "lineNumber": 459,
+      "sourceCoasterName": "Velociraptor",
+      "sourceParkName": "IMG Worlds of Adventure",
+      "normalizedCoasterKey": "velociraptor",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "Adventure World"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Velociraptor",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.60): \"IMG Worlds of Adventure\" → \"Adventure World\"",
+        "Coaster exact: \"Velociraptor\" → \"Velociraptor\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:adventure-world"
+    },
+    {
+      "lineNumber": 28,
+      "sourceCoasterName": "Bat",
+      "sourceParkName": "Kings Island",
+      "normalizedCoasterKey": "bat",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kings Island"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.5,
+        "matchedName": "The Bat",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Kings Island\" → \"Kings Island\"",
+        "Coaster fuzzy (0.50) at Kings Island: \"Bat\" → \"The Bat\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.5,
+      "priority": "low",
+      "batchKey": "accept:kings-island"
+    },
+    {
+      "lineNumber": 39,
+      "sourceCoasterName": "Beast",
+      "sourceParkName": "Kings Island",
+      "normalizedCoasterKey": "beast",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kings Island"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "The Beast",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Kings Island\" → \"Kings Island\"",
+        "Coaster fuzzy (0.60) at Kings Island: \"Beast\" → \"The Beast\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:kings-island"
+    },
+    {
+      "lineNumber": 481,
+      "sourceCoasterName": "Wildfire",
+      "sourceParkName": "Kolmården",
+      "normalizedCoasterKey": "wildfire",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.42,
+        "matchedName": "Kolmården Wildlife Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Wildfire",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.42): \"Kolmården\" → \"Kolmården Wildlife Park\"",
+        "Coaster exact: \"Wildfire\" → \"Wildfire\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.42,
+      "priority": "low",
+      "batchKey": "accept:kolmarden-wildlife-park"
+    },
+    {
+      "lineNumber": 456,
+      "sourceCoasterName": "Vampire",
+      "sourceParkName": "La Ronde",
+      "normalizedCoasterKey": "vampire",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "La Ronde"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.73,
+        "matchedName": "Le Vampire",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"La Ronde\" → \"La Ronde\"",
+        "Coaster fuzzy (0.73) at La Ronde: \"Vampire\" → \"Le Vampire\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.73,
+      "priority": "low",
+      "batchKey": "accept:la-ronde"
+    },
+    {
+      "lineNumber": 54,
+      "sourceCoasterName": "BoulderDash",
+      "sourceParkName": "Lake Compounce",
+      "normalizedCoasterKey": "boulderdash",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Lake Compounce"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "Boulder Dash",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Lake Compounce\" → \"Lake Compounce\"",
+        "Coaster fuzzy (0.67) at Lake Compounce: \"BoulderDash\" → \"Boulder Dash\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:lake-compounce"
+    },
+    {
+      "lineNumber": 183,
+      "sourceCoasterName": "Hyper Coaster",
+      "sourceParkName": "Land of Legends Theme Park",
+      "normalizedCoasterKey": "hyper coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.44,
+        "matchedName": "Lost Island Theme Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Hyper Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.44): \"Land of Legends Theme Park\" → \"Lost Island Theme Park\"",
+        "Coaster exact: \"Hyper Coaster\" → \"Hyper Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.44,
+      "priority": "low",
+      "batchKey": "accept:lost-island-theme-park"
+    },
+    {
+      "lineNumber": 450,
+      "sourceCoasterName": "Typhoon Coaster",
+      "sourceParkName": "Land of Legends Theme PArk",
+      "normalizedCoasterKey": "typhoon coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.44,
+        "matchedName": "Lost Island Theme Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Typhoon Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.44): \"Land of Legends Theme PArk\" → \"Lost Island Theme Park\"",
+        "Coaster exact: \"Typhoon Coaster\" → \"Typhoon Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.44,
+      "priority": "low",
+      "batchKey": "accept:lost-island-theme-park"
+    },
+    {
+      "lineNumber": 48,
+      "sourceCoasterName": "Big Thunder Mountain Railroad - Walt Disney World",
+      "sourceParkName": "Magic Kingdom",
+      "normalizedCoasterKey": "big thunder mountain railroad walt disney world",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.45,
+        "matchedName": "Walt Disney World - Magic Kingdom"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Big Thunder Mountain Railroad - Walt Disney World",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.45): \"Magic Kingdom\" → \"Walt Disney World - Magic Kingdom\"",
+        "Coaster exact: \"Big Thunder Mountain Railroad - Walt Disney World\" → \"Big Thunder Mountain Railroad - Walt Disney World\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.45,
+      "priority": "low",
+      "batchKey": "accept:walt-disney-world-magic-kingdom"
+    },
+    {
+      "lineNumber": 359,
+      "sourceCoasterName": "Space Mountain - Walt Disney World",
+      "sourceParkName": "Magic Kingdom",
+      "normalizedCoasterKey": "space mountain walt disney world",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.45,
+        "matchedName": "Walt Disney World - Magic Kingdom"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.49,
+        "matchedName": "Big Thunder Mountain Railroad - Walt Disney World",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.45): \"Magic Kingdom\" → \"Walt Disney World - Magic Kingdom\"",
+        "Coaster fuzzy (0.49) at Walt Disney World - Magic Kingdom: \"Space Mountain - Walt Disney World\" → \"Big Thunder Mountain Railroad - Walt Disney World\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.49,
+      "priority": "low",
+      "batchKey": "accept:walt-disney-world-magic-kingdom"
+    },
+    {
+      "lineNumber": 440,
+      "sourceCoasterName": "TRON Lightcycle / Run - Walt Disney World",
+      "sourceParkName": "Magic Kingdom",
+      "normalizedCoasterKey": "tron lightcycle run walt disney world",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.45,
+        "matchedName": "Walt Disney World - Magic Kingdom"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "TRON Lightcycle / Run - Walt Disney World",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.45): \"Magic Kingdom\" → \"Walt Disney World - Magic Kingdom\"",
+        "Coaster exact: \"TRON Lightcycle / Run - Walt Disney World\" → \"TRON Lightcycle / Run - Walt Disney World\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.45,
+      "priority": "low",
+      "batchKey": "accept:walt-disney-world-magic-kingdom"
+    },
+    {
+      "lineNumber": 160,
+      "sourceCoasterName": "Great Nor'Easter",
+      "sourceParkName": "Morey's Piers",
+      "normalizedCoasterKey": "great nor easter",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Morey's Piers"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.81,
+        "matchedName": "The Great Nor'easter",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Morey's Piers\" → \"Morey's Piers\"",
+        "Coaster fuzzy (0.81) at Morey's Piers: \"Great Nor'Easter\" → \"The Great Nor'easter\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.81,
+      "priority": "low",
+      "batchKey": "accept:morey-s-piers"
+    },
+    {
+      "lineNumber": 161,
+      "sourceCoasterName": "Great White",
+      "sourceParkName": "Morey's Piers",
+      "normalizedCoasterKey": "great white",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Morey's Piers"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.75,
+        "matchedName": "The Great White",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Morey's Piers\" → \"Morey's Piers\"",
+        "Coaster fuzzy (0.75) at Morey's Piers: \"Great White\" → \"The Great White\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.75,
+      "priority": "low",
+      "batchKey": "accept:morey-s-piers"
+    },
+    {
+      "lineNumber": 82,
+      "sourceCoasterName": "Diabolik",
+      "sourceParkName": "Movieland Park",
+      "normalizedCoasterKey": "diabolik",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.42,
+        "matchedName": "Movie Park Germany"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Diabolik",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.42): \"Movieland Park\" → \"Movie Park Germany\"",
+        "Coaster exact: \"Diabolik\" → \"Diabolik\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.42,
+      "priority": "low",
+      "batchKey": "accept:movie-park-germany"
+    },
+    {
+      "lineNumber": 335,
+      "sourceCoasterName": "Sandy's Blasting Bronco",
+      "sourceParkName": "Nickelodeon Universe Theme Park",
+      "normalizedCoasterKey": "sandy s blasting bronco",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.66,
+        "matchedName": "Nickelodeon Universe"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Sandy's Blasting Bronco",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.66): \"Nickelodeon Universe Theme Park\" → \"Nickelodeon Universe\"",
+        "Coaster exact: \"Sandy's Blasting Bronco\" → \"Sandy's Blasting Bronco\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.66,
+      "priority": "low",
+      "batchKey": "accept:nickelodeon-universe"
+    },
+    {
+      "lineNumber": 432,
+      "sourceCoasterName": "TMNT Shellraiser",
+      "sourceParkName": "Nickelodeon Universe Theme Park",
+      "normalizedCoasterKey": "tmnt shellraiser",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.66,
+        "matchedName": "Nickelodeon Universe"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "TMNT Shellraiser",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.66): \"Nickelodeon Universe Theme Park\" → \"Nickelodeon Universe\"",
+        "Coaster exact: \"TMNT Shellraiser\" → \"TMNT Shellraiser\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.66,
+      "priority": "low",
+      "batchKey": "accept:nickelodeon-universe"
+    },
+    {
+      "lineNumber": 433,
+      "sourceCoasterName": "Tonnerre 2 Zeus",
+      "sourceParkName": "Parc Astérix",
+      "normalizedCoasterKey": "tonnerre 2 zeus",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Parc Astérix"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.74,
+        "matchedName": "Tonnerre de Zeus",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Parc Astérix\" → \"Parc Astérix\"",
+        "Coaster fuzzy (0.74) at Parc Astérix: \"Tonnerre 2 Zeus\" → \"Tonnerre de Zeus\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.74,
+      "priority": "low",
+      "batchKey": "accept:parc-asterix"
+    },
+    {
+      "lineNumber": 62,
+      "sourceCoasterName": "Coaster",
+      "sourceParkName": "Playland",
+      "normalizedCoasterKey": "coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Playland"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.53,
+        "matchedName": "Dragon Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Playland\" → \"Playland\"",
+        "Coaster fuzzy (0.53) at Playland: \"Coaster\" → \"Dragon Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.53,
+      "priority": "low",
+      "batchKey": "accept:playland"
+    },
+    {
+      "lineNumber": 328,
+      "sourceCoasterName": "Ride to Happiness",
+      "sourceParkName": "Plopsaland de Panne",
+      "normalizedCoasterKey": "ride to happiness",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Plopsaland De Panne"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.86,
+        "matchedName": "The Ride to Happiness",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Plopsaland de Panne\" → \"Plopsaland De Panne\"",
+        "Coaster fuzzy (0.86) at Plopsaland De Panne: \"Ride to Happiness\" → \"The Ride to Happiness\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.86,
+      "priority": "low",
+      "batchKey": "accept:plopsaland-de-panne"
+    },
+    {
+      "lineNumber": 299,
+      "sourceCoasterName": "Playland Wooden Coaster",
+      "sourceParkName": "PNE Playland",
+      "normalizedCoasterKey": "playland wooden coaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.75,
+        "matchedName": "Playland"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.5,
+        "matchedName": "Wooden Roller Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.75): \"PNE Playland\" → \"Playland\"",
+        "Coaster fuzzy (0.50) at Playland: \"Playland Wooden Coaster\" → \"Wooden Roller Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.5,
+      "priority": "low",
+      "batchKey": "accept:playland"
+    },
+    {
+      "lineNumber": 162,
+      "sourceCoasterName": "Great White",
+      "sourceParkName": "Seaworld San Antonio",
+      "normalizedCoasterKey": "great white",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "SeaWorld San Antonio"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.75,
+        "matchedName": "The Great White",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Seaworld San Antonio\" → \"SeaWorld San Antonio\"",
+        "Coaster fuzzy (0.75) at SeaWorld San Antonio: \"Great White\" → \"The Great White\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.75,
+      "priority": "low",
+      "batchKey": "accept:seaworld-san-antonio"
+    },
+    {
+      "lineNumber": 203,
+      "sourceCoasterName": "Joker's Jinx",
+      "sourceParkName": "Six Flags America",
+      "normalizedCoasterKey": "joker s jinx",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags America"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.75,
+        "matchedName": "The Joker's Jinx",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags America\" → \"Six Flags America\"",
+        "Coaster fuzzy (0.75) at Six Flags America: \"Joker's Jinx\" → \"The Joker's Jinx\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.75,
+      "priority": "low",
+      "batchKey": "accept:six-flags-america"
+    },
+    {
+      "lineNumber": 477,
+      "sourceCoasterName": "Wild One",
+      "sourceParkName": "Six Flags America",
+      "normalizedCoasterKey": "wild one",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags America"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.69,
+        "matchedName": "The Wild One",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags America\" → \"Six Flags America\"",
+        "Coaster fuzzy (0.69) at Six Flags America: \"Wild One\" → \"The Wild One\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.69,
+      "priority": "low",
+      "batchKey": "accept:six-flags-america"
+    },
+    {
+      "lineNumber": 117,
+      "sourceCoasterName": "Flash: Vertical Velocity",
+      "sourceParkName": "Six Flags Discovery Kingdom",
+      "normalizedCoasterKey": "flash vertical velocity",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Discovery Kingdom"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.85,
+        "matchedName": "The Flash: Vertical Velocity",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags Discovery Kingdom\" → \"Six Flags Discovery Kingdom\"",
+        "Coaster fuzzy (0.85) at Six Flags Discovery Kingdom: \"Flash: Vertical Velocity\" → \"The Flash: Vertical Velocity\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.85,
+      "priority": "low",
+      "batchKey": "accept:six-flags-discovery-kingdom"
+    },
+    {
+      "lineNumber": 202,
+      "sourceCoasterName": "Joker",
+      "sourceParkName": "Six Flags Discovery Kingdom",
+      "normalizedCoasterKey": "joker",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Discovery Kingdom"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "The Joker",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags Discovery Kingdom\" → \"Six Flags Discovery Kingdom\"",
+        "Coaster fuzzy (0.60) at Six Flags Discovery Kingdom: \"Joker\" → \"The Joker\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:six-flags-discovery-kingdom"
+    },
+    {
+      "lineNumber": 52,
+      "sourceCoasterName": "Bobcat",
+      "sourceParkName": "Six Flags Great Escape",
+      "normalizedCoasterKey": "bobcat",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "Great Escape"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Bobcat",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.57): \"Six Flags Great Escape\" → \"Great Escape\"",
+        "Coaster exact: \"Bobcat\" → \"Bobcat\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.57,
+      "priority": "low",
+      "batchKey": "accept:great-escape"
+    },
+    {
+      "lineNumber": 67,
+      "sourceCoasterName": "Comet",
+      "sourceParkName": "Six Flags Great Escape",
+      "normalizedCoasterKey": "comet",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "Great Escape"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "The Comet",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.57): \"Six Flags Great Escape\" → \"Great Escape\"",
+        "Coaster fuzzy (0.60) at Great Escape: \"Comet\" → \"The Comet\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:great-escape"
+    },
+    {
+      "lineNumber": 326,
+      "sourceCoasterName": "Riddler's Revenge",
+      "sourceParkName": "Six Flags Magic Mountain",
+      "normalizedCoasterKey": "riddler s revenge",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Magic Mountain"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.81,
+        "matchedName": "The Riddler's Revenge",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags Magic Mountain\" → \"Six Flags Magic Mountain\"",
+        "Coaster fuzzy (0.81) at Six Flags Magic Mountain: \"Riddler's Revenge\" → \"The Riddler's Revenge\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.81,
+      "priority": "low",
+      "batchKey": "accept:six-flags-magic-mountain"
+    },
+    {
+      "lineNumber": 325,
+      "sourceCoasterName": "Riddler Mindbender",
+      "sourceParkName": "Six Flags Over Georgia",
+      "normalizedCoasterKey": "riddler mindbender",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags Over Georgia"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.82,
+        "matchedName": "The Riddler Mindbender",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags Over Georgia\" → \"Six Flags Over Georgia\"",
+        "Coaster fuzzy (0.82) at Six Flags Over Georgia: \"Riddler Mindbender\" → \"The Riddler Mindbender\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.82,
+      "priority": "low",
+      "batchKey": "accept:six-flags-over-georgia"
+    },
+    {
+      "lineNumber": 53,
+      "sourceCoasterName": "Boss",
+      "sourceParkName": "Six Flags St. Louis",
+      "normalizedCoasterKey": "boss",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Six Flags St. Louis"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.56,
+        "matchedName": "The Boss",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Six Flags St. Louis\" → \"Six Flags St. Louis\"",
+        "Coaster fuzzy (0.56) at Six Flags St. Louis: \"Boss\" → \"The Boss\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.56,
+      "priority": "low",
+      "batchKey": "accept:six-flags-st-louis"
+    },
+    {
+      "lineNumber": 398,
+      "sourceCoasterName": "Swarm",
+      "sourceParkName": "Thorpe Park",
+      "normalizedCoasterKey": "swarm",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Thorpe Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.6,
+        "matchedName": "The Swarm",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Thorpe Park\" → \"Thorpe Park\"",
+        "Coaster fuzzy (0.60) at Thorpe Park: \"Swarm\" → \"The Swarm\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.6,
+      "priority": "low",
+      "batchKey": "accept:thorpe-park"
+    },
+    {
+      "lineNumber": 209,
+      "sourceCoasterName": "Kawasemi",
+      "sourceParkName": "Tobu Zoo Park",
+      "normalizedCoasterKey": "kawasemi",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.64,
+        "matchedName": "Tobu Zoo"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Kawasemi",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.64): \"Tobu Zoo Park\" → \"Tobu Zoo\"",
+        "Coaster exact: \"Kawasemi\" → \"Kawasemi\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.64,
+      "priority": "low",
+      "batchKey": "accept:tobu-zoo"
+    },
+    {
+      "lineNumber": 320,
+      "sourceCoasterName": "Regina II",
+      "sourceParkName": "Tobu Zoo Park",
+      "normalizedCoasterKey": "regina ii",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.64,
+        "matchedName": "Tobu Zoo"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Regina II",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.64): \"Tobu Zoo Park\" → \"Tobu Zoo\"",
+        "Coaster exact: \"Regina II\" → \"Regina II\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.64,
+      "priority": "low",
+      "batchKey": "accept:tobu-zoo"
+    },
+    {
+      "lineNumber": 46,
+      "sourceCoasterName": "Big Thunder Mountain",
+      "sourceParkName": "Tokyo Disneyland",
+      "normalizedCoasterKey": "big thunder mountain",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Tokyo Disneyland"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.7,
+        "matchedName": "Big Thunder Mountain Railroad",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Tokyo Disneyland\" → \"Tokyo Disneyland\"",
+        "Coaster fuzzy (0.70) at Tokyo Disneyland: \"Big Thunder Mountain\" → \"Big Thunder Mountain Railroad\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.7,
+      "priority": "low",
+      "batchKey": "accept:tokyo-disneyland"
+    },
+    {
+      "lineNumber": 419,
+      "sourceCoasterName": "Thunder Dolphin",
+      "sourceParkName": "Tokyo Dome City",
+      "normalizedCoasterKey": "thunder dolphin",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "Tokyo Dome City Attractions"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Thunder Dolphin",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.57): \"Tokyo Dome City\" → \"Tokyo Dome City Attractions\"",
+        "Coaster exact: \"Thunder Dolphin\" → \"Thunder Dolphin\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.57,
+      "priority": "low",
+      "batchKey": "accept:tokyo-dome-city-attractions"
+    },
+    {
+      "lineNumber": 169,
+      "sourceCoasterName": "Hagrid's Magical Creatures Motorbike Adventure",
+      "sourceParkName": "Universal Islands of Adventure",
+      "normalizedCoasterKey": "hagrid s magical creatures motorbike adventure",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.94,
+        "matchedName": "Universal's Islands of Adventure"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Hagrid's Magical Creatures Motorbike Adventure",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.94): \"Universal Islands of Adventure\" → \"Universal's Islands of Adventure\"",
+        "Coaster exact: \"Hagrid's Magical Creatures Motorbike Adventure\" → \"Hagrid's Magical Creatures Motorbike Adventure\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.94,
+      "priority": "low",
+      "batchKey": "accept:universal-s-islands-of-adventure"
+    },
+    {
+      "lineNumber": 458,
+      "sourceCoasterName": "VelociCoaster",
+      "sourceParkName": "Universal Islands of Adventure",
+      "normalizedCoasterKey": "velocicoaster",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.94,
+        "matchedName": "Universal's Islands of Adventure"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "VelociCoaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.94): \"Universal Islands of Adventure\" → \"Universal's Islands of Adventure\"",
+        "Coaster exact: \"VelociCoaster\" → \"VelociCoaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.94,
+      "priority": "low",
+      "batchKey": "accept:universal-s-islands-of-adventure"
+    },
+    {
+      "lineNumber": 190,
+      "sourceCoasterName": "Incredible Hulk",
+      "sourceParkName": "Universal Studios Islands of Adventure",
+      "normalizedCoasterKey": "incredible hulk",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.8,
+        "matchedName": "Universal's Islands of Adventure"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.57,
+        "matchedName": "The Incredible Hulk Coaster",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.80): \"Universal Studios Islands of Adventure\" → \"Universal's Islands of Adventure\"",
+        "Coaster fuzzy (0.57) at Universal's Islands of Adventure: \"Incredible Hulk\" → \"The Incredible Hulk Coaster\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.57,
+      "priority": "low",
+      "batchKey": "accept:universal-s-islands-of-adventure"
+    },
+    {
+      "lineNumber": 124,
+      "sourceCoasterName": "Flying Dinosaur",
+      "sourceParkName": "Universal Studios Japan",
+      "normalizedCoasterKey": "flying dinosaur",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Universal Studios Japan"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.8,
+        "matchedName": "The Flying Dinosaur",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Universal Studios Japan\" → \"Universal Studios Japan\"",
+        "Coaster fuzzy (0.80) at Universal Studios Japan: \"Flying Dinosaur\" → \"The Flying Dinosaur\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.8,
+      "priority": "low",
+      "batchKey": "accept:universal-studios-japan"
+    },
+    {
+      "lineNumber": 37,
+      "sourceCoasterName": "Battlestar Galactica Cylon",
+      "sourceParkName": "Universal Studios Singapore",
+      "normalizedCoasterKey": "battlestar galactica cylon",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Universal Studios Singapore"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.78,
+        "matchedName": "Battlestar Galactica",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Universal Studios Singapore\" → \"Universal Studios Singapore\"",
+        "Coaster fuzzy (0.78) at Universal Studios Singapore: \"Battlestar Galactica Cylon\" → \"Battlestar Galactica\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.78,
+      "priority": "low",
+      "batchKey": "accept:universal-studios-singapore"
+    },
+    {
+      "lineNumber": 318,
+      "sourceCoasterName": "Ravine Flyer II",
+      "sourceParkName": "Waldameer",
+      "normalizedCoasterKey": "ravine flyer ii",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "fuzzy",
+        "similarity": 0.67,
+        "matchedName": "Waldameer Park"
+      },
+      "coasterMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Ravine Flyer II",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park fuzzy (0.67): \"Waldameer\" → \"Waldameer Park\"",
+        "Coaster exact: \"Ravine Flyer II\" → \"Ravine Flyer II\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_park_alias",
+      "confidence": 0.67,
+      "priority": "low",
+      "batchKey": "accept:waldameer-park"
+    },
+    {
+      "lineNumber": 23,
+      "sourceCoasterName": "Avengers Assemble: Flight Force - Disneyland Paris",
+      "sourceParkName": "Walt Disney Studios Park",
+      "normalizedCoasterKey": "avengers assemble flight force disneyland paris",
+      "reportIcon": "🔍",
+      "parkMatch": {
+        "status": "exact",
+        "similarity": 1,
+        "matchedName": "Walt Disney Studios Park"
+      },
+      "coasterMatch": {
+        "status": "fuzzy",
+        "similarity": 0.63,
+        "matchedName": "Avengers Assemble: Flight Force",
+        "foundParkName": null
+      },
+      "notes": [
+        "Park exact: \"Walt Disney Studios Park\" → \"Walt Disney Studios Park\"",
+        "Coaster fuzzy (0.63) at Walt Disney Studios Park: \"Avengers Assemble: Flight Force - Disneyland Paris\" → \"Avengers Assemble: Flight Force\""
+      ],
+      "overrideReason": null,
+      "action": "accept_existing_match_no_change",
+      "subtype": "likely_name_variant",
+      "confidence": 0.63,
+      "priority": "low",
+      "batchKey": "accept:walt-disney-studios-park"
+    }
+  ]
+}

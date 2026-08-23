@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "lineOverrides": {
+    "33": {
+      "subtype": "suspect_external_entry",
+      "overrideReason": "Human note: Batman The Ride likely does not exist at Six Flags Magic Mountain; keep in review."
+    },
+    "219": {
+      "overrideReason": "Human note: Legendia already exists in Parks; only the coaster is missing."
+    },
+    "281": {
+      "action": "accept_existing_match_no_change",
+      "subtype": "human_confirmed_existing_by_alias",
+      "confidence": 1,
+      "priority": "low",
+      "batchKey": "accept:farup-sommerland",
+      "overrideReason": "Human note: Orkanen is already in the DB; treat the alternate park spelling as resolved for this launch checklist."
+    },
+    "348": {
+      "action": "rehome_orphaned_coaster",
+      "subtype": "human_confirmed_orphan_in_other_park",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "rehome:frontier-city",
+      "coasterMatch": {
+        "status": "found_elsewhere",
+        "similarity": 1,
+        "matchedName": null,
+        "foundParkName": "Other (unknown location)"
+      },
+      "overrideReason": "Human note: Frontier City and Knott's have different Silver Bullet coasters; re-home the existing orphan to Frontier City."
+    },
+    "353": {
+      "overrideReason": "Human note: the Six Flags Magic Mountain match is a false positive; treat Sky Scream as missing at Holiday Park, Germany."
+    },
+    "399": {
+      "overrideReason": "Human note: ZDT's already exists in Parks as ZDT's Amusement Park; only the coaster is missing."
+    },
+    "448": {
+      "action": "create_missing_coaster",
+      "subtype": "known_park_manual_override",
+      "confidence": 1,
+      "priority": "high",
+      "batchKey": "park:grona-lund",
+      "coasterMatch": {
+        "status": "missing",
+        "similarity": null,
+        "matchedName": null,
+        "foundParkName": null
+      },
+      "overrideReason": "Human note: the Knoebels Twister is a different coaster; treat Twister as missing at Gröna Lund."
+    }
+  }
+}

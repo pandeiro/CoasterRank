@@ -6,6 +6,7 @@
   "description": "Data-engineering scripts for CoasterRank (CSV imports, ops, maintenance). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
   "scripts": {
     "import-coasters": "tsx src/import-coasters.ts",
+    "build-coverage-queue": "tsx src/build-coverage-queue.ts",
     "normalize-names": "tsx src/normalize-names.ts",
     "backfill-park-locations": "tsx src/backfill-park-locations.ts",
     "fix-missing-regions-and-non-english": "tsx src/fix-missing-regions-and-non-english.ts",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.3",
+    "cheerio": "^1.2.0",
     "commander": "^13.1.0",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",

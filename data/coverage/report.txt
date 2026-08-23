@@ -1,0 +1,610 @@
+======================================================================
+  COASTER RANK — EXTERNAL DATA COVERAGE REPORT
+  Generated: 2026-08-23T18:07:04.416Z
+======================================================================
+
+━━━ SUMMARY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  External list entries:     503
+  DB parks:                  303
+  DB coasters:               1189
+
+  External unique parks:     204
+  Parks MISSING from DB:     0
+
+  ✅ Coaster found (exact):  407
+  ✅ Coaster found (fuzzy):  48
+  ✅ Coaster found (total):  455 / 503 (90.5%)
+  ⚠️  Park found, coaster missing: 48
+  ❌ Park not found:         0
+
+━━━ DETAILED ISSUE LOG ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  146 entries need attention
+
+  ⚠️ [L11] Altair @ Cinecitta World
+      Park fuzzy (0.30): "Cinecitta World" → "Sea World"
+      Coaster NOT FOUND at Sea World: "Altair"
+
+  ⚠️ [L14] Anaconda @ Gold Reef City
+      Park exact: "Gold Reef City" → "Gold Reef City"
+      Coaster NOT at Gold Reef City but found at Walygator Parc (sim 1.00): "Anaconda"
+
+  🔍 [L15] Anubis: The Ride @ Plopsaland De Panne
+      Park exact: "Plopsaland De Panne" → "Plopsaland De Panne"
+      Coaster fuzzy (0.32) at Plopsaland De Panne: "Anubis: The Ride" → "The Ride to Happiness"
+
+  🔍 [L21] Arthur @ Europa Park
+      Park exact: "Europa Park" → "Europa-Park"
+      Coaster fuzzy (0.44) at Europa-Park: "Arthur" → "Arthur – The Ride"
+
+  🔍 [L23] Avengers Assemble: Flight Force - Disneyland Paris @ Walt Disney Studios Park
+      Park exact: "Walt Disney Studios Park" → "Walt Disney Studios Park"
+      Coaster fuzzy (0.63) at Walt Disney Studios Park: "Avengers Assemble: Flight Force - Disneyland Paris" → "Avengers Assemble: Flight Force"
+
+  🔍 [L28] Bat @ Kings Island
+      Park exact: "Kings Island" → "Kings Island"
+      Coaster fuzzy (0.50) at Kings Island: "Bat" → "The Bat"
+
+  ⚠️ [L31] Batman The Ride @ Six Flags Great Adventure
+      Park exact: "Six Flags Great Adventure" → "Six Flags Great Adventure"
+      Coaster NOT at Six Flags Great Adventure but found at Other (unknown location) (sim 1.00): "Batman: The Ride"
+
+  🔍 [L33] Batman The Ride @ Six Flags Magic Mountain
+      Park exact: "Six Flags Magic Mountain" → "Six Flags Magic Mountain"
+      Coaster fuzzy (0.33) at Six Flags Magic Mountain: "Batman The Ride" → "Apocalypse: The Ride"
+
+  ⚠️ [L34] Batman The Ride @ Six Flags Over Georgia
+      Park exact: "Six Flags Over Georgia" → "Six Flags Over Georgia"
+      Coaster NOT at Six Flags Over Georgia but found at Other (unknown location) (sim 1.00): "Batman: The Ride"
+
+  ⚠️ [L35] Batman The Ride @ Six Flags Over Texas
+      Park exact: "Six Flags Over Texas" → "Six Flags Over Texas"
+      Coaster NOT at Six Flags Over Texas but found at Other (unknown location) (sim 1.00): "Batman: The Ride"
+
+  ⚠️ [L36] Batman The Ride @ Six Flags St. Louis
+      Park exact: "Six Flags St. Louis" → "Six Flags St. Louis"
+      Coaster NOT at Six Flags St. Louis but found at Other (unknown location) (sim 1.00): "Batman: The Ride"
+
+  🔍 [L37] Battlestar Galactica Cylon @ Universal Studios Singapore
+      Park exact: "Universal Studios Singapore" → "Universal Studios Singapore"
+      Coaster fuzzy (0.78) at Universal Studios Singapore: "Battlestar Galactica Cylon" → "Battlestar Galactica"
+
+  🔍 [L39] Beast @ Kings Island
+      Park exact: "Kings Island" → "Kings Island"
+      Coaster fuzzy (0.60) at Kings Island: "Beast" → "The Beast"
+
+  ⚠️ [L42] Big Dipper @ Luna Park Sydney
+      Park exact: "Luna Park Sydney" → "Luna Park Sydney"
+      Coaster NOT at Luna Park Sydney but found at Blackpool Pleasure Beach (sim 1.00): "Big Dipper"
+
+  🔍 [L44] Big One @ Blackpool Pleasure Beach
+      Park exact: "Blackpool Pleasure Beach" → "Blackpool Pleasure Beach"
+      Coaster fuzzy (0.67) at Blackpool Pleasure Beach: "Big One" → "The Big One"
+
+  🔍 [L45] Big Thunder Mountain - Disneyland Paris @ Disneyland Park
+      Park fuzzy (0.84): "Disneyland Park" → "Disneyland Park (Paris)"
+      Coaster exact: "Big Thunder Mountain - Disneyland Paris" → "Big Thunder Mountain - Disneyland Paris"
+
+  🔍 [L46] Big Thunder Mountain @ Tokyo Disneyland
+      Park exact: "Tokyo Disneyland" → "Tokyo Disneyland"
+      Coaster fuzzy (0.70) at Tokyo Disneyland: "Big Thunder Mountain" → "Big Thunder Mountain Railroad"
+
+  🔍 [L48] Big Thunder Mountain Railroad - Walt Disney World @ Magic Kingdom
+      Park fuzzy (0.45): "Magic Kingdom" → "Walt Disney World - Magic Kingdom"
+      Coaster exact: "Big Thunder Mountain Railroad - Walt Disney World" → "Big Thunder Mountain Railroad - Walt Disney World"
+
+  🔍 [L50] blue fire Megacoaster @ Europa Park
+      Park exact: "Europa Park" → "Europa-Park"
+      Coaster fuzzy (0.45) at Europa-Park: "blue fire Megacoaster" → "Blue Fire"
+
+  🔍 [L52] Bobcat @ Six Flags Great Escape
+      Park fuzzy (0.57): "Six Flags Great Escape" → "Great Escape"
+      Coaster exact: "Bobcat" → "Bobcat"
+
+  🔍 [L53] Boss @ Six Flags St. Louis
+      Park exact: "Six Flags St. Louis" → "Six Flags St. Louis"
+      Coaster fuzzy (0.56) at Six Flags St. Louis: "Boss" → "The Boss"
+
+  🔍 [L54] BoulderDash @ Lake Compounce
+      Park exact: "Lake Compounce" → "Lake Compounce"
+      Coaster fuzzy (0.67) at Lake Compounce: "BoulderDash" → "Boulder Dash"
+
+  🔍 [L55] Bullet Coaster @ Happy Valley Shenzhen
+      Park fuzzy (0.54): "Happy Valley Shenzhen" → "Happy Valley Shanghai"
+      Coaster fuzzy (0.36) at Happy Valley Shanghai: "Bullet Coaster" → "Diving Coaster"
+
+  🔍 [L57] Cannibal @ Lagoon
+      Park fuzzy (0.32): "Lagoon" → "Lagoon Amusement Park"
+      Coaster exact: "Cannibal" → "Cannibal"
+
+  🔍 [L60] Cheetah Hunt @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "Cheetah Hunt" → "Cheetah Hunt"
+
+  🔍 [L62] Coaster @ Playland
+      Park exact: "Playland" → "Playland"
+      Coaster fuzzy (0.53) at Playland: "Coaster" → "Dragon Coaster"
+
+  🔍 [L65] Colossos - Kampf der Giganten @ Heide Park Resort
+      Park fuzzy (0.61): "Heide Park Resort" → "Heide Park"
+      Coaster exact: "Colossos - Kampf der Giganten" → "Colossos - Kampf der Giganten"
+
+  🔍 [L66] Colossus the Fire Dragon @ Lagoon
+      Park fuzzy (0.32): "Lagoon" → "Lagoon Amusement Park"
+      Coaster exact: "Colossus the Fire Dragon" → "Colossus the Fire Dragon"
+
+  🔍 [L67] Comet @ Six Flags Great Escape
+      Park fuzzy (0.57): "Six Flags Great Escape" → "Great Escape"
+      Coaster fuzzy (0.60) at Great Escape: "Comet" → "The Comet"
+
+  ⚠️ [L72] Cú Chulainn @ Emerald Park
+      Park fuzzy (0.32): "Emerald Park" → "Europa-Park"
+      Coaster NOT FOUND at Europa-Park: "Cú Chulainn"
+
+  ⚠️ [L73] Cyclone @ Luna Park
+      Park fuzzy (0.59): "Luna Park" → "Luna Park Sydney"
+      Coaster NOT at Luna Park Sydney but found at Revere Beach (sim 1.00): "Cyclone"
+
+  🔍 [L80] Desert Race @ Heide Park Resort
+      Park fuzzy (0.61): "Heide Park Resort" → "Heide Park"
+      Coaster exact: "Desert Race" → "Desert Race"
+
+  ⚠️ [L81] Desperado @ Buffalo Bill's Resort & Casino
+      Park exact: "Buffalo Bill's Resort & Casino" → "Buffalo Bill's Resort & Casino"
+      Coaster NOT at Buffalo Bill's Resort & Casino but found at Primm Valley Resorts (sim 1.00): "Desperado"
+
+  🔍 [L82] Diabolik @ Movieland Park
+      Park fuzzy (0.42): "Movieland Park" → "Movie Park Germany"
+      Coaster exact: "Diabolik" → "Diabolik"
+
+  🔍 [L90] DrageKongen @ Djurs Sommerland
+      Park fuzzy (0.48): "Djurs Sommerland" → "Fårup Sommerland"
+      Coaster exact: "DrageKongen" → "DrageKongen"
+
+  ⚠️ [L93] Dragon Mountain @ Marineland Theme Park
+      Park fuzzy (0.45): "Marineland Theme Park" → "Lost Island Theme Park"
+      Coaster NOT at Lost Island Theme Park but found at Marineland of Canada (sim 1.00): "Dragon Mountain"
+
+  🔍 [L108] Excalibur @ Funtown Splashtown U.S.A.
+      Park fuzzy (0.71): "Funtown Splashtown U.S.A." → "Funtown Splashtown USA"
+      Coaster exact: "Excalibur" → "Excalibur"
+
+  🔍 [L110] Expedition Everest - Walt Disney World @ Disney's Animal Kingdom
+      Park exact: "Disney's Animal Kingdom" → "Disney's Animal Kingdom"
+      Coaster fuzzy (0.51) at Disney's Animal Kingdom: "Expedition Everest - Walt Disney World" → "Expedition Everest"
+
+  🔍 [L111] Expedition GeForce @ Holiday Park
+      Park fuzzy (0.62): "Holiday Park" → "Holiday Park, Germany"
+      Coaster exact: "Expedition GeForce" → "Expedition GeForce"
+
+  ⚠️ [L112] Expedition GeForce @ Plopsaland Deutschland
+      Park fuzzy (0.50): "Plopsaland Deutschland" → "Plopsaland De Panne"
+      Coaster NOT at Plopsaland De Panne but found at Holiday Park, Germany (sim 1.00): "Expedition GeForce"
+
+  🔍 [L117] Flash: Vertical Velocity @ Six Flags Discovery Kingdom
+      Park exact: "Six Flags Discovery Kingdom" → "Six Flags Discovery Kingdom"
+      Coaster fuzzy (0.85) at Six Flags Discovery Kingdom: "Flash: Vertical Velocity" → "The Flash: Vertical Velocity"
+
+  ⚠️ [L119] Flight of Fear @ Kings Dominion
+      Park exact: "Kings Dominion" → "Kings Dominion"
+      Coaster NOT at Kings Dominion but found at Other (unknown location) (sim 1.00): "Flight of Fear"
+
+  🔍 [L120] Flight of Fear @ Kings Island
+      Park exact: "Kings Island" → "Kings Island"
+      Coaster fuzzy (0.37) at Kings Island: "Flight of Fear" → "Flight Deck"
+
+  🔍 [L121] Flucht von Novgorod @ Hansa Park
+      Park exact: "Hansa Park" → "Hansa-Park"
+      Coaster fuzzy (0.30) at Hansa-Park: "Flucht von Novgorod" → "Escape of Novgorod"
+
+  🔍 [L122] Flug der Dämonen @ Heide Park Resort
+      Park fuzzy (0.61): "Heide Park Resort" → "Heide Park"
+      Coaster exact: "Flug der Dämonen" → "Flug der Dämonen"
+
+  🔍 [L124] Flying Dinosaur @ Universal Studios Japan
+      Park exact: "Universal Studios Japan" → "Universal Studios Japan"
+      Coaster fuzzy (0.80) at Universal Studios Japan: "Flying Dinosaur" → "The Flying Dinosaur"
+
+  🔍 [L129] Formule X @ Familliepark Drievliet
+      Park fuzzy (0.69): "Familliepark Drievliet" → "Drievliet Family Park"
+      Coaster exact: "Formule X" → "Formule X"
+
+  ⚠️ [L131] Freischutz @ Bayern Park
+      Park fuzzy (0.35): "Bayern Park" → "Battersea Park"
+      Coaster NOT FOUND at Battersea Park: "Freischutz"
+
+  ⚠️ [L139] GaleForce @ Playland's Castaway Cove
+      Park fuzzy (0.38): "Playland's Castaway Cove" → "Playland"
+      Coaster NOT FOUND at Playland: "GaleForce"
+
+  🔍 [L149] Gold Rush @ Drayton Manor
+      Park fuzzy (0.56): "Drayton Manor" → "Drayton Manor Theme Park"
+      Coaster exact: "Gold Rush" → "Gold Rush"
+
+  🔍 [L160] Great Nor'Easter @ Morey's Piers
+      Park exact: "Morey's Piers" → "Morey's Piers"
+      Coaster fuzzy (0.81) at Morey's Piers: "Great Nor'Easter" → "The Great Nor'easter"
+
+  🔍 [L161] Great White @ Morey's Piers
+      Park exact: "Morey's Piers" → "Morey's Piers"
+      Coaster fuzzy (0.75) at Morey's Piers: "Great White" → "The Great White"
+
+  🔍 [L162] Great White @ Seaworld San Antonio
+      Park exact: "Seaworld San Antonio" → "SeaWorld San Antonio"
+      Coaster fuzzy (0.75) at SeaWorld San Antonio: "Great White" → "The Great White"
+
+  ⚠️ [L167] Hades 360 @ Mount Olympus
+      Park exact: "Mount Olympus" → "Mount Olympus"
+      Coaster NOT at Mount Olympus but found at Mt. Olympus Water & Theme Park (sim 1.00): "Hades 360"
+
+  🔍 [L169] Hagrid's Magical Creatures Motorbike Adventure @ Universal Islands of Adventure
+      Park fuzzy (0.94): "Universal Islands of Adventure" → "Universal's Islands of Adventure"
+      Coaster exact: "Hagrid's Magical Creatures Motorbike Adventure" → "Hagrid's Magical Creatures Motorbike Adventure"
+
+  🔍 [L176] Heidi The Ride @ Plopsaland De Panne
+      Park exact: "Plopsaland De Panne" → "Plopsaland De Panne"
+      Coaster fuzzy (0.38) at Plopsaland De Panne: "Heidi The Ride" → "The Ride to Happiness"
+
+  🔍 [L183] Hyper Coaster @ Land of Legends Theme Park
+      Park fuzzy (0.44): "Land of Legends Theme Park" → "Lost Island Theme Park"
+      Coaster exact: "Hyper Coaster" → "Hyper Coaster"
+
+  🔍 [L190] Incredible Hulk @ Universal Studios Islands of Adventure
+      Park fuzzy (0.80): "Universal Studios Islands of Adventure" → "Universal's Islands of Adventure"
+      Coaster fuzzy (0.57) at Universal's Islands of Adventure: "Incredible Hulk" → "The Incredible Hulk Coaster"
+
+  🔍 [L191] Incredicoaster @ Disney California Adventure Park
+      Park fuzzy (0.85): "Disney California Adventure Park" → "Disney California Adventure"
+      Coaster exact: "Incredicoaster" → "Incredicoaster"
+
+  ⚠️ [L192] Inferno @ Cinecitta World
+      Park fuzzy (0.30): "Cinecitta World" → "Sea World"
+      Coaster NOT FOUND at Sea World: "Inferno"
+
+  🔍 [L194] Iron Gwazi @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "Iron Gwazi" → "Iron Gwazi"
+
+  🔍 [L202] Joker @ Six Flags Discovery Kingdom
+      Park exact: "Six Flags Discovery Kingdom" → "Six Flags Discovery Kingdom"
+      Coaster fuzzy (0.60) at Six Flags Discovery Kingdom: "Joker" → "The Joker"
+
+  🔍 [L203] Joker's Jinx @ Six Flags America
+      Park exact: "Six Flags America" → "Six Flags America"
+      Coaster fuzzy (0.75) at Six Flags America: "Joker's Jinx" → "The Joker's Jinx"
+
+  ⚠️ [L205] Junker @ PowerLand
+      Park fuzzy (0.36): "PowerLand" → "Everland"
+      Coaster NOT at Everland but found at PowerPark (sim 1.00): "Junker"
+
+  🔍 [L206] Juvelen @ Djurs Sommerland
+      Park fuzzy (0.48): "Djurs Sommerland" → "Fårup Sommerland"
+      Coaster exact: "Juvelen" → "Juvelen"
+
+  🔍 [L209] Kawasemi @ Tobu Zoo Park
+      Park fuzzy (0.64): "Tobu Zoo Park" → "Tobu Zoo"
+      Coaster exact: "Kawasemi" → "Kawasemi"
+
+  🔍 [L211] Kentucky Rumbler @ Beech Bend
+      Park fuzzy (0.64): "Beech Bend" → "Beech Bend Park"
+      Coaster exact: "Kentucky Rumbler" → "Kentucky Rumbler"
+
+  🔍 [L214] Krake @ Heide Park Resort
+      Park fuzzy (0.61): "Heide Park Resort" → "Heide Park"
+      Coaster exact: "Krake" → "Krake"
+
+  🔍 [L216] Kumali @ Flamingo Land
+      Park fuzzy (0.67): "Flamingo Land" → "Flamingo Land Resort"
+      Coaster exact: "Kumali" → "Kumali"
+
+  🔍 [L217] Kumba @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "Kumba" → "Kumba"
+
+  🔍 [L220] Legend @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster fuzzy (0.64) at Holiday World & Splashin' Safari: "Legend" → "The Legend"
+
+  ⚠️ [L222] Leviathan @ Sea World
+      Park exact: "Sea World" → "Sea World (Australia)"
+      Coaster NOT at Sea World (Australia) but found at Sea World (sim 1.00): "Leviathan"
+
+  ⚠️ [L239] Manta @ SeaWorld Abu Dhabi
+      Park fuzzy (0.48): "SeaWorld Abu Dhabi" → "Ferrari World Abu Dhabi"
+      Coaster NOT at Ferrari World Abu Dhabi but found at SeaWorld Orlando (sim 1.00): "Manta"
+
+  ⚠️ [L245] Maximus - Der Flug des Wächters @ Legoland Deutschland
+      Park fuzzy (0.36): "Legoland Deutschland" → "Legoland Billund"
+      Coaster NOT FOUND at Legoland Billund: "Maximus - Der Flug des Wächters"
+
+  ⚠️ [L248] Medusa @ Six Flags Great Adventure
+      Park exact: "Six Flags Great Adventure" → "Six Flags Great Adventure"
+      Coaster NOT at Six Flags Great Adventure but found at Six Flags Discovery Kingdom (sim 1.00): "Medusa"
+
+  🔍 [L257] Monster @ Adventureland Iowa
+      Park exact: "Adventureland Iowa" → "Adventureland (Iowa)"
+      Coaster fuzzy (0.67) at Adventureland (Iowa): "Monster" → "The Monster"
+
+  ⚠️ [L259] Monster @ Walygator Grand Est
+      Park fuzzy (0.40): "Walygator Grand Est" → "Walygator Parc"
+      Coaster NOT at Walygator Parc but found at Gröna Lund (sim 1.00): "Monster"
+
+  🔍 [L260] Montu @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "Montu" → "Montu"
+
+  ⚠️ [L267] na Fianna Force @ Emerald Park
+      Park fuzzy (0.32): "Emerald Park" → "Europa-Park"
+      Coaster NOT FOUND at Europa-Park: "na Fianna Force"
+
+  🔍 [L270] Nemesis Reborn @ Alton Towers
+      Park exact: "Alton Towers" → "Alton Towers"
+      Coaster fuzzy (0.53) at Alton Towers: "Nemesis Reborn" → "Nemesis"
+
+  ⚠️ [L279] Olympia Looping @ Travelling
+      Park exact: "Travelling" → "Travelling"
+      Coaster NOT at Travelling but found at Oktoberfest (sim 1.00): "Olympia Looping"
+
+  ⚠️ [L281] Orkanen @ Fårup Sommerland
+      Park exact: "Fårup Sommerland" → "Fårup Sommerland"
+      Coaster NOT at Fårup Sommerland but found at Fårup Sommarland (sim 1.00): "Orkanen"
+
+  🔍 [L289] Parrot Coaster @ Chimelong Ocean Kingdom
+      Park fuzzy (0.81): "Chimelong Ocean Kingdom" → "Chime-Long Ocean Kingdom"
+      Coaster exact: "Parrot Coaster" → "Parrot Coaster"
+
+  🔍 [L294] Phobia Phear Coaster @ Lake Compounce
+      Park exact: "Lake Compounce" → "Lake Compounce"
+      Coaster fuzzy (0.31) at Lake Compounce: "Phobia Phear Coaster" → "Kiddie Coaster"
+
+  🔍 [L297] Piraten @ Djurs Sommerland
+      Park fuzzy (0.48): "Djurs Sommerland" → "Fårup Sommerland"
+      Coaster exact: "Piraten" → "Piraten"
+
+  ⚠️ [L298] Pitts Special @ Powerland
+      Park fuzzy (0.36): "Powerland" → "Everland"
+      Coaster NOT at Everland but found at PowerPark (sim 1.00): "Pitts Special"
+
+  🔍 [L299] Playland Wooden Coaster @ PNE Playland
+      Park fuzzy (0.75): "PNE Playland" → "Playland"
+      Coaster fuzzy (0.50) at Playland: "Playland Wooden Coaster" → "Wooden Roller Coaster"
+
+  ⚠️ [L302] Powder Keg: A Blast in the Wilderness @ Silver Dollar City
+      Park exact: "Silver Dollar City" → "Silver Dollar City"
+      Coaster NOT at Silver Dollar City but found at Other (unknown location) (sim 0.90): "Powder Keg: A Blast into the Wilderness"
+
+  🔍 [L303] Primordial @ Lagoon
+      Park fuzzy (0.32): "Lagoon" → "Lagoon Amusement Park"
+      Coaster exact: "Primordial" → "Primordial"
+
+  ⚠️ [L311] Racer @ Kings Island
+      Park exact: "Kings Island" → "Kings Island"
+      Coaster NOT at Kings Island but found at Kennywood (sim 1.00): "Racer"
+
+  🔍 [L317] Raven @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster fuzzy (0.60) at Holiday World & Splashin' Safari: "Raven" → "The Raven"
+
+  🔍 [L318] Ravine Flyer II @ Waldameer
+      Park fuzzy (0.67): "Waldameer" → "Waldameer Park"
+      Coaster exact: "Ravine Flyer II" → "Ravine Flyer II"
+
+  🔍 [L320] Regina II @ Tobu Zoo Park
+      Park fuzzy (0.64): "Tobu Zoo Park" → "Tobu Zoo"
+      Coaster exact: "Regina II" → "Regina II"
+
+  ⚠️ [L322] Revenge of the Mummy @ Universal Studios Florida
+      Park exact: "Universal Studios Florida" → "Universal Studios Florida"
+      Coaster NOT at Universal Studios Florida but found at Other (unknown location) (sim 1.00): "Revenge of the Mummy"
+
+  ⚠️ [L323] Revenge of the Mummy @ Universal Studios Hollywood
+      Park fuzzy (0.53): "Universal Studios Hollywood" → "Universal Studios Japan"
+      Coaster NOT at Universal Studios Japan but found at Other (unknown location) (sim 1.00): "Revenge of the Mummy"
+
+  ⚠️ [L324] Revenge of the Mummy @ Universal Studios Singapore
+      Park exact: "Universal Studios Singapore" → "Universal Studios Singapore"
+      Coaster NOT at Universal Studios Singapore but found at Other (unknown location) (sim 1.00): "Revenge of the Mummy"
+
+  🔍 [L325] Riddler Mindbender @ Six Flags Over Georgia
+      Park exact: "Six Flags Over Georgia" → "Six Flags Over Georgia"
+      Coaster fuzzy (0.82) at Six Flags Over Georgia: "Riddler Mindbender" → "The Riddler Mindbender"
+
+  🔍 [L326] Riddler's Revenge @ Six Flags Magic Mountain
+      Park exact: "Six Flags Magic Mountain" → "Six Flags Magic Mountain"
+      Coaster fuzzy (0.81) at Six Flags Magic Mountain: "Riddler's Revenge" → "The Riddler's Revenge"
+
+  🔍 [L328] Ride to Happiness @ Plopsaland de Panne
+      Park exact: "Plopsaland de Panne" → "Plopsaland De Panne"
+      Coaster fuzzy (0.86) at Plopsaland De Panne: "Ride to Happiness" → "The Ride to Happiness"
+
+  ⚠️ [L332] Rollin' Thunder @ Tropic Falls Theme Park
+      Park exact: "Tropic Falls Theme Park" → "Tropic Falls Theme Park"
+      Coaster NOT at Tropic Falls Theme Park but found at Other (unknown location) (sim 0.82): "Rolling Thunder"
+
+  🔍 [L335] Sandy's Blasting Bronco @ Nickelodeon Universe Theme Park
+      Park fuzzy (0.66): "Nickelodeon Universe Theme Park" → "Nickelodeon Universe"
+      Coaster exact: "Sandy's Blasting Bronco" → "Sandy's Blasting Bronco"
+
+  🔍 [L342] SheiKra @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "SheiKra" → "SheiKra"
+
+  🔍 [L347] Sik @ Flamingo Land
+      Park fuzzy (0.67): "Flamingo Land" → "Flamingo Land Resort"
+      Coaster exact: "Sik" → "Sik"
+
+  ⚠️ [L350] Silver Comet @ Niagara Amusement Park & Splash World
+      Park fuzzy (0.39): "Niagara Amusement Park & Splash World" → "ZDT's Amusement Park"
+      Coaster NOT at ZDT's Amusement Park but found at Fantasy Island (sim 1.00): "Silver Comet"
+
+  🔍 [L353] Sky Scream @ Holiday Park
+      Park fuzzy (0.62): "Holiday Park" → "Holiday Park, Germany"
+      Coaster exact: "Sky Scream" → "Sky Scream"
+
+  🔍 [L355] Smiler @ Alton Towers
+      Park exact: "Alton Towers" → "Alton Towers"
+      Coaster fuzzy (0.64) at Alton Towers: "Smiler" → "The Smiler"
+
+  🔍 [L359] Space Mountain - Walt Disney World @ Magic Kingdom
+      Park fuzzy (0.45): "Magic Kingdom" → "Walt Disney World - Magic Kingdom"
+      Coaster fuzzy (0.49) at Walt Disney World - Magic Kingdom: "Space Mountain - Walt Disney World" → "Big Thunder Mountain Railroad - Walt Disney World"
+
+  🔍 [L362] Spider-Man Doc Ock's Revenge @ IMG Worlds of Adventure
+      Park fuzzy (0.60): "IMG Worlds of Adventure" → "Adventure World"
+      Coaster exact: "Spider-Man Doc Ock's Revenge" → "Spider-Man Doc Ock's Revenge"
+
+  🔍 [L364] Star Wars Hyperspace Mountain: Rebel Mission - Disneyland Paris @ Disneyland Park
+      Park fuzzy (0.84): "Disneyland Park" → "Disneyland Park (Paris)"
+      Coaster fuzzy (0.50) at Disneyland Park (Paris): "Star Wars Hyperspace Mountain: Rebel Mission - Disneyland Paris" → "Star Wars Hyperspace Mountain"
+
+  ⚠️ [L365] Stardust Racers @ Universal Epic Universe
+      Park fuzzy (0.32): "Universal Epic Universe" → "Universal Studios Japan"
+      Coaster NOT FOUND at Universal Studios Japan: "Stardust Racers"
+
+  🔍 [L366] Starry Sky Ripper @ Joyland
+      Park fuzzy (0.57): "Joyland" → "World Joyland"
+      Coaster fuzzy (0.32) at World Joyland: "Starry Sky Ripper" → "Sky Scrapper"
+
+  ⚠️ [L380] Storm Coaster @ Dubai Hills Mall
+      Park exact: "Dubai Hills Mall" → "Dubai Hills Mall"
+      Coaster NOT at Dubai Hills Mall but found at Sea World (Australia) (sim 1.00): "Storm Coaster"
+
+  ⚠️ [L385] Superman - Ride of Steel @ Six Flags America
+      Park exact: "Six Flags America" → "Six Flags America"
+      Coaster NOT at Six Flags America but found at Other (unknown location) (sim 1.00): "Superman – Ride of Steel"
+
+  ⚠️ [L386] Superman - Ultimate Flight @ Six Flags Great Adventure
+      Park exact: "Six Flags Great Adventure" → "Six Flags Great Adventure"
+      Coaster NOT at Six Flags Great Adventure but found at Six Flags Discovery Kingdom (sim 1.00): "Superman: Ultimate Flight"
+
+  ⚠️ [L387] Superman - Ultimate Flight @ Six Flags Great America
+      Park exact: "Six Flags Great America" → "Six Flags Great America"
+      Coaster NOT at Six Flags Great America but found at Six Flags Discovery Kingdom (sim 1.00): "Superman: Ultimate Flight"
+
+  ⚠️ [L388] Superman - Ultimate Flight @ Six Flags Over Georgia
+      Park exact: "Six Flags Over Georgia" → "Six Flags Over Georgia"
+      Coaster NOT at Six Flags Over Georgia but found at Six Flags Discovery Kingdom (sim 1.00): "Superman: Ultimate Flight"
+
+  ⚠️ [L396] Surf Coaster Leviathan @ Sea Paradise
+      Park fuzzy (0.39): "Sea Paradise" → "Chimelong Paradise"
+      Coaster NOT FOUND at Chimelong Paradise: "Surf Coaster Leviathan"
+
+  🔍 [L398] Swarm @ Thorpe Park
+      Park exact: "Thorpe Park" → "Thorpe Park"
+      Coaster fuzzy (0.60) at Thorpe Park: "Swarm" → "The Swarm"
+
+  🔍 [L414] The Legend @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster exact: "The Legend" → "The Legend"
+
+  🔍 [L415] The Raven @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster exact: "The Raven" → "The Raven"
+
+  🔍 [L416] The Voyage @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster exact: "The Voyage" → "The Voyage"
+
+  🔍 [L417] The Wave @ Drayton Manor
+      Park fuzzy (0.56): "Drayton Manor" → "Drayton Manor Theme Park"
+      Coaster exact: "The Wave" → "The Wave"
+
+  🔍 [L419] Thunder Dolphin @ Tokyo Dome City
+      Park fuzzy (0.57): "Tokyo Dome City" → "Tokyo Dome City Attractions"
+      Coaster exact: "Thunder Dolphin" → "Thunder Dolphin"
+
+  🔍 [L422] Thunderbird @ Holiday World
+      Park fuzzy (0.48): "Holiday World" → "Holiday World & Splashin' Safari"
+      Coaster exact: "Thunderbird" → "Thunderbird"
+
+  ⚠️ [L423] Thunderbird @ PowerLand
+      Park fuzzy (0.36): "PowerLand" → "Everland"
+      Coaster NOT at Everland but found at PowerPark (sim 1.00): "Thunderbird"
+
+  🔍 [L426] Tigris @ Busch Gardens Tampa
+      Park fuzzy (0.87): "Busch Gardens Tampa" → "Busch Gardens Tampa Bay"
+      Coaster exact: "Tigris" → "Tigris"
+
+  🔍 [L432] TMNT Shellraiser @ Nickelodeon Universe Theme Park
+      Park fuzzy (0.66): "Nickelodeon Universe Theme Park" → "Nickelodeon Universe"
+      Coaster exact: "TMNT Shellraiser" → "TMNT Shellraiser"
+
+  🔍 [L433] Tonnerre 2 Zeus @ Parc Astérix
+      Park exact: "Parc Astérix" → "Parc Astérix"
+      Coaster fuzzy (0.74) at Parc Astérix: "Tonnerre 2 Zeus" → "Tonnerre de Zeus"
+
+  ⚠️ [L435] Tornado @ Bakken
+      Park exact: "Bakken" → "Bakken"
+      Coaster NOT at Bakken but found at Coney Island (sim 1.00): "Tornado"
+
+  ⚠️ [L437] Tornado @ Särkänniemi
+      Park exact: "Särkänniemi" → "Särkänniemi"
+      Coaster NOT at Särkänniemi but found at Coney Island (sim 1.00): "Tornado"
+
+  🔍 [L440] TRON Lightcycle / Run - Walt Disney World @ Magic Kingdom
+      Park fuzzy (0.45): "Magic Kingdom" → "Walt Disney World - Magic Kingdom"
+      Coaster exact: "TRON Lightcycle / Run - Walt Disney World" → "TRON Lightcycle / Run - Walt Disney World"
+
+  ⚠️ [L441] TRON Lightcycle Power Run @ Shanghai Disneyland
+      Park exact: "Shanghai Disneyland" → "Shanghai Disneyland"
+      Coaster NOT at Shanghai Disneyland but found at Other (unknown location) (sim 1.00): "Tron Lightcycle Power Run"
+
+  🔍 [L443] Turbulance @ Adventureland New York
+      Park exact: "Adventureland New York" → "Adventureland (New York)"
+      Coaster fuzzy (0.57) at Adventureland (New York): "Turbulance" → "Turbulence"
+
+  🔍 [L450] Typhoon Coaster @ Land of Legends Theme PArk
+      Park fuzzy (0.44): "Land of Legends Theme PArk" → "Lost Island Theme Park"
+      Coaster exact: "Typhoon Coaster" → "Typhoon Coaster"
+
+  🔍 [L456] Vampire @ La Ronde
+      Park exact: "La Ronde" → "La Ronde"
+      Coaster fuzzy (0.73) at La Ronde: "Vampire" → "Le Vampire"
+
+  🔍 [L458] VelociCoaster @ Universal Islands of Adventure
+      Park fuzzy (0.94): "Universal Islands of Adventure" → "Universal's Islands of Adventure"
+      Coaster exact: "VelociCoaster" → "VelociCoaster"
+
+  🔍 [L459] Velociraptor @ IMG Worlds of Adventure
+      Park fuzzy (0.60): "IMG Worlds of Adventure" → "Adventure World"
+      Coaster exact: "Velociraptor" → "Velociraptor"
+
+  🔍 [L465] Vliegende Hollander @ Efteling
+      Park exact: "Efteling" → "Efteling"
+      Coaster fuzzy (0.90) at Efteling: "Vliegende Hollander" → "De Vliegende Hollander"
+
+  🔍 [L467] Voltron @ Europa Park
+      Park exact: "Europa Park" → "Europa-Park"
+      Coaster fuzzy (0.53) at Europa-Park: "Voltron" → "Voltron Nevera"
+
+  🔍 [L473] Wicked @ Lagoon
+      Park fuzzy (0.32): "Lagoon" → "Lagoon Amusement Park"
+      Coaster exact: "Wicked" → "Wicked"
+
+  🔍 [L477] Wild One @ Six Flags America
+      Park exact: "Six Flags America" → "Six Flags America"
+      Coaster fuzzy (0.69) at Six Flags America: "Wild One" → "The Wild One"
+
+  ⚠️ [L479] Wild Train @ Fantasiana
+      Park fuzzy (0.30): "Fantasiana" → "Fantasy Island"
+      Coaster NOT FOUND at Fantasy Island: "Wild Train"
+
+  🔍 [L480] Wildcat's Revenge @ Hersheypark
+      Park exact: "Hersheypark" → "Hersheypark"
+      Coaster fuzzy (0.44) at Hersheypark: "Wildcat's Revenge" → "Wildcat"
+
+  🔍 [L481] Wildfire @ Kolmården
+      Park fuzzy (0.42): "Kolmården" → "Kolmården Wildlife Park"
+      Coaster exact: "Wildfire" → "Wildfire"
+
+  ⚠️ [L488] Wood Coaster @ Knight Valley
+      Park fuzzy (0.39): "Knight Valley" → "Lightwater Valley"
+      Coaster NOT at Lightwater Valley but found at OCT East (sim 1.00): "Wood Coaster"
+
+  ⚠️ [L501] Ziegel-Blitz @ Jaderpark
+      Park fuzzy (0.33): "Jaderpark" → "PowerPark"
+      Coaster NOT FOUND at PowerPark: "Ziegel-Blitz"
+
+======================================================================
+  407 exact + 48 fuzzy = 455 matched out of 503
+  Coverage: 90.5%
+======================================================================
