@@ -125,3 +125,68 @@ export const fieldClassName =
 
 export const selectClassName =
   'rounded-lg border border-line bg-surface-bright px-3 py-2 text-sm text-ink transition-colors focus:border-accent-strong focus:outline-none'
+
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  className = '',
+}: {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+  className?: string
+}) {
+  if (!isOpen) return null
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') onClose()
+  }
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${className}`}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div
+        className="fixed inset-0 bg-black/50 transition-opacity duration-200"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        id="modal-content"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-bright shadow-xl transition-all duration-200 sm:rounded-2xl sm:max-w-2xl"
+      >
+        <div className="sticky top-0 flex items-center justify-between border-b border-line bg-surface-bright px-6 py-4 sm:rounded-t-2xl">
+          <h2 id="modal-title" className="text-lg font-semibold text-ink">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 text-muted hover:bg-surface hover:text-ink transition-colors"
+            aria-label="Close"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-6 sm:p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
