@@ -6,6 +6,7 @@
   "description": "Data-engineering scripts for CoasterRank (CSV imports, ops, maintenance). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
   "scripts": {
     "import-coasters": "tsx src/import-coasters.ts",
+    "build-coverage-queue": "tsx src/build-coverage-queue.ts",
     "normalize-names": "tsx src/normalize-names.ts",
     "backfill-park-locations": "tsx src/backfill-park-locations.ts",
     "fix-missing-regions-and-non-english": "tsx src/fix-missing-regions-and-non-english.ts",
