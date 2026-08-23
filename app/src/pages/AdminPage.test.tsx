@@ -41,7 +41,19 @@ vi.mock('../lib/coasters', async (importOriginal) => {
 })
 
 const parks = [
-  { id: 'p1', name: 'Cedar Point', slug: 'cedar-point', country: 'USA', region: null, city: null },
+  {
+    id: 'p1',
+    name: 'Cedar Point',
+    slug: 'cedar-point',
+    country: 'USA',
+    region: null,
+    city: null,
+    lat: null,
+    lng: null,
+    source: 'admin',
+    external_id: null,
+    coaster_count: 0,
+  },
 ]
 
 function renderPage() {
@@ -207,6 +219,7 @@ describe('AdminPage', () => {
           lng: null,
           source: 'admin',
           external_id: null,
+          coaster_count: 5,
         },
       ])
       renderPage()
@@ -215,6 +228,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('USA')).toBeInTheDocument()
       expect(screen.getByText('OH')).toBeInTheDocument()
       expect(screen.getByText('Sandusky')).toBeInTheDocument()
+      expect(screen.getByText('5')).toBeInTheDocument()
     })
 
     it('opens the add park form', async () => {
