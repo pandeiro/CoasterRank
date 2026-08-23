@@ -46,6 +46,12 @@ supabase functions deploy <fn>  # CI runs this on merge to main — do NOT run m
 supabase functions serve <fn>   # (not used — we develop against prod)
 ```
 
+Read-only data exploration with psql (sourced from `.env`):
+
+```bash
+source .env && psql "$SUPABASE_DB_URL" -c "SELECT …"
+```
+
 Scripts (data-engineering) commands run from `scripts/` — it has its **own** `package.json` (separate from `app/`):
 
 ```bash
