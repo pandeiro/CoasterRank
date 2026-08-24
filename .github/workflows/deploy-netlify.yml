@@ -1,0 +1,62 @@
+name: deploy-netlify
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 3 PM ET = 7 PM UTC
+  workflow_dispatch: # manual "Deploy now" button
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy-netlify/check-and-push
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      - name: Check for new commits since last deploy
+        id: check
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          CURRENT_SHA=$(git rev-parse HEAD)
+
+          LAST_DEPLOY_SHA=$(curl -sf -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/deploys?per_page=1&state=ready" \
+            | jq -r '.[0].commit_sha')
+
+          echo "current_sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+          echo "last_deploy_sha=$LAST_DEPLOY_SHA" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT_SHA" = "$LAST_DEPLOY_SHA" ]; then
+            echo "### No changes to deploy" >> "$GITHUB_STEP_SUMMARY"
+            echo "HEAD ($CURRENT_SHA) matches the last Netlify deploy — skipping."
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "### Deploying" >> "$GITHUB_STEP_SUMMARY"
+            echo "HEAD ($CURRENT_SHA) differs from last deploy ($LAST_DEPLOY_SHA) — building and deploying."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.check.outputs.should_deploy == 'true'
+        run: npm run build
+        working-directory: app
+
+      - name: Deploy to Netlify
+        if: steps.check.outputs.should_deploy == 'true'
+        run: npx netlify-cli deploy --prod --dir=app/dist
