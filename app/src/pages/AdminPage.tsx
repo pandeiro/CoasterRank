@@ -855,6 +855,7 @@ export default function AdminPage() {
                           <th className="pb-2 font-medium">Name</th>
                           <th className="pb-2 font-medium">City</th>
                           <th className="pb-2 font-medium">Country</th>
+                          <th className="pb-2 font-medium">Coords</th>
                           <th className="pb-2 font-medium tabular-nums">Coasters</th>
                           <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
@@ -865,6 +866,13 @@ export default function AdminPage() {
                             <td className="py-2">{p.name}</td>
                             <td className="py-2 text-muted">{p.city || '—'}</td>
                             <td className="py-2 text-muted">{p.country || '—'}</td>
+                            <td className="py-2 text-muted">
+                              {p.lat != null && p.lng != null ? (
+                                <span title={`${p.lat}, ${p.lng}`}>&#x1F310;</span>
+                              ) : (
+                                <span className="inline-block h-2.5 w-2.5 rounded-full bg-line" />
+                              )}
+                            </td>
                             <td className="py-2 tabular-nums font-mono text-sm">
                               {p.coaster_count}
                             </td>
