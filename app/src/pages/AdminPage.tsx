@@ -903,6 +903,26 @@ export default function AdminPage() {
                 onClose={closeParkForm}
                 title={isAddingPark ? 'Add New Park' : 'Edit Park'}
               >
+                {editingPark && (
+                  <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded bg-surface p-3 text-xs">
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingPark.id}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(editingPark.id!, 'park-id')}
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy ID"
+                      >
+                        {copiedField === 'park-id' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                  </div>
+                )}
                 <form onSubmit={onParkSubmit} className="grid gap-4 md:grid-cols-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Name *</label>
