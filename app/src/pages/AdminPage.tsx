@@ -738,6 +738,7 @@ export default function AdminPage() {
                       <span className="text-xs text-muted">Selected: {formManufacturer.name}</span>
                     )}
                   </div>
+                  <div className="md:col-span-2 border-t border-line/50" />
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Material</label>
                     <select
