@@ -853,10 +853,9 @@ export default function AdminPage() {
                       <thead>
                         <tr className="border-b border-line text-muted">
                           <th className="pb-2 font-medium">Name</th>
-                          <th className="pb-2 font-medium">Country</th>
-                          <th className="pb-2 font-medium">Region</th>
                           <th className="pb-2 font-medium">City</th>
-                          <th className="pb-2 font-medium">Source</th>
+                          <th className="pb-2 font-medium">Country</th>
+                          <th className="pb-2 font-medium">Coords</th>
                           <th className="pb-2 font-medium tabular-nums">Coasters</th>
                           <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
@@ -865,11 +864,14 @@ export default function AdminPage() {
                         {visibleParks.map((p) => (
                           <tr key={p.id} className="transition-colors hover:bg-canvas">
                             <td className="py-2">{p.name}</td>
-                            <td className="py-2 text-muted">{p.country || '—'}</td>
-                            <td className="py-2 text-muted">{p.region || '—'}</td>
                             <td className="py-2 text-muted">{p.city || '—'}</td>
-                            <td className="py-2">
-                              <Badge>{p.source}</Badge>
+                            <td className="py-2 text-muted">{p.country || '—'}</td>
+                            <td className="py-2 text-muted">
+                              {p.lat != null && p.lng != null ? (
+                                <span title={`${p.lat}, ${p.lng}`}>&#x1F310;</span>
+                              ) : (
+                                <span className="inline-block h-2.5 w-2.5 rounded-full bg-line" />
+                              )}
                             </td>
                             <td className="py-2 tabular-nums font-mono text-sm">
                               {p.coaster_count}
@@ -903,6 +905,26 @@ export default function AdminPage() {
                 onClose={closeParkForm}
                 title={isAddingPark ? 'Add New Park' : 'Edit Park'}
               >
+                {editingPark && (
+                  <div className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded bg-surface p-3 text-xs">
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingPark.id}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(editingPark.id!, 'park-id')}
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy ID"
+                      >
+                        {copiedField === 'park-id' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                  </div>
+                )}
                 <form onSubmit={onParkSubmit} className="grid gap-4 md:grid-cols-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Name *</label>
