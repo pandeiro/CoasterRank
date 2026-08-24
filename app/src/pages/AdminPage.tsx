@@ -853,10 +853,8 @@ export default function AdminPage() {
                       <thead>
                         <tr className="border-b border-line text-muted">
                           <th className="pb-2 font-medium">Name</th>
-                          <th className="pb-2 font-medium">Country</th>
-                          <th className="pb-2 font-medium">Region</th>
                           <th className="pb-2 font-medium">City</th>
-                          <th className="pb-2 font-medium">Source</th>
+                          <th className="pb-2 font-medium">Country</th>
                           <th className="pb-2 font-medium tabular-nums">Coasters</th>
                           <th className="pb-2 text-right font-medium">Actions</th>
                         </tr>
@@ -865,12 +863,8 @@ export default function AdminPage() {
                         {visibleParks.map((p) => (
                           <tr key={p.id} className="transition-colors hover:bg-canvas">
                             <td className="py-2">{p.name}</td>
-                            <td className="py-2 text-muted">{p.country || '—'}</td>
-                            <td className="py-2 text-muted">{p.region || '—'}</td>
                             <td className="py-2 text-muted">{p.city || '—'}</td>
-                            <td className="py-2">
-                              <Badge>{p.source}</Badge>
-                            </td>
+                            <td className="py-2 text-muted">{p.country || '—'}</td>
                             <td className="py-2 tabular-nums font-mono text-sm">
                               {p.coaster_count}
                             </td>

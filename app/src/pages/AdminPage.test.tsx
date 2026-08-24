@@ -226,7 +226,6 @@ describe('AdminPage', () => {
       await switchToParks()
       expect(await screen.findByText('Cedar Point')).toBeInTheDocument()
       expect(screen.getByText('USA')).toBeInTheDocument()
-      expect(screen.getByText('OH')).toBeInTheDocument()
       expect(screen.getByText('Sandusky')).toBeInTheDocument()
       expect(screen.getByText('5')).toBeInTheDocument()
     })
