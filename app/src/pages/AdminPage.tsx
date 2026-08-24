@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Check, X, Edit, Plus, Home, Search } from 'lucide-react'
+import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import {
   Badge,
   Button,
+  ConfirmDialog,
   fieldClassName,
   MessageState,
   Modal,
   Panel,
-  selectClassName,
 } from '../components/ui'
 import {
   getPendingSubmissions,
@@ -22,6 +22,7 @@ import {
   getAllCoastersAdmin,
   updateCoaster,
   createCoaster,
+  deleteCoaster,
   getAllParksAdmin,
   updatePark,
   createPark,
@@ -30,9 +31,12 @@ import {
   moveCoasterToPark,
   slugify,
   type Coaster,
+  type AdminCoaster,
   type AdminPark,
   useParks,
+  useManufacturers,
   type Park,
+  type Manufacturer,
 } from '../lib/coasters'
 
 type RecomputeResponse = {
@@ -66,6 +70,12 @@ export default function AdminPage() {
     setToast({ id: toastSeq.current, message, tone })
   }
 
+  const copyToClipboard = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 1500)
+  }
+
   // Submissions state
   const [rejectNote, setRejectNote] = useState('')
   const [activeRejectId, setActiveRejectId] = useState<string | null>(null)
@@ -77,6 +87,10 @@ export default function AdminPage() {
   const [coasterLimit, setCoasterLimit] = useState(COASTER_PAGE_SIZE)
   const [formPark, setFormPark] = useState<Park | null>(null)
   const [formParkSearch, setFormParkSearch] = useState('')
+  const [formManufacturer, setFormManufacturer] = useState<Manufacturer | null>(null)
+  const [formManufacturerSearch, setFormManufacturerSearch] = useState('')
+  const [coasterToDelete, setCoasterToDelete] = useState<AdminCoaster | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Re-home state
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
@@ -90,6 +104,7 @@ export default function AdminPage() {
   const [parkLimit, setParkLimit] = useState(COASTER_PAGE_SIZE)
 
   const { data: allParks = [] } = useParks()
+  const { data: allManufacturers = [] } = useManufacturers()
 
   const {
     data: submissions = [],
@@ -218,6 +233,22 @@ export default function AdminPage() {
     },
   })
 
+  const removeCoaster = useMutation({
+    mutationFn: async (id: string) => {
+      await deleteCoaster(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      setEditingCoaster(null)
+      setIsAddingCoaster(false)
+      setCoasterToDelete(null)
+      notify('Coaster deleted.')
+    },
+    onError: (error) => {
+      notify(`Couldn't delete coaster: ${error.message}`, 'error')
+    },
+  })
+
   const rehome = useMutation({
     mutationFn: async ({ coasterId, parkId }: { coasterId: string; parkId: string }) => {
       await moveCoasterToPark(coasterId, parkId)
@@ -278,6 +309,10 @@ export default function AdminPage() {
     .filter((p) => p.name.toLowerCase().includes(formParkSearch.toLowerCase()))
     .slice(0, 5)
 
+  const filteredFormManufacturers = allManufacturers
+    .filter((m) => m.name.toLowerCase().includes(formManufacturerSearch.toLowerCase()))
+    .slice(0, 5)
+
   // Park management filtering & pagination
   const filteredParksAdmin = useMemo(
     () =>
@@ -302,6 +337,8 @@ export default function AdminPage() {
     setIsAddingCoaster(true)
     setFormPark(null)
     setFormParkSearch('')
+    setFormManufacturer(null)
+    setFormManufacturerSearch('')
   }
 
   function openEditForm(coaster: Partial<Coaster>) {
@@ -309,6 +346,8 @@ export default function AdminPage() {
     setIsAddingCoaster(false)
     setFormPark(allParks.find((p) => p.id === coaster.park_id) ?? null)
     setFormParkSearch('')
+    setFormManufacturer(allManufacturers.find((m) => m.id === coaster.manufacturer_id) ?? null)
+    setFormManufacturerSearch('')
   }
 
   function closeForm() {
@@ -316,6 +355,8 @@ export default function AdminPage() {
     setIsAddingCoaster(false)
     setFormPark(null)
     setFormParkSearch('')
+    setFormManufacturer(null)
+    setFormManufacturerSearch('')
   }
 
   function onCoasterSubmit(e: FormEvent<HTMLFormElement>) {
@@ -333,6 +374,7 @@ export default function AdminPage() {
       name,
       slug: editingCoaster?.slug ?? slugify(name),
       park_id: formPark.id,
+      manufacturer_id: formManufacturer?.id ?? null,
       status: isCoasterStatus(statusValue) ? statusValue : 'operating',
       material: isCoasterMaterial(materialValue) ? materialValue : 'steel',
       height_m: numberOrNull(formData.get('height')),
@@ -529,6 +571,12 @@ export default function AdminPage() {
                               >
                                 <Edit size={14} />
                               </button>
+                              <button
+                                onClick={() => setCoasterToDelete(c)}
+                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -551,6 +599,53 @@ export default function AdminPage() {
                 onClose={closeForm}
                 title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
               >
+                {editingCoaster && (
+                  <div className="mb-4 grid grid-cols-[auto_2fr_auto_1fr] items-center gap-x-4 gap-y-1 rounded bg-surface p-3 text-xs">
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingCoaster.id}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(editingCoaster.id!, 'id')}
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy ID"
+                      >
+                        {copiedField === 'id' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Source:</span>
+                    <span className="text-ink">{editingCoaster.source}</span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Park ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingCoaster.park_id}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          editingCoaster.park_id &&
+                          copyToClipboard(editingCoaster.park_id, 'parkId')
+                        }
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy Park ID"
+                      >
+                        {copiedField === 'parkId' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Rides:</span>
+                    <span className="font-mono text-ink">
+                      {'ride_count' in editingCoaster
+                        ? (editingCoaster as AdminCoaster).ride_count
+                        : 0}
+                    </span>
+                  </div>
+                )}
                 <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Name *</label>
@@ -560,6 +655,21 @@ export default function AdminPage() {
                       defaultValue={editingCoaster?.name}
                       className={fieldClassName}
                     />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Status</label>
+                    <select
+                      name="status"
+                      defaultValue={editingCoaster?.status ?? 'operating'}
+                      className={fieldClassName}
+                    >
+                      <option value="operating">Operating</option>
+                      <option value="defunct">Defunct</option>
+                      <option value="sbno">SBNO</option>
+                      <option value="under_construction">Under Construction</option>
+                      <option value="relocated">Relocated</option>
+                      <option value="unknown">Unknown</option>
+                    </select>
                   </div>
                   <div className="flex flex-col gap-1 relative">
                     <label className="text-xs font-medium">Park *</label>
@@ -593,21 +703,40 @@ export default function AdminPage() {
                       <span className="text-xs text-muted">Selected: {formPark.name}</span>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium">Status</label>
-                    <select
-                      name="status"
-                      defaultValue={editingCoaster?.status ?? 'operating'}
+                  <div className="flex flex-col gap-1 relative">
+                    <label className="text-xs font-medium">Manufacturer</label>
+                    <input
+                      value={formManufacturer ? formManufacturer.name : formManufacturerSearch}
+                      onChange={(e) => {
+                        setFormManufacturerSearch(e.target.value)
+                        setFormManufacturer(null)
+                      }}
+                      placeholder="Search for a manufacturer..."
                       className={fieldClassName}
-                    >
-                      <option value="operating">Operating</option>
-                      <option value="defunct">Defunct</option>
-                      <option value="sbno">SBNO</option>
-                      <option value="under_construction">Under Construction</option>
-                      <option value="relocated">Relocated</option>
-                      <option value="unknown">Unknown</option>
-                    </select>
+                    />
+                    {formManufacturerSearch &&
+                      !formManufacturer &&
+                      filteredFormManufacturers.length > 0 && (
+                        <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
+                          {filteredFormManufacturers.map((m) => (
+                            <li
+                              key={m.id}
+                              className="cursor-pointer p-2 text-sm hover:bg-canvas"
+                              onClick={() => {
+                                setFormManufacturer(m)
+                                setFormManufacturerSearch(m.name)
+                              }}
+                            >
+                              {m.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    {formManufacturer && (
+                      <span className="text-xs text-muted">Selected: {formManufacturer.name}</span>
+                    )}
                   </div>
+                  <div className="md:col-span-2 border-t border-line/50" />
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Material</label>
                     <select
@@ -648,7 +777,7 @@ export default function AdminPage() {
                       type="number"
                       step="0.1"
                       defaultValue={editingCoaster?.length_m ?? ''}
-                      className={selectClassName}
+                      className={fieldClassName}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -657,24 +786,35 @@ export default function AdminPage() {
                       name="inversions"
                       type="number"
                       defaultValue={editingCoaster?.inversions ?? ''}
-                      className={selectClassName}
+                      className={fieldClassName}
                     />
                   </div>
-                  <div className="mt-2 flex justify-end gap-2 md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={closeForm}
-                      className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={saveCoaster.isPending}
-                      className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
-                    >
-                      {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
-                    </button>
+                  <div className="mt-2 flex justify-between gap-2 md:col-span-2">
+                    {editingCoaster && (
+                      <button
+                        type="button"
+                        onClick={() => setCoasterToDelete(editingCoaster as AdminCoaster)}
+                        className="rounded-full px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+                      >
+                        Delete Coaster
+                      </button>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={closeForm}
+                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={saveCoaster.isPending}
+                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                      >
+                        {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </Modal>
@@ -1006,6 +1146,18 @@ export default function AdminPage() {
           onDismiss={() => setToast(null)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!coasterToDelete}
+        onClose={() => setCoasterToDelete(null)}
+        onConfirm={() => {
+          if (coasterToDelete) {
+            removeCoaster.mutate(coasterToDelete.id)
+          }
+        }}
+        title="Delete Coaster"
+        message={`Are you sure you want to delete "${coasterToDelete?.name}"? This will also remove all user rides and rankings for this coaster. This action cannot be undone.`}
+      />
     </div>
   )
 }

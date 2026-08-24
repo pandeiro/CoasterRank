@@ -369,17 +369,24 @@ export type Coaster = {
 }
 
 // A coaster row as the admin console sees it: the full row plus the joined
-// park name used for display in the management table.
-export type AdminCoaster = Coaster & { parks: { name: string } | null }
+// park name, manufacturer name, and ride count.
+export type AdminCoaster = Coaster & {
+  parks: { name: string } | null
+  manufacturers: { name: string } | null
+  ride_count: number
+}
 
 export async function getAllCoastersAdmin() {
   const { data, error } = await supabase
     .from('coasters')
-    .select('*, parks(name)')
+    .select('*, parks(name), manufacturers(name), ride_count:user_rides(count)')
     .order('name')
     .range(0, 9999)
   if (error) throw error
-  return data as AdminCoaster[]
+  return (data as Array<AdminCoaster & { ride_count: [{ count: number }] }>).map((c) => ({
+    ...c,
+    ride_count: c.ride_count?.[0]?.count ?? 0,
+  }))
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {
@@ -391,6 +398,11 @@ export async function createCoaster(data: Partial<Coaster>) {
   const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
   if (error) throw error
   return result
+}
+
+export async function deleteCoaster(id: string) {
+  const { error } = await supabase.from('coasters').delete().eq('id', id)
+  if (error) throw error
 }
 
 // Park admin CRUD ----------------------------------------------------------
