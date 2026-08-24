@@ -603,7 +603,7 @@ export default function AdminPage() {
                 {editingCoaster && (
                   <div className="mb-4 grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg bg-surface p-3 text-xs text-muted">
                     <div className="col-span-2 space-y-1">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex h-5 items-center gap-1.5">
                         ID:
                         <span className="font-mono text-ink">{editingCoaster.id}</span>
                         <button
@@ -619,7 +619,7 @@ export default function AdminPage() {
                           )}
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex h-5 items-center gap-1.5">
                         Park ID:
                         <span className="font-mono text-ink">{editingCoaster.park_id}</span>
                         <button
@@ -640,10 +640,10 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div>
-                        Source: <Badge>{editingCoaster.source}</Badge>
+                      <div className="flex h-5 items-center">
+                        Source: <Badge className="ml-1 py-0">{editingCoaster.source}</Badge>
                       </div>
-                      <div>
+                      <div className="flex h-5 items-center">
                         Rides:{' '}
                         <span className="font-mono text-ink">
                           {'ride_count' in editingCoaster
