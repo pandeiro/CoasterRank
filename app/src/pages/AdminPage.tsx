@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2 } from 'lucide-react'
+import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import {
@@ -71,6 +71,12 @@ export default function AdminPage() {
     setToast({ id: toastSeq.current, message, tone })
   }
 
+  const copyToClipboard = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 1500)
+  }
+
   // Submissions state
   const [rejectNote, setRejectNote] = useState('')
   const [activeRejectId, setActiveRejectId] = useState<string | null>(null)
@@ -85,6 +91,7 @@ export default function AdminPage() {
   const [formManufacturer, setFormManufacturer] = useState<Manufacturer | null>(null)
   const [formManufacturerSearch, setFormManufacturerSearch] = useState('')
   const [coasterToDelete, setCoasterToDelete] = useState<AdminCoaster | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Re-home state
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
@@ -594,24 +601,57 @@ export default function AdminPage() {
                 title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
               >
                 {editingCoaster && (
-                  <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-surface p-3 text-xs text-muted">
-                    <span>
-                      ID: <span className="font-mono text-ink">{editingCoaster.id}</span>
-                    </span>
-                    <span>
-                      Park ID: <span className="font-mono text-ink">{editingCoaster.park_id}</span>
-                    </span>
-                    <span>
-                      Source: <Badge>{editingCoaster.source}</Badge>
-                    </span>
-                    <span>
-                      Rides:{' '}
-                      <span className="font-mono text-ink">
-                        {'ride_count' in editingCoaster
-                          ? (editingCoaster as AdminCoaster).ride_count
-                          : 0}
-                      </span>
-                    </span>
+                  <div className="mb-4 grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg bg-surface p-3 text-xs text-muted">
+                    <div className="col-span-2 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        ID:
+                        <span className="font-mono text-ink">{editingCoaster.id}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(editingCoaster.id!, 'id')}
+                          className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                          title="Copy ID"
+                        >
+                          {copiedField === 'id' ? (
+                            <Check size={12} className="text-success" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        Park ID:
+                        <span className="font-mono text-ink">{editingCoaster.park_id}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            editingCoaster.park_id &&
+                            copyToClipboard(editingCoaster.park_id, 'parkId')
+                          }
+                          className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                          title="Copy Park ID"
+                        >
+                          {copiedField === 'parkId' ? (
+                            <Check size={12} className="text-success" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div>
+                        Source: <Badge>{editingCoaster.source}</Badge>
+                      </div>
+                      <div>
+                        Rides:{' '}
+                        <span className="font-mono text-ink">
+                          {'ride_count' in editingCoaster
+                            ? (editingCoaster as AdminCoaster).ride_count
+                            : 0}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
                 <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
