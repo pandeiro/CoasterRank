@@ -18,16 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - run: npm ci
-        working-directory: app
-
-      - name: Check for new commits since last deploy
+      - name: Check for SPA changes since last deploy
         id: check
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -42,20 +33,48 @@ jobs:
           echo "current_sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
           echo "last_deploy_sha=$LAST_DEPLOY_SHA" >> "$GITHUB_OUTPUT"
 
+          # First deploy — no previous deploy to compare against
+          if [ "$LAST_DEPLOY_SHA" = "null" ] || [ -z "$LAST_DEPLOY_SHA" ]; then
+            echo "### First deploy — no previous Netlify deploy found" >> "$GITHUB_STEP_SUMMARY"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Same SHA — nothing has changed at all
           if [ "$CURRENT_SHA" = "$LAST_DEPLOY_SHA" ]; then
             echo "### No changes to deploy" >> "$GITHUB_STEP_SUMMARY"
             echo "HEAD ($CURRENT_SHA) matches the last Netlify deploy — skipping."
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # SHA differs — check if any SPA-relevant files changed (app/ only)
+          SPA_CHANGED=$(git diff --name-only "$LAST_DEPLOY_SHA" "$CURRENT_SHA" -- app/)
+          if [ -z "$SPA_CHANGED" ]; then
+            echo "### No SPA changes to deploy" >> "$GITHUB_STEP_SUMMARY"
+            echo "Commits exist since last deploy but none touch app/ — skipping."
+            echo "Changed files:" >> "$GITHUB_STEP_SUMMARY"
+            git diff --name-only "$LAST_DEPLOY_SHA" "$CURRENT_SHA" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           else
             echo "### Deploying" >> "$GITHUB_STEP_SUMMARY"
-            echo "HEAD ($CURRENT_SHA) differs from last deploy ($LAST_DEPLOY_SHA) — building and deploying."
+            echo "SPA changes detected since last deploy ($LAST_DEPLOY_SHA → $CURRENT_SHA):" >> "$GITHUB_STEP_SUMMARY"
+            echo "$SPA_CHANGED" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.should_deploy == 'true'
+        run: npm ci
+        working-directory: app
 
       - name: Build
         if: steps.check.outputs.should_deploy == 'true'
         run: npm run build
         working-directory: app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy to Netlify
         if: steps.check.outputs.should_deploy == 'true'
