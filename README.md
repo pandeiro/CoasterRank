@@ -28,7 +28,7 @@ All v1 phases complete (scaffold → live Bradley-Terry rankings → admin & mod
 - **Frontend**: React 19 + Vite + TypeScript SPA (Tailwind CSS, TanStack Query, React Router)
 - **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security) — dedicated instance, develop against prod
 - **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
-- **Hosting**: Netlify (SPA, auto-deploy on push to `main`)
+- **Hosting**: Netlify (SPA, scheduled daily deploy via GitHub Actions — only if new commits exist)
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)
 
@@ -42,16 +42,18 @@ graph TD
     CI -->|Pass| Merge[Merge to main]
     CI -->|Fail| Dev
 
-    Merge -->|Trigger| GH_Deploy[GitHub Action: deploy]
-    Merge -->|Trigger| Netlify[Netlify Auto-deploy]
+    Merge -->|Trigger| GH_Deploy[GitHub Action: deploy-supabase]
 
     subgraph Supabase [Supabase Infrastructure]
         GH_Deploy -->|if supabase/** or packages/bt/** changed| DB[supabase db push]
         DB --> Func[supabase functions deploy]
     end
 
-    subgraph Frontend [Frontend Hosting]
-        Netlify --> Build[npm run build]
+    subgraph Frontend [Frontend Hosting — daily scheduled deploy]
+        Cron[Daily cron 3 PM ET] --> Check{New commits?}
+        Manual[Manual trigger] --> Check
+        Check -->|Yes| Build[npm run build]
+        Check -->|No| Skip[Skip deploy]
         Build --> Deploy[Publish app/dist]
     end
 

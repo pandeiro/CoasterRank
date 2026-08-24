@@ -237,20 +237,29 @@ A single `.env` at the repo root (gitignored) holds everything. Vite reads it vi
 
 **Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
 
-GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`.
+GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`.
 Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
 
 ## 9. Deployment & CI/CD
 
 ### 9.1 Branch policy
-`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The deploy job runs only after merge to `main` (not on PRs).
+`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The Supabase deploy job runs only after merge to `main` (not on PRs). The SPA deploy is decoupled from merges — it runs on a daily schedule.
 
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
-- **`deploy` job**: runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it), gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
 
-### 9.3 SPA hosting — Netlify
-- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploys on push to `main` (Netlify watches the repo itself, independent of the Supabase deploy Actions).
+### 9.3 Supabase deploy workflow (`.github/workflows/deploy-supabase.yml`)
+- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it), gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
+- Migrations must always be additive and backwards-compatible with the current frontend.
+
+### 9.4 SPA deploy workflow (`.github/workflows/deploy-netlify.yml`)
+- **Schedule**: runs once daily at 3 PM ET (cron `0 19 * * *` UTC), plus manual `workflow_dispatch`.
+- **Change detection**: compares `git rev-parse HEAD` against the SHA of the last successful Netlify deploy (via the Netlify API). Skips the build+deploy if they match — avoids burning Netlify free-tier credits on no-op deploys.
+- **Deploy**: `npm run build` in `app/`, then `npx netlify-cli deploy --prod --dir=app/dist`.
+- **Prerequisites**: `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub repo secrets. Netlify's "Auto-deploy on push to main" must be **disabled** in the Netlify dashboard (Site settings → Build & deploy → Continuous deployment) so that merges don't trigger a deploy independently.
+
+### 9.5 SPA hosting — Netlify
+- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploy on push to `main` is **disabled** — deploys are handled by the scheduled GitHub Action (§9.4).
 - SPA fallback: `app/public/_redirects` → `/*  /index.html  200` (already in the scaffold).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 - A free `*.netlify.app` URL works end-to-end before any custom domain.
