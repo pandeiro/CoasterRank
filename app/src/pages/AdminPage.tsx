@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Check, X, Edit, Plus, Home, Search } from 'lucide-react'
+import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import {
   Badge,
   Button,
+  ConfirmDialog,
   fieldClassName,
   MessageState,
   Modal,
@@ -22,6 +23,7 @@ import {
   getAllCoastersAdmin,
   updateCoaster,
   createCoaster,
+  deleteCoaster,
   getAllParksAdmin,
   updatePark,
   createPark,
@@ -30,9 +32,12 @@ import {
   moveCoasterToPark,
   slugify,
   type Coaster,
+  type AdminCoaster,
   type AdminPark,
   useParks,
+  useManufacturers,
   type Park,
+  type Manufacturer,
 } from '../lib/coasters'
 
 type RecomputeResponse = {
@@ -77,6 +82,9 @@ export default function AdminPage() {
   const [coasterLimit, setCoasterLimit] = useState(COASTER_PAGE_SIZE)
   const [formPark, setFormPark] = useState<Park | null>(null)
   const [formParkSearch, setFormParkSearch] = useState('')
+  const [formManufacturer, setFormManufacturer] = useState<Manufacturer | null>(null)
+  const [formManufacturerSearch, setFormManufacturerSearch] = useState('')
+  const [coasterToDelete, setCoasterToDelete] = useState<AdminCoaster | null>(null)
 
   // Re-home state
   const [rehomeSearchPark, setRehomeSearchPark] = useState('')
@@ -90,6 +98,7 @@ export default function AdminPage() {
   const [parkLimit, setParkLimit] = useState(COASTER_PAGE_SIZE)
 
   const { data: allParks = [] } = useParks()
+  const { data: allManufacturers = [] } = useManufacturers()
 
   const {
     data: submissions = [],
@@ -218,6 +227,22 @@ export default function AdminPage() {
     },
   })
 
+  const removeCoaster = useMutation({
+    mutationFn: async (id: string) => {
+      await deleteCoaster(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      setEditingCoaster(null)
+      setIsAddingCoaster(false)
+      setCoasterToDelete(null)
+      notify('Coaster deleted.')
+    },
+    onError: (error) => {
+      notify(`Couldn't delete coaster: ${error.message}`, 'error')
+    },
+  })
+
   const rehome = useMutation({
     mutationFn: async ({ coasterId, parkId }: { coasterId: string; parkId: string }) => {
       await moveCoasterToPark(coasterId, parkId)
@@ -278,6 +303,10 @@ export default function AdminPage() {
     .filter((p) => p.name.toLowerCase().includes(formParkSearch.toLowerCase()))
     .slice(0, 5)
 
+  const filteredFormManufacturers = allManufacturers
+    .filter((m) => m.name.toLowerCase().includes(formManufacturerSearch.toLowerCase()))
+    .slice(0, 5)
+
   // Park management filtering & pagination
   const filteredParksAdmin = useMemo(
     () =>
@@ -302,6 +331,8 @@ export default function AdminPage() {
     setIsAddingCoaster(true)
     setFormPark(null)
     setFormParkSearch('')
+    setFormManufacturer(null)
+    setFormManufacturerSearch('')
   }
 
   function openEditForm(coaster: Partial<Coaster>) {
@@ -309,6 +340,8 @@ export default function AdminPage() {
     setIsAddingCoaster(false)
     setFormPark(allParks.find((p) => p.id === coaster.park_id) ?? null)
     setFormParkSearch('')
+    setFormManufacturer(allManufacturers.find((m) => m.id === coaster.manufacturer_id) ?? null)
+    setFormManufacturerSearch('')
   }
 
   function closeForm() {
@@ -316,6 +349,8 @@ export default function AdminPage() {
     setIsAddingCoaster(false)
     setFormPark(null)
     setFormParkSearch('')
+    setFormManufacturer(null)
+    setFormManufacturerSearch('')
   }
 
   function onCoasterSubmit(e: FormEvent<HTMLFormElement>) {
@@ -333,6 +368,7 @@ export default function AdminPage() {
       name,
       slug: editingCoaster?.slug ?? slugify(name),
       park_id: formPark.id,
+      manufacturer_id: formManufacturer?.id ?? null,
       status: isCoasterStatus(statusValue) ? statusValue : 'operating',
       material: isCoasterMaterial(materialValue) ? materialValue : 'steel',
       height_m: numberOrNull(formData.get('height')),
@@ -529,6 +565,12 @@ export default function AdminPage() {
                               >
                                 <Edit size={14} />
                               </button>
+                              <button
+                                onClick={() => setCoasterToDelete(c)}
+                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -551,6 +593,27 @@ export default function AdminPage() {
                 onClose={closeForm}
                 title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
               >
+                {editingCoaster && (
+                  <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-surface p-3 text-xs text-muted">
+                    <span>
+                      ID: <span className="font-mono text-ink">{editingCoaster.id}</span>
+                    </span>
+                    <span>
+                      Park ID: <span className="font-mono text-ink">{editingCoaster.park_id}</span>
+                    </span>
+                    <span>
+                      Source: <Badge>{editingCoaster.source}</Badge>
+                    </span>
+                    <span>
+                      Rides:{' '}
+                      <span className="font-mono text-ink">
+                        {'ride_count' in editingCoaster
+                          ? (editingCoaster as AdminCoaster).ride_count
+                          : 0}
+                      </span>
+                    </span>
+                  </div>
+                )}
                 <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Name *</label>
@@ -591,6 +654,39 @@ export default function AdminPage() {
                     )}
                     {formPark && (
                       <span className="text-xs text-muted">Selected: {formPark.name}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 relative">
+                    <label className="text-xs font-medium">Manufacturer</label>
+                    <input
+                      value={formManufacturer ? formManufacturer.name : formManufacturerSearch}
+                      onChange={(e) => {
+                        setFormManufacturerSearch(e.target.value)
+                        setFormManufacturer(null)
+                      }}
+                      placeholder="Search for a manufacturer..."
+                      className={fieldClassName}
+                    />
+                    {formManufacturerSearch &&
+                      !formManufacturer &&
+                      filteredFormManufacturers.length > 0 && (
+                        <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
+                          {filteredFormManufacturers.map((m) => (
+                            <li
+                              key={m.id}
+                              className="cursor-pointer p-2 text-sm hover:bg-canvas"
+                              onClick={() => {
+                                setFormManufacturer(m)
+                                setFormManufacturerSearch(m.name)
+                              }}
+                            >
+                              {m.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    {formManufacturer && (
+                      <span className="text-xs text-muted">Selected: {formManufacturer.name}</span>
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
@@ -660,21 +756,32 @@ export default function AdminPage() {
                       className={selectClassName}
                     />
                   </div>
-                  <div className="mt-2 flex justify-end gap-2 md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={closeForm}
-                      className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={saveCoaster.isPending}
-                      className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
-                    >
-                      {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
-                    </button>
+                  <div className="mt-2 flex justify-between gap-2 md:col-span-2">
+                    {editingCoaster && (
+                      <button
+                        type="button"
+                        onClick={() => setCoasterToDelete(editingCoaster as AdminCoaster)}
+                        className="rounded-full px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+                      >
+                        Delete Coaster
+                      </button>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={closeForm}
+                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={saveCoaster.isPending}
+                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                      >
+                        {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </Modal>
@@ -1006,6 +1113,18 @@ export default function AdminPage() {
           onDismiss={() => setToast(null)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!coasterToDelete}
+        onClose={() => setCoasterToDelete(null)}
+        onConfirm={() => {
+          if (coasterToDelete) {
+            removeCoaster.mutate(coasterToDelete.id)
+          }
+        }}
+        title="Delete Coaster"
+        message={`Are you sure you want to delete "${coasterToDelete?.name}"? This will also remove all user rides and rankings for this coaster. This action cannot be undone.`}
+      />
     </div>
   )
 }

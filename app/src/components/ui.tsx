@@ -190,3 +190,46 @@ export function Modal({
     </div>
   )
 }
+
+export function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmLabel = 'Delete',
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  message: string
+  confirmLabel?: string
+}) {
+  if (!isOpen) return null
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title} className="max-w-md">
+      <p className="text-sm text-muted mb-6">{message}</p>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onConfirm()
+            onClose()
+          }}
+          className="rounded-full bg-danger px-3 py-1.5 text-xs font-medium text-white hover:bg-danger/90"
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  )
+}
