@@ -618,9 +618,7 @@ export default function AdminPage() {
                       </button>
                     </span>
                     <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Source:</span>
-                    <span className="flex items-center gap-1">
-                      <Badge className="py-0">{editingCoaster.source}</Badge>
-                    </span>
+                    <span className="text-ink">{editingCoaster.source}</span>
                     <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Park ID:</span>
                     <span className="flex items-center gap-1 font-mono text-ink">
                       {editingCoaster.park_id}
