@@ -600,7 +600,7 @@ export default function AdminPage() {
                 title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
               >
                 {editingCoaster && (
-                  <div className="mb-4 grid grid-cols-[auto_2fr_auto_1fr] items-center gap-x-4 gap-y-1 rounded-lg bg-surface p-3 text-xs">
+                  <div className="mb-4 grid grid-cols-[auto_2fr_auto_1fr] items-center gap-x-4 gap-y-1 rounded bg-surface p-3 text-xs">
                     <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">ID:</span>
                     <span className="flex items-center gap-1 font-mono text-ink">
                       {editingCoaster.id}
