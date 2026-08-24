@@ -11,7 +11,6 @@ import {
   MessageState,
   Modal,
   Panel,
-  selectClassName,
 } from '../components/ui'
 import {
   getPendingSubmissions,
@@ -659,6 +658,21 @@ export default function AdminPage() {
                       className={fieldClassName}
                     />
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium">Status</label>
+                    <select
+                      name="status"
+                      defaultValue={editingCoaster?.status ?? 'operating'}
+                      className={fieldClassName}
+                    >
+                      <option value="operating">Operating</option>
+                      <option value="defunct">Defunct</option>
+                      <option value="sbno">SBNO</option>
+                      <option value="under_construction">Under Construction</option>
+                      <option value="relocated">Relocated</option>
+                      <option value="unknown">Unknown</option>
+                    </select>
+                  </div>
                   <div className="flex flex-col gap-1 relative">
                     <label className="text-xs font-medium">Park *</label>
                     <input
@@ -725,21 +739,6 @@ export default function AdminPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium">Status</label>
-                    <select
-                      name="status"
-                      defaultValue={editingCoaster?.status ?? 'operating'}
-                      className={fieldClassName}
-                    >
-                      <option value="operating">Operating</option>
-                      <option value="defunct">Defunct</option>
-                      <option value="sbno">SBNO</option>
-                      <option value="under_construction">Under Construction</option>
-                      <option value="relocated">Relocated</option>
-                      <option value="unknown">Unknown</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium">Material</label>
                     <select
                       name="material"
@@ -779,7 +778,7 @@ export default function AdminPage() {
                       type="number"
                       step="0.1"
                       defaultValue={editingCoaster?.length_m ?? ''}
-                      className={selectClassName}
+                      className={fieldClassName}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -788,7 +787,7 @@ export default function AdminPage() {
                       name="inversions"
                       type="number"
                       defaultValue={editingCoaster?.inversions ?? ''}
-                      className={selectClassName}
+                      className={fieldClassName}
                     />
                   </div>
                   <div className="mt-2 flex justify-between gap-2 md:col-span-2">
