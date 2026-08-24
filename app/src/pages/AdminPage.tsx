@@ -601,57 +601,52 @@ export default function AdminPage() {
                 title={isAddingCoaster ? 'Add New Coaster' : 'Edit Coaster'}
               >
                 {editingCoaster && (
-                  <div className="mb-4 grid grid-cols-3 gap-x-6 gap-y-1 rounded-lg bg-surface p-3 text-xs text-muted">
-                    <div className="col-span-2 space-y-1">
-                      <div className="flex h-5 items-center gap-1.5">
-                        ID:
-                        <span className="font-mono text-ink">{editingCoaster.id}</span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(editingCoaster.id!, 'id')}
-                          className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
-                          title="Copy ID"
-                        >
-                          {copiedField === 'id' ? (
-                            <Check size={12} className="text-success" />
-                          ) : (
-                            <Copy size={12} />
-                          )}
-                        </button>
-                      </div>
-                      <div className="flex h-5 items-center gap-1.5">
-                        Park ID:
-                        <span className="font-mono text-ink">{editingCoaster.park_id}</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            editingCoaster.park_id &&
-                            copyToClipboard(editingCoaster.park_id, 'parkId')
-                          }
-                          className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
-                          title="Copy Park ID"
-                        >
-                          {copiedField === 'parkId' ? (
-                            <Check size={12} className="text-success" />
-                          ) : (
-                            <Copy size={12} />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex h-5 items-center">
-                        Source: <Badge className="ml-1 py-0">{editingCoaster.source}</Badge>
-                      </div>
-                      <div className="flex h-5 items-center">
-                        Rides:{' '}
-                        <span className="font-mono text-ink">
-                          {'ride_count' in editingCoaster
-                            ? (editingCoaster as AdminCoaster).ride_count
-                            : 0}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="mb-4 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-x-4 gap-y-1 rounded-lg bg-surface p-3 text-xs">
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingCoaster.id}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(editingCoaster.id!, 'id')}
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy ID"
+                      >
+                        {copiedField === 'id' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Source:</span>
+                    <span className="flex items-center gap-1">
+                      <Badge className="py-0">{editingCoaster.source}</Badge>
+                    </span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Park ID:</span>
+                    <span className="flex items-center gap-1 font-mono text-ink">
+                      {editingCoaster.park_id}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          editingCoaster.park_id &&
+                          copyToClipboard(editingCoaster.park_id, 'parkId')
+                        }
+                        className="rounded p-0.5 text-muted hover:bg-surface-bright hover:text-ink"
+                        title="Copy Park ID"
+                      >
+                        {copiedField === 'parkId' ? (
+                          <Check size={12} className="text-success" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </span>
+                    <span className="rounded bg-black/5 px-1.5 py-0.5 text-muted">Rides:</span>
+                    <span className="font-mono text-ink">
+                      {'ride_count' in editingCoaster
+                        ? (editingCoaster as AdminCoaster).ride_count
+                        : 0}
+                    </span>
                   </div>
                 )}
                 <form onSubmit={onCoasterSubmit} className="grid gap-4 md:grid-cols-2">
