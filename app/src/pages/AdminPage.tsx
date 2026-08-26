@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -50,6 +51,9 @@ type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
 
+const ADMIN_TABS = ['coasters', 'parks', 'rehome', 'submissions'] as const
+type AdminTab = (typeof ADMIN_TABS)[number]
+
 function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
   const parsed = Number(value)
@@ -58,9 +62,9 @@ function numberOrNull(value: FormDataEntryValue | null): number | null {
 
 export default function AdminPage() {
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'submissions' | 'coasters' | 'parks' | 'rehome'>(
-    'submissions',
-  )
+  const { tab } = useParams()
+  const isValidTab = ADMIN_TABS.includes(tab as AdminTab)
+  const activeTab: AdminTab = isValidTab ? (tab as AdminTab) : 'coasters'
   const [message, setMessage] = useState<string | null>(null)
 
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -421,6 +425,8 @@ export default function AdminPage() {
     savePark.mutate(data)
   }
 
+  if (!isValidTab) return <Navigate to="/admin/coasters" replace />
+
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -431,10 +437,10 @@ export default function AdminPage() {
           <h1 className="display-heading text-4xl text-ink">Admin</h1>
         </div>
         <div className="flex rounded-full bg-surface p-1">
-          {(['submissions', 'coasters', 'parks', 'rehome'] as const).map((tab) => (
-            <button
+          {ADMIN_TABS.map((tab) => (
+            <Link
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              to={`/admin/${tab}`}
               className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
                 activeTab === tab
                   ? 'bg-surface-bright font-medium text-ink shadow-sm'
@@ -442,7 +448,7 @@ export default function AdminPage() {
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
+            </Link>
           ))}
         </div>
       </div>

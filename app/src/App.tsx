@@ -35,7 +35,7 @@ export default function App() {
                 <Route path="/submit" element={<SubmitPage />} />
               </Route>
               <Route element={<RequireAdmin />}>
-                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/:tab?" element={<AdminPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>

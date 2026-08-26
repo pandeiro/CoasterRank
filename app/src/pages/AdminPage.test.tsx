@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AdminPage from './AdminPage'
 import { supabase } from '../lib/supabase'
@@ -56,11 +57,15 @@ const parks = [
   },
 ]
 
-function renderPage() {
+function renderPage(initialEntry = '/admin/coasters') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <AdminPage />
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/admin/:tab?" element={<AdminPage />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -110,15 +115,33 @@ describe('AdminPage', () => {
     })
   })
 
+  describe('tab routing', () => {
+    it('redirects bare /admin to the coasters tab', async () => {
+      renderPage('/admin')
+      expect(await screen.findByText('No coasters match that search.')).toBeInTheDocument()
+    })
+
+    it('redirects unknown tabs to the coasters tab', async () => {
+      renderPage('/admin/blah')
+      expect(await screen.findByText('No coasters match that search.')).toBeInTheDocument()
+    })
+
+    it('navigates between tabs via the tab links', async () => {
+      renderPage('/admin/coasters')
+      await userEvent.click(screen.getByRole('link', { name: 'Rehome' }))
+      expect(await screen.findByText('Re-home Coasters')).toBeInTheDocument()
+    })
+  })
+
   describe('submissions tab', () => {
     it('shows the empty state when there are no pending submissions', async () => {
-      renderPage()
+      renderPage('/admin/submissions')
       expect(await screen.findByText('No pending submissions.')).toBeInTheDocument()
     })
 
     it('shows an error state when the queue fails to load', async () => {
       vi.mocked(getPendingSubmissions).mockRejectedValue(new Error('boom'))
-      renderPage()
+      renderPage('/admin/submissions')
       expect(await screen.findByText("Couldn't load submissions.")).toBeInTheDocument()
     })
 
@@ -138,7 +161,7 @@ describe('AdminPage', () => {
           reviewed_at: null,
         },
       ] as never)
-      renderPage()
+      renderPage('/admin/submissions')
       await userEvent.click(await screen.findByTitle('Approve'))
       expect(
         await screen.findByText('Submission approved and coaster created.'),
@@ -148,20 +171,14 @@ describe('AdminPage', () => {
   })
 
   describe('coasters tab', () => {
-    async function switchToCoasters() {
-      await userEvent.click(screen.getByRole('button', { name: 'Coasters' }))
-    }
-
     it('shows an error state when coasters fail to load', async () => {
       vi.mocked(getAllCoastersAdmin).mockRejectedValue(new Error('boom'))
       renderPage()
-      await switchToCoasters()
       expect(await screen.findByText("Couldn't load coasters.")).toBeInTheDocument()
     })
 
     it('shows an empty state when no coasters match', async () => {
       renderPage()
-      await switchToCoasters()
       expect(await screen.findByText('No coasters match that search.')).toBeInTheDocument()
     })
 
@@ -177,7 +194,6 @@ describe('AdminPage', () => {
       }))
       vi.mocked(getAllCoastersAdmin).mockResolvedValue(rows as never)
       renderPage()
-      await switchToCoasters()
 
       expect(await screen.findByText('Coaster 0')).toBeInTheDocument()
       expect(screen.queryByText('Coaster 55')).not.toBeInTheDocument()
@@ -190,7 +206,7 @@ describe('AdminPage', () => {
 
   describe('parks tab', () => {
     async function switchToParks() {
-      await userEvent.click(screen.getByRole('button', { name: 'Parks' }))
+      await userEvent.click(screen.getByRole('link', { name: 'Parks' }))
     }
 
     it('shows an error state when parks fail to load', async () => {
@@ -241,7 +257,7 @@ describe('AdminPage', () => {
 
   describe('rehome tab', () => {
     async function switchToRehome() {
-      await userEvent.click(screen.getByRole('button', { name: 'Rehome' }))
+      await userEvent.click(screen.getByRole('link', { name: 'Rehome' }))
     }
 
     it('shows an empty state when the Other park has no coasters', async () => {
