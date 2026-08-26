@@ -51,7 +51,7 @@ type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
 
-const ADMIN_TABS = ['submissions', 'coasters', 'parks', 'rehome'] as const
+const ADMIN_TABS = ['coasters', 'parks', 'rehome', 'submissions'] as const
 type AdminTab = (typeof ADMIN_TABS)[number]
 
 function numberOrNull(value: FormDataEntryValue | null): number | null {
