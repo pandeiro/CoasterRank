@@ -12,6 +12,7 @@ import {
   MessageState,
   Modal,
   Panel,
+  selectClassName,
 } from '../components/ui'
 import {
   getPendingSubmissions,
@@ -667,7 +668,7 @@ export default function AdminPage() {
                     <select
                       name="status"
                       defaultValue={editingCoaster?.status ?? 'operating'}
-                      className={fieldClassName}
+                      className={`${selectClassName} w-full`}
                     >
                       <option value="operating">Operating</option>
                       <option value="defunct">Defunct</option>
@@ -748,7 +749,7 @@ export default function AdminPage() {
                     <select
                       name="material"
                       defaultValue={editingCoaster?.material ?? 'steel'}
-                      className={fieldClassName}
+                      className={`${selectClassName} w-full`}
                     >
                       <option value="steel">Steel</option>
                       <option value="wood">Wood</option>
@@ -955,7 +956,7 @@ export default function AdminPage() {
                     <select
                       name="source"
                       defaultValue={editingPark?.source ?? 'admin'}
-                      className={fieldClassName}
+                      className={`${selectClassName} w-full`}
                     >
                       <option value="admin">Admin</option>
                       <option value="community">Community</option>
