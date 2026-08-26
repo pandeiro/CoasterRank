@@ -66,7 +66,7 @@ export default function BoardPage() {
       <PageHeader
         eyebrow="The community board"
         title="CoasterRank"
-        description="A live ranking of the world's roller coasters, built from the rides people have actually experienced."
+        description="A live ranking of the world's roller coasters"
         action={<Badge tone="accent">Live board</Badge>}
       />
       <FilterBar filters={filters} onChange={onFiltersChange} />
