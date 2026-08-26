@@ -132,12 +132,16 @@ export function Modal({
   title,
   children,
   className = '',
+  panelClassName = 'max-w-2xl',
 }: {
   isOpen: boolean
   onClose: () => void
   title: string
   children: React.ReactNode
+  /** Extra classes for the fullscreen overlay wrapper. */
   className?: string
+  /** Width/classes for the dialog panel itself (defaults to max-w-2xl). */
+  panelClassName?: string
 }) {
   if (!isOpen) return null
 
@@ -160,7 +164,7 @@ export function Modal({
       />
       <div
         id="modal-content"
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-bright shadow-xl transition-all duration-200 sm:rounded-2xl sm:max-w-2xl"
+        className={`relative z-10 w-full ${panelClassName} max-h-[90vh] overflow-y-auto rounded-2xl bg-surface-bright shadow-xl transition-all duration-200`}
       >
         <div className="sticky top-0 flex items-center justify-between border-b border-line bg-surface-bright px-6 py-4 sm:rounded-t-2xl">
           <h2 id="modal-title" className="text-lg font-semibold text-ink">
@@ -209,7 +213,7 @@ export function ConfirmDialog({
   if (!isOpen) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} className="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} panelClassName="max-w-md">
       <p className="text-sm text-muted mb-6">{message}</p>
       <div className="flex justify-end gap-2">
         <button
