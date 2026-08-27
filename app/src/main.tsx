@@ -18,7 +18,7 @@ console.log(`
 ╚██████╔╝╚██████╔╝██║  ██║███████║   ██║   ███████╗██║  ██║██║  ██║██║  ██║██║ ╚████║██║  ██╗
  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
 
-CoasterRank v${__APP_VERSION__} | https://github.com/pandeiro/CoasterRank
+🎢 CoasterRank v${__APP_VERSION__} 🎢 | https://github.com/pandeiro/CoasterRank
 `)
 
 createRoot(document.getElementById('root')!).render(
