@@ -172,6 +172,34 @@ if [ -n "$VIEW_NAMES" ]; then
   done
 fi
 
+# User-defined functions (exclude C-language extension functions)
+echo ""
+echo "---"
+echo ""
+echo "## Functions"
+echo ""
+echo "| Name | Returns | Language |"
+echo "|------|---------|----------|"
+run_psql -c "
+SELECT p.proname,
+       pg_catalog.pg_get_function_result(p.oid),
+       l.lanname
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+JOIN pg_language l ON p.prolang = l.oid
+WHERE n.nspname = 'public'
+  AND p.prokind = 'f'
+  AND l.lanname IN ('plpgsql', 'sql')
+ORDER BY p.proname;
+" | awk -F'|' '
+{
+  gsub(/^ +| +$/, "", $1)
+  gsub(/^ +| +$/, "", $2)
+  gsub(/^ +| +$/, "", $3)
+  printf "| `%s` | %s | %s |\n", $1, $2, $3
+}
+'
+
 } > "$OUT"
 
 echo "Wrote schema docs to $OUT"
