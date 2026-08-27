@@ -1139,7 +1139,7 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="order-first md:order-last space-y-6">
           <Panel className="p-6">
             <h2 className="text-lg font-semibold text-ink">Rankings</h2>
             <p className="mt-1 text-sm text-muted">
