@@ -200,6 +200,33 @@ ORDER BY p.proname;
 }
 '
 
+# Non-unique indexes (PK and UNIQUE already covered in Constraints)
+echo ""
+echo "---"
+echo ""
+echo "## Indexes"
+echo ""
+echo "| Table | Index | Definition |"
+echo "|-------|-------|------------|"
+run_psql -c "
+SELECT tablename, indexname, indexdef
+FROM pg_indexes
+WHERE schemaname = 'public'
+  AND indexdef NOT LIKE 'CREATE UNIQUE INDEX%'
+  AND indexname !~ '_pkey$'
+ORDER BY tablename, indexname;
+" | awk -F'|' '
+{
+  gsub(/^ +| +$/, "", $1)
+  gsub(/^ +| +$/, "", $2)
+  gsub(/^ +| +$/, "", $3)
+  # Strip the "CREATE INDEX ... ON public.X USING btree " prefix for conciseness
+  def = $3
+  sub(/^CREATE INDEX [^ ]+ ON public\.[^ ]+ USING [^ ]+ /, "", def)
+  printf "| `%s` | `%s` | %s |\n", $1, $2, def
+}
+'
+
 } > "$OUT"
 
 echo "Wrote schema docs to $OUT"
