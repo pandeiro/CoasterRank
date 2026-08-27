@@ -141,6 +141,7 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - Run `npm run format` before committing; CI enforces `format:check`.
 - No secrets in code. Secrets live in `.env` (local) or GitHub/Netlify secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
+- **Any PR that adds a migration must also regenerate `docs/SCHEMA.md`** (`cd scripts && npm run schema-doc`) and include the updated file in the commit.
 - **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching rows — the row count may be unknown at query time.
 
 ## PR workflow
