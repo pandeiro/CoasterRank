@@ -5,18 +5,21 @@
 # Usage:  ./scripts/generate-schema-doc.sh          (from repo root)
 #         npm run schema-doc                         (from scripts/)
 #
-# Requires: psql, a .env file at repo root with SUPABASE_DB_URL.
+# Requires: psql, SUPABASE_DB_URL (env var or in .env at repo root).
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$REPO_ROOT/docs/SCHEMA.md"
 
-# shellcheck disable=SC1091
-source "$REPO_ROOT/.env"
+# Prefer env var (CI sets it directly); fall back to .env for local dev.
+if [ -z "${SUPABASE_DB_URL:-}" ] && [ -f "$REPO_ROOT/.env" ]; then
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/.env"
+fi
 
 if [ -z "${SUPABASE_DB_URL:-}" ]; then
-  echo "Error: SUPABASE_DB_URL is not set. Check your .env file." >&2
+  echo "Error: SUPABASE_DB_URL is not set. Provide it as an env var or in .env." >&2
   exit 1
 fi
 
