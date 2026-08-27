@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "schema-doc": "bash generate-schema-doc.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.3",
