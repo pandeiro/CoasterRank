@@ -1,0 +1,7 @@
+# This applies globally to all contexts unless overridden
+[build]
+  ignore = "true"  # Exits 0, forcing Netlify to cancel production builds
+
+# This overrides the global build block specifically for Pull Requests
+[context.deploy-preview]
+  ignore = "false" # Exits 1, forcing Netlify to run the preview build
