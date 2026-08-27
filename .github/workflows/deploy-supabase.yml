@@ -11,7 +11,7 @@ on:
       - '.github/workflows/deploy-supabase.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -30,6 +30,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: ${{ secrets.PROJECT_REF }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -80,6 +81,34 @@ jobs:
               echo "Skipping $name — no index.ts/index.js entrypoint found."
             fi
           done
+
+      # ── Schema-doc regeneration ──────────────────────────────────────
+      - name: Checkout (clean tree for schema-doc)
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Generate schema docs
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+        run: npm ci && npm run schema-doc
+        working-directory: scripts
+
+      - name: Commit schema docs if changed
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+        run: |
+          git diff --quiet docs/SCHEMA.md && echo "No changes" && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/SCHEMA.md
+          git commit -m "docs: regenerate SCHEMA.md [skip ci]"
+          git push
 
       # Runs only if any step above actually failed (not skipped). Skipped steps
       # don't trigger failure(), so the no-op-when-secrets-missing behavior is
