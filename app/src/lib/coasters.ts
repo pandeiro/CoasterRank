@@ -225,6 +225,7 @@ export type CoasterSubmission = {
   reviewed_by: string | null
   created_at: string
   reviewed_at: string | null
+  profiles?: { id: string; avatar_url: string | null; username: string | null } | null
 }
 
 export async function submitCoaster(data: {
@@ -257,7 +258,7 @@ export async function submitCoaster(data: {
 export async function getPendingSubmissions() {
   const { data, error } = await supabase
     .from('coaster_submissions')
-    .select('*')
+    .select('*, profiles!submitted_by(id, avatar_url, username)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
   if (error) throw error
