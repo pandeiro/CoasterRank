@@ -72,17 +72,19 @@ jobs:
           BYTES=$(stat -c%s "/tmp/${FILENAME}" 2>/dev/null || stat -f%z "/tmp/${FILENAME}")
           echo "### Backup created: ${FILENAME} (${SIZE}, ${BYTES} bytes)" >> "$GITHUB_STEP_SUMMARY"
 
-          # Verify backup is not an empty gzip header (20 bytes) and contains SQL dump header
+          # Verify backup is not an empty gzip header (20 bytes)
           if [ "$BYTES" -lt 1024 ]; then
             echo "::error::Backup file too small (${BYTES} bytes) — pg_dump likely failed (empty gzip header is 20 bytes)."
             exit 1
           fi
-          # Use grep without head -c to avoid SIGPIPE+pipefail false failure (head exits 141 when grep -q closes pipe)
-          if ! gunzip -c "/tmp/${FILENAME}" | grep -q "PostgreSQL database dump"; then
+          # Header check: disable pipefail for grep -q SIGPIPE (grep exits early, head would be 141)
+          set +o pipefail
+          if ! gunzip -c "/tmp/${FILENAME}" | grep -a -q "PostgreSQL database dump"; then
             echo "::error::Backup file does not contain PostgreSQL dump header — pg_dump probably errored."
             gunzip -c "/tmp/${FILENAME}" | head -n 30 || true
             exit 1
           fi
+          set -o pipefail
 
           echo "FILENAME=${FILENAME}" >> "$GITHUB_OUTPUT"
 
