@@ -14,6 +14,7 @@ import {
   Panel,
   selectClassName,
 } from '../components/ui'
+import Avatar from '../components/ui/Avatar'
 import {
   getPendingSubmissions,
   rejectSubmission,
@@ -473,6 +474,16 @@ export default function AdminPage() {
                         <div className="flex-1">
                           <h3 className="font-semibold">{s.coaster_name}</h3>
                           <p className="text-sm text-muted">{s.park_name}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Avatar
+                              src={s.profiles?.avatar_url ?? null}
+                              userId={s.submitted_by}
+                              size={20}
+                            />
+                            <span className="text-xs text-muted">
+                              {s.profiles?.username ?? 'Unknown user'}
+                            </span>
+                          </div>
                           <div className="mt-2 max-h-24 overflow-auto rounded-lg border border-line bg-surface-bright p-2 font-mono text-xs">
                             <pre>{JSON.stringify(s.suggested_fields, null, 2)}</pre>
                           </div>
