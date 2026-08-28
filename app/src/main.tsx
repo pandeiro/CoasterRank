@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react'
 import { initSentry } from './lib/sentry'
 import './index.css'
 import App from './App.tsx'
+import ErrorFallback from './components/ErrorFallback'
 
 initSentry()
 
@@ -28,20 +29,7 @@ console.log(`
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Sentry.ErrorBoundary
-      fallback={
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h1>Something went wrong</h1>
-          <p>An unexpected error occurred. Please try reloading the page.</p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
-          >
-            Reload Page
-          </button>
-        </div>
-      }
-    >
+    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <App />
     </Sentry.ErrorBoundary>
   </StrictMode>,

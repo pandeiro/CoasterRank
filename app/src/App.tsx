@@ -18,33 +18,25 @@ import SignupPage from './pages/SignupPage'
 import SubmitPage from './pages/SubmitPage'
 import TermsPage from './pages/TermsPage'
 import React from 'react'
+import ErrorFallback from './components/ErrorFallback'
 
 function RootErrorBoundary() {
-  const error = useRouteError() as Error
+  const error = useRouteError()
 
   React.useEffect(() => {
-    Sentry.captureException(error)
+    if (error) {
+      Sentry.captureException(error)
+    }
   }, [error])
 
-  return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Something went wrong</h1>
-      <p style={{ marginBottom: '2rem' }}>An unexpected error occurred while loading this page.</p>
-      <button
-        onClick={() => window.location.reload()}
-        style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
-      >
-        Reload Page
-      </button>
-    </div>
-  )
+  return <ErrorFallback />
 }
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error) => {
-      if (error.name === 'AbortError') return
-      Sentry.captureException(error)
+    onError: (error, query) => {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      Sentry.captureException(error, { extra: { queryKey: query.queryKey } })
     },
   }),
 })

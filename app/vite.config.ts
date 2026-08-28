@@ -42,7 +42,7 @@ export default defineConfig({
   envDir: '..',
   plugins: [
     react(),
-    process.env.SENTRY_AUTH_TOKEN
+    process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
       ? sentryVitePlugin({
           org: process.env.SENTRY_ORG,
           project: process.env.SENTRY_PROJECT,
@@ -62,7 +62,7 @@ export default defineConfig({
     __IS_DIRTY__: JSON.stringify(buildInfo.dirty),
   },
   build: {
-    sourcemap: true,
+    sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     rollupOptions: {
       input: {
         app: resolve('index.html'),
