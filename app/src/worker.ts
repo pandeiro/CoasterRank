@@ -17,17 +17,10 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url)
-
-    // These prefixes are declared in wrangler.toml `run_worker_first` so they
-    // always hit the Worker. For now just serve the static asset (SPA shell).
-    // TODO: implement /api and /riders logic
-    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/riders/')) {
-      // Fall through to assets — keeps behavior identical to not having a Worker
-      // until real logic lands. Returns 404 if no matching asset (expected for now).
-      return env.ASSETS.fetch(request)
-    }
-
+    // Stub: both /api/* and /riders/* are forced through the Worker via
+    // wrangler.toml `run_worker_first`. Intentionally identical branches
+    // until fast-follow implements real logic (see TODOs above).
+    // All paths currently proxy to static assets (SPA shell / 404).
     return env.ASSETS.fetch(request)
   },
 }
