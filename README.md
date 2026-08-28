@@ -106,4 +106,9 @@ cd packages/bt && npm install  # Bradley-Terry algorithm work + tests
 
 ## License
 
-TBD.
+This project uses a dual-license structure:
+
+- **Code** ([`LICENSE`](LICENSE)): MIT License — covers all source code, configuration, scripts, and infrastructure.
+- **Data** ([`DATA_LICENSE`](DATA_LICENSE)): CC BY 4.0 — covers the combined coaster dataset (seed data, curation, deduplication, and community rankings).
+
+The seed coaster catalog originates from CC0/public-domain sources. The CC BY 4.0 license applies to the curated and enriched dataset that CoasterRank builds on top of it.
