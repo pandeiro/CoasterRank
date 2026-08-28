@@ -58,7 +58,7 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
           <button
             type="button"
             onClick={() => {
-              throw new Error("Sentry Test Error: Manual Trigger");
+              throw new Error('Sentry Test Error: Manual Trigger')
             }}
             className="inline-flex items-center rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/20"
             title="Test Sentry Error"
