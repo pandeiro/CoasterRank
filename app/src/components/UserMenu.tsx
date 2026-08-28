@@ -51,27 +51,15 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
   }, [isOpen])
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative flex items-center" ref={menuRef}>
       {/* Admin pill */}
       {profile?.is_admin && (
-        <div className="mr-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              throw new Error('Sentry Test Error: Manual Trigger')
-            }}
-            className="inline-flex items-center rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/20"
-            title="Test Sentry Error"
-          >
-            Test
-          </button>
-          <NavLink
-            to="/admin"
-            className="inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-strong transition-colors hover:bg-accent/20"
-          >
-            Admin
-          </NavLink>
-        </div>
+        <NavLink
+          to="/admin"
+          className="mr-3 inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-strong transition-colors hover:bg-accent/20"
+        >
+          Admin
+        </NavLink>
       )}
 
       {/* Avatar button */}
