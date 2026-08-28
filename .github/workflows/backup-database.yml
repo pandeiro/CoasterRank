@@ -46,6 +46,7 @@ jobs:
       - name: Create backup
         id: create-backup
         run: |
+          set -euo pipefail
           DATE=$(date -u +%Y-%m-%d)
           FILENAME="coasterrank-${DATE}.sql.gz"
 
@@ -53,11 +54,17 @@ jobs:
           pg_dump "$SUPABASE_DB_URL" | gzip > "/tmp/${FILENAME}"
 
           SIZE=$(du -h "/tmp/${FILENAME}" | cut -f1)
-          echo "### Backup created: ${FILENAME} (${SIZE})" >> "$GITHUB_STEP_SUMMARY"
+          BYTES=$(stat -c%s "/tmp/${FILENAME}" 2>/dev/null || stat -f%z "/tmp/${FILENAME}")
+          echo "### Backup created: ${FILENAME} (${SIZE}, ${BYTES} bytes)" >> "$GITHUB_STEP_SUMMARY"
 
-          # Verify the backup is not empty
-          if [ ! -s "/tmp/${FILENAME}" ]; then
-            echo "::error::Backup file is empty — pg_dump likely failed silently."
+          # Verify backup is not an empty gzip header (20 bytes) and contains SQL dump header
+          if [ "$BYTES" -lt 1024 ]; then
+            echo "::error::Backup file too small (${BYTES} bytes) — pg_dump likely failed (empty gzip header is 20 bytes)."
+            exit 1
+          fi
+          if ! gunzip -c "/tmp/${FILENAME}" | head -c 2048 | grep -q "PostgreSQL database dump"; then
+            echo "::error::Backup file does not contain PostgreSQL dump header — pg_dump probably errored."
+            gunzip -c "/tmp/${FILENAME}" | head -c 500 || true
             exit 1
           fi
 
