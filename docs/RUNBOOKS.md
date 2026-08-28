@@ -159,7 +159,7 @@ Five GitHub repo secrets must be set in **Settings → Secrets and variables →
 
 | Secret | Value |
 | --- | --- |
-| `SUPABASE_DB_URL` | Direct Postgres connection string (already used by `deploy-supabase.yml`) |
+| `SUPABASE_DB_URL` | Session pooler Postgres URL `postgresql://postgres.<PROJECT_REF>:<PW>@aws-0-us-west-2.pooler.supabase.com:5432/postgres` (Dashboard → Database → Connect → Session pooler; direct `db.<ref>.supabase.co` is IPv6-only and fails on GH runners — also used by `deploy-supabase.yml` for `generate-schema-doc.sh`) |
 | `BACKUP_PAT` | A personal access token (classic) with `repo` scope, used to push to the backup repo |
 | `BACKUP_REPO` | Target repo in `owner/repo` format |
 | `COASTER_RANK_EVENTS_BOT_TOKEN` | Telegram bot token for success event notifications |
