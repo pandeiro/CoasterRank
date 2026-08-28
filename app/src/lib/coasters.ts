@@ -371,7 +371,7 @@ export type Coaster = {
 // A coaster row as the admin console sees it: the full row plus the joined
 // park name, manufacturer name, and ride count.
 export type AdminCoaster = Coaster & {
-  parks: { name: string } | null
+  parks: { name: string; slug: string } | null
   manufacturers: { name: string } | null
   ride_count: number
 }
@@ -379,7 +379,7 @@ export type AdminCoaster = Coaster & {
 export async function getAllCoastersAdmin() {
   const { data, error } = await supabase
     .from('coasters')
-    .select('*, parks(name), manufacturers(name), ride_count:user_rides(count)')
+    .select('*, parks(name, slug), manufacturers(name), ride_count:user_rides(count)')
     .order('name')
     .range(0, 9999)
   if (error) throw error
