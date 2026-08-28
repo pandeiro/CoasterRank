@@ -85,7 +85,7 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
           />
 
           <div
-            className="fixed left-0 right-0 top-16 z-50 border-b border-line bg-surface-bright shadow-lg sm:absolute sm:right-auto sm:left-auto sm:top-full sm:mt-2 sm:left-auto sm:right-0 sm:w-48 sm:rounded-xl sm:border sm:border-line sm:shadow-lift"
+            className="fixed inset-x-0 top-16 z-50 border-b border-line bg-surface-bright shadow-lg sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-48 sm:rounded-xl sm:border sm:border-line sm:shadow-lift"
             role="menu"
           >
             <div className="flex flex-col py-1">
