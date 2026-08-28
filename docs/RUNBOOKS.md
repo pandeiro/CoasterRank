@@ -141,3 +141,51 @@ code; this section records what that is and where the app adds its own guards.
 If spam appears despite the above, the first knobs to reach for are the Supabase Auth rate-limit
 settings and tightening `SUBMISSION_PENDING_CAP`; only add custom server-side throttling if those
 prove insufficient.
+
+## Nightly database backups
+
+The `backup-database` GitHub Actions workflow runs nightly at 4 AM ET (cron `0 8 * * * UTC`).
+It dumps the Supabase Postgres database via `pg_dump`, gzips it, and pushes the file to the
+private [`CoasterRankBackups`](https://github.com/pandeiro/CoasterRankBackups) repo.
+
+### Retention policy
+
+Backups are named `coasterrank-YYYY-MM-DD.sql.gz` and retained for **7 days**. The cleanup step
+runs automatically after each new backup is pushed.
+
+### Prerequisites
+
+Four GitHub repo secrets must be set in **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+| --- | --- |
+| `SUPABASE_DB_URL` | Direct Postgres connection string (already used by `deploy-supabase.yml`) |
+| `BACKUP_PAT` | A personal access token (classic) with `repo` scope, used to push to `CoasterRankBackups` |
+| `COASTER_RANK_EVENTS_BOT_TOKEN` | Telegram bot token for success event notifications |
+| `COASTER_RANK_ALERTS_BOT_TOKEN` | Telegram bot token for failure alert notifications |
+
+To generate `BACKUP_PAT`:
+
+1. Go to <https://github.com/settings/tokens>.
+2. Click **Generate new token (classic)**.
+3. Name: `CoasterRank backup push`. Expiration: 90 days (rotate before expiry).
+4. Scope: check **repo** (full control of private repositories).
+5. Generate, copy the token, and paste it into the `BACKUP_PAT` repo secret.
+
+### Manual trigger
+
+From the Actions tab, select **backup-database** → **Run workflow**. The backup will appear in
+`CoasterRankBackups` within minutes.
+
+### Verifying a backup
+
+```bash
+gh repo clone pandeiro/CoasterRankBackups /tmp/backup-repo
+ls -lh /tmp/backup-repo/coasterrank-*.sql.gz
+```
+
+To restore a backup locally:
+
+```bash
+gunzip -c coasterrank-YYYY-MM-DD.sql.gz | psql "postgresql://localhost:5432/your_local_db"
+```

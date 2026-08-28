@@ -1,0 +1,155 @@
+name: backup-database
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # 4 AM ET = 8 AM UTC
+  workflow_dispatch: # manual "Run backup" button
+
+permissions:
+  contents: read
+
+env:
+  BACKUP_REPO: pandeiro/CoasterRankBackups
+  RETENTION_DAYS: 7
+
+jobs:
+  backup:
+    name: backup-database/pg-dump-and-rotate
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      EVENTS_BOT_TOKEN: ${{ secrets.COASTER_RANK_EVENTS_BOT_TOKEN }}
+      ALERTS_BOT_TOKEN: ${{ secrets.COASTER_RANK_ALERTS_BOT_TOKEN }}
+      TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
+    steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set. Add it in repo Settings → Secrets → Actions."
+            exit 1
+          fi
+          if [ -z "$BACKUP_PAT" ]; then
+            echo "::error::BACKUP_PAT secret is not set. Generate a PAT with 'repo' scope at https://github.com/settings/tokens and add it as a repo secret."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Create backup
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          FILENAME="coasterrank-${DATE}.sql.gz"
+
+          echo "Dumping database to ${FILENAME}..."
+          pg_dump "$SUPABASE_DB_URL" | gzip > "/tmp/${FILENAME}"
+
+          SIZE=$(du -h "/tmp/${FILENAME}" | cut -f1)
+          echo "### Backup created: ${FILENAME} (${SIZE})" >> "$GITHUB_STEP_SUMMARY"
+
+          # Verify the backup is not empty
+          if [ ! -s "/tmp/${FILENAME}" ]; then
+            echo "::error::Backup file is empty — pg_dump likely failed silently."
+            exit 1
+          fi
+
+          echo "FILENAME=${FILENAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Clone backup repo
+        run: |
+          git clone "https://x-access-token:${BACKUP_PAT}@github.com/${BACKUP_REPO}.git" /tmp/backup-repo
+
+      - name: Copy backup and rotate old files
+        id: copy-and-rotate
+        run: |
+          cd /tmp/backup-repo
+
+          # Copy new backup in
+          cp "/tmp/${FILENAME}" .
+
+          # Remove backups older than RETENTION_DAYS
+          DELETED=$(find . -name 'coasterrank-*.sql.gz' -mtime +${RETENTION_DAYS} -print -delete)
+          if [ -n "$DELETED" ]; then
+            echo "### Rotated (deleted):" >> "$GITHUB_STEP_SUMMARY"
+            echo "$DELETED" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Stage changes
+          git add -A
+
+          # Check if there's anything to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            echo "nothing_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "backup: ${FILENAME}"
+            echo "nothing_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push to backup repo
+        if: steps.copy-and-rotate.outputs.nothing_changed == 'false'
+        run: |
+          cd /tmp/backup-repo
+          git push origin main
+
+      - name: List current backups
+        id: list-backups
+        run: |
+          cd /tmp/backup-repo
+          echo "### Current backups in ${BACKUP_REPO}:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          ls -lh coasterrank-*.sql.gz 2>/dev/null || echo "No backups found"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          BACKUP_COUNT=$(ls coasterrank-*.sql.gz 2>/dev/null | wc -l)
+          echo "count=${BACKUP_COUNT}" >> "$GITHUB_OUTPUT"
+
+      # ── Telegram notifications ──────────────────────────────────────
+      - name: Notify success (CoasterRankEvents)
+        if: success() && env.EVENTS_BOT_TOKEN != ''
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          SIZE=$(du -h "/tmp/${{ steps.create-backup.outputs.FILENAME }}" | cut -f1)
+          BACKUP_COUNT=${{ steps.list-backups.outputs.count }}
+          MSG="✅ Backup completed successfully
+
+📦 File: ${{ steps.create-backup.outputs.FILENAME }}
+📏 Size: ${SIZE}
+🗄️ Backups stored: ${BACKUP_COUNT}
+⏰ Retention: ${RETENTION_DAYS} days"
+
+          curl -sf -X POST "https://api.telegram.org/bot${EVENTS_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_USER_ID}" \
+            -d text="${MSG}" \
+            -d parse_mode="Markdown"
+
+      - name: Notify failure (CoasterRankAlerts)
+        if: failure() && env.ALERTS_BOT_TOKEN != ''
+        run: |
+          REPO="${{ github.repository }}"
+          RUN_URL="${{ github.server_url }}/${REPO}/actions/runs/${{ github.run_id }}"
+          MSG="🚨 Backup FAILED
+
+🗄️ Repo: ${REPO}
+⏰ Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+🔗 Run: ${RUN_URL}"
+
+          # Add specific failure details
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            MSG="${MSG}
+
+❌ Cause: SUPABASE_DB_URL secret is not set."
+          elif [ -z "$BACKUP_PAT" ]; then
+            MSG="${MSG}
+
+❌ Cause: BACKUP_PAT secret is not set."
+          fi
+
+          curl -sf -X POST "https://api.telegram.org/bot${ALERTS_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_USER_ID}" \
+            -d text="${MSG}" \
+            -d parse_mode="Markdown"
