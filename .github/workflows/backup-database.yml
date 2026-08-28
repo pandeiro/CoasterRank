@@ -9,7 +9,6 @@ permissions:
   contents: read
 
 env:
-  BACKUP_REPO: pandeiro/CoasterRankBackups
   RETENTION_DAYS: 7
 
 jobs:
@@ -19,6 +18,7 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      BACKUP_REPO: ${{ secrets.BACKUP_REPO }}
       EVENTS_BOT_TOKEN: ${{ secrets.COASTER_RANK_EVENTS_BOT_TOKEN }}
       ALERTS_BOT_TOKEN: ${{ secrets.COASTER_RANK_ALERTS_BOT_TOKEN }}
       TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
@@ -31,6 +31,10 @@ jobs:
           fi
           if [ -z "$BACKUP_PAT" ]; then
             echo "::error::BACKUP_PAT secret is not set. Generate a PAT with 'repo' scope at https://github.com/settings/tokens and add it as a repo secret."
+            exit 1
+          fi
+          if [ -z "$BACKUP_REPO" ]; then
+            echo "::error::BACKUP_REPO secret is not set. Set it to the target repo in 'owner/repo' format (e.g. pandeiro/CoasterRankBackups)."
             exit 1
           fi
 

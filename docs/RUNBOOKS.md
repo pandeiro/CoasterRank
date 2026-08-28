@@ -155,12 +155,13 @@ runs automatically after each new backup is pushed.
 
 ### Prerequisites
 
-Four GitHub repo secrets must be set in **Settings → Secrets and variables → Actions**:
+Five GitHub repo secrets must be set in **Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 | --- | --- |
 | `SUPABASE_DB_URL` | Direct Postgres connection string (already used by `deploy-supabase.yml`) |
-| `BACKUP_PAT` | A personal access token (classic) with `repo` scope, used to push to `CoasterRankBackups` |
+| `BACKUP_PAT` | A personal access token (classic) with `repo` scope, used to push to the backup repo |
+| `BACKUP_REPO` | Target repo in `owner/repo` format (e.g. `pandeiro/CoasterRankBackups`) |
 | `COASTER_RANK_EVENTS_BOT_TOKEN` | Telegram bot token for success event notifications |
 | `COASTER_RANK_ALERTS_BOT_TOKEN` | Telegram bot token for failure alert notifications |
 
