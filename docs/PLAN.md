@@ -237,7 +237,7 @@ A single `.env` at the repo root (gitignored) holds everything. Vite reads it vi
 
 **Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
 
-GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`.
+GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`, `BACKUP_PAT`, `COASTER_RANK_EVENTS_BOT_TOKEN`, `COASTER_RANK_ALERTS_BOT_TOKEN`, `TELEGRAM_USER_ID`.
 Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
 
 ## 9. Deployment & CI/CD
@@ -258,7 +258,14 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 - **Deploy**: `npm run build` in `app/`, then `npx netlify-cli deploy --prod --dir=app/dist`.
 - **Prerequisites**: `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub repo secrets. Netlify's "Auto-deploy on push to main" must be **disabled** in the Netlify dashboard (Site settings → Build & deploy → Continuous deployment) so that merges don't trigger a deploy independently.
 
-### 9.5 SPA hosting — Netlify
+### 9.5 Database backup workflow (`.github/workflows/backup-database.yml`)
+- **Schedule**: runs nightly at 4 AM ET (cron `0 8 * * *` UTC), plus manual `workflow_dispatch`.
+- **Action**: runs `pg_dump` against `SUPABASE_DB_URL`, gzips the output, and pushes to the private [`CoasterRankBackups`](https://github.com/pandeiro/CoasterRankBackups) repo.
+- **Retention**: 7-day rotation. Old backups (`coasterrank-YYYY-MM-DD.sql.gz`) are automatically deleted before each commit.
+- **Prerequisites**: `SUPABASE_DB_URL` (direct Postgres connection, already a repo secret) and `BACKUP_PAT` (PAT with `repo` scope, must be generated manually — see `docs/RUNBOOKS.md`).
+- **Failure notifications**: workflow annotations surface the cause (missing secrets, empty dump).
+
+### 9.6 SPA hosting — Netlify
 - Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploy on push to `main` is **disabled** — deploys are handled by the scheduled GitHub Action (§9.4).
 - SPA fallback: `app/public/_redirects` → `/*  /index.html  200` (already in the scaffold).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
