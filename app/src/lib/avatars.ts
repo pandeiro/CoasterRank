@@ -52,15 +52,13 @@ function tintImage(source: HTMLImageElement, color: (typeof PASTEL_COLORS)[numbe
   const sy = (source.height - srcSize) / 2
   ctx.drawImage(source, sx, sy, srcSize, srcSize, 0, 0, SIZE, SIZE)
 
-  // Apply color tint using "multiply" blend mode
+  // Apply color tint at reduced opacity for a softer pastel effect
   ctx.globalCompositeOperation = 'multiply'
+  ctx.globalAlpha = 0.6
   ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`
   ctx.fillRect(0, 0, SIZE, SIZE)
-
-  // Reduce opacity to soften the tint
-  ctx.globalCompositeOperation = 'destination-over'
-  ctx.fillStyle = `rgb(255, 255, 255)`
-  ctx.fillRect(0, 0, SIZE, SIZE)
+  ctx.globalAlpha = 1.0
+  ctx.globalCompositeOperation = 'source-over'
 
   return canvas.toDataURL('image/jpeg', 0.85)
 }
