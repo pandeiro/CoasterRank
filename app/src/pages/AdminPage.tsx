@@ -885,7 +885,14 @@ export default function AdminPage() {
                       <tbody className="divide-y divide-line/70">
                         {visibleParks.map((p) => (
                           <tr key={p.id} className="transition-colors hover:bg-canvas">
-                            <td className="py-2">{p.name}</td>
+                            <td className="py-2">
+                              <Link
+                                to={`/parks/${p.slug}`}
+                                className="font-semibold text-ink underline-offset-4 hover:underline"
+                              >
+                                {p.name}
+                              </Link>
+                            </td>
                             <td className="py-2 text-muted">{p.city || '—'}</td>
                             <td className="py-2 text-muted">{p.country || '—'}</td>
                             <td className="py-2 text-muted">
