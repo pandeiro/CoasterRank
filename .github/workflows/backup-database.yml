@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
           if [ -z "$BACKUP_REPO" ]; then
-            echo "::error::BACKUP_REPO secret is not set. Set it to the target repo in 'owner/repo' format (e.g. pandeiro/CoasterRankBackups)."
+            echo "::error::BACKUP_REPO secret is not set. Set it to the target repo in 'owner/repo' format."
             exit 1
           fi
 
