@@ -152,7 +152,7 @@ Extracted from `COMMENTS_RAW.md`. Each comment is de-duped and paired with its o
 
 **Original Context**: Section 21 (Budget-conscious implementation) — low-cost stack, local ETL.
 
-**Consolidated Comment**: Our stack includes Supabase free tier (Postgres, Edge Functions, object store) and Netlify. We can do a lot locally: consider a monthly, manually kicked-off big scrape/processing job using a lightweight local LLM (e.g., Qwen 2.7B). Also have Brave Search API key for discovery. Could shift to remote if useful. Not sure about News APIs or Reddit scraping (browser extension for manual surf/extract of key subreddits?).
+**Consolidated Comment**: Our stack includes Supabase free tier (Postgres, Edge Functions, object store) and Cloudflare Pages (free, 500 builds/mo). We can do a lot locally: consider a monthly, manually kicked-off big scrape/processing job using a lightweight local LLM (e.g., Qwen 2.7B). Also have Brave Search API key for discovery. Could shift to remote if useful. Not sure about News APIs or Reddit scraping (browser extension for manual surf/extract of key subreddits?).
 
 ---
 

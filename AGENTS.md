@@ -11,7 +11,7 @@ supabase/            # Supabase CLI config + migrations + edge functions
   migrations/        # SQL migrations (created via `supabase migration new`)
   functions/         # Deno Edge Functions
 docs/PLAN.md         # authoritative project plan & decision log
-docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Netlify, ...)
+docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
   src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
 supabase/functions/recompute-rankings/  # Deno Edge Function: pairwise RPCs -> MM -> upsert coaster_ratings
@@ -113,10 +113,7 @@ used in CI (as a GitHub repo secret).
 
 ## Deployment (summary; full detail in docs/PLAN.md §11)
 
-- **SPA**: Netlify, scheduled daily deploy via GitHub Actions (`deploy-netlify.yml`, 3 PM ET +
-  manual trigger). Only deploys if HEAD differs from the last successful Netlify deploy (SHA check
-  via API). Build `npm run build` in `app/`; publish `app/dist`. Auto-deploy on push to `main` is
-  **disabled** in the Netlify dashboard. SPA fallback via `app/public/_redirects` (`/* /index.html 200`).
+- **SPA**: Cloudflare Pages, auto-deployed on push to main. Build `npm run build` in `app/`; publish `app/dist`. SPA fallback via `app/public/_redirects` (`/* /index.html 200`).
 - **Schema + functions**: GitHub Actions on merge to `main` runs `supabase db push` then
   `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**` **and
   `packages/bt/**`** — the Edge Function bundles `packages/bt/src/mm.ts` at deploy time, so
@@ -131,7 +128,7 @@ used in CI (as a GitHub repo secret).
 ## Runbooks
 
 One-time / rare operational tasks (admin bootstrap, Supabase project creation, recompute bootstrap
-+ manual trigger, Netlify connect, custom domain, test-user cleanup) live in
++ manual trigger, Cloudflare connect, custom domain, test-user cleanup) live in
 **[`docs/RUNBOOKS.md`](docs/RUNBOOKS.md)** — read it on demand when the task arises.
 
 ## Conventions
@@ -139,7 +136,7 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - TypeScript strict mode is on. No `any` without justification.
 - Linter is **oxlint** (not ESLint) per the Vite template; formatter is Prettier.
 - Run `npm run format` before committing; CI enforces `format:check`.
-- No secrets in code. Secrets live in `.env` (local) or GitHub/Netlify secrets (CI/hosting).
+- No secrets in code. Secrets live in `.env` (local) or GitHub/Cloudflare secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
 - **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching rows — the row count may be unknown at query time.
 
