@@ -115,7 +115,7 @@ export function useAvatarUpload(userId: string) {
       const { error: deleteError } = await supabase.storage.from(STORAGE_BUCKET).remove([path])
 
       // Ignore "not found" errors — the file may already be gone.
-      if (deleteError && (!isStorageError(deleteError) || deleteError.statusCode !== 'NoSuchKey')) {
+      if (deleteError && (!isStorageError(deleteError) || deleteError.status !== 404)) {
         throw deleteError
       }
 
