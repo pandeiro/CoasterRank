@@ -1,7 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import * as Sentry from '@sentry/react'
+import { initSentry } from './lib/sentry'
 import './index.css'
 import App from './App.tsx'
+import ErrorFallback from './components/ErrorFallback'
+
+initSentry()
 
 console.log(`
 ██╗    ██╗███████╗██╗      ██████╗  ██████╗ ███╗   ███╗███████╗    ████████╗ ██████╗
@@ -24,6 +29,8 @@ console.log(`
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+      <App />
+    </Sentry.ErrorBoundary>
   </StrictMode>,
 )
