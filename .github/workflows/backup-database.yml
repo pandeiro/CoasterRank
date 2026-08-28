@@ -77,9 +77,10 @@ jobs:
             echo "::error::Backup file too small (${BYTES} bytes) — pg_dump likely failed (empty gzip header is 20 bytes)."
             exit 1
           fi
-          if ! gunzip -c "/tmp/${FILENAME}" | head -c 2048 | grep -q "PostgreSQL database dump"; then
+          # Use grep without head -c to avoid SIGPIPE+pipefail false failure (head exits 141 when grep -q closes pipe)
+          if ! gunzip -c "/tmp/${FILENAME}" | grep -q "PostgreSQL database dump"; then
             echo "::error::Backup file does not contain PostgreSQL dump header — pg_dump probably errored."
-            gunzip -c "/tmp/${FILENAME}" | head -c 500 || true
+            gunzip -c "/tmp/${FILENAME}" | head -n 30 || true
             exit 1
           fi
 
