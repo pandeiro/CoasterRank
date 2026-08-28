@@ -113,8 +113,7 @@ used in CI (as a GitHub repo secret).
 
 ## Deployment (summary; full detail in docs/PLAN.md §11)
 
-- **SPA**: Cloudflare Pages, scheduled daily deploy via GitHub Actions (`deploy-cloudflare.yml`, 3 PM ET +
-  manual trigger). Build `npm run build` in `app/`; publish `app/dist`. SPA fallback via `app/public/_redirects` (`/* /index.html 200`).
+- **SPA**: Cloudflare Pages, auto-deployed on push to main. Build `npm run build` in `app/`; publish `app/dist`. SPA fallback via `app/public/_redirects` (`/* /index.html 200`).
 - **Schema + functions**: GitHub Actions on merge to `main` runs `supabase db push` then
   `supabase functions deploy recompute-rankings` (path-filtered on `supabase/**` **and
   `packages/bt/**`** — the Edge Function bundles `packages/bt/src/mm.ts` at deploy time, so
