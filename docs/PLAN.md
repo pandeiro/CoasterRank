@@ -237,8 +237,8 @@ A single `.env` at the repo root (gitignored) holds everything. Vite reads it vi
 
 **Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
 
-GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`, `BACKUP_PAT`, `COASTER_RANK_EVENTS_BOT_TOKEN`, `COASTER_RANK_ALERTS_BOT_TOKEN`, `TELEGRAM_USER_ID`.
-Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
+GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `BACKUP_PAT`, `COASTER_RANK_EVENTS_BOT_TOKEN`, `COASTER_RANK_ALERTS_BOT_TOKEN`, `TELEGRAM_USER_ID`.
+Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
 
 ## 9. Deployment & CI/CD
 
@@ -265,15 +265,15 @@ Netlify site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected a
 - **Prerequisites**: `SUPABASE_DB_URL` (direct Postgres connection, already a repo secret) and `BACKUP_PAT` (PAT with `repo` scope, must be generated manually — see `docs/RUNBOOKS.md`).
 - **Failure notifications**: workflow annotations surface the cause (missing secrets, empty dump).
 
-### 9.6 SPA hosting — Netlify
-- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`. Auto-deploy on push to `main` is **disabled** — deploys are handled by the scheduled GitHub Action (§9.4).
-- SPA fallback: `app/public/_redirects` → `/*  /index.html  200` (already in the scaffold).
+### 9.6 SPA hosting — Cloudflare Pages
+- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`.
+- SPA fallback: `app/public/_redirects` → `/* /index.html 200` (supported natively by CF Pages).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- A free `*.netlify.app` URL works end-to-end before any custom domain.
+- A free `*.pages.dev` URL works end-to-end before any custom domain.
 
 ### 9.4 Custom domain (whenever you go public)
 1. Register the domain (~$10–15/yr).
-2. Netlify → Domain settings → Add custom domain (apex + `www` DNS per Netlify's instructions). HTTPS (Let's Encrypt) is auto-provisioned.
+2. Cloudflare Pages → Custom domains → Add custom domain (apex + `www` DNS per Cloudflare's instructions). HTTPS is auto-provisioned.
 3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
 
 ### 9.5 Go-live checklist
@@ -282,8 +282,8 @@ Run once before sharing the site publicly; re-run the **auth-critical** steps wh
 public URL changes (Netlify URL → custom domain, §9.4). If these are missed, signup and
 confirmation emails point at the wrong host and new accounts can never confirm on prod.
 
-- [ ] **Netlify deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Netlify site env.
-- [ ] **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.netlify.app` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
+- **Netlify deploy green** → **Cloudflare deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Cloudflare site env.
+- **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.pages.dev` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
 - [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
 - [ ] **Admin bootstrapped** — SQL runbook in `docs/RUNBOOKS.md`; verify the admin badge shows on `/me/profile` on prod.
 - [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.
