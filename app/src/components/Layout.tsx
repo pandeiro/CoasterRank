@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
+import UserMenu from './UserMenu'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? 'font-medium text-ink' : 'text-muted transition-colors hover:text-ink'
@@ -37,26 +38,7 @@ export default function Layout() {
           </Link>
           <nav className="flex items-center gap-3 text-sm sm:gap-5">
             {isLoading ? null : user ? (
-              <>
-                <NavLink to="/me" className={navLinkClass}>
-                  My Coasters
-                </NavLink>
-                {profile?.is_admin && (
-                  <NavLink to="/admin" className={navLinkClass}>
-                    Admin
-                  </NavLink>
-                )}
-                <NavLink to="/me/profile" className={navLinkClass}>
-                  Profile
-                </NavLink>
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="text-muted transition-colors hover:text-ink"
-                >
-                  Sign out
-                </button>
-              </>
+              <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
             ) : (
               <>
                 <NavLink to="/login" className={navLinkClass}>
