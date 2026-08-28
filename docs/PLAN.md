@@ -254,7 +254,7 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 
 ### 9.4 SPA deploy workflow (Cloudflare Pages auto-deploy)
 - **Trigger**: Cloudflare Pages auto-deploys on every push to `main` (no GitHub workflow). Free tier includes 500 builds/mo — no SHA-gate needed.
-- **Build**: Cloudflare runs `npm run build` with root directory `app/`; output directory `app/dist` is declared in `app/wrangler.toml` (`assets.directory = "./dist"`) and served via `app/public/_redirects` (`/* /index.html 200`).
+- **Build**: Cloudflare runs `npm run build` with root directory `app/`; output directory `app/dist` is declared in `app/wrangler.toml` (`assets.directory = "./dist"`, `assets.not_found_handling = "single-page-application"` for SPA fallback).
 - **Env**: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard (Pages → Settings → Environment variables).
 - **Note**: For future Worker integration, extend `app/wrangler.toml` with `main = "..."` — no hosting migration needed.
 
@@ -265,9 +265,8 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 - **Prerequisites**: `SUPABASE_DB_URL` (direct Postgres connection, already a repo secret) and `BACKUP_PAT` (PAT with `repo` scope, must be generated manually — see `docs/RUNBOOKS.md`).
 - **Failure notifications**: workflow annotations surface the cause (missing secrets, empty dump).
 
-### 9.6 SPA hosting — Cloudflare Pages
-- Connect the GitHub repo; build command `npm run build`; base directory `app/`; publish directory `app/dist`.
-- SPA fallback: `app/public/_redirects` → `/* /index.html 200` (supported natively by CF Pages).
+### 9.6 SPA hosting — Cloudflare Workers (unified, single project)
+- Connect the GitHub repo; build command `npm run build`; root directory `app/`; `app/wrangler.toml` declares `assets.directory = "./dist"` + `assets.not_found_handling = "single-page-application"` for SPA fallback; `run_worker_first = ["/api/*", "/riders/*"]` scopes Worker invocations to those prefixes (default path serves static directly from edge, no Worker cost).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 - A free `*.pages.dev` URL works end-to-end before any custom domain.
 
