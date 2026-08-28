@@ -243,7 +243,7 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 ## 9. Deployment & CI/CD
 
 ### 9.1 Branch policy
-`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The Supabase deploy job runs only after merge to `main` (not on PRs). The SPA deploy is decoupled from merges — it runs on a daily schedule.
+`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The Supabase deploy job runs only after merge to `main` (not on PRs). The SPA auto-deploys on push to `main` via Cloudflare Pages.
 
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
@@ -252,11 +252,11 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 - Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it), gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
 - Migrations must always be additive and backwards-compatible with the current frontend.
 
-### 9.4 SPA deploy workflow (`.github/workflows/deploy-netlify.yml`)
-- **Schedule**: runs once daily at 3 PM ET (cron `0 19 * * *` UTC), plus manual `workflow_dispatch`.
-- **Change detection**: compares `git rev-parse HEAD` against the SHA of the last successful Netlify deploy (via the Netlify API). Skips the build+deploy if they match — avoids burning Netlify free-tier credits on no-op deploys.
-- **Deploy**: `npm run build` in `app/`, then `npx netlify-cli deploy --prod --dir=app/dist`.
-- **Prerequisites**: `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub repo secrets. Netlify's "Auto-deploy on push to main" must be **disabled** in the Netlify dashboard (Site settings → Build & deploy → Continuous deployment) so that merges don't trigger a deploy independently.
+### 9.4 SPA deploy workflow (Cloudflare Pages auto-deploy)
+- **Trigger**: Cloudflare Pages auto-deploys on every push to `main` (no GitHub workflow). Free tier includes 500 builds/mo — no SHA-gate needed.
+- **Build**: Cloudflare runs `npm run build` with root directory `app/`; output directory `app/dist` is declared in `app/wrangler.toml` (`assets.directory = "./dist"`) and served via `app/public/_redirects` (`/* /index.html 200`).
+- **Env**: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard (Pages → Settings → Environment variables).
+- **Note**: For future Worker integration, extend `app/wrangler.toml` with `main = "..."` — no hosting migration needed.
 
 ### 9.5 Database backup workflow (`.github/workflows/backup-database.yml`)
 - **Schedule**: runs nightly at 4 AM ET (cron `0 8 * * *` UTC), plus manual `workflow_dispatch`.
@@ -271,18 +271,18 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 - A free `*.pages.dev` URL works end-to-end before any custom domain.
 
-### 9.4 Custom domain (whenever you go public)
+### 9.7 Custom domain (whenever you go public)
 1. Register the domain (~$10–15/yr).
 2. Cloudflare Pages → Custom domains → Add custom domain (apex + `www` DNS per Cloudflare's instructions). HTTPS is auto-provisioned.
 3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
 
-### 9.5 Go-live checklist
+### 9.8 Go-live checklist
 
 Run once before sharing the site publicly; re-run the **auth-critical** steps whenever the
-public URL changes (Netlify URL → custom domain, §9.4). If these are missed, signup and
+public URL changes (Pages URL → custom domain, §9.7). If these are missed, signup and
 confirmation emails point at the wrong host and new accounts can never confirm on prod.
 
-- **Netlify deploy green** → **Cloudflare deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Cloudflare site env.
+- [ ] **Cloudflare deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard.
 - **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.pages.dev` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
 - [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
 - [ ] **Admin bootstrapped** — SQL runbook in `docs/RUNBOOKS.md`; verify the admin badge shows on `/me/profile` on prod.
@@ -291,7 +291,7 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 
 ## 10. Phasing (milestones)
 
-- **Phase 0 — Scaffold** ✅: git repo + branch protection (PRs required); Vite + React 19 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands; Netlify `_redirects`; GitHub Actions CI (`check` + gated `deploy`).
+- **Phase 0 — Scaffold** ✅: git repo + branch protection (PRs required); Vite + React 19 + TS (strict); Tailwind; Vitest; **oxlint** + Prettier; `supabase init` (config only — no local Docker; develop against prod); `.env.example` + `AGENTS.md` with verified commands; SPA fallback `_redirects` (`/* /index.html 200`); GitHub Actions CI (`check` + gated `deploy`).
 - **Phase 1 — Schema + RLS** ✅: every table above, `handle_new_user()` trigger, indexes, RLS policies (incl. `is_admin()`-gated reference-table writes and column-grant protection of `profiles.is_admin`), `v_coaster_rankings` view, the email-confirmed gate.
 - **Phase 2 — Reference import** ✅: downloaded CC0 `coaster_db.csv` (committed at `data/`); wrote `scripts/import-coasters.ts` (direct Postgres via `SUPABASE_DB_URL`, idempotent `ON CONFLICT … WHERE source = 'open-csv'`, dry-run by default / `--apply` to write); seeded prod → **101 manufacturers, 279 parks, 1,087 coasters** (status: 668 operating / 213 unknown / 146 defunct / 34 sbno / 26 under-construction). Maps `Type_Main`→`material` and `Status`→`coaster_status` with a documented bucket map; deterministic intra-park slug disambiguation via `year_introduced`. **250 coasters** with source `Location = "Other"` land in a single synthetic `Other (unknown location)` park (no geo) — admin-re-homeable in Phase 7. Re-run is safe and reconciles the catalog to the CSV.
 - **Phase 3 — Auth + profile** ✅: signup (username via `raw_user_meta_data` → `handle_new_user()`, with taken-username fallback to `NULL`), login with resend-confirmation affordance, session handling (`AuthProvider`), `RequireAuth`/`RequireAdmin` route guards, profile page (username/display name, unique-violation → "taken" message, admin badge), email-confirmation gate (`ConfirmEmailGate` + RLS `user_email_verified()`).
