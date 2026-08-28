@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 function getBuildInfo() {
   const fallback = { version: '0.0.0', sha: 'unknown', dirty: false }
@@ -39,13 +40,29 @@ const versionString = `${buildInfo.version}-${buildInfo.sha}` + (buildInfo.dirty
 export default defineConfig({
   base: '/',
   envDir: '..',
-  plugins: [react()],
+  plugins: [
+    react(),
+    process.env.SENTRY_AUTH_TOKEN
+      ? sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          release: {
+            name: versionString,
+          },
+          sourcemaps: {
+            assets: ['./dist/**'],
+            filesToDeleteAfterUpload: ['**/*.map'],
+          },
+        })
+      : null,
+  ].filter(Boolean),
   define: {
     __APP_VERSION__: JSON.stringify(versionString),
     __GIT_SHA__: JSON.stringify(buildInfo.sha),
     __IS_DIRTY__: JSON.stringify(buildInfo.dirty),
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       input: {
         app: resolve('index.html'),

@@ -1,5 +1,6 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Route, Routes, useRouteError } from 'react-router-dom'
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query'
+import * as Sentry from '@sentry/react'
 import Layout from './components/Layout'
 import RequireAdmin from './components/RequireAdmin'
 import RequireAuth from './components/RequireAuth'
@@ -16,8 +17,37 @@ import PrivacyPage from './pages/PrivacyPage'
 import SignupPage from './pages/SignupPage'
 import SubmitPage from './pages/SubmitPage'
 import TermsPage from './pages/TermsPage'
+import React from 'react'
 
-const queryClient = new QueryClient()
+function RootErrorBoundary() {
+  const error = useRouteError() as Error
+
+  React.useEffect(() => {
+    Sentry.captureException(error)
+  }, [error])
+
+  return (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Something went wrong</h1>
+      <p style={{ marginBottom: '2rem' }}>An unexpected error occurred while loading this page.</p>
+      <button
+        onClick={() => window.location.reload()}
+        style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
+      >
+        Reload Page
+      </button>
+    </div>
+  )
+}
+
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (error.name === 'AbortError') return
+      Sentry.captureException(error)
+    },
+  }),
+})
 
 export default function App() {
   return (
@@ -25,7 +55,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route element={<Layout />}>
+            <Route element={<Layout />} errorElement={<RootErrorBoundary />}>
               <Route path="/" element={<BoardPage />} />
               <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
               <Route path="/parks/:slug" element={<ParkDetailPage />} />
