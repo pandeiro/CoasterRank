@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { isStorageError } from '@supabase/storage-js'
 import { supabase } from './supabase'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB pre-resize
@@ -114,7 +115,7 @@ export function useAvatarUpload(userId: string) {
       const { error: deleteError } = await supabase.storage.from(STORAGE_BUCKET).remove([path])
 
       // Ignore "not found" errors — the file may already be gone.
-      if (deleteError && deleteError.message !== 'The resource was not found') {
+      if (deleteError && (!isStorageError(deleteError) || deleteError.statusCode !== 'NoSuchKey')) {
         throw deleteError
       }
 
