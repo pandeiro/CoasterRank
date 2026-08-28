@@ -1,4 +1,4 @@
 name = "coasterrank"
 compatibility_date = "2026-08-28"
 main = "src/worker.ts"
-assets = { directory = "./dist", not_found_handling = "single-page-application", run_worker_first = ["/api/*", "/riders/*"] }
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/api/*", "/riders/*"] }
