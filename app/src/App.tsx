@@ -12,8 +12,10 @@ import MyCoastersPage from './pages/MyCoastersPage'
 import ParkDetailPage from './pages/ParkDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
+import PrivacyPage from './pages/PrivacyPage'
 import SignupPage from './pages/SignupPage'
 import SubmitPage from './pages/SubmitPage'
+import TermsPage from './pages/TermsPage'
 
 const queryClient = new QueryClient()
 
@@ -29,6 +31,8 @@ export default function App() {
               <Route path="/parks/:slug" element={<ParkDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="/me" element={<MyCoastersPage />} />
                 <Route path="/me/profile" element={<ProfilePage />} />

@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import Footer from './Footer'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 
@@ -75,6 +76,7 @@ export default function Layout() {
       <main className="page-container py-8 sm:py-10">
         <Outlet />
       </main>
+      <Footer />
     </div>
   )
 }
