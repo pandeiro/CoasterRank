@@ -45,6 +45,7 @@ export default function RiderPage() {
   const displayName = profile.display_name || profile.username
   const pageUrl = riderPageUrl(profile.username)
   const title = `${displayName} (${`@${profile.username}`}) — CoasterRank`
+  const ogImage = profile.og_image_url ?? `${window.location.origin}/og-default.png`
   const topPick = rides[0]
   const parkCount = new Set(rides.map((r) => r.park_name).filter(Boolean)).size
   const memberSince = yearOf(profile.member_since)
@@ -64,12 +65,12 @@ export default function RiderPage() {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={metaDescription} />
         <meta property="og:url" content={pageUrl} />
-        <meta property="og:image" content={`${window.location.origin}/og-default.png`} />
+        <meta property="og:image" content={ogImage} />
         <meta property="profile:username" content={profile.username} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={metaDescription} />
-        <meta name="twitter:image" content={`${window.location.origin}/og-default.png`} />
+        <meta name="twitter:image" content={ogImage} />
       </Helmet>
 
       {/* Hero */}

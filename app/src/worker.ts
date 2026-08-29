@@ -27,9 +27,11 @@ export interface Env {
 
 // Link-unfurling crawlers known to skip JS. iMessage/Apple Messages uses a
 // generic Safari WebKit UA with no bot marker — known limitation, documented
-// in the PR; those unfurls show the SPA's default title.
+// in the PR; those unfurls show the SPA's default title. `reddit/` matches
+// Reddit's "Mozilla/5.0 (compatible; Reddit/1.0; …)" preview fetcher as well
+// as "redditbot/…".
 const BOT_UA_RE =
-  /facebookexternalhit|facebot|twitterbot|slackbot|linkedinbot|discordbot|whatsapp|telegrambot|applebot|googlebot|bingbot|embedly|quora link preview|outbrain|vkshare|pinterestbot|rogerbot/i
+  /facebookexternalhit|facebot|twitterbot|slackbot|linkedinbot|discordbot|whatsapp|telegrambot|applebot|googlebot|bingbot|embedly|quora link preview|outbrain|vkshare|pinterestbot|rogerbot|redditbot|reddit\//i
 
 // Mirrors USERNAME_RE (client) + the DB's case-insensitive lookup.
 const RIDER_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/?$/
@@ -38,6 +40,7 @@ export type WorkerRiderProfile = {
   username: string
   display_name: string | null
   avatar_url: string | null
+  og_image_url: string | null
   member_since: string | null
 }
 
@@ -104,7 +107,9 @@ export function riderMeta(data: WorkerRiderPage, origin: string, path: string) {
     title,
     description,
     url: `${origin}${path}`,
-    image: `${origin}/og-default.png`,
+    // Per-rider card generated client-side when available, else the static
+    // brand card.
+    image: data.profile.og_image_url || `${origin}/og-default.png`,
   }
 }
 

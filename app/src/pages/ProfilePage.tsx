@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { riderPageUrl } from '../lib/rider'
 import { fetchProfile, type Profile } from '../lib/profile'
+import { refreshOgCard } from '../lib/og-card'
+import { useMyRides } from '../lib/rides'
 import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
@@ -35,6 +37,30 @@ export default function ProfilePage() {
     queryFn: () => fetchProfile(user!.id),
   })
 
+  // List shape for the share card's stats line (shared ['myRides'] cache).
+  const { data: rides } = useMyRides()
+  const rankedRides = useMemo(() => (rides ?? []).filter((r) => r.rank !== null), [rides])
+
+  /**
+   * Best-effort share-card refresh. Only meaningful while sharing is on with a
+   * valid username; any failure inside refreshOgCard is swallowed there, so
+   * the static brand card simply stays in place.
+   */
+  const syncOgCard = useCallback(
+    (avatarSrc: string | null) => {
+      if (!publicList || !username || !USERNAME_RE.test(username)) return
+      void refreshOgCard({
+        userId: user!.id,
+        name: displayName || username,
+        username,
+        avatarSrc,
+        topCoaster: rankedRides[0]?.coaster.name ?? null,
+        rankedCount: rankedRides.length,
+      })
+    },
+    [publicList, username, displayName, user, rankedRides],
+  )
+
   useEffect(() => {
     if (profile) {
       setUsername(profile.username ?? '')
@@ -58,6 +84,8 @@ export default function ProfilePage() {
     onSuccess: () => {
       setSaved(true)
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+      // The card bakes in name/username, so refresh it after edits too.
+      syncOgCard(profile?.avatar_url ?? null)
     },
     onError: (error) => {
       // Postgres unique_violation => profiles.username is taken.
@@ -82,7 +110,8 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     try {
-      await upload(file)
+      const publicUrl = await upload(file)
+      syncOgCard(publicUrl)
     } catch {
       // Error is captured in the hook's error state
     }
@@ -93,6 +122,7 @@ export default function ProfilePage() {
   async function handleRemove() {
     try {
       await remove()
+      syncOgCard(null)
     } catch {
       // Error is captured in the hook's error state
     }

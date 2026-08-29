@@ -81,6 +81,7 @@ function mockConfirmed(ridesData: unknown[] = []) {
     display_name: null,
     avatar_url: null,
     is_admin: false,
+    og_image_url: null,
     public_list: true,
   })
 }
@@ -267,6 +268,7 @@ describe('MyCoastersPage', () => {
       display_name: null,
       avatar_url: null,
       is_admin: false,
+      og_image_url: null,
       public_list: false,
     })
     mockConfirmed(ridesWithRanks(5))

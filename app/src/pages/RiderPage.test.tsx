@@ -18,6 +18,7 @@ const riderData: RiderPageData = {
     username: 'coaster_fan',
     display_name: 'Coaster Fan',
     avatar_url: null,
+    og_image_url: null,
     member_since: '2024-03-01T00:00:00Z',
   },
   rides: [
@@ -97,6 +98,38 @@ describe('RiderPage', () => {
     const description = document.head.querySelector('meta[name="description"]')
     expect(description?.getAttribute('content')).toContain('2 coasters ranked')
     expect(description?.getAttribute('content')).toContain('#1: Steel Vengeance')
+  })
+
+  it('falls back to the static brand card for og:image when no custom card exists', async () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: riderData,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAt()
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[property="og:image"]')).not.toBeNull()
+    })
+    expect(document.head.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      `${window.location.origin}/og-default.png`,
+    )
+  })
+
+  it('uses the per-rider share card for og:image when one exists', async () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: {
+        ...riderData,
+        profile: { ...riderData.profile, og_image_url: 'https://img.test/og-card.png' },
+      },
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAt()
+    await waitFor(() => {
+      expect(
+        document.head.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+      ).toBe('https://img.test/og-card.png')
+    })
   })
 
   it('shows the not-found state for unknown or non-shared usernames', () => {

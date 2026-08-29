@@ -12,6 +12,7 @@ export type RiderProfile = {
   username: string
   display_name: string | null
   avatar_url: string | null
+  og_image_url: string | null
   member_since: string | null
 }
 

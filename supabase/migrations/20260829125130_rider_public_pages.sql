@@ -11,9 +11,15 @@
 alter table public.profiles
   add column public_list boolean not null default false;
 
--- Column grants are a whitelist, not cumulative lists — add the new column so
--- the owner can flip the toggle from the profile page.
-grant update (public_list) on public.profiles to authenticated;
+-- Per-rider share card (1200x630 PNG), generated client-side on the profile
+-- page (canvas) and uploaded to the public avatars bucket at <uid>/og-card.png.
+-- NULL = no custom card yet; consumers fall back to the static /og-default.png.
+alter table public.profiles
+  add column og_image_url text;
+
+-- Column grants are a whitelist, not cumulative lists — add the new columns so
+-- the owner can flip the toggle and store their card URL from the profile page.
+grant update (public_list, og_image_url) on public.profiles to authenticated;
 
 -- Case-insensitive username lookup for the public hot path.
 create index profiles_lower_username_idx on public.profiles (lower(username));
@@ -61,6 +67,7 @@ as $$
       'username',     u.username,
       'display_name', u.display_name,
       'avatar_url',   u.avatar_url,
+      'og_image_url', u.og_image_url,
       'member_since', u.created_at
     ),
     'rides', coalesce(

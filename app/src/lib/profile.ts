@@ -8,6 +8,8 @@ export type Profile = {
   is_admin: boolean
   /** Opt-in flag: public rider page at /riders/<username> when true. */
   public_list: boolean
+  /** Client-generated 1200x630 share card (avatars bucket); null = static fallback. */
+  og_image_url: string | null
 }
 
 /**
@@ -21,7 +23,7 @@ export type Profile = {
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, is_admin, public_list')
+    .select('id, username, display_name, avatar_url, is_admin, public_list, og_image_url')
     .eq('id', userId)
     .single()
   if (error) throw error

@@ -14,6 +14,7 @@ const riderData: WorkerRiderPage = {
     username: 'coaster_fan',
     display_name: 'Coaster Fan',
     avatar_url: 'https://img.test/avatar.jpg',
+    og_image_url: null,
     member_since: '2024-03-01T00:00:00Z',
   },
   rides: [
@@ -67,6 +68,12 @@ describe('worker: helpers', () => {
     expect(isSocialCrawler('facebookexternalhit/1.1')).toBe(true)
     expect(isSocialCrawler('Slackbot-LinkExpanding 1.0')).toBe(true)
     expect(isSocialCrawler('Discordbot/1.0')).toBe(true)
+    expect(isSocialCrawler('TelegramBot (like TwitterBot)')).toBe(true)
+    expect(isSocialCrawler('WhatsApp/2.25.1 A')).toBe(true)
+    expect(isSocialCrawler('Mozilla/5.0 (compatible; Reddit/1.0; +http://www.reddit.com/)')).toBe(
+      true,
+    )
+    expect(isSocialCrawler('redditbot/1.0')).toBe(true)
     expect(isSocialCrawler('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari')).toBe(false)
     expect(isSocialCrawler(null)).toBe(false)
   })
@@ -99,6 +106,23 @@ describe('worker: helpers', () => {
     expect(html).toContain('rel="canonical" href="https://coasterrank.test/riders/coaster_fan"')
     expect(html).toContain('Steel Vengeance')
     expect(html).not.toContain('and 0 more')
+  })
+
+  it('uses the per-rider share card as og:image when one exists', () => {
+    const html = renderRiderHtml(
+      {
+        ...riderData,
+        profile: {
+          ...riderData.profile,
+          og_image_url: 'https://img.test/og-card.png',
+        },
+      },
+      'https://coasterrank.test',
+      '/riders/coaster_fan',
+    )
+    expect(html).toContain('property="og:image" content="https://img.test/og-card.png"')
+    expect(html).toContain('name="twitter:image" content="https://img.test/og-card.png"')
+    expect(html).not.toContain('og-default.png')
   })
 })
 
