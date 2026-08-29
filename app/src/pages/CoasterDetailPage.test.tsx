@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CoasterDetailPage from './CoasterDetailPage'
-import { useCoaster, useManufacturers, useParks } from '../lib/coasters'
+import { useCoaster, useManufacturers, useParks, useCoasterAliases } from '../lib/coasters'
 import { makeManufacturer, makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -12,6 +12,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     useCoaster: vi.fn(),
     useParks: vi.fn(),
     useManufacturers: vi.fn(),
+    useCoasterAliases: vi.fn(),
   }
 })
 
@@ -49,6 +50,11 @@ describe('CoasterDetailPage', () => {
     } as never)
     vi.mocked(useManufacturers).mockReturnValue({
       data: [rmc],
+      isPending: false,
+      isError: false,
+    } as never)
+    vi.mocked(useCoasterAliases).mockReturnValue({
+      data: [],
       isPending: false,
       isError: false,
     } as never)

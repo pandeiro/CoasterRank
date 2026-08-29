@@ -7,6 +7,7 @@ import {
   formatNumber,
   formatScore,
   useCoaster,
+  useCoasterAliases,
   useManufacturers,
   useParks,
   yearFromDate,
@@ -17,6 +18,7 @@ export default function CoasterDetailPage() {
   const { data: coaster, isPending, isError } = useCoaster(slug)
   const parks = useParks()
   const manufacturers = useManufacturers()
+  const aliases = useCoasterAliases(coaster?.id)
 
   if (isPending) {
     return <MessageState>Loading…</MessageState>
@@ -94,6 +96,12 @@ export default function CoasterDetailPage() {
       {(coaster.model || coaster.type || openingYear) && (
         <p className="mt-4 text-sm text-muted">
           {[coaster.model, coaster.type, openingYear].filter(Boolean).join(' · ')}
+        </p>
+      )}
+
+      {aliases.data && aliases.data.length > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          Also known as: {aliases.data.map((a) => a.name).join(' · ')}
         </p>
       )}
 

@@ -553,3 +553,43 @@ export function useManufacturers() {
     },
   })
 }
+
+// Coaster aliases -----------------------------------------------------------
+
+export type CoasterAlias = {
+  id: string
+  coaster_id: string
+  name: string
+  created_at: string
+}
+
+export function useCoasterAliases(coasterId: string | undefined) {
+  return useQuery({
+    queryKey: ['coaster-aliases', coasterId],
+    enabled: Boolean(coasterId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('coaster_aliases')
+        .select('*')
+        .eq('coaster_id', coasterId!)
+        .order('name')
+      if (error) throw error
+      return data as CoasterAlias[]
+    },
+  })
+}
+
+export async function addAlias(coasterId: string, name: string) {
+  const { error } = await supabase.from('coaster_aliases').insert({ coaster_id: coasterId, name })
+  if (error) throw error
+}
+
+export async function updateAlias(id: string, name: string) {
+  const { error } = await supabase.from('coaster_aliases').update({ name }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteAlias(id: string) {
+  const { error } = await supabase.from('coaster_aliases').delete().eq('id', id)
+  if (error) throw error
+}
