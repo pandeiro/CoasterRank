@@ -35,7 +35,7 @@ security definer
 set search_path = ''
 as $$
   with rider as (
-    select id, username, display_name, avatar_url, created_at
+    select id, username, display_name, avatar_url, og_image_url, created_at
     from public.profiles
     where public_list
       and username is not null
