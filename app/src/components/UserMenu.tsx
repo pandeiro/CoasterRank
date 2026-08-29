@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LogOut, User, List } from 'lucide-react'
+import { LogOut, User, List, Share2 } from 'lucide-react'
 import type { Profile } from '../lib/profile'
 import Avatar from './ui/Avatar'
 
@@ -105,6 +105,16 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
                 <User size={16} className="text-muted" />
                 Profile
               </NavLink>
+              {profile?.public_list && profile?.username && (
+                <NavLink
+                  to={`/riders/${profile.username}`}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-ink transition-colors hover:bg-surface"
+                  role="menuitem"
+                >
+                  <Share2 size={16} className="text-muted" />
+                  Public page
+                </NavLink>
+              )}
               <div className="my-1 border-t border-line" />
               <button
                 type="button"

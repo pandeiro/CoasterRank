@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 import ProfilePage from './ProfilePage'
@@ -12,13 +13,14 @@ vi.mock('../lib/auth-context', () => ({
 }))
 
 const selectSingle = vi.fn()
+const updateSpy = vi.fn()
 const updateEq = vi.fn()
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: () => ({ eq: () => ({ single: selectSingle }) }),
-      update: () => ({ eq: updateEq }),
+      update: updateSpy,
     })),
   },
 }))
@@ -31,13 +33,16 @@ const fakeProfile = {
   display_name: 'Coaster Fan',
   avatar_url: null,
   is_admin: false,
+  public_list: false,
 }
 
 function renderProfile() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProfilePage />
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -45,6 +50,7 @@ function renderProfile() {
 describe('ProfilePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    updateSpy.mockReturnValue({ eq: updateEq })
     vi.mocked(useAuth).mockReturnValue({
       session: null,
       user: fakeUser,
@@ -85,5 +91,26 @@ describe('ProfilePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('That username is taken.')).toBeInTheDocument()
+  })
+
+  it('shows the public page URL for a valid username', async () => {
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+
+    expect(screen.getByText(`${window.location.origin}/riders/coaster_fan`)).toBeInTheDocument()
+  })
+
+  it('persists the public-list toggle in the update payload', async () => {
+    updateEq.mockResolvedValue({ error: null })
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+
+    await userEvent.click(screen.getByLabelText(/share my ranking publicly/i))
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await screen.findByText(/view your public page/i)
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'coaster_fan', public_list: true }),
+    )
   })
 })

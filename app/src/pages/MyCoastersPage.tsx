@@ -1,11 +1,20 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
 import RankedCoasterList, { type PendingAdd } from '../components/RankedCoasterList'
+import ShareListCard from '../components/ShareListCard'
 import Toast from '../components/Toast'
 import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import { fetchProfile } from '../lib/profile'
 import { useMyRides } from '../lib/rides'
+import {
+  milestoneForRankedCount,
+  persistDismissedMilestone,
+  readDismissedMilestone,
+  SHARE_CTA_DISMISS_KEY,
+} from '../lib/share-cta'
 
 type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
@@ -13,13 +22,38 @@ export default function MyCoastersPage() {
   const { user, isConfirmed } = useAuth()
   const { data: rides, isPending, isError } = useMyRides()
 
+  // Shared ['profile', userId] cache (same key/shape as ProfilePage/Layout).
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    enabled: Boolean(user),
+    queryFn: () => fetchProfile(user!.id),
+  })
+
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastSeq = useRef(0)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null)
+  const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
   const rankedCount = useMemo(() => (rides ?? []).filter((r) => r.rank !== null).length, [rides])
+
+  const milestone = milestoneForRankedCount(rankedCount)
+  const showShareCta = milestone > 0 && milestone > dismissedMilestone
+
+  const dismissShareCta = useCallback(() => {
+    setDismissedMilestone(milestone)
+    persistDismissedMilestone(milestone)
+  }, [milestone])
+
+  // Sync dismissal if storage changes elsewhere (e.g. another tab).
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === SHARE_CTA_DISMISS_KEY) setDismissedMilestone(readDismissedMilestone())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const notify = useCallback((message: string, tone: ToastState['tone'] = 'info') => {
     toastSeq.current += 1
@@ -66,6 +100,18 @@ export default function MyCoastersPage() {
             : 'Search for coasters below to start building your list.'
         }
       />
+
+      {showShareCta && (
+        <div className="mt-6">
+          <ShareListCard
+            username={profile?.username ?? null}
+            publicList={profile?.public_list ?? false}
+            rankedCount={rankedCount}
+            milestone={milestone === 2 ? 2 : 1}
+            onDismiss={dismissShareCta}
+          />
+        </div>
+      )}
 
       <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 pb-4 pt-4 backdrop-blur sm:-mx-8 sm:px-8">
         <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
