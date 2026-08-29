@@ -40,6 +40,29 @@ type RecomputeResult = { updated: number; durationMs: number; iterations: number
 
 const UPSERT_CHUNK = 500
 const DELETE_CHUNK = 100
+const RPC_MAX_RETRIES = 2
+const RPC_RETRY_DELAY_MS = 300
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+function isPgrst303(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('PGRST303')
+}
+
+async function rpcWithRetry<T>(
+  supabase: ReturnType<typeof createClient>,
+  name: string,
+  args?: Record<string, unknown>,
+): Promise<{ data: T[] | null; error: { message: string } | null }> {
+  let lastError: { message: string } | null = null
+  for (let attempt = 0; attempt <= RPC_MAX_RETRIES; attempt++) {
+    const res = await supabase.rpc(name, args as never)
+    if (!res.error || !isPgrst303(res.error)) return res
+    lastError = res.error
+    if (attempt < RPC_MAX_RETRIES) await sleep(RPC_RETRY_DELAY_MS)
+  }
+  return { data: null, error: lastError }
+}
 
 // ── Telegram helpers ────────────────────────────────────────────────────
 async function sendTelegramMessage(botToken: string, message: string) {
@@ -131,8 +154,8 @@ Deno.serve(async (req) => {
     // Aggregated pairwise wins (per-user normalized, PLAN §5.1) + participant
     // counts, both via the RPCs installed by the Phase 6 migration.
     const [pairsRes, participantsRes] = await Promise.all([
-      supabase.rpc('pairwise_wins'),
-      supabase.rpc('ranked_participants'),
+      rpcWithRetry<PairRow>(supabase, 'pairwise_wins'),
+      rpcWithRetry<ParticipantRow>(supabase, 'ranked_participants'),
     ])
     if (pairsRes.error) throw new Error(`pairwise_wins: ${pairsRes.error.message}`)
     if (participantsRes.error) {
