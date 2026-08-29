@@ -1282,8 +1282,10 @@ export default function AdminPage() {
                 </div>
                 <div className="mt-1 text-ink">
                   {formatDuration(lastRun.data.duration_ms)} &middot; {lastRun.data.pairs} pairs
-                  &rarr; {lastRun.data.updated} coasters &middot; {lastRun.data.iterations}{' '}
-                  iterations
+                  &rarr; {lastRun.data.updated} coasters
+                </div>
+                <div className="text-ink">
+                  {`${lastRun.data.iterations + 1} iteration${lastRun.data.iterations + 1 === 1 ? '' : 's'}`}
                   {lastRun.data.converged ? '' : ' (hit cap)'}
                 </div>
               </div>
