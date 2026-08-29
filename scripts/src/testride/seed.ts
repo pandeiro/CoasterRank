@@ -1,36 +1,35 @@
-// testride:seed — create synthetic users (+ ranked rides, optionally pending
-// submissions) for manual UX testing and BT benchmarking.
+// testride:seed — create synthetic users (+ rides, optionally pending
+// submissions) for manual UX testing and exercising the BT pipeline.
 //
 // Users are inserted directly into auth.users with email_confirmed_at set, so
 // they are login-ready with NO email verification and NO SMTP involvement:
-//   email:    <username>@test.coasterrank.dev
+//   email:    mock-0001@test.coasterrank.dev
 //   password: SYNTHETIC_PASSWORD (markers.ts)
 // The handle_new_user() trigger creates their profiles rows.
 //
-// Dry-run by default; --apply writes. Deterministic for a given --seed:
-// re-runs skip existing users; rides are ON CONFLICT DO NOTHING.
+// Manual levers only: --users, --rides (<n> or <min>-<max> ranked coasters per
+// user), --unranked, --with-submissions. Dry-run by default; --apply writes.
+// Deterministic for a given --seed: re-runs skip existing users; rides are
+// ON CONFLICT DO NOTHING.
 import { randomUUID } from 'node:crypto'
 import type { Pool } from 'pg'
-import {
-  isProdRef,
-  parseProjectRef,
-  printBanner,
-  requirePool,
-  type Connections,
-} from './connections'
+import { printBanner, requirePool, type Connections } from './connections'
 import { SYNTHETIC_PASSWORD, syntheticEmail } from './markers'
 import { makeRng, type Rng } from './rand'
 import { multiRowInsert } from './sql'
 
-export type SeedProfile = 'ux' | 'benchmark'
+export interface RideSpec {
+  min: number
+  max: number
+}
 
 export interface SeedOptions {
-  profile: SeedProfile
   users: number
+  rides: RideSpec
+  unranked: number
   seed: number
   withSubmissions: boolean
   apply: boolean
-  iKnowThisIsProd: boolean
 }
 
 const USERS_CHUNK = 100
@@ -41,37 +40,9 @@ interface RideCounts {
   unranked: number
 }
 
-// Benchmark distribution (all rides ranked): ~70% casual / 20% mid / 10% power.
-// 500 users -> ~17k ranked rides, matching the task-2.3 "~500 users, ~15k
-// rides" baseline; escalate via --users (2000 -> ~70k, 5000 -> ~175k).
-function rideCounts(rng: Rng, profile: SeedProfile): RideCounts {
-  if (profile === 'ux') {
-    return { ranked: rng.int(5, 25), unranked: rng.int(0, 5) }
-  }
-  const roll = rng.float()
-  if (roll < 0.7) return { ranked: rng.int(10, 30), unranked: 0 }
-  if (roll < 0.9) return { ranked: rng.int(31, 70), unranked: 0 }
-  return { ranked: rng.int(71, 150), unranked: 0 }
+function rideCounts(rng: Rng, rides: RideSpec, unranked: number): RideCounts {
+  return { ranked: rng.int(rides.min, rides.max), unranked }
 }
-
-const UX_WORDS = [
-  'otter',
-  'falcon',
-  'maple',
-  'cedar',
-  'ripple',
-  'summit',
-  'canyon',
-  'lynx',
-  'harbor',
-  'ember',
-  'willow',
-  'quartz',
-  'mango',
-  'pebble',
-  'comet',
-  'basin',
-] as const
 
 interface GenUser {
   id: string
@@ -82,44 +53,20 @@ interface GenUser {
   unranked: number
 }
 
-function generateUsers(rng: Rng, profile: SeedProfile, count: number): GenUser[] {
+function generateUsers(rng: Rng, rides: RideSpec, unranked: number, count: number): GenUser[] {
   const users: GenUser[] = []
   for (let i = 0; i < count; i++) {
-    const username =
-      profile === 'benchmark'
-        ? `bench-${String(i + 1).padStart(4, '0')}`
-        : `ux-${rng.pick(UX_WORDS)}-${rng.int(10, 99)}`
-    const word = rng.pick(UX_WORDS)
-    const displayName =
-      profile === 'benchmark'
-        ? `Bench Rider ${i + 1}`
-        : `UX ${word.charAt(0).toUpperCase() + word.slice(1)} Tester`
-    const counts = rideCounts(rng, profile)
+    const username = `mock-${String(i + 1).padStart(4, '0')}`
+    const counts = rideCounts(rng, rides, unranked)
     users.push({
       id: randomUUID(),
       email: syntheticEmail(username),
       username,
-      displayName,
+      displayName: `Mock Rider ${i + 1}`,
       ...counts,
     })
   }
   return users
-}
-
-// Refuse benchmark-scale writes against prod (or an unidentifiable target)
-// unless explicitly acknowledged. Small ux seeds are always allowed.
-function guard(conns: Connections, opts: SeedOptions): void {
-  const ref = parseProjectRef(conns.dbUrl, conns.supabaseUrl)
-  if (opts.profile !== 'benchmark' || !opts.apply || opts.iKnowThisIsProd) return
-  const prod = isProdRef(ref)
-  if (prod || ref === null) {
-    console.error(
-      ref === null
-        ? 'Error: could not determine the target project ref; benchmark-scale seeding requires explicit acknowledgement. Re-run with --i-know-this-is-prod if this is really not prod.'
-        : 'Error: refusing to benchmark-seed the PRODUCTION project. Re-run with --i-know-this-is-prod if you really mean this.',
-    )
-    process.exit(1)
-  }
 }
 
 interface ExistingRow {
@@ -282,8 +229,9 @@ async function insertSubmissions(
 }
 
 export async function runSeed(conns: Connections, opts: SeedOptions): Promise<void> {
-  guard(conns, opts)
-  printBanner(`seed (${opts.profile}, apply: ${opts.apply})`, conns)
+  const ridesLabel =
+    opts.rides.min === opts.rides.max ? `${opts.rides.min}` : `${opts.rides.min}-${opts.rides.max}`
+  printBanner(`seed (users: ${opts.users}, rides: ${ridesLabel}, apply: ${opts.apply})`, conns)
   const pool = requirePool(conns)
 
   const coasterRes = await pool.query<{ count: number }>(
@@ -296,12 +244,12 @@ export async function runSeed(conns: Connections, opts: SeedOptions): Promise<vo
   }
 
   const rng = makeRng(opts.seed)
-  const users = generateUsers(rng, opts.profile, opts.users)
+  const users = generateUsers(rng, opts.rides, opts.unranked, opts.users)
   const totalRanked = users.reduce((acc, u) => acc + u.ranked, 0)
   const totalUnranked = users.reduce((acc, u) => acc + u.unranked, 0)
 
-  console.log(`profile       : ${opts.profile}`)
   console.log(`users         : ${users.length}`)
+  console.log(`rides per user: ${ridesLabel} ranked + ${opts.unranked} unranked`)
   console.log(
     `rides planned : ${totalRanked} ranked + ${totalUnranked} unranked (coasters available: ${coasterCount})`,
   )

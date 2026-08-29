@@ -16,7 +16,7 @@ import {
   type ConnOptions,
   type Connections,
 } from './connections'
-import { runSeed, type SeedOptions, type SeedProfile } from './seed'
+import { runSeed, type RideSpec, type SeedOptions } from './seed'
 import { runReport } from './report'
 import { runCleanup } from './cleanup'
 import { runConfirm } from './confirm'
@@ -36,11 +36,33 @@ async function runAction(
 
 function parseIntArg(value: string, flag: string): number {
   const n = Number.parseInt(value, 10)
-  if (!Number.isInteger(n) || n <= 0) {
-    console.error(`Error: --${flag} must be a positive integer (got "${value}")`)
+  if (!Number.isInteger(n) || n < 0) {
+    console.error(`Error: --${flag} must be a non-negative integer (got "${value}")`)
     process.exit(1)
   }
   return n
+}
+
+// --rides accepts a single number ("30") or an inclusive range ("10-25").
+function parseRidesSpec(value: string | undefined): RideSpec {
+  if (!value) return { min: 0, max: 0 }
+  const single = value.match(/^(\d+)$/)
+  if (single) {
+    const n = Number.parseInt(single[1] as string, 10)
+    return { min: n, max: n }
+  }
+  const range = value.match(/^(\d+)-(\d+)$/)
+  if (range) {
+    const min = Number.parseInt(range[1] as string, 10)
+    const max = Number.parseInt(range[2] as string, 10)
+    if (min > max) {
+      console.error(`Error: --rides range "${value}" has min > max`)
+      process.exit(1)
+    }
+    return { min, max }
+  }
+  console.error(`Error: --rides must be <n> or <min>-<max> (got "${value}")`)
+  process.exit(1)
 }
 
 const program = new Command()
@@ -56,21 +78,22 @@ const withConn = (cmd: Command): Command =>
     .option('--service-key <key>', 'Service-role key (default: $SUPABASE_SERVICE_ROLE_KEY)')
 
 interface SeedCliOpts extends ConnOptions {
-  profile: string
-  users?: string
+  users: string
+  rides?: string
+  unranked: string
   seed: string
   withSubmissions: boolean
   apply: boolean
-  iKnowThisIsProd: boolean
 }
 
 withConn(program.command('seed'))
   .description('Create synthetic users (+rides [+submissions]). Dry-run unless --apply.')
-  .requiredOption(
-    '--profile <profile>',
-    'ux (small, for manual testing) | benchmark (skewed scale)',
+  .requiredOption('-u, --users <n>', 'number of synthetic users to create')
+  .option(
+    '--rides <n|min-max>',
+    'ranked coasters per user (each user gets a random count in the range)',
   )
-  .option('-u, --users <n>', 'users to create (default: 3 for ux, 500 for benchmark)')
+  .option('--unranked <n>', 'extra ridden-but-unranked coasters per user', '0')
   .option('--seed <n>', 'PRNG seed for deterministic generation', '42')
   .option(
     '--with-submissions',
@@ -78,25 +101,14 @@ withConn(program.command('seed'))
     false,
   )
   .option('--apply', 'write to the database', false)
-  .option(
-    '--i-know-this-is-prod',
-    'acknowledge benchmark-scale seeding of the production project',
-    false,
-  )
   .action(async (raw: SeedCliOpts) => {
-    if (raw.profile !== 'ux' && raw.profile !== 'benchmark') {
-      console.error(`Error: --profile must be "ux" or "benchmark" (got "${raw.profile}")`)
-      process.exit(1)
-    }
-    const profile: SeedProfile = raw.profile
-    const users = raw.users ? parseIntArg(raw.users, 'users') : profile === 'ux' ? 3 : 500
     const opts: SeedOptions = {
-      profile,
-      users,
+      users: parseIntArg(raw.users, 'users'),
+      rides: parseRidesSpec(raw.rides),
+      unranked: parseIntArg(raw.unranked, 'unranked'),
       seed: parseIntArg(raw.seed, 'seed'),
       withSubmissions: raw.withSubmissions,
       apply: raw.apply,
-      iKnowThisIsProd: raw.iKnowThisIsProd,
     }
     await runAction(raw, (conns) => runSeed(conns, opts))
   })

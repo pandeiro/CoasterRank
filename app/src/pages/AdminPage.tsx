@@ -1290,7 +1290,7 @@ export default function AdminPage() {
                 <MessageState>
                   No synthetic users found. Create some with{' '}
                   <code className="rounded bg-surface px-1 text-xs">
-                    npm run testride:seed -- --profile ux --apply
+                    npm run testride:seed -- --users 5 --rides 10-20 --apply
                   </code>
                   .
                 </MessageState>
