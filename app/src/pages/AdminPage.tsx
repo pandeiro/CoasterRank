@@ -1278,12 +1278,14 @@ export default function AdminPage() {
               <div className="mt-4 rounded-lg bg-surface p-3 text-sm">
                 <div className="flex items-center gap-2 text-muted">
                   <span className="inline-block h-2 w-2 rounded-full bg-success" />
-                  Last successful run: {formatTimeAgo(lastRun.data.created_at)}
+                  Last success: {formatTimeAgo(lastRun.data.created_at)}
                 </div>
                 <div className="mt-1 text-ink">
                   {formatDuration(lastRun.data.duration_ms)} &middot; {lastRun.data.pairs} pairs
-                  &rarr; {lastRun.data.updated} coasters &middot; {lastRun.data.iterations}{' '}
-                  iterations
+                  &rarr; {lastRun.data.updated} coasters
+                </div>
+                <div className="text-ink">
+                  {`${lastRun.data.iterations + 1} iteration${lastRun.data.iterations + 1 === 1 ? '' : 's'}`}
                   {lastRun.data.converged ? '' : ' (hit cap)'}
                 </div>
               </div>
