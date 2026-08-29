@@ -62,13 +62,27 @@ function numberOrNull(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function formatTimeAgo(dateStr: string): string {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
 export default function AdminPage() {
   const queryClient = useQueryClient()
   const { tab } = useParams()
   const isValidTab = ADMIN_TABS.includes(tab as AdminTab)
   const activeTab: AdminTab = isValidTab ? (tab as AdminTab) : 'coasters'
-  const [message, setMessage] = useState<string | null>(null)
-
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastSeq = useRef(0)
   const notify = (message: string, tone: ToastState['tone'] = 'info') => {
@@ -168,6 +182,46 @@ export default function AdminPage() {
     }
   }, [otherCoasters, rehomeSearchName])
 
+  const lastRun = useQuery({
+    queryKey: ['cron-execution-logs', 'last-success'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cron_execution_logs')
+        .select('created_at, duration_ms, iterations, pairs, updated, converged')
+        .eq('status', 'success')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      return data as {
+        created_at: string
+        duration_ms: number
+        iterations: number
+        pairs: number
+        updated: number
+        converged: boolean
+      } | null
+    },
+  })
+
+  const lastError = useQuery({
+    queryKey: ['cron-execution-logs', 'last-error'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cron_execution_logs')
+        .select('created_at, error_message, duration_ms, trigger_source')
+        .eq('status', 'error')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      return data as {
+        created_at: string
+        error_message: string
+        duration_ms: number
+        trigger_source: string
+      } | null
+    },
+  })
+
   const recompute = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke<RecomputeResponse>(
@@ -177,15 +231,9 @@ export default function AdminPage() {
       if (error) throw error
       return data!
     },
-    onSuccess: (result) => {
-      setMessage(
-        `Updated ${result.updated} coaster ratings in ${result.durationMs} ms ` +
-          `(${result.iterations} iterations, ${result.converged ? 'converged' : 'hit iteration cap'}).`,
-      )
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rankings'] })
-    },
-    onError: (error) => {
-      setMessage(`Recompute failed: ${error.message}`)
+      queryClient.invalidateQueries({ queryKey: ['cron-execution-logs'] })
     },
   })
 
@@ -1181,19 +1229,52 @@ export default function AdminPage() {
             </p>
             <Button
               type="button"
-              onClick={() => {
-                setMessage(null)
-                recompute.mutate()
-              }}
+              onClick={() => recompute.mutate()}
               disabled={recompute.isPending}
               className="mt-4"
             >
               <RefreshCw className={recompute.isPending ? 'animate-spin' : ''} size={16} />
               {recompute.isPending ? 'Recomputing…' : 'Recompute now'}
             </Button>
-            {message && (
-              <p className={`mt-4 text-sm ${recompute.isError ? 'text-danger' : 'text-success'}`}>
-                {message}
+
+            {/* Last successful run */}
+            {lastRun.data && (
+              <div className="mt-4 rounded-lg bg-surface p-3 text-sm">
+                <div className="flex items-center gap-2 text-muted">
+                  <span className="inline-block h-2 w-2 rounded-full bg-success" />
+                  Last successful run: {formatTimeAgo(lastRun.data.created_at)}
+                </div>
+                <div className="mt-1 text-ink">
+                  {formatDuration(lastRun.data.duration_ms)} &middot; {lastRun.data.pairs} pairs
+                  &rarr; {lastRun.data.updated} coasters &middot; {lastRun.data.iterations}{' '}
+                  iterations
+                  {lastRun.data.converged ? '' : ' (hit cap)'}
+                </div>
+              </div>
+            )}
+
+            {lastRun.isLoading && (
+              <div className="mt-4 text-sm text-muted">Loading run history…</div>
+            )}
+
+            {/* Last error */}
+            {lastError.data && (
+              <div className="mt-3 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm">
+                <div className="flex items-center gap-2 text-danger">
+                  <span className="inline-block h-2 w-2 rounded-full bg-danger" />
+                  Last error: {formatTimeAgo(lastError.data.created_at)}
+                </div>
+                <div className="mt-1 text-ink">{lastError.data.error_message}</div>
+                <div className="mt-0.5 text-xs text-muted">
+                  Trigger: {lastError.data.trigger_source} &middot; Failed after{' '}
+                  {formatDuration(lastError.data.duration_ms)}
+                </div>
+              </div>
+            )}
+
+            {recompute.isError && (
+              <p className="mt-3 text-sm text-danger">
+                Recompute failed: {recompute.error.message}
               </p>
             )}
           </Panel>

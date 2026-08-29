@@ -13,6 +13,10 @@
 //
 // Response: 200 { updated, durationMs, iterations, converged } (PLAN §5.5,
 // with `converged` added as a backward-compatible diagnostic).
+//
+// Observability: every execution is logged to cron_execution_logs.
+// On failure: Telegram alert via CoasterRankAlerts bot.
+// On #1 change: Telegram event via CoasterRankEvents bot.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Pure-TS MM implementation shared with the Vitest suite; bundled at deploy.
 import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
@@ -37,6 +41,53 @@ type RecomputeResult = { updated: number; durationMs: number; iterations: number
 const UPSERT_CHUNK = 500
 const DELETE_CHUNK = 100
 
+// ── Telegram helpers ────────────────────────────────────────────────────
+async function sendTelegramMessage(botToken: string, message: string) {
+  const userId = Deno.env.get('TELEGRAM_USER_ID')
+  if (!botToken || !userId) return
+  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: userId, text: message }),
+    signal: AbortSignal.timeout(5000),
+  })
+}
+
+function sendFailureAlert(message: string, durationMs: number, triggerSource: string) {
+  const botToken = Deno.env.get('COASTER_RANK_ALERTS_BOT_TOKEN') ?? ''
+  const ts = new Date().toISOString()
+  const text =
+    `🚨 BT Recompute FAILED\n` +
+    `⏰ Time: ${ts}\n` +
+    `⏱️ Failed after: ${durationMs}ms\n` +
+    `❌ Error: ${message}\n` +
+    `🔀 Trigger: ${triggerSource}`
+  return sendTelegramMessage(botToken, text)
+}
+
+function sendNumberOneEvent(newName: string, prevName: string | null) {
+  const botToken = Deno.env.get('COASTER_RANK_EVENTS_BOT_TOKEN') ?? ''
+  const overtakes = prevName ? ` (overtook ${prevName})` : ''
+  const text = `🏆 New #1: ${newName}${overtakes}`
+  return sendTelegramMessage(botToken, text)
+}
+
+// ── Execution logging ───────────────────────────────────────────────────
+type LogFields = {
+  status: 'success' | 'error'
+  duration_ms: number
+  trigger_source: string
+  iterations?: number
+  converged?: boolean
+  pairs?: number
+  updated?: number
+  error_message?: string
+}
+
+function logExecution(supabase: ReturnType<typeof createClient>, fields: LogFields) {
+  return supabase.from('cron_execution_logs').insert(fields)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
@@ -51,11 +102,14 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization') ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
 
+  const started = Date.now()
+  let triggerSource = 'manual'
+
   try {
     if (!token) return json({ error: 'missing bearer token' }, 401)
 
     if (cronSecret && token === cronSecret) {
-      // Scheduled pg_cron call (or anything else holding the shared secret).
+      triggerSource = 'pg_cron'
     } else if (token === serviceKey) {
       // Ops/debug via the service-role key.
     } else {
@@ -73,8 +127,6 @@ Deno.serve(async (req) => {
         .single()
       if (!profile?.is_admin) return json({ error: 'admin access required' }, 403)
     }
-
-    const started = Date.now()
 
     // Aggregated pairwise wins (per-user normalized, PLAN §5.1) + participant
     // counts, both via the RPCs installed by the Phase 6 migration.
@@ -103,14 +155,35 @@ Deno.serve(async (req) => {
         .delete()
         .neq('coaster_id', '00000000-0000-0000-0000-000000000000')
       if (error) throw new Error(error.message)
+
+      const durationMs = Date.now() - started
+      await logExecution(supabase, {
+        status: 'success',
+        duration_ms: durationMs,
+        trigger_source: triggerSource,
+        iterations: 0,
+        converged: true,
+        pairs: 0,
+        updated: 0,
+      })
+
       const result: RecomputeResult = {
         updated: 0,
-        durationMs: Date.now() - started,
+        durationMs,
         iterations: 0,
         converged: true,
       }
       return json(result, 200)
     }
+
+    // Snapshot the current #1 before recompute so we can detect a crown change.
+    const { data: prevTop } = await supabase
+      .from('coaster_ratings')
+      .select('coaster_id')
+      .order('score', { ascending: false })
+      .limit(1)
+      .single()
+    const prevTopId = prevTop?.coaster_id as string | undefined
 
     const { rows, iterations, converged } = computeRankings(
       pairs.map((r): Pair => {
@@ -150,15 +223,71 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message)
     }
 
+    const durationMs = Date.now() - started
+
+    // Check if the global #1 changed.
+    const { data: newTop } = await supabase
+      .from('coaster_ratings')
+      .select('coaster_id')
+      .order('score', { ascending: false })
+      .limit(1)
+      .single()
+    const newTopId = newTop?.coaster_id as string | undefined
+
+    if (newTopId && newTopId !== prevTopId) {
+      const { data: coaster } = await supabase
+        .from('coasters')
+        .select('name')
+        .eq('id', newTopId)
+        .single()
+      const newName = coaster?.name ?? 'Unknown'
+
+      let prevName: string | null = null
+      if (prevTopId) {
+        const { data: prevCoaster } = await supabase
+          .from('coasters')
+          .select('name')
+          .eq('id', prevTopId)
+          .single()
+        prevName = prevCoaster?.name ?? null
+      }
+
+      await sendNumberOneEvent(newName, prevName)
+    }
+
+    await logExecution(supabase, {
+      status: 'success',
+      duration_ms: durationMs,
+      trigger_source: triggerSource,
+      iterations,
+      converged,
+      pairs: pairs.length,
+      updated: upserts.length,
+    })
+
     const result: RecomputeResult = {
       updated: upserts.length,
-      durationMs: Date.now() - started,
+      durationMs,
       iterations,
       converged,
     }
     return json(result, 200)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'recompute failed'
+    const durationMs = Date.now() - started
+
+    try {
+      await logExecution(supabase, {
+        status: 'error',
+        duration_ms: durationMs,
+        trigger_source: triggerSource,
+        error_message: message,
+      })
+      await sendFailureAlert(message, durationMs, triggerSource)
+    } catch {
+      // Best-effort: logging/alerting failure must not mask the original error.
+    }
+
     return json({ error: message }, 500)
   }
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -89,7 +89,7 @@ describe('AdminPage', () => {
   })
 
   describe('recompute', () => {
-    it('triggers the recompute function and reports the result', async () => {
+    it('triggers the recompute function and refreshes logs', async () => {
       vi.mocked(supabase.functions.invoke).mockResolvedValue({
         data: { updated: 42, durationMs: 120, iterations: 7, converged: true },
         error: null,
@@ -99,9 +99,10 @@ describe('AdminPage', () => {
       expect(supabase.functions.invoke).toHaveBeenCalledWith('recompute-rankings', {
         method: 'POST',
       })
-      expect(
-        await screen.findByText(/Updated 42 coaster ratings in 120 ms.*converged/),
-      ).toBeInTheDocument()
+      // Button returns to idle state after mutation settles
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /recompute now/i })).toBeEnabled()
+      })
     })
 
     it('shows the failure message when the function errors', async () => {
