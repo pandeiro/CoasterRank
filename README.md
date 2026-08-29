@@ -28,7 +28,7 @@ All v1 phases complete (scaffold → live Bradley-Terry rankings → admin & mod
 - **Frontend**: React 19 + Vite + TypeScript SPA (Tailwind CSS, TanStack Query, React Router)
 - **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security) — dedicated instance, develop against prod
 - **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
-- **Hosting**: Cloudflare Pages (SPA, auto-deploy on push to `main` — 500 builds/mo free, unlimited bandwidth)
+- **Hosting**: Cloudflare Workers (SPA, auto-deploy on push to `main` — 500 builds/mo free, unlimited bandwidth)
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)
 

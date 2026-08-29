@@ -243,7 +243,7 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 ## 9. Deployment & CI/CD
 
 ### 9.1 Branch policy
-`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The Supabase deploy job runs only after merge to `main` (not on PRs). The SPA auto-deploys on push to `main` via Cloudflare Pages.
+`main` is protected. PRs are required to merge (no direct pushes). Required status check: `ci/check`. The Supabase deploy job runs only after merge to `main` (not on PRs). The SPA auto-deploys on push to `main` via Cloudflare Workers.
 
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
@@ -252,11 +252,11 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 - Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it), gated on `secrets.SUPABASE_ACCESS_TOKEN`. Installs the Supabase CLI, then `supabase link --project-ref $PROJECT_REF`, `supabase db push`, then `supabase functions deploy recompute-rankings`.
 - Migrations must always be additive and backwards-compatible with the current frontend.
 
-### 9.4 SPA deploy workflow (Cloudflare Pages auto-deploy)
-- **Trigger**: Cloudflare Pages auto-deploys on every push to `main` (no GitHub workflow). Free tier includes 500 builds/mo — no SHA-gate needed.
+### 9.4 SPA deploy workflow (Cloudflare Workers auto-deploy)
+- **Trigger**: Cloudflare Workers auto-deploys on every push to `main` (no GitHub workflow). Free tier includes 500 builds/mo — no SHA-gate needed.
 - **Build**: Cloudflare runs `npm run build` with root directory `app/`; output directory `app/dist` is declared in `app/wrangler.toml` (`assets.directory = "./dist"`, `assets.not_found_handling = "single-page-application"` for SPA fallback).
 - **Env**: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard (Pages → Settings → Environment variables).
-- **Note**: For future Worker integration, extend `app/wrangler.toml` with `main = "..."` — no hosting migration needed.
+- **Note**: The `app/wrangler.toml` configures static asset serving with optional Worker routes (`run_worker_first` for `/api/*` and `/riders/*`).
 
 ### 9.5 Database backup workflow (`.github/workflows/backup-database.yml`)
 - **Schedule**: runs nightly at 4 AM ET (cron `0 8 * * *` UTC), plus manual `workflow_dispatch`.
@@ -268,11 +268,11 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 ### 9.6 SPA hosting — Cloudflare Workers (unified, single project)
 - Connect the GitHub repo; build command `npm run build`; root directory `app/`; `app/wrangler.toml` declares `assets.directory = "./dist"` + `assets.not_found_handling = "single-page-application"` for SPA fallback; `run_worker_first = ["/api/*", "/riders/*"]` scopes Worker invocations to those prefixes (default path serves static directly from edge, no Worker cost).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- A free `*.pages.dev` URL works end-to-end before any custom domain.
+- A free `*.workers.dev` URL works end-to-end before any custom domain.
 
 ### 9.7 Custom domain (whenever you go public)
 1. Register the domain (~$10–15/yr).
-2. Cloudflare Pages → Custom domains → Add custom domain (apex + `www` DNS per Cloudflare's instructions). HTTPS is auto-provisioned.
+2. Cloudflare Workers → Custom domains → Add custom domain (apex + `www` DNS per Cloudflare's instructions). HTTPS is auto-provisioned.
 3. Supabase → Auth → URL Configuration → set Site URL to `https://<your-domain>` and add `https://<your-domain>/**` plus `http://localhost:5173/**` to Redirect URLs.
 
 ### 9.8 Go-live checklist
@@ -282,7 +282,7 @@ public URL changes (Pages URL → custom domain, §9.7). If these are missed, si
 confirmation emails point at the wrong host and new accounts can never confirm on prod.
 
 - [ ] **Cloudflare deploy green** — site connected per the `docs/RUNBOOKS.md` runbook; `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard.
-- **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.pages.dev` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
+- **Auth-critical:** Supabase → Auth → URL Configuration — Site URL = prod URL (`https://<site>.workers.dev` at first; custom domain later) and Redirect URLs include `https://<prod-url>/**` **plus** `http://localhost:5173/**` (keep localhost for dev).
 - [ ] **Auth-critical:** Supabase → Auth → Email — "Confirm email" enabled (already set; double-check it hasn't been turned off, §4.6).
 - [ ] **Admin bootstrapped** — SQL runbook in `docs/RUNBOOKS.md`; verify the admin badge shows on `/me/profile` on prod.
 - [ ] **End-to-end smoke on prod** — sign up with a real inbox → confirmation link lands on the prod URL → log in → `/me` renders behind the confirmed gate.

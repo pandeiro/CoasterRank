@@ -13,10 +13,10 @@ see `AGENTS.md`; for architecture and decisions see `docs/PLAN.md`.
 
 ## Connect Cloudflare (just-in-time, before Phase 4)
 
-1. Create a Cloudflare account and create a new Pages project by importing the CoasterRank GitHub repo.
+1. Create a Cloudflare account and create a new Workers project by importing the CoasterRank GitHub repo.
 2. Build command: `npm run build`. Root directory: `app/`. (The `app/wrangler.toml` handles the output directory `dist`).
-3. Add env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Cloudflare Pages settings.
-4. Add the Cloudflare URL (`https://<site>.pages.dev`) plus `http://localhost:5173` to Supabase Auth
+3. Add env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Cloudflare Workers settings.
+4. Add the Cloudflare URL (`https://<site>.workers.dev`) plus `http://localhost:5173` to Supabase Auth
    → Redirect URLs.
 
 Once connected, run the **go-live checklist** (`docs/PLAN.md` §9.5) before sharing the URL.
@@ -39,8 +39,8 @@ Cloudflare, for both DNS options below. No cert tooling on your side.
 ### Option B — External DNS (keep your registrar's DNS)
 
 1. At your registrar / DNS provider:
-   - Apex: `CNAME` or `A` record per Cloudflare's provided setup (usually a CNAME to `your-site.pages.dev`).
-   - `www`: `CNAME` → `<site>.pages.dev`.
+   - Apex: `CNAME` or `A` record per Cloudflare's provided setup (usually a CNAME to `your-site.workers.dev`).
+   - `www`: `CNAME` → `<site>.workers.dev`.
 2. Cloudflare: Site → Custom domains → Add custom domain → enter the apex; add the `www` alias.
 
 Don't mix the two options: either the registrar's nameservers point at Cloudflare (A) **or** you
