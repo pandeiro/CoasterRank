@@ -8,14 +8,12 @@ import {
   formatNumber,
   formatScore,
   useCoaster,
-  useParks,
   yearFromDate,
 } from '../lib/coasters'
 
 export default function CoasterDetailPage() {
   const { slug } = useParams()
   const { data: coaster, isPending, isError } = useCoaster(slug)
-  const parks = useParks()
 
   if (isPending) {
     return <MessageState>Loading…</MessageState>
@@ -29,8 +27,9 @@ export default function CoasterDetailPage() {
     return <MessageState>Coaster not found.</MessageState>
   }
 
-  const park = parks.data?.find((p) => p.id === coaster.park_id)
-  const location = [park?.city, park?.country].filter(Boolean).join(', ')
+  // Park display fields (name/slug/city/country) are denormalized onto the
+  // view row — no parks query needed on this page.
+  const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
   const openingYear = yearFromDate(coaster.opening_date)
   const firstPlace = firstPlaceLabel(coaster.first_place_votes, coaster.participants)
 
@@ -41,9 +40,9 @@ export default function CoasterDetailPage() {
       </p>
       <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
       <p className="mt-2 text-muted">
-        {park && (
-          <Link to={`/parks/${park.slug}`} className="font-medium hover:underline">
-            {park.name}
+        {coaster.park_name && coaster.park_slug && (
+          <Link to={`/parks/${coaster.park_slug}`} className="font-medium hover:underline">
+            {coaster.park_name}
           </Link>
         )}
         {location ? ` · ${location}` : ''}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import type { CountryOption, MaterialView, RankingFilters } from '../lib/coasters'
 import { fieldClassName, Panel, selectClassName } from './ui'
@@ -20,6 +20,11 @@ const groupLabel = 'flex flex-col gap-1.5 text-xs font-semibold uppercase tracki
 
 export default function FilterBar({ filters, onChange, countries, manufacturers }: Props) {
   const [search, setSearch] = useState(filters.q ?? '')
+  // Latest filters, read inside the debounce callback so the timer can be
+  // keyed on `search` alone: unrelated filter changes must neither restart
+  // the debounce nor be lost to a stale closure when it fires.
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
 
   useEffect(() => {
     setSearch(filters.q ?? '')
@@ -27,10 +32,11 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
 
   useEffect(() => {
     const id = setTimeout(() => {
-      if (search !== (filters.q ?? '')) onChange({ ...filters, q: search.trim() || undefined })
+      const current = filtersRef.current
+      if (search !== (current.q ?? '')) onChange({ ...current, q: search.trim() || undefined })
     }, 300)
     return () => clearTimeout(id)
-  }, [search, filters, onChange])
+  }, [search, onChange])
 
   function update(patch: Partial<RankingFilters>) {
     onChange({ ...filters, ...patch })

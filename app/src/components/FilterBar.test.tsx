@@ -61,6 +61,37 @@ describe('FilterBar', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
   })
 
+  it('applies a pending search on top of filters changed mid-debounce', () => {
+    vi.useFakeTimers()
+    const { onChange, rerender } = renderBar()
+    fireEvent.change(screen.getByLabelText(/filter coasters/i), { target: { value: 'cobra' } })
+
+    // An unrelated filter toggle lands immediately, mid-debounce…
+    fireEvent.click(screen.getByLabelText('Include non-operational'))
+    expect(onChange).toHaveBeenNthCalledWith(1, { ...DEFAULT_FILTERS, allStatuses: true })
+    // …and the parent re-renders with the new filters while the search is pending.
+    rerender(
+      <FilterBar
+        filters={{ ...DEFAULT_FILTERS, allStatuses: true }}
+        onChange={onChange}
+        countries={countries}
+        manufacturers={manufacturers}
+      />,
+    )
+
+    // The debounce is not restarted by the re-render: it fires 300ms after
+    // typing, merging the search onto the toggled filters (not stale ones).
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(onChange).toHaveBeenNthCalledWith(2, {
+      ...DEFAULT_FILTERS,
+      allStatuses: true,
+      q: 'cobra',
+    })
+    expect(onChange).toHaveBeenCalledTimes(2)
+  })
+
   it('calls onChange when the status checkbox toggles', async () => {
     const user = userEvent.setup()
     const { onChange } = renderBar()

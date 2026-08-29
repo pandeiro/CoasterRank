@@ -75,6 +75,7 @@ select
   p.name as park_name,
   p.slug as park_slug,
   p.country as park_country,
+  p.city as park_city,
   m.name as manufacturer_name,
   coalesce(
     (select array_agg(a.name order by a.name)

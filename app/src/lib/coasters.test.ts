@@ -237,6 +237,15 @@ describe('firstPlaceVisibleIds', () => {
     const visible = firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS + 1)
     expect(visible.has(rows[FIRST_PLACE_TOP_N].id)).toBe(false)
   })
+
+  it('stays deterministic when tied rows have no rank', () => {
+    const rows = Array.from({ length: FIRST_PLACE_TOP_N }, () =>
+      makeRankingRow({ rank: null, first_place_votes: 1 }),
+    )
+    const visible = firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS + 1)
+    expect(visible.size).toBe(FIRST_PLACE_TOP_N)
+    expect([...visible].every((id) => rows.some((r) => r.id === id))).toBe(true)
+  })
 })
 
 describe('countryOptions', () => {

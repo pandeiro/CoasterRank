@@ -63,6 +63,7 @@ export type RankingRow = {
   park_name: string | null
   park_slug: string | null
   park_country: string | null
+  park_city: string | null
   manufacturer_name: string | null
   aliases: string[] | null
   score: number | null
@@ -203,7 +204,8 @@ export function firstPlaceVisibleIds(rows: RankingRow[], rankedUsers: number): S
       .sort(
         (a, b) =>
           (b.first_place_votes ?? 0) - (a.first_place_votes ?? 0) ||
-          (a.rank ?? Infinity) - (b.rank ?? Infinity),
+          (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
+          0,
       )
       .slice(0, FIRST_PLACE_TOP_N)
       .map((r) => r.id),
