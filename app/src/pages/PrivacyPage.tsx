@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const LAST_UPDATED = 'August 27, 2026'
+const LAST_UPDATED = 'August 29, 2026'
 
 export default function PrivacyPage() {
   return (
@@ -60,8 +60,9 @@ export default function PrivacyPage() {
             technologies.
           </p>
           <p className="mt-3">
-            If we add privacy-friendly analytics in the future (such as Cloudflare Web Analytics),
-            we will update this policy and provide appropriate notice.
+            We use Cloudflare Web Analytics, a privacy-friendly, cookieless analytics tool that does
+            not collect personal data. It helps us understand aggregate traffic patterns without
+            tracking individual users.
           </p>
         </section>
 
