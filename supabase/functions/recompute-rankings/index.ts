@@ -49,19 +49,33 @@ function isPgrst303(err: unknown): boolean {
   return err instanceof Error && err.message.includes('PGRST303')
 }
 
+type RpcResult<T> = {
+  data: T[] | null
+  error: { message: string } | null
+  retriesUsed: number
+}
+
 async function rpcWithRetry<T>(
   supabase: ReturnType<typeof createClient>,
   name: string,
   args?: Record<string, unknown>,
-): Promise<{ data: T[] | null; error: { message: string } | null }> {
+): Promise<RpcResult<T>> {
   let lastError: { message: string } | null = null
+  let retriesUsed = 0
   for (let attempt = 0; attempt <= RPC_MAX_RETRIES; attempt++) {
     const res = await supabase.rpc(name, args as never)
-    if (!res.error || !isPgrst303(res.error)) return res
+    if (!res.error || !isPgrst303(res.error)) return { ...res, retriesUsed }
     lastError = res.error
-    if (attempt < RPC_MAX_RETRIES) await sleep(RPC_RETRY_DELAY_MS)
+    if (attempt < RPC_MAX_RETRIES) {
+      retriesUsed++
+      await sleep(RPC_RETRY_DELAY_MS)
+    }
   }
-  return { data: null, error: lastError }
+  return {
+    data: null,
+    error: { message: `${lastError!.message} (after ${retriesUsed + 1} attempts)` },
+    retriesUsed,
+  }
 }
 
 // ── Telegram helpers ────────────────────────────────────────────────────
@@ -100,6 +114,7 @@ type LogFields = {
   status: 'success' | 'error'
   duration_ms: number
   trigger_source: string
+  retries_used: number
   iterations?: number
   converged?: boolean
   pairs?: number
@@ -161,6 +176,7 @@ Deno.serve(async (req) => {
     if (participantsRes.error) {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
     }
+    const retriesUsed = Math.max(pairsRes.retriesUsed, participantsRes.retriesUsed)
     const pairs = (pairsRes.data ?? []) as PairRow[]
     const participants = new Map(
       ((participantsRes.data ?? []) as ParticipantRow[]).map((r) => [
@@ -184,6 +200,7 @@ Deno.serve(async (req) => {
         status: 'success',
         duration_ms: durationMs,
         trigger_source: triggerSource,
+        retries_used: retriesUsed,
         iterations: 0,
         converged: true,
         pairs: 0,
@@ -282,6 +299,7 @@ Deno.serve(async (req) => {
       status: 'success',
       duration_ms: durationMs,
       trigger_source: triggerSource,
+      retries_used: retriesUsed,
       iterations,
       converged,
       pairs: pairs.length,
@@ -304,6 +322,7 @@ Deno.serve(async (req) => {
         status: 'error',
         duration_ms: durationMs,
         trigger_source: triggerSource,
+        retries_used: 0,
         error_message: message,
       })
       await sendFailureAlert(message, durationMs, triggerSource)
