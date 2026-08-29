@@ -27,6 +27,7 @@ A multi-user webapp where users rank the roller coasters they've ridden, and eve
 | Reference data | **Open CSV import + admin additions + user submission/moderation queue.** | Legally clean, realistic, community-growable. |
 | Seed dataset | **Rob Mulla's Wikipedia-derived CC0 `coaster_db.csv`** (~1,000 coasters, public domain). | Avoids RCDB's Terms-of-Service prohibition on data reuse; larger 11k RCDB-derived datasets are explicitly **not** used. |
 | Admin bootstrap | **One-time SQL** sets `profiles.is_admin = true` for a chosen email. | Simple, auditable, standard Supabase pattern. |
+| Test data | **`testride` CLI** (`scripts/src/testride/`) with a two-marker synthetic-user scheme (email `@test.coasterrank.dev` + `raw_user_meta_data.synthetic`); seeded users are login-ready (no email verification). Admin impersonation of synthetic users via the `assume-identity` Edge Function. | Effortless mock-data + cleanup lifecycle for benchmarking and UX testing; impersonation is server-side-restricted to marker-matched users so real users are unreachable. |
 
 ## 3. Architecture
 
@@ -311,6 +312,7 @@ confirmation emails point at the wrong host and new accounts can never confirm o
 
 ## 11. Future considerations (explicitly out of v1 scope)
 
+- **`supabase clone`**: a tool that provisions a full copy of the current system (schema, data, functions, secrets, storage) into a new project for disaster recovery or throwaway testing. The integration checklist is already spec'd in `docs/RUNBOOKS.md` ("Clone inventory"); until built, the restore-drill runbook covers the near-term DR path.
 - OAuth providers (Google, GitHub, etc.).
 - Username-change redirects for `/riders/<username>` links (v1 accepts link breakage on rename).
 - Cloudflare Web Analytics beacon (token-gated) or Analytics Engine bindings for CTA funnel data beyond raw `/riders/*` request counts.

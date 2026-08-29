@@ -66,16 +66,48 @@ update public.profiles set is_admin = true
 where id = (select id from auth.users where email = 'you@example.com');
 ```
 
-## Cleanup a test user created in prod
+## Test & mock data: the `testride` CLI
 
-Because we develop against prod Supabase, test users created during local dev land in the prod auth
-table. To remove one:
+`scripts/src/testride/` manages synthetic users and their data. Synthetic users carry **two
+markers** (either suffices):
 
-```sql
--- in the Supabase SQL editor
-delete from auth.users where email = 'test@example.com';
--- user_rides/profiles rows cascade or are cleaned by the handle_new_user trigger relationship
+1. email on the `@test.coasterrank.dev` domain — **adopt this convention when signing up manual
+   test users through the UI**;
+2. `raw_user_meta_data.synthetic = true` (set automatically by `testride:seed`).
+
+Seeded users are **login-ready with no email verification** (inserted with `email_confirmed_at`
+set) and share the password `testride-password`.
+
+All commands target prod (`.env`) by default; any other project (e.g. a throwaway) via
+`--db-url / --supabase-url / --service-key`. Destructive/data commands are preview-only until
+`--apply` / `--yes`.
+
+```bash
+cd scripts
+npm run testride:seed -- --profile ux --apply                  # 3 test users + rides (+ --with-submissions for admin-queue testing)
+npm run testride:seed -- --profile benchmark --users 500 --apply  # BT benchmark dataset (~17k ranked rides; skewed casual/mid/power)
+npm run testride:report                                        # synthetic users + recent users + what each owns
+npm run testride:cleanup -- --synthetic                        # preview; add --yes to delete
+npm run testride:cleanup -- --emails someone@test.coasterrank.dev --yes
+npm run testride:confirm -- --email someone@test.coasterrank.dev --apply  # email-verification workaround
+npm run testride:recompute                                     # refresh derived ratings after seed/cleanup
 ```
+
+Cleanup deletes `auth.users` rows; `profiles`, `user_rides`, and their submissions cascade. Avatar
+storage files are removed first via the service-role API (they do NOT cascade); `coaster_ratings`
+are derived and restored by `testride:recompute`. `cleanup --synthetic` matches only the exact
+markers above — never a fuzzy pattern. Benchmark-scale seeding of prod is refused without
+`--i-know-this-is-prod`.
+
+**Assume identity (impersonation):** the admin page's *Assume identity* tab lists synthetic users
+and logs you in as one (one-time magiclink via the `assume-identity` Edge Function — no password
+needed, works even for manual test signups whose password you don't know). The admin session is
+backed up before switching; **"Return to admin"** in the bottom banner restores it. Server-side,
+the function only ever impersonates marker-matched synthetic users — real users are unreachable
+by design.
+
+Fallback (no tooling available): `delete from auth.users where email = '…';` in the SQL editor
+cascades profiles/rides/submissions, then recompute.
 
 ## Bootstrap the rankings recompute (one-time, after the Phase 6 deploy)
 
@@ -188,3 +220,65 @@ To restore a backup locally:
 ```bash
 gunzip -c coasterrank-YYYY-MM-DD.sql.gz | psql "postgresql://localhost:5432/your_local_db"
 ```
+
+## Restore drill (scratch Supabase project)
+
+Validates that nightly backups are actually restorable, and rehearses the DR path (a real disaster
+may require creating a fresh project and restoring into it). Performed against a **throwaway**
+project, deleted afterwards — no standing staging environment. Also completes the §1.1
+verification item of the go-live plan.
+
+1. **Fresh backup**: GitHub Actions → `backup-database` → **Run workflow** (don't wait for the
+   nightly).
+2. **Throwaway project**: create in the dashboard (free tier; same Postgres major version as
+   `supabase/config.toml`). Copy its DB URL (Session pooler), project URL, and service-role key.
+3. **Restore**:
+   ```bash
+   gh repo clone pandeiro/CoasterRankBackups /tmp/backup-repo   # or fetch the single file
+   gunzip -c /tmp/backup-repo/coasterrank-YYYY-MM-DD.sql.gz | \
+     psql "<THROWAWAY_SESSION_POOLER_URL>"
+   ```
+   **Status: pending first run.** Record the exact working invocation + expected benign errors
+   (role/extension grant noise is normal on a full-dump restore into a fresh Supabase project)
+   here after the first drill, so the final command becomes the forever DR path.
+4. **Verify**: row counts (`auth.users`, `profiles`, `parks`, `coasters`, `user_rides`,
+   `coaster_ratings`); log in on the SPA with real prod creds (password hashes restore); board
+   renders; `select jobname from cron.job;` shows `recompute-rankings`.
+5. **Machinery** (needed for full function, optional for pure restore validation):
+   ```bash
+   source .env
+   supabase db push --db-url "$THROWAWAY_DB_URL"       # migrations (idempotent)
+   supabase functions deploy recompute-rankings --project-ref "$THROWAWAY_REF"
+   supabase functions deploy assume-identity --project-ref "$THROWAWAY_REF"
+   supabase secrets set APP_ENV=staging RECOMPUTE_AUTH_SECRET="<new secret>" --project-ref "$THROWAWAY_REF"
+   # No Telegram tokens on non-prod: alert/event sends no-op silently.
+   ```
+   Then Vault bootstrap (see the recompute runbook above) with the throwaway's function URL and
+   secret — after deleting any restored-but-undecryptable vault rows:
+   `delete from vault.secrets where name in ('recompute_function_url','recompute_auth_secret');`
+6. **Teardown**: delete the throwaway project in the dashboard. Cleanup by construction.
+
+## Clone inventory (spec seed for a future `supabase clone`)
+
+The eventual `supabase clone` tool provisions a full copy of the current system into a new
+project (DR or testing). Each item below must be handled per-clone; this list is the tool's
+checklist. Items marked ✅ are covered automatically by the dump restore; the rest are manual
+steps today (see the restore drill).
+
+| # | Item | Covered by dump? | Per-clone action |
+| --- | --- | --- | --- |
+| 1 | Schema (tables, RLS, functions, triggers, views) | ✅ | — (or `db push` for migration parity) |
+| 2 | Data (incl. `auth.users` password hashes) | ✅ | — |
+| 3 | Migration history (`supabase_migrations`) | ✅ | — |
+| 4 | Storage bucket rows | ✅ | — |
+| 5 | **Storage object files** (avatars, OG cards) | ❌ | re-upload or accept 404s |
+| 6 | **Vault secrets** | ❌ (encrypted per-project) | delete restored rows; create with new function URL + new `RECOMPUTE_AUTH_SECRET` |
+| 7 | **Edge Functions** (recompute-rankings, assume-identity) | ❌ | `functions deploy --project-ref` |
+| 8 | **Function secrets** (`APP_ENV`, `RECOMPUTE_AUTH_SECRET`) | ❌ | `secrets set` (new secret; no Telegram tokens on non-prod) |
+| 9 | **pg_cron schedule** | verify | re-push the pg_cron migration if missing (idempotent) |
+| 10 | **Auth URL config** (Site URL, redirect URLs) + SMTP | ❌ | dashboard per project |
+| 11 | Downstream consumers | ❌ | GitHub secrets (`SUPABASE_DB_URL`, `PROJECT_REF`), Cloudflare `VITE_*`, local `.env` |
+| 12 | Free-tier pause guard target (if §1.5 lands) | ❌ | repoint |
+
+Frontend decoupling already exists: swapping `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+retargets the SPA instantly (locally via `.env` overrides; hosted via Cloudflare env vars).
