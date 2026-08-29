@@ -36,6 +36,7 @@ function json(body: unknown, status: number): Response {
 
 type PairRow = { winner: string; loser: string; weight: number; wins: number }
 type ParticipantRow = { coaster_id: string; participants: number }
+type FirstPlaceRow = { coaster_id: string; first_place_votes: number }
 type RecomputeResult = { updated: number; durationMs: number; iterations: number; converged: boolean }
 
 const UPSERT_CHUNK = 500
@@ -169,21 +170,34 @@ Deno.serve(async (req) => {
     }
 
     // Aggregated pairwise wins (per-user normalized, PLAN §5.1) + participant
-    // counts, both via the RPCs installed by the Phase 6 migration.
-    const [pairsRes, participantsRes] = await Promise.all([
+    // counts + first-place votes, via the RPCs installed by the Phase 6 /
+    // rankings-view-v2 migrations.
+    const [pairsRes, participantsRes, firstPlaceRes] = await Promise.all([
       rpcWithRetry<PairRow>(supabase, 'pairwise_wins'),
       rpcWithRetry<ParticipantRow>(supabase, 'ranked_participants'),
+      rpcWithRetry<FirstPlaceRow>(supabase, 'first_place_counts'),
     ])
     if (pairsRes.error) throw new Error(`pairwise_wins: ${pairsRes.error.message}`)
     if (participantsRes.error) {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
     }
-    const retriesUsed = Math.max(pairsRes.retriesUsed, participantsRes.retriesUsed)
+    if (firstPlaceRes.error) throw new Error(`first_place_counts: ${firstPlaceRes.error.message}`)
+    const retriesUsed = Math.max(
+      pairsRes.retriesUsed,
+      participantsRes.retriesUsed,
+      firstPlaceRes.retriesUsed,
+    )
     const pairs = (pairsRes.data ?? []) as PairRow[]
     const participants = new Map(
       ((participantsRes.data ?? []) as ParticipantRow[]).map((r) => [
         r.coaster_id,
         r.participants,
+      ]),
+    )
+    const firstPlace = new Map(
+      ((firstPlaceRes.data ?? []) as FirstPlaceRow[]).map((r) => [
+        r.coaster_id,
+        r.first_place_votes,
       ]),
     )
 
@@ -239,6 +253,7 @@ Deno.serve(async (req) => {
       comparisons: r.comparisons,
       wins: r.wins,
       participants: participants.get(r.coasterId) ?? 0,
+      first_place_votes: firstPlace.get(r.coasterId) ?? 0,
     }))
     for (let i = 0; i < upserts.length; i += UPSERT_CHUNK) {
       const { error } = await supabase

@@ -5,14 +5,15 @@ import FilterBar from '../components/FilterBar'
 import ScrollSentinel from '../components/ScrollSentinel'
 import { Badge, MessageState, PageHeader } from '../components/ui'
 import {
-  buildParkMap,
+  countryOptions,
   filterCoasters,
   filtersFromSearchParams,
   filtersToSearchParams,
+  firstPlaceVisibleIds,
+  manufacturerOptions,
   PAGE_SIZE,
   useAllCoasters,
-  useManufacturers,
-  useParks,
+  useRankedUserCount,
   type RankingFilters,
 } from '../lib/coasters'
 
@@ -21,8 +22,9 @@ export default function BoardPage() {
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
 
   const coasters = useAllCoasters()
-  const parks = useParks()
-  const manufacturers = useManufacturers()
+  // Auxiliary stat: a failure here degrades to a fully-dashed first-place
+  // column (gate closed), never an error screen.
+  const rankedUsers = useRankedUserCount()
 
   // Incremental rendering: start with one page, grow as the user scrolls.
   const [page, setPage] = useState(1)
@@ -32,17 +34,15 @@ export default function BoardPage() {
     setPage(1)
   }, [filters])
 
-  const refs = useMemo(
-    () => ({ parks: parks.data ?? [], manufacturers: manufacturers.data ?? [] }),
-    [parks.data, manufacturers.data],
+  const rows = coasters.data
+  const countries = useMemo(() => countryOptions(rows ?? []), [rows])
+  const manufacturers = useMemo(() => manufacturerOptions(rows ?? []), [rows])
+  const firstPlaceIds = useMemo(
+    () => firstPlaceVisibleIds(rows ?? [], rankedUsers.data ?? 0),
+    [rows, rankedUsers.data],
   )
 
-  const filteredRows = useMemo(
-    () => (coasters.data ? filterCoasters(coasters.data, filters, refs) : []),
-    [coasters.data, filters, refs],
-  )
-
-  const parkMap = useMemo(() => buildParkMap(refs.parks), [refs.parks])
+  const filteredRows = useMemo(() => (rows ? filterCoasters(rows, filters) : []), [rows, filters])
 
   const visibleRows = filteredRows.slice(0, page * PAGE_SIZE)
   const hasNextPage = visibleRows.length < filteredRows.length
@@ -58,9 +58,6 @@ export default function BoardPage() {
     if (hasNextPage) setPage((p) => p + 1)
   }, [hasNextPage])
 
-  const isError = coasters.isError || parks.isError || manufacturers.isError
-  const isPending = coasters.isPending || parks.isPending || manufacturers.isPending
-
   return (
     <>
       <PageHeader
@@ -69,15 +66,20 @@ export default function BoardPage() {
         description="A live ranking of the world's roller coasters"
         action={<Badge tone="accent">Live board</Badge>}
       />
-      <FilterBar filters={filters} onChange={onFiltersChange} />
+      <FilterBar
+        filters={filters}
+        onChange={onFiltersChange}
+        countries={countries}
+        manufacturers={manufacturers}
+      />
       <div className="mt-6">
-        {isError ? (
+        {coasters.isError ? (
           <MessageState tone="danger">Couldn&apos;t load the board.</MessageState>
-        ) : isPending ? (
+        ) : coasters.isPending ? (
           <MessageState>Loading…</MessageState>
         ) : (
           <>
-            <CoasterTable rows={visibleRows} parks={parkMap} />
+            <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} />
             <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
             {!hasNextPage && visibleRows.length > 0 && (
               <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">
