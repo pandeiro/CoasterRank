@@ -52,7 +52,7 @@ Read-only data exploration with psql (sourced from `.env`):
 source .env && psql "$SUPABASE_DB_URL" -c "SELECT …"
 ```
 
-Quick cron health check:
+Quick bt ranking cron health check:
 `source .env && psql "$SUPABASE_DB_URL" -c "SELECT status, retries_used, error_message, created_at FROM cron_execution_logs ORDER BY created_at DESC LIMIT 10;"`
 
 Scripts (data-engineering) commands run from `scripts/` — it has its **own** `package.json` (separate from `app/`):
