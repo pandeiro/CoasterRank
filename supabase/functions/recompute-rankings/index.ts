@@ -46,7 +46,9 @@ const RPC_RETRY_DELAY_MS = 300
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function isPgrst303(err: unknown): boolean {
-  return err instanceof Error && err.message.includes('PGRST303')
+  if (typeof err !== 'object' || err === null) return false
+  const e = err as Record<string, unknown>
+  return e.code === 'PGRST303'
 }
 
 type RpcResult<T> = {
