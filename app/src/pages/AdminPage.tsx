@@ -1281,12 +1281,12 @@ export default function AdminPage() {
                   Last success: {formatTimeAgo(lastRun.data.created_at)}
                 </div>
                 <div className="mt-1 text-ink">
-                  {formatDuration(lastRun.data.duration_ms)} &middot; {lastRun.data.pairs} pairs
-                  &rarr; {lastRun.data.updated} coasters
+                  {`${lastRun.data.iterations + 1} iteration${lastRun.data.iterations + 1 === 1 ? '' : 's'}`}{' '}
+                  &middot; {formatDuration(lastRun.data.duration_ms)}
+                  {lastRun.data.converged ? '' : ' (hit cap)'}
                 </div>
                 <div className="text-ink">
-                  {`${lastRun.data.iterations + 1} iteration${lastRun.data.iterations + 1 === 1 ? '' : 's'}`}
-                  {lastRun.data.converged ? '' : ' (hit cap)'}
+                  {lastRun.data.pairs} pairs &rarr; {lastRun.data.updated} coasters
                 </div>
               </div>
             )}
