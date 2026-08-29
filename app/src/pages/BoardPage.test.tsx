@@ -4,23 +4,15 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  PAGE_SIZE,
-  useAllCoasters,
-  useParks,
-  useCountries,
-  useManufacturers,
-} from '../lib/coasters'
-import { makePark, makeRankingRow } from '../test/fixtures'
+import { PAGE_SIZE, useAllCoasters, useRankedUserCount } from '../lib/coasters'
+import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
   return {
     ...actual,
     useAllCoasters: vi.fn(),
-    useParks: vi.fn(),
-    useCountries: vi.fn(),
-    useManufacturers: vi.fn(),
+    useRankedUserCount: vi.fn(),
   }
 })
 
@@ -60,8 +52,6 @@ function renderBoard(initialEntries = ['/']) {
   )
 }
 
-const park = makePark()
-
 function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
   vi.mocked(useAllCoasters).mockReturnValue({
     data: data.length ? data.map((o) => makeRankingRow(o)) : [],
@@ -74,18 +64,8 @@ describe('BoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     observeCallback = null
-    vi.mocked(useParks).mockReturnValue({
-      data: [park],
-      isPending: false,
-      isError: false,
-    } as never)
-    vi.mocked(useCountries).mockReturnValue({
-      data: ['US'],
-      isPending: false,
-      isError: false,
-    } as never)
-    vi.mocked(useManufacturers).mockReturnValue({
-      data: [],
+    vi.mocked(useRankedUserCount).mockReturnValue({
+      data: 0,
       isPending: false,
       isError: false,
     } as never)
@@ -131,21 +111,22 @@ describe('BoardPage', () => {
     expect(screen.getByTestId('location').textContent).toBe('')
   })
 
-  it('writes status to the URL when a non-operating status is chosen', async () => {
+  it('writes status=all to the URL when non-operational coasters are included', async () => {
     const user = userEvent.setup()
     renderBoard()
-    await user.selectOptions(screen.getByLabelText('Status'), 'defunct')
+    await user.click(screen.getByLabelText('Include non-operational'))
     await waitFor(() => {
-      expect(screen.getByTestId('location').textContent).toBe('status=defunct')
+      expect(screen.getByTestId('location').textContent).toBe('status=all')
     })
   })
 
   it('reads filters from the URL', () => {
-    renderBoard(['/?status=all'])
-    expect(screen.getByLabelText('Status')).toHaveValue('all')
+    renderBoard(['/?status=all&material=wood'])
+    expect(screen.getByLabelText('Include non-operational')).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Wooden only' })).toBeChecked()
   })
 
-  it('shows only operating coasters by default and all when status=all', async () => {
+  it('shows only operating coasters by default and all when the box is checked', async () => {
     mockAllCoasters([
       { name: 'Live', status: 'operating' },
       { name: 'Gone', status: 'defunct' },
@@ -155,11 +136,38 @@ describe('BoardPage', () => {
     expect(screen.queryByText('Gone')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
-    await user.selectOptions(screen.getByLabelText('Status'), 'all')
+    await user.click(screen.getByLabelText('Include non-operational'))
     await waitFor(() => {
       expect(screen.getByText('Gone')).toBeInTheDocument()
     })
     expect(screen.getByText('Live')).toBeInTheDocument()
+  })
+
+  it('shows first-place data only past the user gate', async () => {
+    vi.mocked(useRankedUserCount).mockReturnValue({
+      data: 50,
+      isPending: false,
+      isError: false,
+    } as never)
+    mockAllCoasters([
+      { name: 'Favorite', first_place_votes: 12, participants: 40, rank: 1 },
+      { name: 'Loved', first_place_votes: 8, participants: 30, rank: 2 },
+      { name: 'Unvoted', first_place_votes: 0, participants: 10, rank: 3 },
+    ])
+    const { unmount } = renderBoard()
+    expect(screen.getByText('12 (30%)')).toBeInTheDocument()
+    expect(screen.getByText('8 (27%)')).toBeInTheDocument()
+    expect(screen.queryByText('0 (0%)')).not.toBeInTheDocument()
+    unmount()
+
+    // Below the gate the column is fully dashed.
+    vi.mocked(useRankedUserCount).mockReturnValue({
+      data: 10,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderBoard()
+    expect(screen.queryByText('12 (30%)')).not.toBeInTheDocument()
   })
 
   it('renders the first page and loads the rest on scroll', async () => {

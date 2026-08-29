@@ -2,17 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CoasterDetailPage from './CoasterDetailPage'
-import { useCoaster, useManufacturers, useParks, useCoasterAliases } from '../lib/coasters'
-import { makeManufacturer, makePark, makeRankingRow } from '../test/fixtures'
+import { useCoaster } from '../lib/coasters'
+import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
   return {
     ...actual,
     useCoaster: vi.fn(),
-    useParks: vi.fn(),
-    useManufacturers: vi.fn(),
-    useCoasterAliases: vi.fn(),
   }
 })
 
@@ -26,45 +23,20 @@ function renderPage(slug = 'steel-vengeance') {
   )
 }
 
-const cedarPoint = makePark({
-  id: 'park-1',
-  name: 'Cedar Point',
-  slug: 'cedar-point',
-  country: 'US',
-  city: 'Sandusky',
-})
-
-const rmc = makeManufacturer({
-  id: 'mfg-1',
-  name: 'Rocky Mountain Construction',
-  slug: 'rmc',
-})
-
 describe('CoasterDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useParks).mockReturnValue({
-      data: [cedarPoint],
-      isPending: false,
-      isError: false,
-    } as never)
-    vi.mocked(useManufacturers).mockReturnValue({
-      data: [rmc],
-      isPending: false,
-      isError: false,
-    } as never)
-    vi.mocked(useCoasterAliases).mockReturnValue({
-      data: [],
-      isPending: false,
-      isError: false,
-    } as never)
   })
 
   it('shows the coaster stats and links to its park', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({
         park_id: 'park-1',
-        manufacturer_id: 'mfg-1',
+        park_name: 'Cedar Point',
+        park_slug: 'cedar-point',
+        park_city: 'Sandusky',
+        park_country: 'United States',
+        manufacturer_name: 'Rocky Mountain Construction',
         name: 'Steel Vengeance',
         slug: 'steel-vengeance',
         height_m: 61,
@@ -73,7 +45,8 @@ describe('CoasterDetailPage', () => {
         inversions: 4,
         rank: 3,
         comparisons: 42,
-        participants: 8,
+        participants: 131,
+        first_place_votes: 114,
         score: 2.5,
       }),
       isPending: false,
@@ -87,7 +60,7 @@ describe('CoasterDetailPage', () => {
       'href',
       '/parks/cedar-point',
     )
-    expect(screen.getByText(/Sandusky, US/)).toBeInTheDocument()
+    expect(screen.getByText(/Sandusky, United States/)).toBeInTheDocument()
     expect(screen.getByText(/Rocky Mountain Construction/)).toBeInTheDocument()
     expect(screen.getByText('2.50')).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
@@ -95,6 +68,17 @@ describe('CoasterDetailPage', () => {
     expect(screen.getByText('119 km/h')).toBeInTheDocument()
     expect(screen.getByText('Operating')).toBeInTheDocument()
     expect(screen.getByText('Steel')).toBeInTheDocument()
+    expect(screen.getByText('114 (87%)')).toBeInTheDocument()
+  })
+
+  it('lists former names from the row aliases', () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Iron Gwazi', aliases: ['Gwazi'] }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage('iron-gwazi')
+    expect(screen.getByText(/Also known as: Gwazi/)).toBeInTheDocument()
   })
 
   it('shows an em dash for missing stats', () => {

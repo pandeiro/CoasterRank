@@ -1,18 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from './App'
-import { useAllCoasters, useParks, useCountries, useManufacturers } from './lib/coasters'
+import { useAllCoasters, useRankedUserCount } from './lib/coasters'
 import { supabase } from './lib/supabase'
-import { makePark, makeRankingRow } from './test/fixtures'
+import { makeRankingRow } from './test/fixtures'
 
 vi.mock('./lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./lib/coasters')>()
   return {
     ...actual,
     useAllCoasters: vi.fn(),
-    useParks: vi.fn(),
-    useCountries: vi.fn(),
-    useManufacturers: vi.fn(),
+    useRankedUserCount: vi.fn(),
   }
 })
 
@@ -35,14 +33,8 @@ describe('App', () => {
     vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     } as never)
-    vi.mocked(useParks).mockReturnValue({
-      data: [makePark()],
-      isPending: false,
-      isError: false,
-    } as never)
-    vi.mocked(useCountries).mockReturnValue({ data: [], isPending: false, isError: false } as never)
-    vi.mocked(useManufacturers).mockReturnValue({
-      data: [],
+    vi.mocked(useRankedUserCount).mockReturnValue({
+      data: 0,
       isPending: false,
       isError: false,
     } as never)

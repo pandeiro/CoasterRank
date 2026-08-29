@@ -2,18 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   approveSubmission,
   buildParkMap,
+  countryOptions,
+  DEFAULT_FILTERS,
   FEW_VOTES_THRESHOLD,
   filterCoasters,
   filtersFromSearchParams,
   filtersToSearchParams,
+  firstPlaceLabel,
+  firstPlaceVisibleIds,
+  FIRST_PLACE_MIN_USERS,
+  FIRST_PLACE_TOP_N,
   isFewVotes,
   capitalize,
+  manufacturerOptions,
   slugify,
   yearFromDate,
   type CoasterSubmission,
 } from './coasters'
 import { supabase } from './supabase'
-import { makeManufacturer, makePark, makeRankingRow } from '../test/fixtures'
+import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('./supabase', () => ({
   supabase: {
@@ -23,125 +30,275 @@ vi.mock('./supabase', () => ({
 }))
 
 describe('filtersFromSearchParams', () => {
-  it('defaults to operating with no params (clean URL)', () => {
-    expect(filtersFromSearchParams(new URLSearchParams(''))).toEqual({ status: 'operating' })
+  it('defaults to operating-only, everything material with no params (clean URL)', () => {
+    expect(filtersFromSearchParams(new URLSearchParams(''))).toEqual({
+      allStatuses: false,
+      materialView: 'everything',
+    })
   })
 
   it('parses all filter pairs', () => {
     const params = new URLSearchParams(
-      'q=cobra&park=cedar-point&country=US&manufacturer=intamin&material=steel&status=defunct',
+      'q=cobra&country=United States&manufacturer=Intamin&material=steel&status=all',
     )
     expect(filtersFromSearchParams(params)).toEqual({
       q: 'cobra',
-      park: 'cedar-point',
-      country: 'US',
-      manufacturer: 'intamin',
-      material: 'steel',
-      status: 'defunct',
+      country: 'United States',
+      manufacturer: 'Intamin',
+      materialView: 'steel',
+      allStatuses: true,
     })
   })
 
   it('treats status=all as all statuses', () => {
-    expect(filtersFromSearchParams(new URLSearchParams('status=all')).status).toBe('all')
+    expect(filtersFromSearchParams(new URLSearchParams('status=all')).allStatuses).toBe(true)
   })
 
-  it('ignores unknown status values', () => {
-    expect(filtersFromSearchParams(new URLSearchParams('status=bogus')).status).toBe('operating')
+  it('falls back to the operating-only default for legacy specific statuses', () => {
+    expect(filtersFromSearchParams(new URLSearchParams('status=defunct')).allStatuses).toBe(false)
+    expect(filtersFromSearchParams(new URLSearchParams('status=bogus')).allStatuses).toBe(false)
+  })
+
+  it('falls back to everything for unknown material values', () => {
+    expect(filtersFromSearchParams(new URLSearchParams('material=hybrid')).materialView).toBe(
+      'everything',
+    )
   })
 })
 
 describe('filtersToSearchParams', () => {
-  it('produces an empty querystring for the default operating view', () => {
-    expect(filtersToSearchParams({ status: 'operating' }).toString()).toBe('')
+  it('produces an empty querystring for the default view', () => {
+    expect(filtersToSearchParams(DEFAULT_FILTERS).toString()).toBe('')
   })
 
   it('writes only non-default pairs', () => {
-    const params = filtersToSearchParams({ q: 'cobra', park: 'cedar-point', status: 'defunct' })
-    expect(params.toString()).toBe('q=cobra&park=cedar-point&status=defunct')
-  })
-
-  it('writes status=all when every status is wanted', () => {
-    expect(filtersToSearchParams({ status: 'all' }).toString()).toBe('status=all')
+    const params = filtersToSearchParams({
+      ...DEFAULT_FILTERS,
+      q: 'cobra',
+      country: 'United States',
+      allStatuses: true,
+      materialView: 'wood',
+    })
+    expect(params.toString()).toBe('q=cobra&status=all&material=wood&country=United+States')
   })
 
   it('round-trips through filtersFromSearchParams', () => {
-    const filters = { q: 'ghost', material: 'wood' as const, status: 'all' as const }
+    const filters = {
+      ...DEFAULT_FILTERS,
+      q: 'ghost',
+      materialView: 'wood' as const,
+      allStatuses: true,
+    }
     expect(filtersFromSearchParams(filtersToSearchParams(filters))).toEqual(filters)
   })
 })
 
 describe('filterCoasters', () => {
-  const parks = [
-    makePark({ id: 'p1', slug: 'cedar-point', country: 'US' }),
-    makePark({ id: 'p2', slug: 'alton-towers', country: 'UK' }),
-  ]
-  const manufacturers = [makeManufacturer({ id: 'm1', slug: 'intamin' })]
-  const refs = { parks, manufacturers }
-
   const rows = [
     makeRankingRow({
-      park_id: 'p1',
-      manufacturer_id: 'm1',
       name: 'Steel Vengeance',
+      slug: 'steel-vengeance',
       status: 'operating',
       material: 'steel',
+      park_name: 'Cedar Point',
+      park_country: 'United States',
+      manufacturer_name: 'Intamin',
     }),
     makeRankingRow({
-      park_id: 'p2',
-      manufacturer_id: null,
       name: 'Wicker Man',
+      slug: 'wicker-man',
       status: 'operating',
       material: 'wood',
+      park_name: 'Alton Towers',
+      park_country: 'United Kingdom',
+      manufacturer_name: null,
     }),
     makeRankingRow({
-      park_id: 'p1',
-      manufacturer_id: null,
       name: 'Mean Streak',
+      slug: 'mean-streak',
       status: 'defunct',
       material: 'wood',
+      park_name: 'Cedar Point',
+      park_country: 'United States',
+      manufacturer_name: null,
+    }),
+    makeRankingRow({
+      name: 'Iron Gwazi',
+      slug: 'iron-gwazi',
+      status: 'operating',
+      material: 'hybrid',
+      park_name: 'Busch Gardens Tampa',
+      park_country: 'United States',
+      manufacturer_name: null,
+      aliases: ['Gwazi'],
     }),
   ]
 
   it('defaults to operating only', () => {
-    expect(filterCoasters(rows, { status: 'operating' }, refs).map((r) => r.slug)).toEqual([
-      'coaster-1',
-      'coaster-2',
+    expect(filterCoasters(rows, DEFAULT_FILTERS).map((r) => r.slug)).toEqual([
+      'steel-vengeance',
+      'wicker-man',
+      'iron-gwazi',
     ])
   })
 
-  it('keeps every status for status=all', () => {
-    expect(filterCoasters(rows, { status: 'all' }, refs)).toHaveLength(3)
+  it('keeps every status for allStatuses', () => {
+    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true })).toHaveLength(4)
   })
 
-  it('filters by material', () => {
-    expect(filterCoasters(rows, { status: 'all', material: 'wood' }, refs)).toHaveLength(2)
-  })
-
-  it('filters by country via the parks reference', () => {
+  it('shows wooden only for materialView=wood', () => {
     expect(
-      filterCoasters(rows, { status: 'all', country: 'US' }, refs).map((r) => r.park_id),
-    ).toEqual(['p1', 'p1'])
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true, materialView: 'wood' }).map(
+        (r) => r.slug,
+      ),
+    ).toEqual(['wicker-man', 'mean-streak'])
   })
 
-  it('filters by park slug via the parks reference', () => {
+  it('shows hybrids with steel for materialView=steel', () => {
     expect(
-      filterCoasters(rows, { status: 'all', park: 'alton-towers' }, refs).map((r) => r.name),
-    ).toEqual(['Wicker Man'])
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true, materialView: 'steel' }).map(
+        (r) => r.slug,
+      ),
+    ).toEqual(['steel-vengeance', 'iron-gwazi'])
   })
 
-  it('filters by manufacturer slug via the manufacturers reference', () => {
+  it('filters by country via the row field', () => {
     expect(
-      filterCoasters(rows, { status: 'all', manufacturer: 'intamin' }, refs).map((r) => r.name),
-    ).toEqual(['Steel Vengeance'])
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true, country: 'United Kingdom' }),
+    ).toHaveLength(1)
+  })
+
+  it('filters by manufacturer name via the row field', () => {
+    expect(
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true, manufacturer: 'Intamin' }).map(
+        (r) => r.slug,
+      ),
+    ).toEqual(['steel-vengeance'])
   })
 
   it('matches search case-insensitively on the coaster name', () => {
-    expect(filterCoasters(rows, { status: 'all', q: 'wicker' }, refs)).toHaveLength(1)
-    expect(filterCoasters(rows, { status: 'all', q: 'STEEL' }, refs)).toHaveLength(1)
+    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'wicker' })).toHaveLength(1)
+    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'STEEL' })).toHaveLength(1)
   })
 
-  it('returns no rows for a park slug with no match', () => {
-    expect(filterCoasters(rows, { status: 'all', park: 'nowhere' }, refs)).toHaveLength(0)
+  it('matches search on the park name', () => {
+    expect(
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true, q: 'alton' }).map(
+        (r) => r.slug,
+      ),
+    ).toEqual(['wicker-man'])
+  })
+
+  it('matches search on a former name (alias)', () => {
+    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'gwazi' }).map((r) => r.slug)).toEqual([
+      'iron-gwazi',
+    ])
+  })
+
+  it('returns no rows when nothing matches the search', () => {
+    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'nowhere' })).toHaveLength(0)
+  })
+})
+
+describe('firstPlaceLabel', () => {
+  it('formats votes with the share of its rankers', () => {
+    expect(firstPlaceLabel(114, 131)).toEqual({ votes: 114, pct: 87 })
+  })
+
+  it('is null for unrated coasters', () => {
+    expect(firstPlaceLabel(null, null)).toBeNull()
+    expect(firstPlaceLabel(0, 0)).toBeNull()
+    expect(firstPlaceLabel(5, null)).toBeNull()
+  })
+})
+
+describe('firstPlaceVisibleIds', () => {
+  it('is empty while the community gate is not met', () => {
+    const rows = [makeRankingRow({ first_place_votes: 5 })]
+    expect(firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS)).toEqual(new Set())
+    expect(firstPlaceVisibleIds(rows, 0)).toEqual(new Set())
+  })
+
+  it('unlocks past the gate and caps at the top N by votes', () => {
+    const rows = Array.from({ length: FIRST_PLACE_TOP_N + 2 }, (_, i) =>
+      makeRankingRow({ first_place_votes: 50 - i }),
+    )
+    rows.push(makeRankingRow({ first_place_votes: 0 }))
+    const visible = firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS + 1)
+    expect(visible.size).toBe(FIRST_PLACE_TOP_N)
+    expect(visible.has(rows[FIRST_PLACE_TOP_N].id)).toBe(false)
+    expect(visible.has(rows[0].id)).toBe(true)
+  })
+
+  it('breaks vote ties by board rank', () => {
+    const rows = Array.from({ length: FIRST_PLACE_TOP_N + 1 }, (_, i) =>
+      makeRankingRow({ rank: i + 1, first_place_votes: 1 }),
+    )
+    const visible = firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS + 1)
+    expect(visible.has(rows[FIRST_PLACE_TOP_N].id)).toBe(false)
+  })
+
+  it('stays deterministic when tied rows have no rank', () => {
+    const rows = Array.from({ length: FIRST_PLACE_TOP_N }, () =>
+      makeRankingRow({ rank: null, first_place_votes: 1 }),
+    )
+    const visible = firstPlaceVisibleIds(rows, FIRST_PLACE_MIN_USERS + 1)
+    expect(visible.size).toBe(FIRST_PLACE_TOP_N)
+    expect([...visible].every((id) => rows.some((r) => r.id === id))).toBe(true)
+  })
+})
+
+describe('countryOptions', () => {
+  const row = (country: string | null) => makeRankingRow({ park_country: country })
+
+  it('counts rows per country and pins the top five, United States first', () => {
+    const rows = [
+      ...Array.from({ length: 841 }, () => row('United States')),
+      ...Array.from({ length: 10 }, () => row('Canada')),
+      ...Array.from({ length: 8 }, () => row('United Kingdom')),
+      ...Array.from({ length: 6 }, () => row('Deutschland')),
+      ...Array.from({ length: 5 }, () => row('Japan')),
+      ...Array.from({ length: 2 }, () => row('France')),
+      row(null),
+    ]
+    expect(countryOptions(rows)).toEqual([
+      { country: 'United States', count: 841, pinned: true },
+      { country: 'Canada', count: 10, pinned: true },
+      { country: 'United Kingdom', count: 8, pinned: true },
+      { country: 'Deutschland', count: 6, pinned: true },
+      { country: 'Japan', count: 5, pinned: true },
+      { country: 'France', count: 2, pinned: false },
+    ])
+  })
+
+  it('pins the United States first even when it is not a top-five country', () => {
+    const rows = [
+      ...Array.from({ length: 50 }, () => row('Japan')),
+      ...Array.from({ length: 40 }, () => row('United Kingdom')),
+      ...Array.from({ length: 30 }, () => row('Germany')),
+      ...Array.from({ length: 20 }, () => row('France')),
+      ...Array.from({ length: 10 }, () => row('Canada')),
+      ...Array.from({ length: 2 }, () => row('United States')),
+    ]
+    const options = countryOptions(rows)
+    expect(options.map((o) => o.country)[0]).toBe('United States')
+    expect(options.filter((o) => o.pinned)).toHaveLength(5)
+  })
+
+  it('returns no pinned options for an empty board', () => {
+    expect(countryOptions([])).toEqual([])
+  })
+})
+
+describe('manufacturerOptions', () => {
+  it('lists distinct manufacturer names alphabetically', () => {
+    const rows = [
+      makeRankingRow({ manufacturer_name: 'Intamin' }),
+      makeRankingRow({ manufacturer_name: 'B&M' }),
+      makeRankingRow({ manufacturer_name: 'Intamin' }),
+      makeRankingRow({ manufacturer_name: null }),
+    ]
+    expect(manufacturerOptions(rows)).toEqual(['B&M', 'Intamin'])
   })
 })
 

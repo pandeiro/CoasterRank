@@ -2,26 +2,26 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import CoasterTable from './CoasterTable'
-import { buildParkMap, FEW_VOTES_THRESHOLD, type Park } from '../lib/coasters'
-import { makePark, makeRankingRow } from '../test/fixtures'
+import { FEW_VOTES_THRESHOLD, type RankingRow } from '../lib/coasters'
+import { makeRankingRow } from '../test/fixtures'
 
-const park: Park = makePark({ id: 'park-1', name: 'Test Park', slug: 'test-park' })
-const parks = buildParkMap([park])
-
-function renderTable(overrides: Parameters<typeof makeRankingRow>[0][] = [], showPark = true) {
-  const rows = overrides.length
+function rowsFrom(overrides: Parameters<typeof makeRankingRow>[0][] = []): RankingRow[] {
+  return overrides.length
     ? overrides.map((o) => makeRankingRow(o))
     : [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })]
+}
+
+function renderTable(rows: RankingRow[], firstPlaceIds: Set<string> = new Set(), showPark = true) {
   return render(
     <MemoryRouter>
-      <CoasterTable rows={rows} parks={parks} showPark={showPark} />
+      <CoasterTable rows={rows} firstPlaceIds={firstPlaceIds} showPark={showPark} />
     </MemoryRouter>,
   )
 }
 
 describe('CoasterTable', () => {
   it('renders rank, name, park, and material', () => {
-    renderTable([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
+    renderTable(rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }]))
     expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
     expect(screen.getByText('Test Park')).toBeInTheDocument()
     expect(screen.getByText('Steel')).toBeInTheDocument()
@@ -29,7 +29,7 @@ describe('CoasterTable', () => {
   })
 
   it('links to the coaster and park detail pages', () => {
-    renderTable([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
+    renderTable(rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }]))
     expect(screen.getByRole('link', { name: 'Steel Vengeance' })).toHaveAttribute(
       'href',
       '/coasters/steel-vengeance',
@@ -40,42 +40,58 @@ describe('CoasterTable', () => {
     )
   })
 
-  it('shows an em dash for a park missing from the map', () => {
-    renderTable([{ name: 'Orphan', park_id: 'unknown-park' }])
+  it('shows an em dash for a row without park data', () => {
+    renderTable(rowsFrom([{ name: 'Orphan', park_name: null, park_slug: null }]))
     const dashes = screen.getAllByText('—')
     expect(dashes.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows an em dash for missing scores', () => {
-    renderTable([
-      { name: 'Unrated', rank: null, score: null, comparisons: null, participants: null },
-    ])
+  it('shows an em dash for unrated rows in the first-place column', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'Unrated', rank: null, score: null, comparisons: null, participants: null },
+      ]),
+    )
     expect(screen.getByText('Unrated')).toBeInTheDocument()
-    const dashes = screen.getAllByText('—')
-    expect(dashes.length).toBeGreaterThanOrEqual(4)
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('shows first-place votes for gated-in coasters', () => {
+    const rows = rowsFrom([{ name: 'Steel Vengeance', first_place_votes: 114, participants: 131 }])
+    renderTable(rows, new Set([rows[0].id]))
+    expect(screen.getByText('114 (87%)')).toBeInTheDocument()
+  })
+
+  it('hides first-place data for gated-out coasters even when votes exist', () => {
+    renderTable(rowsFrom([{ name: 'Popular', first_place_votes: 9, participants: 10 }]))
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('9 (90%)')).not.toBeInTheDocument()
   })
 
   it('shows the few-votes badge for low-comparison coasters', () => {
-    renderTable([{ name: 'Obscure', comparisons: FEW_VOTES_THRESHOLD - 1 }])
+    renderTable(rowsFrom([{ name: 'Obscure', comparisons: FEW_VOTES_THRESHOLD - 1 }]))
     expect(screen.getByText('few votes')).toBeInTheDocument()
   })
 
   it('omits the few-votes badge at the threshold', () => {
-    renderTable([{ name: 'Popular', comparisons: FEW_VOTES_THRESHOLD }])
+    renderTable(rowsFrom([{ name: 'Popular', comparisons: FEW_VOTES_THRESHOLD }]))
     expect(screen.queryByText('few votes')).not.toBeInTheDocument()
   })
 
+  it('does not render score, comparisons, or participants columns', () => {
+    renderTable(rowsFrom())
+    expect(screen.queryByText('Score')).not.toBeInTheDocument()
+    expect(screen.queryByText('Comparisons')).not.toBeInTheDocument()
+    expect(screen.queryByText('Participants')).not.toBeInTheDocument()
+  })
+
   it('hides the park column when showPark is false', () => {
-    renderTable([{ name: 'Twisted' }], false)
+    renderTable(rowsFrom([{ name: 'Twisted' }]), new Set(), false)
     expect(screen.queryByRole('link', { name: 'Test Park' })).not.toBeInTheDocument()
   })
 
   it('renders an empty message for no rows', () => {
-    render(
-      <MemoryRouter>
-        <CoasterTable rows={[]} parks={parks} />
-      </MemoryRouter>,
-    )
+    renderTable([])
     expect(screen.getByText('No coasters match those filters.')).toBeInTheDocument()
   })
 })

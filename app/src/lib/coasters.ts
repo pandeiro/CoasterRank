@@ -12,13 +12,11 @@ import { supabase } from './supabase'
 //   (~3 MB raw / ~500 KB gzipped at 6.6k rows); if the catalog ever grows far
 //   beyond that, revisit server-side filtering.
 //
-// - Reference tables (parks, manufacturers, countries) are small and fetched
-//   in PARALLEL with the coasters on load, then cached by TanStack Query and
-//   joined client-side (buildParkMap, filterCoasters). The DB view stays
-//   NORMALIZED — park/manufacturer names are not repeated on every coaster
-//   row — which keeps the batch payload lean and gives us a single source of
-//   truth for display names. Detail pages reuse the same cached reference
-//   data (their own query hooks fire independently if deep-linked).
+// - The view is DENORMALIZED for the board: each row carries its park name /
+//   slug / country, manufacturer name, and alias list, so search and filtering
+//   need no reference lookups (see filterCoasters — it takes rows only).
+//   Reference hooks below (useParks, useManufacturers, …) remain for the
+//   detail/admin pages, which fetch them independently if deep-linked.
 //
 // - Incremental rendering (250-row slices via an IntersectionObserver
 //   sentinel) keeps the initial DOM small even though all rows are already
@@ -45,7 +43,8 @@ export type CoasterStatus = (typeof COASTER_STATUSES)[number]
 export type CoasterMaterial = (typeof COASTER_MATERIALS)[number]
 
 // A row of v_coaster_rankings: the coaster plus BT metrics and its live rank.
-// Park/manufacturer details live in their own tables and are joined client-side.
+// Park/manufacturer display fields and aliases are denormalized onto the row
+// by the view so the board can filter and search without reference lookups.
 export type RankingRow = {
   id: string
   park_id: string
@@ -61,9 +60,16 @@ export type RankingRow = {
   length_m: number | null
   inversions: number | null
   type: string | null
+  park_name: string | null
+  park_slug: string | null
+  park_country: string | null
+  park_city: string | null
+  manufacturer_name: string | null
+  aliases: string[] | null
   score: number | null
   comparisons: number | null
   participants: number | null
+  first_place_votes: number | null
   rank: number | null
 }
 
@@ -90,18 +96,21 @@ export type Manufacturer = {
   slug: string
 }
 
-// status: the default (no querystring) is operating-only; 'all' shows every
-// status. Every other filter is optional and matches exactly one value.
+// materialView: 'wood' = wooden only; 'steel' = steel + hybrids (hybrids ride
+// as steel for filtering); 'everything' = all rows including material=other.
+export type MaterialView = 'everything' | 'wood' | 'steel'
+
+// allStatuses: false (the default) shows operating coasters only; true shows
+// every status. country/manufacturer hold display names straight off the row.
 export type RankingFilters = {
   q?: string
-  park?: string
+  allStatuses: boolean
+  materialView: MaterialView
   country?: string
   manufacturer?: string
-  material?: CoasterMaterial
-  status: CoasterStatus | 'all'
 }
 
-export const DEFAULT_FILTERS: RankingFilters = { status: 'operating' }
+export const DEFAULT_FILTERS: RankingFilters = { allStatuses: false, materialView: 'everything' }
 
 export function isCoasterStatus(value: unknown): value is CoasterStatus {
   return typeof value === 'string' && (COASTER_STATUSES as readonly string[]).includes(value)
@@ -111,57 +120,48 @@ export function isCoasterMaterial(value: unknown): value is CoasterMaterial {
   return typeof value === 'string' && (COASTER_MATERIALS as readonly string[]).includes(value)
 }
 
-// Parse URL search params into filters. Default (no status param) = operating.
+// Parse URL search params into filters. Default (no params) = operating-only,
+// all materials. Legacy links with a specific status (e.g. status=defunct)
+// fall back to the operating-only default; status=all includes everything.
 export function filtersFromSearchParams(params: URLSearchParams): RankingFilters {
-  const status = params.get('status')
+  const materialView = params.get('material')
   return {
     q: params.get('q') ?? undefined,
-    park: params.get('park') ?? undefined,
+    allStatuses: params.get('status') === 'all',
+    materialView: materialView === 'wood' || materialView === 'steel' ? materialView : 'everything',
     country: params.get('country') ?? undefined,
     manufacturer: params.get('manufacturer') ?? undefined,
-    material: (params.get('material') as CoasterMaterial) ?? undefined,
-    status: status === 'all' ? 'all' : isCoasterStatus(status) ? status : 'operating',
   }
 }
 
-// Serialize filters to URL search params. The default (operating) produces an
-// empty querystring so the canonical board URL stays clean.
+// Serialize filters to URL search params. The default view produces an empty
+// querystring so the canonical board URL stays clean.
 export function filtersToSearchParams(filters: RankingFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
-  if (filters.park) params.set('park', filters.park)
+  if (filters.allStatuses) params.set('status', 'all')
+  if (filters.materialView !== 'everything') params.set('material', filters.materialView)
   if (filters.country) params.set('country', filters.country)
   if (filters.manufacturer) params.set('manufacturer', filters.manufacturer)
-  if (filters.material) params.set('material', filters.material)
-  if (filters.status !== 'operating') params.set('status', filters.status)
   return params
 }
 
-// Pure client-side filtering over the batch-fetched dataset. `refs` supplies the
-// reference data needed to resolve park/country/manufacturer filters (which are
-// expressed as slugs) down to coaster foreign keys.
-export function filterCoasters(
-  rows: RankingRow[],
-  filters: RankingFilters,
-  refs: { parks: Park[]; manufacturers: Manufacturer[] },
-): RankingRow[] {
-  const parkIdsByCountry = filters.country
-    ? new Set(refs.parks.filter((p) => p.country === filters.country).map((p) => p.id))
-    : null
-  const parkId = filters.park ? refs.parks.find((p) => p.slug === filters.park)?.id : undefined
-  const manufacturerId = filters.manufacturer
-    ? refs.manufacturers.find((m) => m.slug === filters.manufacturer)?.id
-    : undefined
-
+// Pure client-side filtering over the batch-fetched dataset. Park name/slug/
+// country, manufacturer name, and aliases are denormalized onto each row by
+// the view, so no reference lookups are needed. The search term matches the
+// coaster name, its park, and any former name (alias).
+export function filterCoasters(rows: RankingRow[], filters: RankingFilters): RankingRow[] {
   return rows.filter((row) => {
-    if (filters.status !== 'all' && row.status !== filters.status) return false
-    if (filters.material && row.material !== filters.material) return false
-    if (filters.country && (!parkIdsByCountry || !parkIdsByCountry.has(row.park_id))) return false
-    if (filters.park && row.park_id !== parkId) return false
-    if (filters.manufacturer && row.manufacturer_id !== manufacturerId) return false
+    if (!filters.allStatuses && row.status !== 'operating') return false
+    if (filters.materialView === 'wood' && row.material !== 'wood') return false
+    if (filters.materialView === 'steel' && row.material !== 'steel' && row.material !== 'hybrid')
+      return false
+    if (filters.country && row.park_country !== filters.country) return false
+    if (filters.manufacturer && row.manufacturer_name !== filters.manufacturer) return false
     if (filters.q) {
       const term = filters.q.toLowerCase()
-      if (!row.name.toLowerCase().includes(term)) return false
+      const haystack = [row.name, row.park_name, ...(row.aliases ?? [])]
+      if (!haystack.some((value) => value?.toLowerCase().includes(term))) return false
     }
     return true
   })
@@ -173,6 +173,85 @@ export function buildParkMap(parks: Park[]): Map<string, Park> {
 
 export function isFewVotes(comparisons: number | null): boolean {
   return comparisons !== null && comparisons < FEW_VOTES_THRESHOLD
+}
+
+// First-place votes on the board are gated so the column stays meaningful
+// (and non-identifying) while the community is small: data appears once more
+// than FIRST_PLACE_MIN_USERS users have submitted a ranking, and only for the
+// FIRST_PLACE_TOP_N coasters with the most #1 votes — rules that hold whether
+// there are 30 users or 30,000.
+export const FIRST_PLACE_MIN_USERS = 30
+export const FIRST_PLACE_TOP_N = 10
+
+// "#1 votes" cell value: the raw count plus the share of the coaster's
+// rankers who put it first. null when the coaster has no ranked participants.
+export function firstPlaceLabel(
+  votes: number | null,
+  participants: number | null,
+): { votes: number; pct: number } | null {
+  if (votes === null || participants === null || participants <= 0) return null
+  return { votes, pct: Math.round((votes / participants) * 100) }
+}
+
+// Ids of rows whose first-place cell shows data: the top N coasters by #1
+// votes (ties broken by board rank, at least one vote required), and only
+// once the community gate is met.
+export function firstPlaceVisibleIds(rows: RankingRow[], rankedUsers: number): Set<string> {
+  if (rankedUsers <= FIRST_PLACE_MIN_USERS) return new Set()
+  return new Set(
+    rows
+      .filter((r) => (r.first_place_votes ?? 0) > 0)
+      .sort(
+        (a, b) =>
+          (b.first_place_votes ?? 0) - (a.first_place_votes ?? 0) ||
+          (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
+          0,
+      )
+      .slice(0, FIRST_PLACE_TOP_N)
+      .map((r) => r.id),
+  )
+}
+
+export type CountryOption = { country: string; count: number; pinned: boolean }
+
+// Country dropdown ordering: United States pinned first (it dominates the
+// catalog and would otherwise be buried), then the rest of the five most
+// common countries, then everything else alphabetically. `pinned` marks the
+// "Most coasters" optgroup for the UI.
+export function countryOptions(rows: RankingRow[]): CountryOption[] {
+  const counts = new Map<string, number>()
+  for (const row of rows) {
+    if (!row.park_country) continue
+    counts.set(row.park_country, (counts.get(row.park_country) ?? 0) + 1)
+  }
+  const byCount = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  const pinned = new Set<string>()
+  const us = byCount.find(([country]) => country === 'United States')
+  if (us) pinned.add('United States')
+  for (const [country] of byCount) {
+    if (pinned.size >= 5) break
+    pinned.add(country)
+  }
+  const toOption = ([country, count]: [string, number]): CountryOption => ({
+    country,
+    count,
+    pinned: pinned.has(country),
+  })
+  const top = [
+    ...(us ? [us] : []),
+    ...byCount.filter(([country]) => pinned.has(country) && country !== 'United States'),
+  ]
+  const rest = byCount
+    .filter(([country]) => !pinned.has(country))
+    .sort((a, b) => a[0].localeCompare(b[0]))
+  return [...top, ...rest].map(toOption)
+}
+
+// Distinct manufacturer names on the board, alphabetically.
+export function manufacturerOptions(rows: RankingRow[]): string[] {
+  return [...new Set(rows.map((r) => r.manufacturer_name).filter((v): v is string => !!v))].sort(
+    (a, b) => a.localeCompare(b),
+  )
 }
 
 // URL-safe slug from a display name: lowercase, spaces → dashes, strip the
@@ -525,21 +604,6 @@ export function useParks() {
   })
 }
 
-export function useCountries() {
-  return useQuery({
-    queryKey: ['countries'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('parks')
-        .select('country')
-        .not('country', 'is', null)
-      if (error) throw error
-      const countries = [...new Set((data as { country: string }[]).map((r) => r.country))]
-      return countries.sort()
-    },
-  })
-}
-
 export function useManufacturers() {
   return useQuery({
     queryKey: ['manufacturers'],
@@ -550,6 +614,20 @@ export function useManufacturers() {
         .order('name')
       if (error) throw error
       return data as Manufacturer[]
+    },
+  })
+}
+
+// Total users with at least one ranked ride — drives the board's first-place
+// visibility gate (see FIRST_PLACE_MIN_USERS). A pure aggregate over
+// user_rides, exposed via the ranked_user_count() RPC.
+export function useRankedUserCount() {
+  return useQuery({
+    queryKey: ['ranked-user-count'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('ranked_user_count')
+      if (error) throw error
+      return Number(data ?? 0)
     },
   })
 }
