@@ -4,11 +4,16 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useMyRides } from '../lib/rides'
+import { fetchProfile } from '../lib/profile'
 import { useAuth } from '../lib/auth-context'
 import MyCoastersPage from './MyCoastersPage'
 
 vi.mock('../lib/rides', () => ({
   useMyRides: vi.fn(),
+}))
+
+vi.mock('../lib/profile', () => ({
+  fetchProfile: vi.fn(),
 }))
 
 vi.mock('../lib/auth-context', () => ({
@@ -70,11 +75,38 @@ function mockConfirmed(ridesData: unknown[] = []) {
     isPending: false,
     isError: false,
   } as never)
+  vi.mocked(fetchProfile).mockResolvedValue({
+    id: 'u1',
+    username: 'coaster_fan',
+    display_name: null,
+    avatar_url: null,
+    is_admin: false,
+    og_image_url: null,
+    public_list: true,
+  })
+}
+
+function ridesWithRanks(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    coaster_id: `c${i + 1}`,
+    rank: i + 1,
+    coaster: {
+      id: `c${i + 1}`,
+      name: `Coaster ${i + 1}`,
+      slug: `coaster-${i + 1}`,
+      status: 'operating',
+      material: 'steel',
+      park_id: 'p1',
+      score: 1,
+      comparisons: 10,
+    },
+  }))
 }
 
 describe('MyCoastersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
   })
 
   it('shows the email gate when not confirmed', () => {
@@ -184,5 +216,63 @@ describe('MyCoastersPage', () => {
     renderPage()
     await user.click(screen.getByRole('button', { name: 'fire-error' }))
     expect(await screen.findByText('Something failed')).toBeInTheDocument()
+  })
+
+  it('hides the share CTA below the 5-ranked milestone', () => {
+    mockConfirmed(ridesWithRanks(4))
+    renderPage()
+    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
+  })
+
+  it('shows the soft share CTA at the 5-ranked milestone', () => {
+    mockConfirmed(ridesWithRanks(5))
+    renderPage()
+    expect(screen.getByTestId('share-list-card')).toBeInTheDocument()
+    expect(screen.getByText('Your list is taking shape')).toBeInTheDocument()
+  })
+
+  it('shows the stronger CTA copy at the 10-ranked milestone', () => {
+    mockConfirmed(ridesWithRanks(10))
+    renderPage()
+    expect(screen.getByText('Milestone unlocked')).toBeInTheDocument()
+    expect(screen.getByText('10 coasters ranked!')).toBeInTheDocument()
+  })
+
+  it('shows the CTA again at a higher milestone after dismissing the earlier one', () => {
+    window.localStorage.setItem('cr.share-cta.dismissed-milestone', '1')
+    mockConfirmed(ridesWithRanks(10))
+    renderPage()
+    expect(screen.getByTestId('share-list-card')).toBeInTheDocument()
+  })
+
+  it('stays hidden when the current milestone was already dismissed', () => {
+    window.localStorage.setItem('cr.share-cta.dismissed-milestone', '2')
+    mockConfirmed(ridesWithRanks(10))
+    renderPage()
+    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
+  })
+
+  it('persists dismissal for the current milestone', async () => {
+    const user = userEvent.setup()
+    mockConfirmed(ridesWithRanks(5))
+    renderPage()
+    await user.click(screen.getByRole('button', { name: /dismiss/i }))
+    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
+    expect(window.localStorage.getItem('cr.share-cta.dismissed-milestone')).toBe('1')
+  })
+
+  it('nudges toward claiming a username when the profile has none', () => {
+    vi.mocked(fetchProfile).mockResolvedValue({
+      id: 'u1',
+      username: null,
+      display_name: null,
+      avatar_url: null,
+      is_admin: false,
+      og_image_url: null,
+      public_list: false,
+    })
+    mockConfirmed(ridesWithRanks(5))
+    renderPage()
+    expect(screen.getByText(/claim a username/i)).toBeInTheDocument()
   })
 })

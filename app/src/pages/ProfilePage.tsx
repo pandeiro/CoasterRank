@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
+import { riderPageUrl } from '../lib/rider'
 import { fetchProfile, type Profile } from '../lib/profile'
+import { refreshOgCard } from '../lib/og-card'
+import { useMyRides } from '../lib/rides'
 import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Badge, Button, fieldClassName, MessageState, Panel } from '../components/ui'
+import { CopyLinkButton } from '../components/ShareListCard'
 import Avatar from '../components/ui/Avatar'
 
 export type { Profile }
@@ -16,6 +21,7 @@ export default function ProfilePage() {
   const queryClient = useQueryClient()
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [publicList, setPublicList] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -31,10 +37,35 @@ export default function ProfilePage() {
     queryFn: () => fetchProfile(user!.id),
   })
 
+  // List shape for the share card's stats line (shared ['myRides'] cache).
+  const { data: rides } = useMyRides()
+  const rankedRides = useMemo(() => (rides ?? []).filter((r) => r.rank !== null), [rides])
+
+  /**
+   * Best-effort share-card refresh. Only meaningful while sharing is on with a
+   * valid username; any failure inside refreshOgCard is swallowed there, so
+   * the static brand card simply stays in place.
+   */
+  const syncOgCard = useCallback(
+    (avatarSrc: string | null) => {
+      if (!publicList || !username || !USERNAME_RE.test(username)) return
+      void refreshOgCard({
+        userId: user!.id,
+        name: displayName || username,
+        username,
+        avatarSrc,
+        topCoaster: rankedRides[0]?.coaster.name ?? null,
+        rankedCount: rankedRides.length,
+      })
+    },
+    [publicList, username, displayName, user, rankedRides],
+  )
+
   useEffect(() => {
     if (profile) {
       setUsername(profile.username ?? '')
       setDisplayName(profile.display_name ?? '')
+      setPublicList(profile.public_list)
     }
   }, [profile])
 
@@ -42,13 +73,19 @@ export default function ProfilePage() {
     mutationFn: async () => {
       const { error } = await supabase
         .from('profiles')
-        .update({ username: username || null, display_name: displayName || null })
+        .update({
+          username: username || null,
+          display_name: displayName || null,
+          public_list: publicList,
+        })
         .eq('id', user!.id)
       if (error) throw error
     },
     onSuccess: () => {
       setSaved(true)
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+      // The card bakes in name/username, so refresh it after edits too.
+      syncOgCard(profile?.avatar_url ?? null)
     },
     onError: (error) => {
       // Postgres unique_violation => profiles.username is taken.
@@ -73,7 +110,8 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     try {
-      await upload(file)
+      const publicUrl = await upload(file)
+      syncOgCard(publicUrl)
     } catch {
       // Error is captured in the hook's error state
     }
@@ -84,6 +122,7 @@ export default function ProfilePage() {
   async function handleRemove() {
     try {
       await remove()
+      syncOgCard(null)
     } catch {
       // Error is captured in the hook's error state
     }
@@ -168,6 +207,32 @@ export default function ProfilePage() {
               className={`mt-1 ${fieldClassName}`}
             />
             <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
+            {username && USERNAME_RE.test(username) && (
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
+                <code className="min-w-0 flex-1 truncate font-mono text-xs text-ink-soft">
+                  {riderPageUrl(username)}
+                </code>
+                <CopyLinkButton url={riderPageUrl(username)} label="Copy" />
+              </div>
+            )}
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-line bg-surface px-3 py-3">
+            <input
+              id="publicList"
+              type="checkbox"
+              checked={publicList}
+              onChange={(e) => setPublicList(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-coral"
+            />
+            <label htmlFor="publicList" className="block text-sm">
+              <span className="font-medium text-ink">Share my ranking publicly</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Puts your ranked list at{' '}
+                <code className="font-mono">/riders/{username || '…'}</code>
+                {username ? '' : ' (once you claim a username)'}. Your email and any unranked
+                coasters stay private.
+              </span>
+            </label>
           </div>
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-ink-soft">
@@ -182,7 +247,22 @@ export default function ProfilePage() {
             />
           </div>
           {formError && <p className="text-sm text-danger">{formError}</p>}
-          {saved && <p className="text-sm text-success">Saved.</p>}
+          {saved && (
+            <p className="text-sm text-success">
+              Saved.
+              {publicList && username && (
+                <>
+                  {' '}
+                  <Link
+                    to={`/riders/${username}`}
+                    className="font-medium text-ink underline underline-offset-4"
+                  >
+                    View your public page →
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
           <Button type="submit" disabled={save.isPending} className="w-full">
             {save.isPending ? 'Saving…' : 'Save'}
           </Button>
