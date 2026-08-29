@@ -85,5 +85,5 @@ grant execute on function public.public_rider_page(text) to anon, authenticated;
 
 comment on function public.public_rider_page(text) is
   'Public read model for /riders/<username>. Only returns data for profiles '
-  || 'with public_list = true; never exposes email, user id, is_admin, or '
+  || 'with public_list = true, never exposes email, user id, is_admin, or '
   || 'unranked rides. NULL result = unknown user OR sharing disabled.';
