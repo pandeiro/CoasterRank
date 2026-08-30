@@ -109,6 +109,27 @@ describe('RankedCoasterItem', () => {
     expect(screen.getByRole('button', { name: /drag to reorder/i })).toBeInTheDocument()
   })
 
+  it('gives the drag handle a padded hit area without changing the row layout', () => {
+    // Issue #91: the grip was a 16x16 target (WCAG 2.5.8 minimum is 24x24).
+    // p-2 enlarges the hit area; -m-2 keeps the layout identical. Pinned via
+    // classes because jsdom applies no Tailwind styles to compute sizes.
+    const ride = makeUserRide()
+    render(
+      wrap(
+        <ul>
+          <RankedCoasterItem
+            ride={ride}
+            rank={1}
+            park={undefined}
+            onRemove={vi.fn()}
+            handleProps={{}}
+          />
+        </ul>,
+      ),
+    )
+    expect(screen.getByRole('button', { name: /drag to reorder/i })).toHaveClass('p-2', '-m-2')
+  })
+
   it('calls onRank when the add-to-ranking button is clicked', async () => {
     const user = userEvent.setup()
     const onRank = vi.fn()

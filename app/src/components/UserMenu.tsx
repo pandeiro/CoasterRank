@@ -68,8 +68,9 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-center rounded-full transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+        aria-label="Open account menu"
         aria-expanded={isOpen}
-        aria-haspopup="true"
+        aria-haspopup="menu"
       >
         <Avatar src={profile?.avatar_url ?? null} userId={userId} size={36} />
       </button>
