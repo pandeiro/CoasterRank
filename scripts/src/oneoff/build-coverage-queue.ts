@@ -112,7 +112,8 @@ function parseIssueBlocks(report: string): ParsedIssue[] {
       continue
     }
     if (!inIssueLog) continue
-    if (line.startsWith('======================================================================')) break
+    if (line.startsWith('======================================================================'))
+      break
 
     const headerMatch = line.match(/^\s*(❌|⚠️|🔍)\s+\[L(\d+)\]\s+(.*)$/)
     if (headerMatch) {
@@ -228,8 +229,19 @@ function classifyItem(
   issue: ParsedIssue,
   parkMatch: ParsedParkMatch,
   coasterMatch: ParsedCoasterMatch,
-  duplicateSourceParkCount: number
-): Omit<QueueItem, 'normalizedCoasterKey' | 'lineNumber' | 'sourceCoasterName' | 'sourceParkName' | 'reportIcon' | 'parkMatch' | 'coasterMatch' | 'notes' | 'overrideReason'> {
+  duplicateSourceParkCount: number,
+): Omit<
+  QueueItem,
+  | 'normalizedCoasterKey'
+  | 'lineNumber'
+  | 'sourceCoasterName'
+  | 'sourceParkName'
+  | 'reportIcon'
+  | 'parkMatch'
+  | 'coasterMatch'
+  | 'notes'
+  | 'overrideReason'
+> {
   const isTravelling = normalizeKey(issue.parkName) === 'travelling'
   const parkConfidence = parkMatch.similarity ?? 0
   const coasterConfidence = coasterMatch.similarity ?? 0
@@ -266,7 +278,10 @@ function classifyItem(
       }
     }
 
-    if (coasterMatch.foundParkName && parksLookLikeAliases(issue.parkName, coasterMatch.foundParkName)) {
+    if (
+      coasterMatch.foundParkName &&
+      parksLookLikeAliases(issue.parkName, coasterMatch.foundParkName)
+    ) {
       return {
         action: 'rehome_after_park_alias_fix',
         subtype: 'park_alias_split',
@@ -306,7 +321,10 @@ function classifyItem(
   }
 
   if (coasterMatch.status === 'fuzzy') {
-    if (coasterConfidence >= AUTO_MATCH_THRESHOLD && (parkMatch.status === 'exact' || parkConfidence >= AUTO_MATCH_THRESHOLD)) {
+    if (
+      coasterConfidence >= AUTO_MATCH_THRESHOLD &&
+      (parkMatch.status === 'exact' || parkConfidence >= AUTO_MATCH_THRESHOLD)
+    ) {
       return {
         action: 'accept_existing_match_no_change',
         subtype: 'likely_name_variant',
@@ -362,7 +380,10 @@ function buildSummary(queue: QueueItem[]): string {
 
   for (const item of queue) {
     if (item.action === 'create_missing_park') {
-      missingParkGroups.set(item.sourceParkName, (missingParkGroups.get(item.sourceParkName) ?? 0) + 1)
+      missingParkGroups.set(
+        item.sourceParkName,
+        (missingParkGroups.get(item.sourceParkName) ?? 0) + 1,
+      )
     }
     if (item.action === 'human_review') {
       humanReviewGroups.set(item.subtype, [...(humanReviewGroups.get(item.subtype) ?? []), item])
@@ -387,7 +408,9 @@ function buildSummary(queue: QueueItem[]): string {
   lines.push('## Missing Parks')
   lines.push('')
 
-  for (const [parkName, entries] of [...missingParkGroups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+  for (const [parkName, entries] of [...missingParkGroups.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )) {
     lines.push(`- ${parkName}: ${entries} affected checklist entr${entries === 1 ? 'y' : 'ies'}`)
   }
 
@@ -397,7 +420,9 @@ function buildSummary(queue: QueueItem[]): string {
     lines.push('## Applied Overrides')
     lines.push('')
     for (const item of overridden) {
-      lines.push(`- [L${item.lineNumber}] ${item.sourceCoasterName} @ ${item.sourceParkName}: ${item.overrideReason}`)
+      lines.push(
+        `- [L${item.lineNumber}] ${item.sourceCoasterName} @ ${item.sourceParkName}: ${item.overrideReason}`,
+      )
     }
     lines.push('')
   }
@@ -405,12 +430,18 @@ function buildSummary(queue: QueueItem[]): string {
   lines.push('## Human Review')
   lines.push('')
 
-  for (const [subtype, items] of [...humanReviewGroups.entries()].sort((a, b) => b[1].length - a[1].length)) {
+  for (const [subtype, items] of [...humanReviewGroups.entries()].sort(
+    (a, b) => b[1].length - a[1].length,
+  )) {
     lines.push(`### ${subtype}`)
     lines.push('')
     for (const item of items.slice(0, 12)) {
-      const foundElsewhere = item.coasterMatch.foundParkName ? ` -> ${item.coasterMatch.foundParkName}` : ''
-      lines.push(`- [L${item.lineNumber}] ${item.sourceCoasterName} @ ${item.sourceParkName}${foundElsewhere}`)
+      const foundElsewhere = item.coasterMatch.foundParkName
+        ? ` -> ${item.coasterMatch.foundParkName}`
+        : ''
+      lines.push(
+        `- [L${item.lineNumber}] ${item.sourceCoasterName} @ ${item.sourceParkName}${foundElsewhere}`,
+      )
     }
     if (items.length > 12) {
       lines.push(`- ... ${items.length - 12} more`)
@@ -442,9 +473,15 @@ function buildMasterTriage(queue: QueueItem[]): string {
   lines.push('## How To Use')
   lines.push('')
   lines.push('- Use `L<number>` as the stable key when adding notes or overrides.')
-  lines.push('- `rehome_orphaned_coaster`: usually a targeted UPDATE against an existing row in `Other (unknown location)`.')
-  lines.push('- `rehome_after_park_alias_fix`: usually means the park naming is off, not that the coaster is missing.')
-  lines.push('- `human_review:*`: needs a person to decide between alias, create, rehome, or ignore.')
+  lines.push(
+    '- `rehome_orphaned_coaster`: usually a targeted UPDATE against an existing row in `Other (unknown location)`.',
+  )
+  lines.push(
+    '- `rehome_after_park_alias_fix`: usually means the park naming is off, not that the coaster is missing.',
+  )
+  lines.push(
+    '- `human_review:*`: needs a person to decide between alias, create, rehome, or ignore.',
+  )
   lines.push('')
 
   const order = [
@@ -479,7 +516,9 @@ function buildMasterTriage(queue: QueueItem[]): string {
         lines.push(`- Found elsewhere: ${item.coasterMatch.foundParkName}`)
       }
       if (item.coasterMatch.matchedName) {
-        lines.push(`- Coaster match: ${item.coasterMatch.status} -> ${item.coasterMatch.matchedName}`)
+        lines.push(
+          `- Coaster match: ${item.coasterMatch.status} -> ${item.coasterMatch.matchedName}`,
+        )
       }
       if (item.overrideReason) {
         lines.push(`- Override: ${item.overrideReason}`)
@@ -499,7 +538,9 @@ function loadOverrides(): Map<number, QueueOverride> {
   if (!existsSync(OVERRIDES_FILE)) return new Map<number, QueueOverride>()
 
   const parsed = JSON.parse(readFileSync(OVERRIDES_FILE, 'utf8')) as QueueOverridesFile
-  const entries = Object.entries(parsed.lineOverrides).map(([lineNumber, override]) => [Number(lineNumber), override] as const)
+  const entries = Object.entries(parsed.lineOverrides).map(
+    ([lineNumber, override]) => [Number(lineNumber), override] as const,
+  )
   return new Map<number, QueueOverride>(entries)
 }
 
@@ -514,7 +555,9 @@ function applyOverride(item: QueueItem, override: QueueOverride | undefined): Qu
     priority: override.priority ?? item.priority,
     batchKey: override.batchKey ?? item.batchKey,
     parkMatch: override.parkMatch ? { ...item.parkMatch, ...override.parkMatch } : item.parkMatch,
-    coasterMatch: override.coasterMatch ? { ...item.coasterMatch, ...override.coasterMatch } : item.coasterMatch,
+    coasterMatch: override.coasterMatch
+      ? { ...item.coasterMatch, ...override.coasterMatch }
+      : item.coasterMatch,
     notes: override.extraNotes ? [...item.notes, ...override.extraNotes] : item.notes,
     overrideReason: override.overrideReason,
   }

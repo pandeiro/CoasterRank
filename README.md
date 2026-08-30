@@ -64,9 +64,9 @@ graph TD
 app/            # Vite + React + TypeScript SPA (the whole frontend)
 supabase/       # CLI config, SQL migrations, Edge Functions (Deno)
 packages/bt/    # pure-TS Bradley-Terry MM fitting — own package.json
-scripts/        # data-engineering (CC0 coaster import) — own package.json
-data/           # reference datasets (coaster_db.csv, CC0)
-docs/           # PLAN.md (plan & decisions), RUNBOOKS.md (ops runbooks)
+scripts/        # ops & data tooling — own package.json (coaster import, testride CLI, oneoff/)
+data/           # reference datasets (ext/ = CC0 coaster_db.csv + provenance HTML)
+docs/           # PLAN.md (plan & decisions), RUNBOOKS.md (ops), TEST_DATA.md (testride)
 ```
 
 Note: `app/`, `scripts/`, and `packages/bt/` each have their **own** `package.json` (no root workspace).
@@ -79,14 +79,18 @@ Prereqs: Node 22+, npm, the Supabase CLI (`npm i -g supabase`).
 # 1. Copy env and fill in values from the Supabase dashboard
 cp .env.example .env
 
-# 2. Install SPA deps and run the dev server (talks to prod Supabase under RLS)
-cd app
-npm install
+# 2. Install all sub-packages (or install just app/ for SPA work)
+npm run install:all
+
+# 3. Run the dev server (talks to prod Supabase under RLS)
 npm run dev          # http://localhost:5173
 
-# 3. Quality gates (run before every commit; CI runs the same)
-npm run typecheck && npm run lint && npm run test:run && npm run format:check
+# 4. Quality gates (run before every commit; CI runs the same)
+npm run gates        # = app typecheck + lint + test + format check, from the repo root
 ```
+
+Sub-package commands run in their own directory (`cd app`, `cd scripts`, `cd packages/bt`).
+A minimal root `package.json` (no workspaces) provides delegation shortcuts — see `AGENTS.md`.
 
 Optional packages (only needed for their specific tasks):
 

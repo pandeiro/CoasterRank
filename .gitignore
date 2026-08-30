@@ -32,6 +32,14 @@ supabase/.env.*.local
 .wrangler/
 .dev.vars
 
+# Generated coverage-triage artifacts (regenerate via scripts/src/oneoff/check-coverage.ts
+# and build-coverage-queue.ts; hand-edited inputs stay tracked)
+data/coverage/report.txt
+data/coverage/queue.json
+data/coverage/queue-summary.md
+data/coverage/master-triage.md
+data/coverage/top_coasters.txt
+
 # Logs
 *.log
 npm-debug.log*

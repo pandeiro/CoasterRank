@@ -55,7 +55,7 @@ No custom backend. The only server-side code is the Deno Edge Function plus clie
 - **Frontend**: React 19, Vite, TypeScript, React Router, TanStack Query, `@supabase/supabase-js`, Tailwind CSS, `@dnd-kit/sortable`, lucide-react.
 - **Edge**: Deno (Supabase Edge Functions) for the BT recompute job.
 - **Migrations/seed**: Supabase CLI (`supabase/migrations`, `supabase/seed.sql`).
-- **Quality**: ESLint + Prettier, `tsc --noEmit`, **Vitest**. Commands documented in `AGENTS.md`.
+- **Quality**: oxlint + Prettier, `tsc --noEmit`, **Vitest**. Commands documented in `AGENTS.md`.
 - **Env** (`.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (scripts/edge only).
 
 ## 4. Data model
@@ -202,29 +202,30 @@ Admin JWTs are validated against GoTrue (`/auth/v1/user`) and then checked again
 ```
 CoasterRank/
 ├── README.md
+├── package.json                       # minimal root runner (delegation + gates; NO workspaces)
 ├── docs/
-│   └── PLAN.md                      # this file
-├── app/                              # Vite React TS SPA
+│   ├── PLAN.md                        # this file
+│   ├── RUNBOOKS.md                    # one-time / rare ops runbooks
+│   ├── TEST_DATA.md                   # testride scenarios guide
+│   ├── RANKINGS.md                    # how ranking is computed, stored, monitored, displayed
+│   └── SCHEMA.md                      # auto-generated DB schema doc (scripts/generate-schema-doc.sh)
+├── app/                               # Vite React TS SPA
 │   └── src/{pages,components,lib}
 ├── supabase/
-│   ├── migrations/
-│   │   0001_parks_coasters.sql
-│   │   0002_profiles_rides.sql
-│   │   0003_rls_policies.sql
-│   │   0004_rankings_views.sql
-│   │   0005_edgemap_pg_cron.sql
-│   ├── functions/recompute-rankings/ # Deno index.ts (imports packages/bt/src/mm.ts)
+│   ├── migrations/                    # (29 as of Aug 2026; created via `supabase migration new`)
+│   ├── functions/                     # Deno Edge Functions: recompute-rankings, assume-identity
 │   └── seed.sql
-├── packages/bt/                      # pure TS Bradley-Terry MM (own package.json; shared edge fn + tests)
+├── packages/bt/                       # pure TS Bradley-Terry MM (own package.json; shared edge fn + tests)
 ├── data/
-│   └── coaster_db.csv                # Rob Mulla's CC0 seed dataset (committed; ~1,087 coasters)
-├── scripts/                          # data-engineering package (own package.json: tsx, pg, csv-parse, dotenv)
-│   ├── import-coasters.ts            # CC0 CSV → parks + coasters (direct Postgres, idempotent)
-│   ├── package.json
-│   └── tsconfig.json
-├── tests/
+│   ├── ext/                           # committed sources: coaster_db.csv (CC0) + provenance HTML
+│   └── coverage/                      # coverage-triage inputs (generated artifacts gitignored)
+├── scripts/                           # ops & data tooling (own package.json: tsx, pg, csv-parse, dotenv)
+│   └── src/
+│       ├── import-coasters.ts         # CC0 CSV → parks + coasters (direct Postgres, idempotent)
+│       ├── testride/                  # synthetic-user CLI (docs/TEST_DATA.md)
+│       └── oneoff/                    # archived one-off scripts (see its README)
 ├── .env.example
-└── AGENTS.md                          # commands & conventions for AI agents & humans (runbooks live in docs/RUNBOOKS.md)
+└── AGENTS.md                          # commands & conventions for AI agents & humans
 ```
 
 ## 8. Environment & credentials
@@ -242,6 +243,9 @@ A single `.env` at the repo root (gitignored) holds everything. Vite reads it vi
 | `VITE_SUPABASE_URL` | **yes** | SPA client |
 | `VITE_SUPABASE_ANON_KEY` | **yes** | SPA client (public by design; protected by RLS) |
 | `RECOMPUTE_AUTH_SECRET` | no | shared secret authorizing the pg_cron → Edge Function call |
+| `APP_ENV` | no | Edge Function label on Telegram alerts/events (`prod` when unset); dispatch control for clones |
+| `VITE_SENTRY_DSN` | **yes** | Sentry frontend SDK (public DSN) |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | no (never) | Vite build plugin — source-map upload during CI builds |
 
 **Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
 
