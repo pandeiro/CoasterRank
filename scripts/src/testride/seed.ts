@@ -35,6 +35,12 @@ export interface SeedOptions {
 const USERS_CHUNK = 100
 const RIDES_CHUNK = 500
 
+// GoTrue scopes every auth query by instance_id; hosted Supabase always uses
+// the zero UUID. Rows inserted with instance_id NULL (the column default) are
+// invisible to GoTrue — not listed by admin users, not resolvable for login
+// or generateLink — even though they exist in Postgres.
+const GOTRUE_INSTANCE_ID = '00000000-0000-0000-0000-000000000000'
+
 interface RideCounts {
   ranked: number
   unranked: number
@@ -104,6 +110,7 @@ async function insertUsers(
       'id',
       'aud',
       'role',
+      'instance_id',
       'email',
       'encrypted_password',
       'email_confirmed_at',
@@ -113,6 +120,7 @@ async function insertUsers(
       'updated_at',
     ] as const
     const casts: readonly Cast[] = [
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -132,6 +140,7 @@ async function insertUsers(
         u.id,
         'authenticated',
         'authenticated',
+        GOTRUE_INSTANCE_ID,
         u.email,
         hash,
         now,
