@@ -280,7 +280,7 @@
     r.participants,
     r.first_place_votes,
         CASE
-            WHEN r.score IS NOT NULL THEN row_number() OVER (ORDER BY r.score DESC)
+            WHEN r.score IS NOT NULL THEN row_number() OVER (ORDER BY r.score DESC NULLS LAST, c.id)
             ELSE NULL::bigint
         END AS rank
    FROM coasters c

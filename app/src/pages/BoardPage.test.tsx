@@ -160,7 +160,7 @@ describe('BoardPage', () => {
     expect(screen.queryByText('0 (0%)')).not.toBeInTheDocument()
     unmount()
 
-    // Below the gate the column is fully dashed.
+    // Below the gate the first-place pill is hidden.
     vi.mocked(useRankedUserCount).mockReturnValue({
       data: 10,
       isPending: false,
