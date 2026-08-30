@@ -2,6 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import { useAuth } from './auth-context'
 
+// Columns of the coasters TABLE (not the v_coaster_rankings view) — this type
+// mirrors what the user_rides embed can actually return. score/comparisons
+// exist only on the view; selecting them here makes PostgREST reject the
+// query with 42703 (issue #91 Blocker 1).
 export type UserRideCoaster = {
   id: string
   name: string
@@ -9,8 +13,6 @@ export type UserRideCoaster = {
   status: string
   material: string
   park_id: string
-  score: number | null
-  comparisons: number | null
 }
 
 export type UserRide = {
@@ -36,21 +38,22 @@ export function useMyRides() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_rides')
-        .select(
-          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, score, comparisons)',
-        )
+        .select('coaster_id, rank, coasters(id, name, slug, status, material, park_id)')
         .order('rank', { ascending: true, nullsFirst: false })
       if (error) throw error
+      // PostgREST returns a many-to-one embed as an object; older code assumed
+      // an array and crashed on `park_id` reads (issue #91 Blocker 2). Accept
+      // both shapes so a payload quirk degrades gracefully instead of throwing.
       return (
         data as {
           coaster_id: string
           rank: number | null
-          coasters: UserRideCoaster[]
+          coasters: UserRideCoaster | UserRideCoaster[]
         }[]
       ).map((row) => ({
         coaster_id: row.coaster_id,
         rank: row.rank,
-        coaster: row.coasters[0],
+        coaster: Array.isArray(row.coasters) ? row.coasters[0] : row.coasters,
       }))
     },
   })

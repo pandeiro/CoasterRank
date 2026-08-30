@@ -36,8 +36,6 @@ describe('RankedCoasterItem', () => {
         status: 'operating',
         material: 'steel',
         park_id: 'p1',
-        score: 1,
-        comparisons: 10,
       },
     })
     render(
@@ -60,8 +58,6 @@ describe('RankedCoasterItem', () => {
         status: 'operating',
         material: 'steel',
         park_id: 'p1',
-        score: 2.5,
-        comparisons: 50,
       },
     })
     render(
