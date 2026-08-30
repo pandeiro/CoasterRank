@@ -41,6 +41,16 @@ const RIDES_CHUNK = 500
 // or generateLink — even though they exist in Postgres.
 const GOTRUE_INSTANCE_ID = '00000000-0000-0000-0000-000000000000'
 
+// GoTrue writes '' (never NULL) into these token/change-tracking text columns
+// and scans them as non-nullable strings — rows with NULL there make GoTrue's
+// admin list fail with "Database error finding users" (HTTP 500).
+const GOTRUE_EMPTY_TEXT_COLUMNS = [
+  'confirmation_token',
+  'recovery_token',
+  'email_change',
+  'email_change_token_new',
+] as const
+
 interface RideCounts {
   ranked: number
   unranked: number
@@ -116,6 +126,7 @@ async function insertUsers(
       'email_confirmed_at',
       'raw_app_meta_data',
       'raw_user_meta_data',
+      ...GOTRUE_EMPTY_TEXT_COLUMNS,
       'created_at',
       'updated_at',
     ] as const
@@ -129,6 +140,7 @@ async function insertUsers(
       undefined,
       'jsonb',
       'jsonb',
+      ...GOTRUE_EMPTY_TEXT_COLUMNS.map(() => undefined as Cast | undefined),
       undefined,
       undefined,
     ]
@@ -146,6 +158,7 @@ async function insertUsers(
         now,
         JSON.stringify({ provider: 'email', providers: ['email'] }),
         JSON.stringify({ username: u.username, display_name: u.displayName, synthetic: true }),
+        ...GOTRUE_EMPTY_TEXT_COLUMNS.map(() => ''),
         now,
         now,
       ])
