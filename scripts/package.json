@@ -6,6 +6,8 @@
   "description": "CoasterRank ops & data tooling. First-class: import-coasters + testride CLI. One-off data-quality/maintenance scripts live in src/oneoff/ (run with `npx tsx src/oneoff/<name>.ts`). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
   "scripts": {
     "import-coasters": "tsx src/import-coasters.ts",
+    "coverage:sweep": "tsx src/coverage/sweep.ts",
+    "coverage:doc": "tsx src/coverage/doc.ts",
     "testride:seed": "tsx src/testride/cli.ts seed",
     "testride:report": "tsx src/testride/cli.ts report",
     "testride:cleanup": "tsx src/testride/cli.ts cleanup",

@@ -1,0 +1,27 @@
+{
+  "note": "Recent-notables candidates (2025–26), researched via cited web sources. `inDb` is computed by the sweep against the live DB ('fuzzy' = likely present under a variant name). Focus: major installs + new parks.",
+  "candidates": [
+    { "name": "Stardust Racers", "park": "Universal Epic Universe", "year": 2025, "why": "Dueling launched Mack coasters at the biggest US park opening of 2025", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/", "https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "Hiccup's Wing Gliders", "park": "Universal Epic Universe", "year": 2025, "why": "Intamin family multi-launch at Epic Universe", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Rapterra", "park": "Kings Dominion", "year": 2025, "why": "World's tallest/longest launched wing coaster (B&M)", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Wrath of Rakshasa", "park": "Six Flags Great America", "year": 2025, "why": "B&M dive coaster, 96° drop, five inversions", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "AlpenFury", "park": "Canada's Wonderland", "year": 2025, "why": "Canada's tallest/fastest/longest launch coaster (Premier)", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Siren's Curse", "park": "Cedar Point", "year": 2025, "why": "North America's first Vekoma Tilt Coaster", "sources": ["https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "Flash: Vertical Velocity", "park": "Six Flags Great Adventure", "year": 2025, "why": "First Vekoma Super Boomerang in North America", "sources": ["https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "Quantum Accelerator", "park": "Six Flags New England", "year": 2025, "why": "Intamin dual-launch straddle coaster", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Georgia Gold Rusher", "park": "Six Flags Over Georgia", "year": 2025, "why": "Intamin Ultra Surf (ex-Georgia Surfer)", "sources": ["https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "MonteZOOMa: The Forbidden Fortress", "park": "Knott's Berry Farm", "year": 2025, "why": "Premier Rides relaunch of the classic Schwarzkopf shuttle", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Fire Runner", "park": "Lost Island", "year": 2025, "why": "RMC Raptor single-rail", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Big Bad Wolf: The Wolf's Revenge", "park": "Busch Gardens Williamsburg", "year": 2025, "why": "B&M family inverted", "sources": ["https://coaster101.com/2024/02/09/new-2025-roller-coasters-updated-list/"] },
+    { "name": "Barracuda Strike", "park": "SeaWorld San Antonio", "year": 2026, "why": "B&M family launch (third in the BGM family series)", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Galacticoaster", "park": "Legoland California", "year": 2026, "why": "ART Engineering indoor space-themed family coaster (twin with Legoland Florida)", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Flying Fox", "park": "Kentucky Kingdom", "year": 2026, "why": "Vekoma family suspended", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Falcon's Flight", "park": "Six Flags Qiddiya City", "year": 2025, "why": "World's tallest/fastest coaster (Exa Coaster) at the new Saudi park", "sources": ["https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "Iron Rattler", "park": "Six Flags Qiddiya City", "year": 2025, "why": "World's tallest Vekoma Tilt Coaster", "sources": ["https://blooloop.com/theme-park/opinion/new-roller-coasters-2025/"] },
+    { "name": "Colossus", "park": "Six Flags Qiddiya City", "year": 2026, "why": "Major premier at the new park", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Palindrome", "park": "COTALand", "year": 2026, "why": "Gerstlauer Infinity Shuttle at the new Austin park", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Hot Wheels Twin Mill Racer", "park": "Mattel Adventure Park", "year": 2026, "why": "Chance Hyper GTX at the new Arizona park", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Speed of Light", "park": "BON Luxury Theme Park", "year": 2026, "why": "Gerstlauer Infinity shuttle at Vidanta World's new park", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] },
+    { "name": "Ashara: Goddess of Fire", "park": "BON Luxury Theme Park", "year": 2026, "why": "First Vekoma switchback in the Americas", "sources": ["https://blooloop.com/best-new-roller-coasters-2026"] }
+  ]
+}
