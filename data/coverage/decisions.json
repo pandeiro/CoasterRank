@@ -19,9 +19,9 @@
       "id": "ORPH-002",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Re-home survivor → Indiana Beach as `All American Triple Loop` (family merges via DUP-001)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "01ac1c1f-efaf-4512-a438-e4eac8a3fbc5",
         "coaster_name": "American Dreier Looping",
@@ -46,7 +46,8 @@
         "coaster_id": "8ff8a33b-342d-48d6-a530-bd7999912626",
         "coaster_name": "American Dreier Looping",
         "from_park": "other"
-      }
+      },
+      "supersededBy": "DUP-001"
     },
     {
       "id": "ORPH-004",
@@ -59,7 +60,8 @@
         "coaster_id": "bf748c36-90d9-40f2-bff6-c8f07794889e",
         "coaster_name": "American Dreier Looping",
         "from_park": "other"
-      }
+      },
+      "supersededBy": "DUP-001"
     },
     {
       "id": "ORPH-005",
@@ -72,7 +74,8 @@
         "coaster_id": "c8ef53a7-cb2e-477e-972b-b975072cc9b8",
         "coaster_name": "American Dreier Looping",
         "from_park": "other"
-      }
+      },
+      "supersededBy": "DUP-001"
     },
     {
       "id": "ORPH-006",
@@ -91,9 +94,9 @@
       "id": "ORPH-007",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "medium",
       "title": "Re-home `Batman & Robin: The Chiller` → Six Flags Great Adventure (defunct; year left as-is — verify 1997 vs 1998)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "21ffb4dd-69fd-4a6a-bebf-854c6324e1fd",
         "coaster_name": "Batman & Robin: The Chiller",
@@ -109,9 +112,9 @@
       "id": "ORPH-008",
       "kind": "coaster_merge",
       "action": "merge_coasters",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Merge 1992 orphan into existing SFGAm row (fixes year 1993 → 1992-05-09)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "a468b213-3cf6-4352-b4e9-10b6f7945d97",
         "coaster_name": "Batman: The Ride",
@@ -131,9 +134,9 @@
       "id": "ORPH-009",
       "kind": "coaster_merge",
       "action": "merge_coasters",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Merge 1994 orphan into existing SFMM row (fixes year 1997 → 1994-03-26)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "d15a5cf7-57df-42a9-a6bd-922f3978bbf4",
         "coaster_name": "Batman: The Ride",
@@ -153,9 +156,9 @@
       "id": "ORPH-010",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Re-home 1999 clone → Six Flags Over Texas (new row, correct year)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "404929fb-3275-481a-bcc4-465a7f808fdb",
         "coaster_name": "Batman: The Ride",
@@ -172,9 +175,9 @@
       "id": "ORPH-011",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Re-home 2003 clone → Six Flags New Orleans (defunct; physical ride now Chupacabra @ Fiesta Texas)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "751829ed-97d7-4eac-b7d0-90adbb1393a6",
         "coaster_name": "Batman: The Ride",
@@ -191,9 +194,9 @@
       "id": "ORPH-012",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Re-home 4D Free Spin (2015) → Six Flags Fiesta Texas",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "1e42b025-25b4-49e0-8e42-77230094feb0",
         "coaster_name": "Batman: The Ride",
@@ -210,9 +213,9 @@
       "id": "ORPH-013",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Re-home 4D Free Spin (2019) → Six Flags Discovery Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "361722bc-19fa-46c4-ba65-94345dea4d64",
         "coaster_name": "Batman: The Ride",
@@ -230,15 +233,31 @@
       "kind": "orphan_rehome",
       "action": "rehome",
       "confidence": "high",
-      "title": "Re-home `Big Dipper` → Luna Park Sydney",
-      "decided": false,
+      "title": "Re-home `Big Dipper` (1935 woodie) → Luna Park Sydney as `Big Dipper (1935)`, defunct — distinct from the 2021 Intamin `Big Dipper` row already there",
+      "decided": true,
       "payload": {
         "coaster_id": "7b436495-24fa-40f5-878d-605109d62559",
         "coaster_name": "Big Dipper",
         "from_park": "other",
         "to_park_slug": "luna-park-sydney",
-        "to_park_id": "bdfadceb-d483-41c7-8c08-486844d60928"
-      }
+        "to_park_id": "bdfadceb-d483-41c7-8c08-486844d60928",
+        "collides_with": [
+          "e67c1e3f-bdc3-4cfa-8006-0a42ba10161e"
+        ],
+        "overrides": {
+          "opening_date": "1935-01-01",
+          "status": "defunct",
+          "name": "Big Dipper (1935)"
+        }
+      },
+      "payloadOverrides": {
+        "overrides": {
+          "opening_date": "1935-01-01",
+          "status": "defunct",
+          "name": "Big Dipper (1935)"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-015",
@@ -310,15 +329,16 @@
       "kind": "orphan_rehome",
       "action": "rehome",
       "confidence": "high",
-      "title": "Re-home `Boomerang` → Six Flags México",
-      "decided": false,
+      "title": "Re-home `Boomerang` → Six Flags Mexico (canonical park after PARK-003 merge)",
+      "decided": true,
       "payload": {
         "coaster_id": "470bb52b-5b23-4626-a237-6b7cb0c3cf08",
         "coaster_name": "Boomerang",
         "from_park": "other",
-        "to_park_slug": "six-flags-me-xico",
-        "to_park_id": "898ba557-6cad-4597-bcc5-295d1757aa38"
-      }
+        "to_park_slug": "six-flags-mexico",
+        "to_park_id": "8b818124-7c99-4944-8db4-11a7f2b6e812"
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-021",
@@ -378,7 +398,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Canyon Blaster` → Great Escape",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "62ee5227-8d85-4f4c-9c56-4a1b2c8baf0e",
         "coaster_name": "Canyon Blaster",
@@ -389,18 +409,36 @@
     },
     {
       "id": "ORPH-026",
-      "kind": "orphan_rehome",
-      "action": "rehome",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
       "confidence": "high",
-      "title": "Re-home `Cobra` → La Ronde",
-      "decided": false,
+      "title": "Merge 1988-row into the existing La Ronde `Cobra` (same ride; demolished 2018 → defunct)",
+      "decided": true,
       "payload": {
-        "coaster_id": "9d33941e-3183-44d4-ad5a-2f779686f4d4",
-        "coaster_name": "Cobra",
-        "from_park": "other",
-        "to_park_slug": "la-ronde",
-        "to_park_id": "13a90264-64e7-4756-b1bf-b0fe4ee4c37e"
-      }
+        "survivor_id": "8ee61510-a8a5-4ff9-890d-307eeceeee1a",
+        "merge_ids": [
+          "9d33941e-3183-44d4-ad5a-2f779686f4d4"
+        ],
+        "aliases": [
+          "Stand Up"
+        ],
+        "overrides": {
+          "status": "defunct"
+        }
+      },
+      "payloadOverride": {
+        "survivor_id": "8ee61510-a8a5-4ff9-890d-307eeceeee1a",
+        "merge_ids": [
+          "9d33941e-3183-44d4-ad5a-2f779686f4d4"
+        ],
+        "aliases": [
+          "Stand Up"
+        ],
+        "overrides": {
+          "status": "defunct"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-027",
@@ -590,7 +628,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge the two SFMM-bound orphans into the existing (already re-homed) SFMM `Flashback` row — one Space Diver (Z-Force 1985/1988 → Flashback 1992–2003)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "5be825ca-5aaf-4b07-8298-9400462d24a2",
         "coaster_name": "Flashback",
@@ -615,25 +653,29 @@
     {
       "id": "ORPH-042",
       "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Flashback` → Six Flags Magic Mountain",
+      "action": "review",
+      "confidence": "medium",
+      "title": "Resolve collision: `Flashback` → Six Flags Magic Mountain (target park already has 1 same-name row(s))",
       "decided": false,
       "payload": {
         "coaster_id": "aab607b2-ed96-4a4b-9410-059aa7128348",
         "coaster_name": "Flashback",
         "from_park": "other",
         "to_park_slug": "six-flags-magic-mountain",
-        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f"
-      }
+        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f",
+        "collides_with": [
+          "7e381e83-74da-4814-8379-b11b1e15081f"
+        ]
+      },
+      "supersededBy": "ORPH-041"
     },
     {
       "id": "ORPH-043",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "high",
+      "confidence": "medium",
       "title": "Re-home → Six Flags Over Texas (Vekoma Boomerang, 1989–2004, removed)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "1bfddcf5-f796-4131-bee4-2ef30f928447",
         "coaster_name": "Flashback",
@@ -651,9 +693,9 @@
       "id": "ORPH-044",
       "kind": "orphan_rehome",
       "action": "rehome",
-      "confidence": "high",
+      "confidence": "medium",
       "title": "Re-home → Six Flags New England (Vekoma Boomerang, operating; year left as-is — verify)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "ef2cc48e-f973-493c-a130-b119255bf052",
         "coaster_name": "Flashback",
@@ -672,7 +714,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge the duplicate SFNE row into ORPH-0044 survivor (same physical Boomerang)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "caec868e-3475-49a0-96d0-08a390400c04",
         "coaster_name": "Flashback",
@@ -758,7 +800,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Flying Coaster` → Elitch Gardens",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "7c02f1ef-1b75-4e9b-9ed7-cf1df96894e7",
         "coaster_name": "Flying Coaster",
@@ -890,7 +932,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Goliath` → Six Flags New England",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "a2dff98d-dfe6-485a-991f-b328902746f2",
         "coaster_name": "Goliath",
@@ -931,7 +973,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Greased Lightnin'` → Six Flags Discovery Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "430204bc-0b06-4ada-a1ee-eb2d0b5f2b2c",
         "coaster_name": "Greased Lightnin'",
@@ -946,7 +988,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Green Lantern` → Six Flags Great Adventure",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "aaea9a40-6702-41fe-b177-d061eee6d671",
         "coaster_name": "Green Lantern",
@@ -961,7 +1003,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Green Lantern` → Six Flags Great Adventure",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "a7035568-e6f5-4d02-b8ff-b4ce461412a2",
         "coaster_name": "Green Lantern",
@@ -976,7 +1018,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Greezed Lightnin'` → Six Flags AstroWorld",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "2ecf3952-3905-4baf-8011-bf69c1e53859",
         "coaster_name": "Greezed Lightnin'",
@@ -991,7 +1033,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Greezed Lightnin'` → Kentucky Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "bd6dede2-425f-4639-a588-0f0b5c486cf8",
         "coaster_name": "Greezed Lightnin'",
@@ -1097,7 +1139,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Invertigo` → California's Great America",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "6f3ec65f-3ae4-44d7-858e-863f90b6a08f",
         "coaster_name": "Invertigo",
@@ -1112,7 +1154,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Invertigo` → Kings Island",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "3b79dffa-af26-4f22-b21c-2a9449f599d0",
         "coaster_name": "Invertigo",
@@ -1140,7 +1182,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Italian Job: Stunt Track` → Kings Island",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "e03eb0ae-1945-482d-856d-d3ad11e70dd4",
         "coaster_name": "Italian Job: Stunt Track",
@@ -1155,7 +1197,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Italian Job: Stunt Track` → Canada's Wonderland",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "6bb0c1da-2967-4d56-88f0-43ab526d3925",
         "coaster_name": "Italian Job: Stunt Track",
@@ -1196,7 +1238,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Jumbo Jet` → Cedar Point",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "30997f4e-4c5a-4211-a16c-4e375ecf176a",
         "coaster_name": "Jumbo Jet",
@@ -1432,7 +1474,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Little Dipper` → Six Flags Great America",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "aef1ba5c-2351-43ff-bca7-371164a5b8a9",
         "coaster_name": "Little Dipper",
@@ -1447,7 +1489,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Little Dipper` → Six Flags Great America",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "9322e873-2d9d-478a-a523-914f8ce44533",
         "coaster_name": "Little Dipper",
@@ -1475,7 +1517,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Loop the Loop` → Coney Island",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "39df3955-22b9-4b9e-a0c9-48a263ae632c",
         "coaster_name": "Loop the Loop",
@@ -1685,7 +1727,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Road Runner Express` → Six Flags New Orleans",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "a929ac13-1d4f-4d88-92df-103cf1ae0a0d",
         "coaster_name": "Road Runner Express",
@@ -1700,7 +1742,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Road Runner Express` → Kentucky Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "b826df4f-37f9-4b5e-be89-655a6193cd31",
         "coaster_name": "Road Runner Express",
@@ -1715,7 +1757,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Road Runner Express` → Six Flags Magic Mountain",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "bbf58e51-6a4b-4841-8703-1de58d9f7db8",
         "coaster_name": "Road Runner Express",
@@ -1899,7 +1941,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Sidewinder` → Elitch Gardens",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "88c7a678-458f-46a8-9859-1669dbc5cac6",
         "coaster_name": "Sidewinder",
@@ -2066,18 +2108,22 @@
     },
     {
       "id": "ORPH-149",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Superman: Krypton Coaster` → Six Flags México",
-      "decided": false,
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
+      "confidence": "medium",
+      "title": "Merge orphan into the existing SFFT `Superman: Krypton Coaster` row (same ride; CSV had it twice under different parks)",
+      "decided": true,
       "payload": {
-        "coaster_id": "968e71eb-06fc-4995-bcb2-5f97633a3cf3",
-        "coaster_name": "Superman: Krypton Coaster",
-        "from_park": "other",
-        "to_park_slug": "six-flags-me-xico",
-        "to_park_id": "898ba557-6cad-4597-bcc5-295d1757aa38"
-      }
+        "survivor_id": "1aa71281-4f3d-4bad-9222-25f0d5ede941",
+        "merge_ids": [
+          "968e71eb-06fc-4995-bcb2-5f97633a3cf3"
+        ],
+        "aliases": [],
+        "overrides": {
+          "status": "operating"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-150",
@@ -2111,7 +2157,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `The Bat` → Canada's Wonderland",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "76aa9a09-2964-4c1f-8a2c-7b32afcd93d8",
         "coaster_name": "The Bat",
@@ -2204,7 +2250,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `The Joker` → Six Flags New England",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "4dd47825-cad0-4b67-a5eb-289d709c665e",
         "coaster_name": "The Joker",
@@ -2232,7 +2278,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `The Mind Eraser` → Geauga Lake",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "eb322939-5b27-4ec6-91f3-b416b8ae518f",
         "coaster_name": "The Mind Eraser",
@@ -2247,7 +2293,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `The Monster` → Walygator Parc",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "c32402cd-71d8-4889-95bd-766e8ceb0191",
         "coaster_name": "The Monster",
@@ -2288,7 +2334,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Thunderbolt` → Celebration City",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "0fa08972-cebb-43bd-9f60-978d2b6c36d0",
         "coaster_name": "Thunderbolt",
@@ -2316,7 +2362,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Thunderhawk` → Michigan's Adventure",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "a2588a84-abbb-4f21-ab01-40d006ddd272",
         "coaster_name": "Thunderhawk",
@@ -2474,7 +2520,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Wildcat` → Frontier City",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "c6827758-9e99-4809-b742-ecd3f222cc45",
         "coaster_name": "Wildcat",
@@ -2528,7 +2574,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Woodstock's Express` → California's Great America",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "85fb143c-2039-49fe-b5de-ca5fa85cbf18",
         "coaster_name": "Woodstock's Express",
@@ -2543,7 +2589,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `X-Flight` → Geauga Lake",
-      "decided": false,
+      "decided": true,
       "payload": {
         "coaster_id": "e550fdee-e787-47b2-944c-8316b343c9c5",
         "coaster_name": "X-Flight",
@@ -2582,9 +2628,9 @@
       "id": "DUP-001",
       "kind": "coaster_merge",
       "action": "merge_coasters",
-      "confidence": "low",
+      "confidence": "high",
       "title": "Merge the four `American Dreier Looping` life-stage rows into the survivor (see ORPH-002)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2616,7 +2662,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Arkham Asylum – Shock Therapy` @ Warner Bros. Movie World",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f46f36b-b586-44d1-a566-db1a1143d176",
         "park_slug": "warner-bros-movie-world",
@@ -2672,7 +2718,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Blue Streak` @ Conneaut Lake Park",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "a2a453ad-7ca4-4803-ae02-9b7851eda581",
         "park_slug": "conneaut-lake-park",
@@ -2690,7 +2736,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Bocaraca` @ Parque Diversiones",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "d9807f32-da93-43c6-ada6-e3aa160ac013",
         "park_slug": "parque-diversiones",
@@ -2741,7 +2787,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Cosmic Coaster` @ Valleyfair",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "cc556500-f380-4fcb-9d7d-5cfb6f0ada44",
         "park_slug": "valleyfair",
@@ -2759,7 +2805,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Derby Racer` @ Revere Beach",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "3c1f8410-87f4-46aa-99b7-f1c45d5fc948",
         "park_slug": "revere-beach",
@@ -2777,7 +2823,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Dragon Challenge` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2795,7 +2841,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Dragon's Run` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2813,7 +2859,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Eurostar` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2831,7 +2877,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Firebird` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2886,7 +2932,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Frankie's Mine Train` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2904,7 +2950,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Freestyle` @ Cavallino Matto",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "ba53cf37-9cf4-4f06-b7a4-60cf3ed66a3a",
         "park_slug": "cavallino-matto",
@@ -2922,7 +2968,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Gadget's Go Coaster` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2940,7 +2986,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Gotham City Gauntlet: Escape from Arkham Asylum` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2958,7 +3004,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Green Lantern` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -2992,7 +3038,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Hakugei` @ Nagashima Spa Land",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "dda709bf-dfc5-4042-937f-aa82c9b7962f",
         "park_slug": "nagashima-spa-land",
@@ -3010,7 +3056,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Half Pipe` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3028,7 +3074,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Incredicoaster` @ Disney California Adventure",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "42ec6354-e8c9-4e42-8972-ea709dfa24b5",
         "park_slug": "disney-california-adventure",
@@ -3089,7 +3135,8 @@
           "2a652898-331f-4405-8247-6526f604ca47"
         ]
       },
-      "crafted": true
+      "crafted": true,
+      "supersededBy": "DUP-028a"
     },
     {
       "id": "DUP-029",
@@ -3113,7 +3160,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Klondike Gold Mine` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3131,7 +3178,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Knightmare` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3149,7 +3196,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Kraken` @ SeaWorld Orlando",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "632945d3-1b97-49e2-bb2d-24335e93590e",
         "park_slug": "seaworld-orlando",
@@ -3202,7 +3249,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Lightnin' Loops` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3220,7 +3267,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Lil' Devil Coaster` @ Six Flags Great Adventure",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "bd3ee168-d5cc-4fc9-b976-ba8bfd6063a5",
         "park_slug": "six-flags-great-adventure",
@@ -3238,7 +3285,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Little Dipper` @ Conneaut Lake Park",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "a2a453ad-7ca4-4803-ae02-9b7851eda581",
         "park_slug": "conneaut-lake-park",
@@ -3256,7 +3303,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Little Dipper` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3323,7 +3370,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Possessed` @ Dorney Park & Wildwater Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "1bf9e71d-1e2a-4d44-8919-6eec12e38d15",
         "park_slug": "dorney-park-wildwater-kingdom",
@@ -3341,7 +3388,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Ragin' Cajun` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3359,7 +3406,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Raptor Attack` @ Lightwater Valley",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "f88191ac-b1bb-45ff-8d91-a5e7ba8c7569",
         "park_slug": "lightwater-valley",
@@ -3394,7 +3441,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Revenge of the Mummy` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3429,7 +3476,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Roar` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3447,7 +3494,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Rock 'n' Roller Coaster Starring Aerosmith` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3465,7 +3512,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Roller Coaster` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3483,7 +3530,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Rougarou` @ Cedar Point",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "e8f9a50c-63a1-41a4-984c-65fe985d8e8a",
         "park_slug": "cedar-point",
@@ -3501,7 +3548,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Scorpion Express` @ Chessington World of Adventures",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "cf266de4-64f7-4516-b755-65d852f3025e",
         "park_slug": "chessington-world-of-adventures",
@@ -3519,7 +3566,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Seven Dwarfs Mine Train` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3537,7 +3584,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Speed – The Ride` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3555,7 +3602,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Storm Chaser` @ Kentucky Kingdom",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "6dab562e-7c76-42a0-b261-fd3811bc0821",
         "park_slug": "kentucky-kingdom",
@@ -3590,7 +3637,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Superman The Ride` @ Six Flags New England",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0",
         "park_slug": "six-flags-new-england",
@@ -3608,7 +3655,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Superman: Ultimate Flight` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3642,7 +3689,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `The Dark Knight Coaster` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3660,7 +3707,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `The Gold Coaster` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3678,7 +3725,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Thunder Run` @ Canada's Wonderland",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "230bd22e-4321-4249-b2bd-ff44edca23d3",
         "park_slug": "canada-s-wonderland",
@@ -3696,7 +3743,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Twisted Cyclone` @ Six Flags Over Georgia",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "69b2db8e-c154-4703-829e-17ac4b95ce36",
         "park_slug": "six-flags-over-georgia",
@@ -3714,7 +3761,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Ultra Twister` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
         "park_slug": "other",
@@ -3732,7 +3779,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Ultra Twister` @ Nagashima Spa Land",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "dda709bf-dfc5-4042-937f-aa82c9b7962f",
         "park_slug": "nagashima-spa-land",
@@ -3750,7 +3797,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Untamed` @ Walibi Holland",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "04b7e211-1a66-4890-ae53-5c3aa2ab9a77",
         "park_slug": "walibi-holland",
@@ -3768,7 +3815,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Wild Mouse` @ Idlewild and Soak Zone",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "cbd4ae6c-e878-4e17-b49f-73852754e1fa",
         "park_slug": "idlewild-and-soak-zone",
@@ -3786,7 +3833,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Wipeout` @ Pleasurewood Hills",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "0667d9af-c6df-4845-aaf2-39cd9536ae95",
         "park_slug": "pleasurewood-hills",
@@ -3820,7 +3867,7 @@
       "action": "merge_coasters",
       "confidence": "high",
       "title": "Merge 2 rows of `Zippin Pippin` @ Bay Beach",
-      "decided": false,
+      "decided": true,
       "payload": {
         "park_id": "ffbd2bbc-c2c1-4bd1-bf95-ff80206a0191",
         "park_slug": "bay-beach",
@@ -3838,7 +3885,7 @@
       "action": "merge_parks",
       "confidence": "high",
       "title": "Merge parks: `Imagicaa` / `Imagicaa`",
-      "decided": false,
+      "decided": true,
       "payload": {
         "survivor_id": "a1ff0e2a-9ee8-423e-80f8-3b7c75de629c",
         "survivor_slug": "imagicaa",
@@ -3846,7 +3893,8 @@
           "1645a613-4b57-446c-845e-239925213458"
         ],
         "coaster_remap": 1
-      }
+      },
+      "crafted": true
     },
     {
       "id": "PARK-002",
@@ -3854,7 +3902,7 @@
       "action": "merge_parks",
       "confidence": "high",
       "title": "Merge parks: `Särkänniemi` / `Särkänniemi`",
-      "decided": false,
+      "decided": true,
       "payload": {
         "survivor_id": "dda63b35-0c62-4e63-9948-8b1fc29aeda5",
         "survivor_slug": "s-rk-nniemi",
@@ -3862,7 +3910,8 @@
           "42d4e595-6784-4037-99ce-c8b877460955"
         ],
         "coaster_remap": 0
-      }
+      },
+      "crafted": true
     },
     {
       "id": "PARK-003",
@@ -3870,7 +3919,7 @@
       "action": "merge_parks",
       "confidence": "high",
       "title": "Merge parks: `Six Flags Mexico` / `Six Flags México`",
-      "decided": false,
+      "decided": true,
       "payload": {
         "survivor_id": "8b818124-7c99-4944-8db4-11a7f2b6e812",
         "survivor_slug": "six-flags-mexico",
@@ -3878,7 +3927,8 @@
           "898ba557-6cad-4597-bcc5-295d1757aa38"
         ],
         "coaster_remap": 2
-      }
+      },
+      "crafted": true
     },
     {
       "id": "MISS-065",
@@ -4526,7 +4576,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Journey to Atlantis` (2004) → SeaWorld San Diego",
-      "decided": false,
+      "decided": true,
       "crafted": true,
       "payload": {
         "coaster_id": "99fc16d9-2334-415d-86c9-0cb38555ca91",
@@ -4544,7 +4594,7 @@
       "action": "rehome",
       "confidence": "high",
       "title": "Re-home `Journey to Atlantis` (2007) → SeaWorld San Antonio",
-      "decided": false,
+      "decided": true,
       "crafted": true,
       "payload": {
         "coaster_id": "bde7b686-96bb-4d9a-b2eb-bfd960dc6166",

@@ -726,3 +726,78 @@ describe('buildPlan — name overrides', () => {
     expect(res.skipped[0]!.reason).toContain('overrides.name')
   })
 })
+
+describe('classifyOrphans — target-park collision (Big Dipper trap)', () => {
+  it('emits a review item, not a rehome, when the target park already has a same-name row', async () => {
+    const { classifyOrphans } = await import('../coverage/classify.js')
+    const { slugify } = await import('../coverage/lib.js')
+    void slugify
+    const parks = [
+      {
+        id: 'park-other',
+        name: 'Other (unknown location)',
+        slug: 'other',
+        country: null,
+        region: null,
+        city: null,
+        lat: null,
+        lng: null,
+        source: 'open-csv',
+      },
+      {
+        id: 'park-lps',
+        name: 'Luna Park Sydney',
+        slug: 'luna-park-sydney',
+        country: null,
+        region: null,
+        city: null,
+        lat: null,
+        lng: null,
+        source: 'open-csv',
+      },
+    ]
+    const mk = (
+      id: string,
+      parkId: string,
+      slug: string,
+      opening: string | null,
+      status: string,
+      source: string,
+    ) => ({
+      id,
+      park_id: parkId,
+      name: 'Big Dipper',
+      slug,
+      model: null,
+      opening_date: opening,
+      status,
+      material: 'other' as const,
+      manufacturer_id: null,
+      manufacturer_name: null,
+      source,
+      external_id: `${slug}@other`,
+      height_m: null,
+      speed_kmh: null,
+      length_m: null,
+      inversions: null,
+    })
+    const coasters = [
+      mk(
+        'orphan-1935',
+        'park-other',
+        'big-dipper-luna-park-sydney',
+        '1935-01-01',
+        'unknown',
+        'open-csv',
+      ),
+      mk('admin-2021', 'park-lps', 'big-dipper', null, 'operating', 'admin'),
+    ]
+    const res = classifyOrphans(parks as never, coasters as never, [])
+    expect(res.items).toHaveLength(1)
+    expect(res.items[0]!.action).toBe('review')
+    expect(res.items[0]!.title).toContain('Resolve collision')
+    expect((res.items[0]!.payload as { collides_with: string[] }).collides_with).toEqual([
+      'admin-2021',
+    ])
+  })
+})
