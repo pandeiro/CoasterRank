@@ -12,8 +12,15 @@ export type Confidence = 'high' | 'medium' | 'low'
 
 export interface DecisionItem {
   id: string
-  kind: 'orphan_rehome' | 'coaster_merge' | 'park_merge' | 'info'
-  action: 'rehome' | 'create_park_and_rehome' | 'merge_coasters' | 'merge_parks' | 'none' | 'review'
+  kind: 'orphan_rehome' | 'coaster_merge' | 'park_merge' | 'create_coaster' | 'info'
+  action:
+    | 'rehome'
+    | 'create_park_and_rehome'
+    | 'merge_coasters'
+    | 'merge_parks'
+    | 'create_coaster'
+    | 'none'
+    | 'review'
   title: string
   confidence: Confidence
   evidence: string[]
@@ -207,6 +214,7 @@ export function classifyOrphans(
           coaster_name: c.name,
           from_park: OTHER_SLUG,
           to_park_slug: parkSlug,
+          to_park_name: parks[0]!,
           to_park_id: park?.id ?? null,
         },
       })

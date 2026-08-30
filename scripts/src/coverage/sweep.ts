@@ -8,11 +8,18 @@ import {
   loadJson,
   loadVoteCoasters,
   normkey,
+  poolConfig,
+  slugify,
   trigramSim,
   type CoasterRow,
   type ListEntry,
 } from './lib.js'
-import { classifyCoasterDups, classifyOrphans, classifyParkDups } from './classify.js'
+import {
+  classifyCoasterDups,
+  classifyOrphans,
+  classifyParkDups,
+  type DecisionItem,
+} from './classify.js'
 import { matchCoverage } from './missing.js'
 
 export interface SweepOutput {
@@ -36,6 +43,7 @@ export interface SweepOutput {
     coveragePct: string
     missItems: ReturnType<typeof matchCoverage>['missItems']
   }
+  creations: DecisionItem[]
   notables: NotablesFile
 }
 
@@ -86,7 +94,7 @@ async function countDb(): Promise<{
   const url = process.env.SUPABASE_DB_URL
   if (!url) throw new Error('SUPABASE_DB_URL is not set')
   const { Pool } = await import('pg')
-  const pool = new Pool({ connectionString: url, ssl: { rejectUnauthorized: false } })
+  const pool = new Pool(poolConfig(url))
   try {
     const q = await pool.query(`
       select
@@ -107,6 +115,46 @@ async function countDb(): Promise<{
   } finally {
     await pool.end()
   }
+}
+
+/** Creation decision items for list entries the DB is genuinely missing. */
+function buildCreations(missItems: ReturnType<typeof matchCoverage>['missItems']): DecisionItem[] {
+  const items: DecisionItem[] = []
+  for (const m of missItems) {
+    if (m.cls !== 'coaster_missing' && m.cls !== 'park_and_coaster_missing') continue
+    const parkCreate = m.cls === 'park_and_coaster_missing'
+    items.push({
+      id: m.id,
+      kind: 'create_coaster',
+      action: 'create_coaster',
+      confidence: m.cls === 'coaster_missing' ? 'high' : 'medium',
+      title: `Create \`${m.entry.coaster}\` @ ${m.entry.park}${parkCreate ? ' (+ create park)' : ''}`,
+      evidence: [
+        `List source: ${m.entry.source} #${m.entry.rank} — \`${m.entry.coaster}\` @ ${m.entry.park}${m.entry.year ? ` (${m.entry.year})` : ''}`,
+        m.note,
+      ],
+      recommendation: `Insert coaster row (status \`operating\`, material \`${mapMaterial(m.entry.material)}\`${m.entry.maker ? `, manufacturer suggestion \`${m.entry.maker}\`` : ''})${parkCreate ? ' after creating the missing park' : ''}. Edit the payload in decisions.json to adjust status/year/material before marking decided.`,
+      payload: {
+        name: m.entry.coaster,
+        park_name: m.entry.park,
+        park_slug: slugify(m.entry.park),
+        park_create: parkCreate,
+        opening_year: m.entry.year ?? null,
+        material: mapMaterial(m.entry.material),
+        status: 'operating',
+        suggested_manufacturer: m.entry.maker ?? null,
+        source_list: m.entry.source,
+        rank: m.entry.rank,
+      },
+    })
+  }
+  return items
+}
+
+function mapMaterial(m: string | undefined): 'steel' | 'wood' | 'other' {
+  if (m === 'Wood') return 'wood'
+  if (m === 'Steel') return 'steel'
+  return 'other'
 }
 
 async function main(): Promise<void> {
@@ -149,6 +197,10 @@ async function main(): Promise<void> {
   const miss = matchCoverage(entries, parks, coasters, parkAliases)
   console.log(`  coverage: ${miss.coveragePct}, non-exact items: ${miss.missItems.length}`)
 
+  console.log('Building creation items...')
+  const creations = buildCreations(miss.missItems)
+  console.log(`  ${creations.length} creation candidates`)
+
   const otherPark = parks.find((p) => p.slug === 'other')
   const otherCount = otherPark ? coasters.filter((c) => c.park_id === otherPark.id).length : 0
   const extra = await countDb()
@@ -175,13 +227,14 @@ async function main(): Promise<void> {
     dups,
     parkDups,
     missing: { entries: entries.length, coveragePct: miss.coveragePct, missItems: miss.missItems },
+    creations,
     notables,
   }
 
   writeFileSync(join(COVERAGE_DIR, 'sweep.json'), JSON.stringify(out, null, 2))
 
-  // decisions.json — machine-readable companion for the (future) applier.
-  const all = [...orphans.items, ...dups.items, ...parkDups.items]
+  // decisions.json — machine-readable companion for the applier.
+  const all = [...orphans.items, ...dups.items, ...parkDups.items, ...creations]
   const decisions = {
     schemaVersion: 1,
     note: 'Mark decided:true and adjust action/payload per item. The applier (future step) consumes this file; nothing in it has been executed.',

@@ -108,9 +108,23 @@ export interface ListEntry {
   park: string
   source: 'votecoasters-2024' | 'golden-ticket-steel-2025' | 'golden-ticket-wooden-2025'
   rank: number
+  maker?: string
+  material?: 'Steel' | 'Wood'
+  year?: string
 }
 
 // ---------- loaders ----------
+
+/** Pool config: SSL for Supabase (remote), plain for local/scratch postgres. */
+export function poolConfig(url: string): {
+  connectionString: string
+  ssl?: { rejectUnauthorized: boolean }
+} {
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url)
+  return local
+    ? { connectionString: url }
+    : { connectionString: url, ssl: { rejectUnauthorized: false } }
+}
 
 export async function loadDb(): Promise<{
   parks: ParkRow[]
@@ -118,7 +132,7 @@ export async function loadDb(): Promise<{
 }> {
   const url = process.env.SUPABASE_DB_URL
   if (!url) throw new Error('SUPABASE_DB_URL is not set')
-  const pool = new Pool({ connectionString: url, ssl: { rejectUnauthorized: false } })
+  const pool = new Pool(poolConfig(url))
   try {
     const parksRes = await pool.query(`
       select p.id, p.name, p.slug, p.country, p.region, p.city, p.lat, p.lng, p.source,
@@ -169,11 +183,15 @@ export function loadVoteCoasters(): ListEntry[] {
   for (let i = start; i + 7 < lines.length; i += 8) {
     const rank = Number.parseInt(lines[i]!, 10)
     if (!Number.isFinite(rank)) break
+    const material = lines[i + 5]
     out.push({
       coaster: lines[i + 1]!,
       park: lines[i + 2]!,
       source: 'votecoasters-2024',
       rank,
+      maker: lines[i + 4] || undefined,
+      material: material === 'Wood' ? 'Wood' : material === 'Steel' ? 'Steel' : undefined,
+      year: lines[i + 7] || undefined,
     })
   }
   return out
@@ -193,6 +211,8 @@ export function loadGoldenTicket(kind: 'steel' | 'wooden'): ListEntry[] {
       park: lines[i + 2]!,
       source: kind === 'steel' ? 'golden-ticket-steel-2025' : 'golden-ticket-wooden-2025',
       rank,
+      maker: lines[i + 4] || undefined,
+      year: lines[i + 5] || undefined,
     })
   }
   return out

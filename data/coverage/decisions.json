@@ -3782,6 +3782,646 @@
         ],
         "coaster_remap": 2
       }
+    },
+    {
+      "id": "MISS-065",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Starry Sky Ripper` @ Joyland",
+      "decided": false,
+      "payload": {
+        "name": "Starry Sky Ripper",
+        "park_name": "Joyland",
+        "park_slug": "joyland",
+        "park_create": false,
+        "opening_year": "2011",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 65
+      }
+    },
+    {
+      "id": "MISS-127",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `na Fianna Force` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "na Fianna Force",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2024",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Vekoma",
+        "source_list": "votecoasters-2024",
+        "rank": 127
+      }
+    },
+    {
+      "id": "MISS-135",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Flucht von Novgorod` @ Hansa Park",
+      "decided": false,
+      "payload": {
+        "name": "Flucht von Novgorod",
+        "park_name": "Hansa Park",
+        "park_slug": "hansa-park",
+        "park_create": false,
+        "opening_year": "2009",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Gerstlauer",
+        "source_list": "votecoasters-2024",
+        "rank": 135
+      }
+    },
+    {
+      "id": "MISS-154",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Cú Chulainn",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2015",
+        "material": "wood",
+        "status": "operating",
+        "suggested_manufacturer": "Gravity Group",
+        "source_list": "votecoasters-2024",
+        "rank": 154
+      }
+    },
+    {
+      "id": "MISS-183",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `GaleForce` @ Playland's Castaway Cove (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "GaleForce",
+        "park_name": "Playland's Castaway Cove",
+        "park_slug": "playland-s-castaway-cove",
+        "park_create": true,
+        "opening_year": "2017",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "S&S Sansei Technologies",
+        "source_list": "votecoasters-2024",
+        "rank": 183
+      }
+    },
+    {
+      "id": "MISS-206",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Batman The Ride` @ Six Flags Over Georgia",
+      "decided": false,
+      "payload": {
+        "name": "Batman The Ride",
+        "park_name": "Six Flags Over Georgia",
+        "park_slug": "six-flags-over-georgia",
+        "park_create": false,
+        "opening_year": "1997",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 206
+      }
+    },
+    {
+      "id": "MISS-213",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Wild Train` @ Fantasiana (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Wild Train",
+        "park_name": "Fantasiana",
+        "park_slug": "fantasiana",
+        "park_create": true,
+        "opening_year": "2005",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Pax Company",
+        "source_list": "votecoasters-2024",
+        "rank": 213
+      }
+    },
+    {
+      "id": "MISS-220",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Florida",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Florida",
+        "park_slug": "universal-studios-florida",
+        "park_create": false,
+        "opening_year": "2004",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 220
+      }
+    },
+    {
+      "id": "MISS-237",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Batman The Ride` @ Six Flags St. Louis",
+      "decided": false,
+      "payload": {
+        "name": "Batman The Ride",
+        "park_name": "Six Flags St. Louis",
+        "park_slug": "six-flags-st-louis",
+        "park_create": false,
+        "opening_year": "1995",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 237
+      }
+    },
+    {
+      "id": "MISS-238",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Batman The Ride` @ Six Flags Great Adventure",
+      "decided": false,
+      "payload": {
+        "name": "Batman The Ride",
+        "park_name": "Six Flags Great Adventure",
+        "park_slug": "six-flags-great-adventure",
+        "park_create": false,
+        "opening_year": "1993",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 238
+      }
+    },
+    {
+      "id": "MISS-256",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Altair` @ Cinecitta World (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Altair",
+        "park_name": "Cinecitta World",
+        "park_slug": "cinecitta-world",
+        "park_create": true,
+        "opening_year": "2014",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "votecoasters-2024",
+        "rank": 256
+      }
+    },
+    {
+      "id": "MISS-264",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Batman The Ride` @ Six Flags Over Texas",
+      "decided": false,
+      "payload": {
+        "name": "Batman The Ride",
+        "park_name": "Six Flags Over Texas",
+        "park_slug": "six-flags-over-texas",
+        "park_create": false,
+        "opening_year": "1999",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 264
+      }
+    },
+    {
+      "id": "MISS-275",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Giant Digger` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Giant Digger",
+        "park_name": "Lotte World Adventure Busan - Magic Forest",
+        "park_slug": "lotte-world-adventure-busan-magic-forest",
+        "park_create": true,
+        "opening_year": "2022",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Mack Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 275
+      }
+    },
+    {
+      "id": "MISS-286",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Anubis: The Ride` @ Plopsaland De Panne",
+      "decided": false,
+      "payload": {
+        "name": "Anubis: The Ride",
+        "park_name": "Plopsaland De Panne",
+        "park_slug": "plopsaland-de-panne",
+        "park_create": false,
+        "opening_year": "2009",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Gerstlauer",
+        "source_list": "votecoasters-2024",
+        "rank": 286
+      }
+    },
+    {
+      "id": "MISS-287",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Freischutz` @ Bayern Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Freischutz",
+        "park_name": "Bayern Park",
+        "park_slug": "bayern-park",
+        "park_create": true,
+        "opening_year": "2011",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Maurer",
+        "source_list": "votecoasters-2024",
+        "rank": 287
+      }
+    },
+    {
+      "id": "MISS-311",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Singapore",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Singapore",
+        "park_slug": "universal-studios-singapore",
+        "park_create": false,
+        "opening_year": "2010",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 311
+      }
+    },
+    {
+      "id": "MISS-313",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Inferno` @ Cinecitta World (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Inferno",
+        "park_name": "Cinecitta World",
+        "park_slug": "cinecitta-world",
+        "park_create": true,
+        "opening_year": "2014",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "votecoasters-2024",
+        "rank": 313
+      }
+    },
+    {
+      "id": "MISS-321",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Superman - Ultimate Flight` @ Six Flags Over Georgia",
+      "decided": false,
+      "payload": {
+        "name": "Superman - Ultimate Flight",
+        "park_name": "Six Flags Over Georgia",
+        "park_slug": "six-flags-over-georgia",
+        "park_create": false,
+        "opening_year": "2002",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 321
+      }
+    },
+    {
+      "id": "MISS-326",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Superman - Ultimate Flight` @ Six Flags Great Adventure",
+      "decided": false,
+      "payload": {
+        "name": "Superman - Ultimate Flight",
+        "park_name": "Six Flags Great Adventure",
+        "park_slug": "six-flags-great-adventure",
+        "park_create": false,
+        "opening_year": "2003",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 326
+      }
+    },
+    {
+      "id": "MISS-346",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Surf Coaster Leviathan` @ Sea Paradise (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Surf Coaster Leviathan",
+        "park_name": "Sea Paradise",
+        "park_slug": "sea-paradise",
+        "park_create": true,
+        "opening_year": "1993",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Togo",
+        "source_list": "votecoasters-2024",
+        "rank": 346
+      }
+    },
+    {
+      "id": "MISS-376",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Superman - Ultimate Flight` @ Six Flags Great America",
+      "decided": false,
+      "payload": {
+        "name": "Superman - Ultimate Flight",
+        "park_name": "Six Flags Great America",
+        "park_slug": "six-flags-great-america",
+        "park_create": false,
+        "opening_year": "2003",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 376
+      }
+    },
+    {
+      "id": "MISS-391",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Phobia Phear Coaster` @ Lake Compounce",
+      "decided": false,
+      "payload": {
+        "name": "Phobia Phear Coaster",
+        "park_name": "Lake Compounce",
+        "park_slug": "lake-compounce",
+        "park_create": false,
+        "opening_year": "2016",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 391
+      }
+    },
+    {
+      "id": "MISS-396",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Heidi The Ride` @ Plopsaland De Panne",
+      "decided": false,
+      "payload": {
+        "name": "Heidi The Ride",
+        "park_name": "Plopsaland De Panne",
+        "park_slug": "plopsaland-de-panne",
+        "park_create": false,
+        "opening_year": "2017",
+        "material": "wood",
+        "status": "operating",
+        "suggested_manufacturer": "Great Coasters International",
+        "source_list": "votecoasters-2024",
+        "rank": 396
+      }
+    },
+    {
+      "id": "MISS-397",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Hollywood",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Hollywood",
+        "park_slug": "universal-studios-hollywood",
+        "park_create": false,
+        "opening_year": "2004",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 397
+      }
+    },
+    {
+      "id": "MISS-402",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Flight of Fear` @ Kings Island",
+      "decided": false,
+      "payload": {
+        "name": "Flight of Fear",
+        "park_name": "Kings Island",
+        "park_slug": "kings-island",
+        "park_create": false,
+        "opening_year": "1996",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 402
+      }
+    },
+    {
+      "id": "MISS-411",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Flight of Fear` @ Kings Dominion",
+      "decided": false,
+      "payload": {
+        "name": "Flight of Fear",
+        "park_name": "Kings Dominion",
+        "park_slug": "kings-dominion",
+        "park_create": false,
+        "opening_year": "1996",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 411
+      }
+    },
+    {
+      "id": "MISS-483",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Giant Splash` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Giant Splash",
+        "park_name": "Lotte World Adventure Busan - Magic Forest",
+        "park_slug": "lotte-world-adventure-busan-magic-forest",
+        "park_create": true,
+        "opening_year": "2022",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Mack Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 483
+      }
+    },
+    {
+      "id": "MISS-488",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Maximus - Der Flug des Wächters` @ Legoland Deutschland",
+      "decided": false,
+      "payload": {
+        "name": "Maximus - Der Flug des Wächters",
+        "park_name": "Legoland Deutschland",
+        "park_slug": "legoland-deutschland",
+        "park_create": false,
+        "opening_year": "2023",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 488
+      }
+    },
+    {
+      "id": "MISS-500",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Ziegel-Blitz` @ Jaderpark (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Ziegel-Blitz",
+        "park_name": "Jaderpark",
+        "park_slug": "jaderpark",
+        "park_create": true,
+        "opening_year": "2024",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Gerstlauer",
+        "source_list": "votecoasters-2024",
+        "rank": 500
+      }
+    },
+    {
+      "id": "MISS-517",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Stardust Racers` @ Universal Epic Universe (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Stardust Racers",
+        "park_name": "Universal Epic Universe",
+        "park_slug": "universal-epic-universe",
+        "park_create": true,
+        "opening_year": "2025",
+        "material": "other",
+        "status": "operating",
+        "suggested_manufacturer": "Mack",
+        "source_list": "golden-ticket-steel-2025",
+        "rank": 17
+      }
+    },
+    {
+      "id": "MISS-580",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Colossos` @ Heide Park",
+      "decided": false,
+      "payload": {
+        "name": "Colossos",
+        "park_name": "Heide Park",
+        "park_slug": "heide-park",
+        "park_create": false,
+        "opening_year": "2001",
+        "material": "other",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "golden-ticket-wooden-2025",
+        "rank": 30
+      }
+    },
+    {
+      "id": "MISS-596",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Cú Chulainn",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2015",
+        "material": "other",
+        "status": "operating",
+        "suggested_manufacturer": "The Gravity Group",
+        "source_list": "golden-ticket-wooden-2025",
+        "rank": 46
+      }
     }
   ]
 }

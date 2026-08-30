@@ -164,6 +164,13 @@ function main(): void {
       lines.push(
         `- **${m.id}** [${src} #${m.entry.rank}] \`${m.entry.coaster}\` @ ${m.entry.park} — ${m.note}${m.parkMatch ? ` (park → ${m.parkMatch.name}, ${m.parkMatch.how} ${m.parkMatch.sim.toFixed(2)})` : ''}`,
       )
+      const c = sweep.creations.find((x) => x.id === m.id)
+      if (c) {
+        const p = c.payload as Record<string, unknown>
+        lines.push(
+          `  - Creation payload (edit in \`decisions.json\`): status \`${p.status}\` · material \`${p.material}\` · year \`${p.opening_year ?? '?'}\`${p.suggested_manufacturer ? ` · maker \`${p.suggested_manufacturer}\`` : ''}${p.park_create ? ' · **park will be created**' : ''}`,
+        )
+      }
       enrich(m.id, lines)
     }
     lines.push('')

@@ -29,10 +29,25 @@ applier would consume your marked decisions.
 ## Commands (from `scripts/`)
 
 ```bash
-npm run coverage:sweep   # read-only analysis → sweep.json + decisions.json
-npm run coverage:doc     # render sweep-YYYY-MM-DD.md (merges enrichment.json)
-npm test                 # classifier unit tests (src/__tests__/coverage-classify.test.ts)
+npm run coverage:sweep        # read-only analysis → sweep.json + decisions.json
+npm run coverage:doc          # render sweep-YYYY-MM-DD.md (merges enrichment.json)
+npm run coverage:apply        # dry-run the applier against live data (read-only)
+npm run coverage:apply -- --apply --yes   # EXECUTE decided items (single transaction)
+npm run coverage:apply -- --decisions <path> [--apply --yes]  # alternate decisions file
+npm run coverage:apply-test   # docker scratch-DB integration test (real write path, no prod contact)
+npm test                      # classifier + plan-builder unit tests
 ```
+
+## Applier
+
+`buildPlan()` (pure, unit-tested) validates every `decided: true` item against the live
+snapshot — stale rows, name drift, slug collisions and missing parks are caught before any
+SQL exists — and emits ordered ops: park merges → park creates → re-homes → coaster merges
+→ creations. Park references in SQL are slug-based subselects so plan-created parks resolve
+at execute time. `executePlan()` runs everything in ONE transaction and asserts affected-row
+counts per statement; any mismatch rolls back everything. Merge semantics: rides remap with
+`ON CONFLICT DO NOTHING` (conflicts keep the existing ride), loser ratings deleted, loser
+names become aliases. Gitignored `apply-log-<date>.md` records what ran.
 
 ## How duplicates are classified (summary)
 
