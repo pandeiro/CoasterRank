@@ -82,8 +82,6 @@ describe('ProfilePage', () => {
             status: 'operating',
             material: 'steel',
             park_id: 'p1',
-            score: 1.2,
-            comparisons: 50,
           },
         },
         {
@@ -96,8 +94,6 @@ describe('ProfilePage', () => {
             status: 'operating',
             material: 'steel',
             park_id: 'p1',
-            score: 1.1,
-            comparisons: 40,
           },
         },
       ],

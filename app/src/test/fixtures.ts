@@ -66,8 +66,6 @@ export function makeUserRideCoaster(overrides: Partial<UserRideCoaster> = {}): U
     status: 'operating',
     material: 'steel',
     park_id: 'park-1',
-    score: 1.0,
-    comparisons: 100,
     ...overrides,
   }
 }

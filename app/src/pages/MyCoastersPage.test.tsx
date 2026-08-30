@@ -97,8 +97,6 @@ function ridesWithRanks(count: number) {
       status: 'operating',
       material: 'steel',
       park_id: 'p1',
-      score: 1,
-      comparisons: 10,
     },
   }))
 }
@@ -168,8 +166,6 @@ describe('MyCoastersPage', () => {
           status: 'operating',
           material: 'steel',
           park_id: 'p1',
-          score: 1,
-          comparisons: 10,
         },
       },
       {
@@ -182,8 +178,6 @@ describe('MyCoastersPage', () => {
           status: 'operating',
           material: 'wood',
           park_id: 'p1',
-          score: 0.8,
-          comparisons: 8,
         },
       },
     ])
