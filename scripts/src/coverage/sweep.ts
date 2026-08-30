@@ -56,7 +56,7 @@ export function mergeDecisions(
       preservedCrafted.push(g.id)
       items.push({ ...prev, decided: false })
     } else {
-      items.push({ ...g, decided: prev.decided })
+      items.push({ ...g, decided: prev.decided, supersededBy: prev.supersededBy })
     }
   }
   const dropped = existing.filter((i) => !generatedIds.has(i.id)).map((i) => i.id)

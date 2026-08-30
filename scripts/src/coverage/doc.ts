@@ -11,8 +11,22 @@ interface Enrichment {
 function main(): void {
   const sweep = JSON.parse(readFileSync(join(COVERAGE_DIR, 'sweep.json'), 'utf-8')) as SweepOutput
   const enrichment = loadJson<Enrichment>('enrichment.json', { note: '', items: {} })
+  const decisions = loadJson<{
+    items: { id: string; decided: boolean; crafted?: boolean; supersededBy?: string }[]
+  }>('decisions.json', { items: [] })
+  const dmap = new Map(decisions.items.map((i) => [i.id, i]))
   const date = sweep.generatedAt.slice(0, 10)
   const lines: string[] = []
+
+  /** Checkbox mirrors decisions.json state; this document is never an applier input. */
+  const mark = (id: string): string => {
+    const d = dmap.get(id)
+    if (!d) return '- [ ]'
+    if (d.decided) return '- [x] **✅ decided** —'
+    if (d.crafted) return '- [ ] **crafted — review & flip `decided`** —'
+    return '- [ ]'
+  }
+  const superseded = (id: string): string | null => dmap.get(id)?.supersededBy ?? null
 
   const enrich = (id: string, out: string[]): void => {
     const e = enrichment.items[id]
@@ -28,10 +42,32 @@ function main(): void {
     '> **Read-only review doc.** Nothing here has been executed. Each item carries its evidence and a',
   )
   lines.push(
-    '> recommended action with a confidence tier; mark decisions in `decisions.json` (or directly here).',
+    '> recommended action with a confidence tier. Items tagged **Context** carry agent-researched facts',
+  )
+  lines.push('> with sources — treat them as leads, not gospel.')
+  lines.push('>')
+  lines.push(
+    '> **How to decide items** (in `data/coverage/decisions.json` — this document is never an input to',
+  )
+  lines.push('> the applier, and the checkboxes below just mirror that file):')
+  lines.push('>')
+  lines.push(
+    '> 1. Accept a recommendation → set `"decided": true` (leave action/payload as generated)',
   )
   lines.push(
-    '> Items tagged **Context** carry agent-researched facts with sources — treat them as leads, not gospel.',
+    '> 2. Accept with tweaks → set `"decided": true` and edit the payload (e.g. `overrides`, `to_park_slug`,',
+  )
+  lines.push('>    creation `status`/`material`/`opening_year`)')
+  lines.push(
+    '> 3. `action: "review"` items do nothing even if decided — rewrite them into a real action first,',
+  )
+  lines.push('>    or leave them for later')
+  lines.push(
+    '> 4. Items marked _superseded_ are ghosts: another decided item already handles that DB row —',
+  )
+  lines.push('>    leave them untouched')
+  lines.push(
+    '> 5. Then: `npm run coverage:apply` (dry-run) → review the printed plan → `-- --apply --yes`',
   )
   lines.push('')
   lines.push(
@@ -73,7 +109,12 @@ function main(): void {
   )
   lines.push('')
   for (const i of sweep.orphans.items) {
-    lines.push(`### ${i.id} — ${i.title}`)
+    const ghost = superseded(i.id)
+    lines.push(
+      ghost
+        ? `### ${i.id} — ${i.title} _(superseded by ${ghost} — inert)_`
+        : `### ${i.id} — ${i.title}`,
+    )
     lines.push(`**Action:** \`${i.action}\` · **Confidence:** ${i.confidence}`)
     lines.push('')
     for (const ev of i.evidence) lines.push(`- ${ev}`)
@@ -81,7 +122,11 @@ function main(): void {
     lines.push('')
     lines.push(`**Recommendation:** ${i.recommendation}`)
     lines.push('')
-    lines.push(`- [ ] Decide ${i.id}`)
+    lines.push(
+      ghost
+        ? '_(no decision needed — handled by the superseding item)_'
+        : `${mark(i.id)} Decide ${i.id}`,
+    )
     lines.push('')
   }
 
@@ -93,7 +138,12 @@ function main(): void {
   )
   lines.push('')
   for (const i of sweep.dups.items) {
-    lines.push(`### ${i.id} — ${i.title}`)
+    const ghost = superseded(i.id)
+    lines.push(
+      ghost
+        ? `### ${i.id} — ${i.title} _(superseded by ${ghost} — inert)_`
+        : `### ${i.id} — ${i.title}`,
+    )
     lines.push(`**Action:** \`${i.action}\` · **Confidence:** ${i.confidence}`)
     lines.push('')
     for (const ev of i.evidence) lines.push(`- ${ev}`)
@@ -101,7 +151,11 @@ function main(): void {
     lines.push('')
     lines.push(`**Recommendation:** ${i.recommendation}`)
     lines.push('')
-    lines.push(`- [ ] Decide ${i.id}`)
+    lines.push(
+      ghost
+        ? '_(no decision needed — handled by the superseding item)_'
+        : `${mark(i.id)} Decide ${i.id}`,
+    )
     lines.push('')
   }
 
@@ -113,7 +167,12 @@ function main(): void {
   )
   lines.push('')
   for (const i of sweep.parkDups.items) {
-    lines.push(`### ${i.id} — ${i.title}`)
+    const ghost = superseded(i.id)
+    lines.push(
+      ghost
+        ? `### ${i.id} — ${i.title} _(superseded by ${ghost} — inert)_`
+        : `### ${i.id} — ${i.title}`,
+    )
     lines.push(`**Action:** \`${i.action}\` · **Confidence:** ${i.confidence}`)
     lines.push('')
     for (const ev of i.evidence) lines.push(`- ${ev}`)
@@ -121,7 +180,11 @@ function main(): void {
     lines.push('')
     lines.push(`**Recommendation:** ${i.recommendation}`)
     lines.push('')
-    lines.push(`- [ ] Decide ${i.id}`)
+    lines.push(
+      ghost
+        ? '_(no decision needed — handled by the superseding item)_'
+        : `${mark(i.id)} Decide ${i.id}`,
+    )
     lines.push('')
   }
 

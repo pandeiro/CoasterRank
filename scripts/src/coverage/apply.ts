@@ -37,6 +37,8 @@ export interface DecisionRecord {
   decided: boolean
   /** true = hand-crafted payload authored outside the sweep; preserved verbatim on re-sweeps */
   crafted?: boolean
+  /** this item's row is handled by another decided item (e.g. a merge); inert by design */
+  supersededBy?: string
   payload: Record<string, unknown>
 }
 
@@ -180,7 +182,11 @@ export function buildPlan(decisions: DecisionsFile, snap: Snapshot): PlanResult 
   const skipped: { id: string; reason: string }[] = []
   let seq = 0
 
-  const decided = decisions.items.filter((i) => i.decided)
+  const decided = decisions.items.filter((i) => i.decided && !i.supersededBy)
+  const supersededDecided = decisions.items.filter((i) => i.decided && i.supersededBy)
+  for (const s of supersededDecided) {
+    skipped.push({ id: s.id, reason: `superseded by ${s.supersededBy} — inert by design` })
+  }
   if (decided.length === 0) {
     warnings.push('No items are marked decided:true in decisions.json — nothing to plan.')
   }
@@ -668,9 +674,15 @@ export function buildPlan(decisions: DecisionsFile, snap: Snapshot): PlanResult 
     }
   }
 
-  // pending (undecided) items are not "skipped" — they are simply waiting
-  const pending = decisions.items.length - decided.length
-  if (pending > 0) warnings.push(`${pending} item(s) not yet decided — ignored by this plan`)
+  // pending (undecided) items are not "skipped" — they are simply waiting.
+  // Superseded ghosts are accounted for by their handling item and excluded from the count.
+  const supersededUndecided = decisions.items.filter((i) => !i.decided && i.supersededBy).length
+  const pending =
+    decisions.items.length - decided.length - supersededUndecided - supersededDecided.length
+  if (pending > 0)
+    warnings.push(
+      `${pending} item(s) not yet decided — ignored by this plan (superseded: ${supersededUndecided + supersededDecided.length})`,
+    )
 
   return { ops, warnings, skipped }
 }

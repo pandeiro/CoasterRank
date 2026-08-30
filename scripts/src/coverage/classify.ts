@@ -148,6 +148,39 @@ export function classifyOrphans(
     const target = candidates[0]
 
     if (target) {
+      // Collision check: does the target park already have a same-named row? (It may have been
+      // re-homed there by earlier curation, or be a generational namesake — e.g. two Big Dippers
+      // at Luna Park Sydney, 1935 vs 2021.) Never auto-rehome into a collision.
+      const collisions = coasters.filter(
+        (x) => x.park_id === target.id && normkey(x.name) === normkey(c.name),
+      )
+      if (collisions.length > 0) {
+        reviewCount++
+        items.push({
+          id,
+          kind: 'orphan_rehome',
+          action: 'review',
+          confidence: 'medium',
+          title: `Resolve collision: \`${c.name}\` → ${target.name} (target park already has ${collisions.length} same-name row(s))`,
+          evidence: [
+            ...evidence,
+            `external_id slug \`${cslug}\` contains park slug \`${target.slug}\` (= ${target.name}).`,
+            ...collisions.map((x) => `Target already has: ${fmtCoaster(x, target.name)}`),
+            "Options: (a) MERGE this orphan into the existing row if they are the same physical ride (the existing row may itself have been re-homed here by earlier curation — check its source/external_id); (b) re-home with a disambiguating name override if they are distinct installations (e.g. generational namesakes like Luna Park Sydney's 1935 wooden Big Dipper vs the 2021 Intamin).",
+          ],
+          recommendation:
+            'Decide merge vs. disambiguated re-home — set payload accordingly (merge_coasters with survivor_id = the existing row, or rehome with overrides.name).',
+          payload: {
+            coaster_id: c.id,
+            coaster_name: c.name,
+            from_park: OTHER_SLUG,
+            to_park_slug: target.slug,
+            to_park_id: target.id,
+            collides_with: collisions.map((x) => x.id),
+          },
+        })
+        continue
+      }
       resolvedBySlug++
       items.push({
         id,
@@ -193,9 +226,42 @@ export function classifyOrphans(
       hits: typeof strictHits,
       confidence: Confidence,
     ): void => {
-      resolvedByCsv++
       const parkSlug = slugify(parks[0]!)
       const park = parkBySlug.get(parkSlug) ?? bestParkByName(realParks, parks[0]!)
+      // Collision check (same rule as Attempt A): never auto-rehome onto an existing same-name row.
+      const collisions = park
+        ? coasters.filter((x) => x.park_id === park.id && normkey(x.name) === nameKey)
+        : []
+      if (collisions.length > 0) {
+        reviewCount++
+        items.push({
+          id,
+          kind: 'orphan_rehome',
+          action: 'review',
+          confidence: 'medium',
+          title: `Resolve collision: \`${c.name}\` → ${parks[0]} (target park already has ${collisions.length} same-name row(s))`,
+          evidence: [
+            ...evidence,
+            `CSV has ${hits.length} row(s) of \`${c.name}\` at real park **${parks[0]}**${hits[0]!.year ? ` (year ${hits[0]!.year})` : ''}.`,
+            ...collisions.map(
+              (x) => `Target already has: ${fmtCoaster(x, park?.name ?? parks[0]!)}`,
+            ),
+            'Options: merge if same physical ride, or disambiguated re-home if distinct installations.',
+          ],
+          recommendation: 'Decide merge vs. disambiguated re-home — set payload accordingly.',
+          payload: {
+            coaster_id: c.id,
+            coaster_name: c.name,
+            from_park: OTHER_SLUG,
+            to_park_slug: parkSlug,
+            to_park_name: parks[0]!,
+            to_park_id: park?.id ?? null,
+            collides_with: collisions.map((x) => x.id),
+          },
+        })
+        return
+      }
+      resolvedByCsv++
       items.push({
         id,
         kind: 'orphan_rehome',
