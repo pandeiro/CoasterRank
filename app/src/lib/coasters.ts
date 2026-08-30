@@ -552,6 +552,7 @@ export function useAllCoasters() {
         .from('v_coaster_rankings')
         .select('*')
         .order('score', { ascending: false, nullsFirst: false })
+        .range(0, 9999)
       if (error) throw error
       return data as RankingRow[]
     },
