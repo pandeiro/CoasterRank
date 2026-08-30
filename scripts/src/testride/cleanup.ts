@@ -120,8 +120,11 @@ export async function runCleanup(conns: Connections, opts: CleanupOptions): Prom
     )
   }
 
+  const storageScanStarted = Date.now()
   const storage = await storagePaths(conns, targets)
+  const storageScanSecs = ((Date.now() - storageScanStarted) / 1000).toFixed(1)
   console.log(`  storage files       : ${storage.length}`)
+  console.log(`  (scanned ${targets.length} user(s) via storage API in ${storageScanSecs}s)`)
 
   if (!opts.yes) {
     console.log('\nDry run. Re-run with --yes to delete.')
@@ -143,11 +146,25 @@ export async function runCleanup(conns: Connections, opts: CleanupOptions): Prom
   }
   console.log(`Storage files deleted: ${storageDeleted}`)
 
-  const delRes = await client.query(
-    'delete from auth.users where id = any($1::uuid[]) returning id',
-    [uuids],
-  )
-  const deleted = delRes.rowCount ?? 0
+  const poolStats = (): string =>
+    `total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`
+  console.log(`\nPool stats before delete: ${poolStats()}`)
+  let deleted = 0
+  try {
+    const delRes = await pool.query(
+      'delete from auth.users where id = any($1::uuid[]) returning id',
+      [uuids],
+    )
+    deleted = delRes.rowCount ?? 0
+  } catch (err) {
+    console.error(`\nDelete failed: ${err instanceof Error ? err.message : String(err)}`)
+    console.error(`Pool stats at failure: ${poolStats()}`)
+    console.error(
+      'Hint: pg-pool may have reaped the idle connection (default idleTimeoutMillis=10s) during the storage phase.',
+    )
+    process.exitCode = 1
+    throw err
+  }
 
   const verifyRes = await pool.query<CountRow>(
     'select count(*)::int as count from auth.users where id = any($1::uuid[])',
