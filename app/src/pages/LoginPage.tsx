@@ -24,7 +24,14 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setSubmitting(false)
     if (error) {
-      setError(error.message)
+      // Friendlier copy for the common wrong-credentials case; everything
+      // else (e.g. "Email not confirmed") passes through so the resend
+      // affordance keeps working (issue #91).
+      setError(
+        /invalid login credentials/i.test(error.message)
+          ? 'Incorrect email or password.'
+          : error.message,
+      )
       return
     }
     const from = (location.state as LocationState | null)?.from ?? '/me'

@@ -50,7 +50,7 @@ describe('LoginPage', () => {
     })
   })
 
-  it('shows the server error on failure', async () => {
+  it('maps invalid credentials to a friendlier message', async () => {
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
       data: {},
       error: { message: 'Invalid login credentials' },
@@ -61,7 +61,8 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
     await userEvent.click(screen.getByRole('button', { name: /log in/i }))
 
-    expect(await screen.findByText('Invalid login credentials')).toBeInTheDocument()
+    expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument()
+    expect(screen.queryByText('Invalid login credentials')).not.toBeInTheDocument()
   })
 
   it('offers to resend the confirmation email when email is unconfirmed', async () => {

@@ -49,6 +49,52 @@ describe('ShareListCard', () => {
     )
   })
 
+  it('pairs the milestone-1 heading with the card state', () => {
+    // Issue #91: "Your list is taking shape" clashed with the body copy in
+    // the claimed and live states.
+    renderCard({ username: null, publicList: false })
+    expect(
+      screen.getByRole('heading', { level: 2, name: /your list is taking shape/i }),
+    ).toBeInTheDocument()
+
+    render(
+      <MemoryRouter>
+        <ShareListCard
+          username="coaster_fan"
+          publicList={false}
+          rankedCount={5}
+          milestone={1}
+          onDismiss={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByRole('heading', { level: 2, name: /your page is ready/i }),
+    ).toBeInTheDocument()
+
+    render(
+      <MemoryRouter>
+        <ShareListCard
+          username="coaster_fan"
+          publicList={true}
+          rankedCount={5}
+          milestone={1}
+          onDismiss={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByRole('heading', { level: 2, name: /your ranking is live/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the count-led heading at milestone 2 regardless of state', () => {
+    renderCard({ username: null, publicList: false, rankedCount: 12, milestone: 2 })
+    expect(
+      screen.getByRole('heading', { level: 2, name: '12 coasters ranked!' }),
+    ).toBeInTheDocument()
+  })
+
   it('prompts to turn on sharing when the list is not public', () => {
     renderCard({ username: 'coaster_fan', publicList: false })
     expect(screen.getByText(/turn on public sharing/i)).toBeInTheDocument()
