@@ -46,14 +46,29 @@ describe('CoasterTable', () => {
     expect(dashes.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows an em dash for unrated rows in the first-place column', () => {
+  it('shows an em dash for unrated rows in the rank column', () => {
     renderTable(
       rowsFrom([
         { name: 'Unrated', rank: null, score: null, comparisons: null, participants: null },
       ]),
     )
     expect(screen.getByText('Unrated')).toBeInTheDocument()
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('numbers the visible list gaplessly, skipping unrated rows', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'Fifth', rank: 5 },
+        { name: 'Unrated', rank: null, score: null, comparisons: null, participants: null },
+        { name: 'Seventh', rank: 7 },
+      ]),
+    )
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('5')).not.toBeInTheDocument()
+    expect(screen.queryByText('7')).not.toBeInTheDocument()
   })
 
   it('shows first-place votes for gated-in coasters', () => {
@@ -64,8 +79,12 @@ describe('CoasterTable', () => {
 
   it('hides first-place data for gated-out coasters even when votes exist', () => {
     renderTable(rowsFrom([{ name: 'Popular', first_place_votes: 9, participants: 10 }]))
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText('9 (90%)')).not.toBeInTheDocument()
+  })
+
+  it('does not render a first-place column header', () => {
+    renderTable(rowsFrom())
+    expect(screen.queryByText('#1 votes')).not.toBeInTheDocument()
   })
 
   it('shows the few-votes badge for low-comparison coasters', () => {
