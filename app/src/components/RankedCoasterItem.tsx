@@ -54,7 +54,9 @@ export default function RankedCoasterItem({
       {handleProps && (
         <button
           type="button"
-          className="cursor-grab touch-none text-muted transition-colors hover:text-ink active:cursor-grabbing"
+          // p-2 + -m-2: 32x32 hit area (WCAG 2.5.8 minimum is 24x24) without
+          // changing the row layout — the icon itself stays h-4 w-4.
+          className="-m-2 cursor-grab touch-none p-2 text-muted transition-colors hover:text-ink active:cursor-grabbing"
           aria-label="Drag to reorder"
           {...handleProps}
         >
