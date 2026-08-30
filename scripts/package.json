@@ -3,13 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Data-engineering scripts for CoasterRank (CSV imports, ops, maintenance). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
+  "description": "CoasterRank ops & data tooling. First-class: import-coasters + testride CLI. One-off data-quality/maintenance scripts live in src/oneoff/ (run with `npx tsx src/oneoff/<name>.ts`). Runs against prod Supabase via SUPABASE_DB_URL / service-role. Separate from the SPA in app/.",
   "scripts": {
     "import-coasters": "tsx src/import-coasters.ts",
-    "build-coverage-queue": "tsx src/build-coverage-queue.ts",
-    "normalize-names": "tsx src/normalize-names.ts",
-    "backfill-park-locations": "tsx src/backfill-park-locations.ts",
-    "fix-missing-regions-and-non-english": "tsx src/fix-missing-regions-and-non-english.ts",
     "testride:seed": "tsx src/testride/cli.ts seed",
     "testride:report": "tsx src/testride/cli.ts report",
     "testride:cleanup": "tsx src/testride/cli.ts cleanup",
@@ -24,7 +20,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.3",
-    "cheerio": "^1.2.0",
     "commander": "^13.1.0",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",
@@ -35,7 +30,6 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/pg": "^8.11.10",
-    "@vitest/coverage-v8": "4.1.11",
     "fast-check": "4.9.0",
     "prettier": "^3.9.6",
     "tsx": "^4.19.2",

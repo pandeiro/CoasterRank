@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
-import { normalizeName } from '../normalize-names.js'
+import { normalizeName } from '../oneoff/normalize-names.js'
 
 describe('normalizeName', () => {
   it('strips trailing parenthesized text', () => {

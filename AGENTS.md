@@ -15,10 +15,26 @@ docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute,
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
   src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
 supabase/functions/recompute-rankings/  # Deno Edge Function: pairwise RPCs -> MM -> upsert coaster_ratings
-data/                # (Phase 2) reference datasets (CC0 coaster_db.csv committed here)
-scripts/             # (Phase 2) data-engineering package — own package.json (tsx, pg, csv-parse, dotenv)
-  import-coasters.ts # CC0 CSV → parks + coasters, idempotent, direct Postgres via SUPABASE_DB_URL
+data/                # reference datasets (ext/ = committed CC0 coaster_db.csv + provenance HTML)
+scripts/             # ops & data tooling package — own package.json (tsx, pg, csv-parse, dotenv)
+  src/import-coasters.ts # CC0 CSV → parks + coasters, idempotent, direct Postgres via SUPABASE_DB_URL
+  src/testride/      # testride CLI (synthetic users) — see docs/TEST_DATA.md
+  src/oneoff/        # archived one-off scripts (not wired into package.json; see its README)
 ```
+
+## Root runner shortcuts
+
+A minimal root `package.json` (no workspaces) delegates to the sub-packages:
+
+```bash
+npm run dev          # = app dev server
+npm run gates        # app quality gates: typecheck + lint + test:run + format:check
+npm run gates:all    # gates + scripts typecheck + bt typecheck/test (run before touching scripts/ or packages/bt/)
+npm run install:all  # install all three sub-packages
+```
+
+Flag-bearing script invocations (e.g. `testride:seed -- --users 20`) do **not** pass flags
+through the root runner — run those from `scripts/` directly.
 
 ## Commands
 
@@ -62,8 +78,9 @@ cd scripts
 npm install                       # one-time, after cloning / after deps change
 npm run import-coasters           # dry-run: parse + report counts, no DB connection
 npm run import-coasters -- --apply  # write/refresh prod via SUPABASE_DB_URL (idempotent)
-npm run import-coasters -- data/coaster_db.csv      # optional: explicit CSV path (positional)
+npm run import-coasters -- data/ext/coaster_db.csv  # optional: explicit CSV path (positional)
 npm run typecheck                 # tsc --noEmit for the scripts package
+npm test                          # vitest run for the scripts package
 ```
 
 Test & mock data lives in `scripts/src/testride/` (`npm run testride:seed|report|cleanup|confirm|recompute`
@@ -82,13 +99,16 @@ npm test                          # vitest run (single pass)
 The importer is idempotent: re-runs upsert by `(park_id, slug)` and only refresh rows whose
 `source = 'open-csv'`, so admin-created/community rows are never clobbered. It maps `Status`→
 `coaster_status` and `Type_Main`→`coaster_material`; 250 coasters with source `Location = "Other"`
-land in a synthetic `Other (unknown location)` park. Run from repo root also works as
-`cd scripts && npm run import-coasters` (the CSV defaults to `../data/coaster_db.csv`).
+land in a synthetic `Other (unknown location)` park (the CSV defaults to `../data/ext/coaster_db.csv`).
+
+One-off data-quality/maintenance scripts live in `scripts/src/oneoff/` (LLM normalization,
+coverage triage, location backfills) — not wired into `package.json`; run with
+`npx tsx src/oneoff/<name>.ts`. See `scripts/src/oneoff/README.md`.
 
 ## Required quality gates (run before every commit)
 
 ```bash
-cd app && npm run typecheck && npm run lint && npm run test:run && npm run format:check
+npm run gates        # from repo root (or the cd app && … chain below)
 ```
 
 All must pass. CI runs the same set on every PR. If you changed `scripts/`, also run

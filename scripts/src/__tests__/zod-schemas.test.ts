@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
-import { NormalizationResult, AdjudicationResult } from '../llm/tasks.js'
+import { NormalizationResult, AdjudicationResult } from '../oneoff/llm/tasks.js'
 
 // Feature: track-a-data-quality, Property 5: NormalizationResult schema accepts valid and rejects invalid objects
 describe('NormalizationResult schema', () => {
