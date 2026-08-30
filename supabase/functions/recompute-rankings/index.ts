@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
 
   const started = Date.now()
   let triggerSource = 'manual'
+  let retriesUsed = 0
 
   try {
     if (!token) return json({ error: 'missing bearer token' }, 401)
@@ -190,7 +191,7 @@ Deno.serve(async (req) => {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
     }
     if (firstPlaceRes.error) throw new Error(`first_place_counts: ${firstPlaceRes.error.message}`)
-    const retriesUsed = Math.max(
+    retriesUsed = Math.max(
       pairsRes.retriesUsed,
       participantsRes.retriesUsed,
       firstPlaceRes.retriesUsed,
@@ -347,7 +348,7 @@ Deno.serve(async (req) => {
         status: 'error',
         duration_ms: durationMs,
         trigger_source: triggerSource,
-        retries_used: 0,
+        retries_used: retriesUsed,
         error_message: message,
       })
       await sendFailureAlert(message, durationMs, triggerSource)
