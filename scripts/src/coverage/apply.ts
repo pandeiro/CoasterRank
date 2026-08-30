@@ -35,6 +35,8 @@ export interface DecisionRecord {
   action: DecisionItem['action']
   title: string
   decided: boolean
+  /** true = hand-crafted payload authored outside the sweep; preserved verbatim on re-sweeps */
+  crafted?: boolean
   payload: Record<string, unknown>
 }
 
@@ -83,6 +85,7 @@ interface Working {
 interface Overrides {
   opening_date?: string
   status?: string
+  name?: string
 }
 
 // ---------- helpers ----------
@@ -111,6 +114,11 @@ function getOverrides(payload: Record<string, unknown>): Overrides {
     if (!COASTER_STATUSES.includes(s))
       throw new Error(`overrides.status must be one of ${COASTER_STATUSES.join('|')}`)
     out.status = s
+  }
+  if (rec['name'] != null) {
+    const n = String(rec['name']).trim()
+    if (!n) throw new Error('overrides.name must be a non-empty string')
+    out.name = n
   }
   return out
 }
@@ -384,18 +392,34 @@ export function buildPlan(decisions: DecisionsFile, snap: Snapshot): PlanResult 
         ? ` and park_id = (select id from public.parks where slug = $${params.length + 1})`
         : ''
       if (fromParkSlug) params.push(fromParkSlug)
+      const renamed = overrides.name != null && normkey(overrides.name) !== normkey(coaster.name)
+      if (overrides.name) {
+        setParts.push(`name = $${params.length + 1}`)
+        params.push(overrides.name)
+      }
+      const statements: SqlStatement[] = [
+        {
+          text: `update public.coasters set ${setParts.join(', ')} where id = $1${fromGuard}`,
+          params,
+          expectRows: 1,
+        },
+      ]
+      if (renamed) {
+        // keep the pre-rename name discoverable by the board's alias search
+        statements.push({
+          text: `insert into public.coaster_aliases (coaster_id, name)
+                 select $1, $2 where not exists (
+                   select 1 from public.coaster_aliases where coaster_id = $1 and lower(name) = lower($2))`,
+          params: [coasterId, coaster.name],
+          expectRows: null,
+        })
+      }
       ops.push({
         seq: ++seq,
         kind: 'rehome_coaster',
         ref: item.id,
-        describe: `Re-home \`${coaster.name}\` → ${toParkLabel}${newSlug !== coaster.slug ? ` (slug → \`${newSlug}\`)` : ''}${overrides.opening_date || overrides.status ? ` (overrides: ${[overrides.opening_date, overrides.status].filter(Boolean).join(', ')})` : ''}`,
-        statements: [
-          {
-            text: `update public.coasters set ${setParts.join(', ')} where id = $1${fromGuard}`,
-            params,
-            expectRows: 1,
-          },
-        ],
+        describe: `Re-home \`${coaster.name}\` → ${toParkLabel}${newSlug !== coaster.slug ? ` (slug → \`${newSlug}\`)` : ''}${overrides.opening_date || overrides.status || overrides.name ? ` (overrides: ${[overrides.opening_date, overrides.status, overrides.name ? `name → \`${overrides.name}\`` : null].filter(Boolean).join(', ')})` : ''}`,
+        statements,
       })
       // working state
       const fromSet = fromParkSlug
@@ -474,7 +498,7 @@ export function buildPlan(decisions: DecisionsFile, snap: Snapshot): PlanResult 
         })
       }
       const overrides = getOverrides(item.payload)
-      if (overrides.opening_date || overrides.status) {
+      if (overrides.opening_date || overrides.status || overrides.name) {
         const setParts: string[] = []
         const params: unknown[] = [survivorId]
         if (overrides.opening_date) {
@@ -484,6 +508,10 @@ export function buildPlan(decisions: DecisionsFile, snap: Snapshot): PlanResult 
         if (overrides.status) {
           setParts.push(`status = $${params.length + 1}`)
           params.push(overrides.status)
+        }
+        if (overrides.name) {
+          setParts.push(`name = $${params.length + 1}`)
+          params.push(overrides.name)
         }
         statements.push({
           text: `update public.coasters set ${setParts.join(', ')} where id = $1`,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "Mark decided:true and adjust action/payload per item. The applier (future step) consumes this file; nothing in it has been executed.",
+  "note": "Mark decided:true (and adjust action/payload as needed) per item; \"crafted\" items carry pre-authored payloads from the review doc. The applier consumes this file; nothing in it has been executed. Re-running the sweep preserves decided and crafted items.",
   "items": [
     {
       "id": "ORPH-001",
@@ -18,15 +18,22 @@
     {
       "id": "ORPH-002",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `American Dreier Looping` (unmodeled)",
+      "title": "Re-home survivor → Indiana Beach as `All American Triple Loop` (family merges via DUP-001)",
       "decided": false,
       "payload": {
         "coaster_id": "01ac1c1f-efaf-4512-a438-e4eac8a3fbc5",
         "coaster_name": "American Dreier Looping",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "indiana-beach",
+        "overrides": {
+          "status": "operating",
+          "opening_date": "2024-05-11",
+          "name": "All American Triple Loop"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-003",
@@ -83,93 +90,140 @@
     {
       "id": "ORPH-007",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `Batman & Robin: The Chiller` (Dueling LIM Shuttle Loop Coaster)",
+      "title": "Re-home `Batman & Robin: The Chiller` → Six Flags Great Adventure (defunct; year left as-is — verify 1997 vs 1998)",
       "decided": false,
       "payload": {
         "coaster_id": "21ffb4dd-69fd-4a6a-bebf-854c6324e1fd",
         "coaster_name": "Batman & Robin: The Chiller",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "six-flags-great-adventure",
+        "overrides": {
+          "status": "defunct"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-008",
-      "kind": "orphan_rehome",
-      "action": "review",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (Inverted Coaster – Batman)",
+      "title": "Merge 1992 orphan into existing SFGAm row (fixes year 1993 → 1992-05-09)",
       "decided": false,
       "payload": {
         "coaster_id": "a468b213-3cf6-4352-b4e9-10b6f7945d97",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "survivor_id": "9df8dccd-3d1c-4923-a903-cff26b239723",
+        "merge_ids": [
+          "a468b213-3cf6-4352-b4e9-10b6f7945d97"
+        ],
+        "aliases": [],
+        "overrides": {
+          "opening_date": "1992-05-09"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-009",
-      "kind": "orphan_rehome",
-      "action": "review",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (Inverted Coaster – Batman)",
+      "title": "Merge 1994 orphan into existing SFMM row (fixes year 1997 → 1994-03-26)",
       "decided": false,
       "payload": {
         "coaster_id": "d15a5cf7-57df-42a9-a6bd-922f3978bbf4",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "survivor_id": "9581b062-b198-4bda-b652-90cc01210722",
+        "merge_ids": [
+          "d15a5cf7-57df-42a9-a6bd-922f3978bbf4"
+        ],
+        "aliases": [],
+        "overrides": {
+          "opening_date": "1994-03-26"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-010",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (Inverted Coaster – Batman)",
+      "title": "Re-home 1999 clone → Six Flags Over Texas (new row, correct year)",
       "decided": false,
       "payload": {
         "coaster_id": "404929fb-3275-481a-bcc4-465a7f808fdb",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "six-flags-over-texas",
+        "overrides": {
+          "opening_date": "1999-05-26",
+          "status": "operating"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-011",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (Inverted Coaster – Batman)",
+      "title": "Re-home 2003 clone → Six Flags New Orleans (defunct; physical ride now Chupacabra @ Fiesta Texas)",
       "decided": false,
       "payload": {
         "coaster_id": "751829ed-97d7-4eac-b7d0-90adbb1393a6",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "six-flags-new-orleans",
+        "overrides": {
+          "opening_date": "2003-04-12",
+          "status": "defunct"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-012",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (4D Free Spin)",
+      "title": "Re-home 4D Free Spin (2015) → Six Flags Fiesta Texas",
       "decided": false,
       "payload": {
         "coaster_id": "1e42b025-25b4-49e0-8e42-77230094feb0",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "six-flags-fiesta-texas",
+        "overrides": {
+          "opening_date": "2015-05-23",
+          "status": "operating"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-013",
       "kind": "orphan_rehome",
-      "action": "review",
+      "action": "rehome",
       "confidence": "low",
-      "title": "Decide home for `Batman: The Ride` (4D Free Spin)",
+      "title": "Re-home 4D Free Spin (2019) → Six Flags Discovery Kingdom",
       "decided": false,
       "payload": {
         "coaster_id": "361722bc-19fa-46c4-ba65-94345dea4d64",
         "coaster_name": "Batman: The Ride",
-        "from_park": "other"
-      }
+        "from_park": "other",
+        "to_park_slug": "six-flags-discovery-kingdom",
+        "overrides": {
+          "opening_date": "2019-05-25",
+          "status": "operating"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-014",
@@ -532,18 +586,31 @@
     },
     {
       "id": "ORPH-041",
-      "kind": "orphan_rehome",
-      "action": "rehome",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
       "confidence": "high",
-      "title": "Re-home `Flashback` → Six Flags Magic Mountain",
+      "title": "Merge the two SFMM-bound orphans into the existing (already re-homed) SFMM `Flashback` row — one Space Diver (Z-Force 1985/1988 → Flashback 1992–2003)",
       "decided": false,
       "payload": {
         "coaster_id": "5be825ca-5aaf-4b07-8298-9400462d24a2",
         "coaster_name": "Flashback",
         "from_park": "other",
         "to_park_slug": "six-flags-magic-mountain",
-        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f"
-      }
+        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f",
+        "survivor_id": "7e381e83-74da-4814-8379-b11b1e15081f",
+        "merge_ids": [
+          "5be825ca-5aaf-4b07-8298-9400462d24a2",
+          "aab607b2-ed96-4a4b-9410-059aa7128348"
+        ],
+        "aliases": [
+          "Z-Force"
+        ],
+        "overrides": {
+          "opening_date": "1992-04-25",
+          "status": "defunct"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-042",
@@ -565,45 +632,60 @@
       "kind": "orphan_rehome",
       "action": "rehome",
       "confidence": "high",
-      "title": "Re-home `Flashback` → Six Flags Over Texas",
+      "title": "Re-home → Six Flags Over Texas (Vekoma Boomerang, 1989–2004, removed)",
       "decided": false,
       "payload": {
         "coaster_id": "1bfddcf5-f796-4131-bee4-2ef30f928447",
         "coaster_name": "Flashback",
         "from_park": "other",
         "to_park_slug": "six-flags-over-texas",
-        "to_park_id": "438caa4b-d964-4085-bace-0728a208c82e"
-      }
+        "to_park_id": "438caa4b-d964-4085-bace-0728a208c82e",
+        "overrides": {
+          "opening_date": "1989-01-01",
+          "status": "defunct"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-044",
       "kind": "orphan_rehome",
       "action": "rehome",
       "confidence": "high",
-      "title": "Re-home `Flashback` → Six Flags New England",
+      "title": "Re-home → Six Flags New England (Vekoma Boomerang, operating; year left as-is — verify)",
       "decided": false,
       "payload": {
         "coaster_id": "ef2cc48e-f973-493c-a130-b119255bf052",
         "coaster_name": "Flashback",
         "from_park": "other",
         "to_park_slug": "six-flags-new-england",
-        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0"
-      }
+        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0",
+        "overrides": {
+          "status": "operating"
+        }
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-045",
-      "kind": "orphan_rehome",
-      "action": "rehome",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
       "confidence": "high",
-      "title": "Re-home `Flashback` → Six Flags New England",
+      "title": "Merge the duplicate SFNE row into ORPH-0044 survivor (same physical Boomerang)",
       "decided": false,
       "payload": {
         "coaster_id": "caec868e-3475-49a0-96d0-08a390400c04",
         "coaster_name": "Flashback",
         "from_park": "other",
         "to_park_slug": "six-flags-new-england",
-        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0"
-      }
+        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0",
+        "survivor_id": "ef2cc48e-f973-493c-a130-b119255bf052",
+        "merge_ids": [
+          "caec868e-3475-49a0-96d0-08a390400c04"
+        ],
+        "aliases": []
+      },
+      "crafted": true
     },
     {
       "id": "ORPH-046",
@@ -2499,9 +2581,9 @@
     {
       "id": "DUP-001",
       "kind": "coaster_merge",
-      "action": "review",
+      "action": "merge_coasters",
       "confidence": "low",
-      "title": "Review 4 rows of `American Dreier Looping` @ Other (unknown location) (orphan bucket)",
+      "title": "Merge the four `American Dreier Looping` life-stage rows into the survivor (see ORPH-002)",
       "decided": false,
       "payload": {
         "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
@@ -2511,8 +2593,22 @@
           "8ff8a33b-342d-48d6-a530-bd7999912626",
           "bf748c36-90d9-40f2-bff6-c8f07794889e",
           "c8ef53a7-cb2e-477e-972b-b975072cc9b8"
+        ],
+        "survivor_id": "01ac1c1f-efaf-4512-a438-e4eac8a3fbc5",
+        "merge_ids": [
+          "8ff8a33b-342d-48d6-a530-bd7999912626",
+          "bf748c36-90d9-40f2-bff6-c8f07794889e",
+          "c8ef53a7-cb2e-477e-972b-b975072cc9b8"
+        ],
+        "aliases": [
+          "Dreier Looping",
+          "Triple Loop Coaster",
+          "Magnum Force",
+          "Montaña Infinitum",
+          "Quimera"
         ]
-      }
+      },
+      "crafted": true
     },
     {
       "id": "DUP-002",
@@ -2982,7 +3078,7 @@
       "kind": "coaster_merge",
       "action": "review",
       "confidence": "low",
-      "title": "Review 3 rows of `Journey to Atlantis` @ SeaWorld Orlando",
+      "title": "Sister-park conflation — handled by DUP-028a (2004 → San Diego) and DUP-028b (2007 → San Antonio); the 1998 row stays",
       "decided": false,
       "payload": {
         "park_id": "632945d3-1b97-49e2-bb2d-24335e93590e",
@@ -2992,7 +3088,8 @@
           "99fc16d9-2334-415d-86c9-0cb38555ca91",
           "2a652898-331f-4405-8247-6526f604ca47"
         ]
-      }
+      },
+      "crafted": true
     },
     {
       "id": "DUP-029",
@@ -4421,6 +4518,42 @@
         "suggested_manufacturer": "The Gravity Group",
         "source_list": "golden-ticket-wooden-2025",
         "rank": 46
+      }
+    },
+    {
+      "id": "DUP-028a",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Journey to Atlantis` (2004) → SeaWorld San Diego",
+      "decided": false,
+      "crafted": true,
+      "payload": {
+        "coaster_id": "99fc16d9-2334-415d-86c9-0cb38555ca91",
+        "coaster_name": "Journey to Atlantis",
+        "from_park": "seaworld-orlando",
+        "to_park_slug": "seaworld-san-diego",
+        "overrides": {
+          "opening_date": "2004-05-29"
+        }
+      }
+    },
+    {
+      "id": "DUP-028b",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Journey to Atlantis` (2007) → SeaWorld San Antonio",
+      "decided": false,
+      "crafted": true,
+      "payload": {
+        "coaster_id": "bde7b686-96bb-4d9a-b2eb-bfd960dc6166",
+        "coaster_name": "Journey to Atlantis",
+        "from_park": "seaworld-orlando",
+        "to_park_slug": "seaworld-san-antonio",
+        "overrides": {
+          "opening_date": "2007-05-11"
+        }
       }
     }
   ]

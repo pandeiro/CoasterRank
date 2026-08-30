@@ -666,3 +666,63 @@ describe('buildPlan — ordering', () => {
     ])
   })
 })
+
+describe('buildPlan — name overrides', () => {
+  const s = snap()
+  s.coasters[0]!.name = 'American Dreier Looping'
+  const result = buildPlan(
+    decisions([
+      {
+        id: 'ORPH-001',
+        kind: 'orphan_rehome',
+        action: 'rehome',
+        title: '',
+        decided: true,
+        payload: {
+          coaster_id: 'batman-orphan',
+          coaster_name: 'American Dreier Looping',
+          from_park: 'other',
+          to_park_slug: 'seaworld-orlando',
+          overrides: { name: 'All American Triple Loop', status: 'operating' },
+        },
+      },
+    ]),
+    s,
+  )
+
+  it('sets the new name on the row', () => {
+    const update = result.ops[0]!.statements[0]!
+    expect(update.text).toContain('name = $')
+    expect(update.params).toContain('All American Triple Loop')
+  })
+
+  it('keeps the pre-rename name as an alias', () => {
+    const alias = result.ops[0]!.statements[1]!
+    expect(alias.text).toContain('coaster_aliases')
+    expect(alias.params).toContain('American Dreier Looping')
+  })
+
+  it('rejects an empty name override', () => {
+    const res = buildPlan(
+      decisions([
+        {
+          id: 'ORPH-001',
+          kind: 'orphan_rehome',
+          action: 'rehome',
+          title: '',
+          decided: true,
+          payload: {
+            coaster_id: 'batman-orphan',
+            coaster_name: 'Batman: The Ride',
+            from_park: 'other',
+            to_park_slug: 'seaworld-orlando',
+            overrides: { name: '  ' },
+          },
+        },
+      ]),
+      snap(),
+    )
+    expect(res.ops).toHaveLength(0)
+    expect(res.skipped[0]!.reason).toContain('overrides.name')
+  })
+})

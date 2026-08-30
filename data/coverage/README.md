@@ -10,8 +10,14 @@ applier would consume your marked decisions.
 | --- | --- |
 | `park-aliases.json` | Park-name aliases for the coverage matcher (e.g. list name → DB name) |
 | `queue-overrides.json` | Overrides for the legacy (Aug 2026) triage queue |
+| `decisions.json` | **Your decision record.** Mark `decided: true` per item; edit payloads to adjust actions. Items flagged `crafted: true` carry pre-authored payloads (from the review doc's cited research) — review and flip. |
 | `enrichment.json` | Agent-researched, **cited** context merged into review-doc items |
 | `notables.json` | 2025–26 notable-coaster candidates checked against the DB by the sweep |
+
+**Re-sweep safety:** `coverage:sweep` preserves `decided: true` items verbatim (action +
+payload are frozen once you decide) and `crafted` items verbatim (until you decide);
+everything else regenerates. Hand-added crafted/decided items survive even if their id no
+longer generates.
 
 ## Tracked outputs (the review record)
 
@@ -60,6 +66,9 @@ names become aliases. Gitignored `apply-log-<date>.md` records what ran.
   **3+ rows with one name is treated as suspected sister-park conflation and is never
   auto-merged** (the Journey-to-Atlantis trap).
 - **Park duplicates** — normalized-name equality or ≥0.84 trigram similarity.
+- **Field overrides** — payloads may carry `overrides: {opening_date, status, name}`
+  (e.g. fix a wrong opening year, or rename `American Dreier Looping` → `All American
+  Triple Loop`; a rename auto-inserts the old name as an alias).
 
 ## Apply order (future applier, only after your sign-off)
 

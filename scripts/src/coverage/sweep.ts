@@ -20,7 +20,55 @@ import {
   classifyParkDups,
   type DecisionItem,
 } from './classify.js'
+import type { DecisionRecord } from './apply.js'
 import { matchCoverage } from './missing.js'
+
+/**
+ * Merge freshly generated decision items with a previous decisions.json.
+ * - `decided: true` items are user-owned: decided flag, action and payload are preserved as-is.
+ * - `crafted: true` items (hand-authored payloads, not yet decided) are preserved verbatim.
+ * - everything else regenerates from the sweep (payload refresh), keeping decided:false.
+ * - previous items whose id no longer generates are dropped (reported).
+ */
+export function mergeDecisions(
+  generated: DecisionRecord[],
+  existing: DecisionRecord[],
+): {
+  items: DecisionRecord[]
+  preservedDecided: string[]
+  preservedCrafted: string[]
+  dropped: string[]
+} {
+  const byId = new Map(existing.map((i) => [i.id, i]))
+  const items: DecisionRecord[] = []
+  const preservedDecided: string[] = []
+  const preservedCrafted: string[] = []
+  const generatedIds = new Set<string>()
+  for (const g of generated) {
+    generatedIds.add(g.id)
+    const prev = byId.get(g.id)
+    if (!prev) {
+      items.push(g)
+    } else if (prev.decided) {
+      preservedDecided.push(g.id)
+      items.push({ ...prev })
+    } else if (prev.crafted) {
+      preservedCrafted.push(g.id)
+      items.push({ ...prev, decided: false })
+    } else {
+      items.push({ ...g, decided: prev.decided })
+    }
+  }
+  const dropped = existing.filter((i) => !generatedIds.has(i.id)).map((i) => i.id)
+  // hand-authored items (crafted/decided) survive even if the sweep no longer generates their id
+  const extras = existing.filter((i) => !generatedIds.has(i.id) && (i.crafted || i.decided))
+  for (const e of extras) {
+    items.push({ ...e })
+    const idx = dropped.indexOf(e.id)
+    if (idx >= 0) dropped.splice(idx, 1)
+  }
+  return { items, preservedDecided, preservedCrafted, dropped }
+}
 
 export interface SweepOutput {
   generatedAt: string
@@ -234,26 +282,42 @@ async function main(): Promise<void> {
   writeFileSync(join(COVERAGE_DIR, 'sweep.json'), JSON.stringify(out, null, 2))
 
   // decisions.json — machine-readable companion for the applier.
-  const all = [...orphans.items, ...dups.items, ...parkDups.items, ...creations]
+  const all: DecisionRecord[] = [
+    ...orphans.items,
+    ...dups.items,
+    ...parkDups.items,
+    ...creations,
+  ].map((i) => ({
+    id: i.id,
+    kind: i.kind,
+    action: i.action,
+    confidence: i.confidence,
+    title: i.title,
+    decided: false,
+    payload: i.payload,
+  }))
+  const existing = loadJson<{ schemaVersion: number; note: string; items: DecisionRecord[] }>(
+    'decisions.json',
+    { schemaVersion: 1, note: '', items: [] },
+  )
+  const merged = mergeDecisions(all, existing.items ?? [])
   const decisions = {
     schemaVersion: 1,
-    note: 'Mark decided:true and adjust action/payload per item. The applier (future step) consumes this file; nothing in it has been executed.',
-    items: all.map((i) => ({
-      id: i.id,
-      kind: i.kind,
-      action: i.action,
-      confidence: i.confidence,
-      title: i.title,
-      decided: false,
-      payload: i.payload,
-    })),
+    note: 'Mark decided:true (and adjust action/payload as needed) per item; "crafted" items carry pre-authored payloads from the review doc. The applier consumes this file; nothing in it has been executed. Re-running the sweep preserves decided and crafted items.',
+    items: merged.items,
   }
   writeFileSync(join(COVERAGE_DIR, 'decisions.json'), JSON.stringify(decisions, null, 2))
 
   console.log('\nWrote data/coverage/sweep.json + decisions.json')
   console.log(
-    `Decision items: ${all.length} (orphan ${orphans.items.length}, dup ${dups.items.length}, park ${parkDups.items.length})`,
+    `Decision items: ${merged.items.length} (orphan ${orphans.items.length}, dup ${dups.items.length}, park ${parkDups.items.length}, creations ${creations.length})`,
   )
+  if (merged.preservedDecided.length)
+    console.log(`  preserved decided items: ${merged.preservedDecided.length}`)
+  if (merged.preservedCrafted.length)
+    console.log(`  preserved crafted items: ${merged.preservedCrafted.length}`)
+  if (merged.dropped.length)
+    console.log(`  dropped (no longer generated): ${merged.dropped.join(', ')}`)
 }
 
 main().catch((err) => {
