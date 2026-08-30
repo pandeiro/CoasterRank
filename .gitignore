@@ -39,6 +39,8 @@ data/coverage/queue.json
 data/coverage/queue-summary.md
 data/coverage/master-triage.md
 data/coverage/top_coasters.txt
+data/coverage/sweep.json
+data/coverage/apply-log-*.md
 
 # Logs
 *.log

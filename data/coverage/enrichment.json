@@ -1,0 +1,118 @@
+{
+  "note": "Authored enrichment (agent-researched, cited). Merged into the review doc at render time. Facts are leads to verify, not gospel; sources listed per item.",
+  "items": {
+    "ORPH-002": {
+      "facts": [
+        "This is one physical coaster: the 1984 Schwarzkopf triple-looper that toured German fairs as **Dreier Looping** (1984–96), then Sunway Lagoon as **Triple Loop Coaster** (1997–99), Flamingo Land as **Magnum Force** (2000–05), La Feria Chapultepec Mágico as **Montaña Infinitum/Triple Loop/Quimera** (2007–19), and reopened at **Indiana Beach as All American Triple Loop on May 11, 2024**.",
+        "The four orphan rows (1997/2005/2007/2022) correspond to different life stages of this same unit, not four rides.",
+        "The DB has no Indiana Beach row for it — the coaster is genuinely missing under its current name."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/All_American_Triple_Loop",
+        "https://coasterpedia.net/wiki/All_American_Triple_Loop",
+        "https://www.ultimaterollercoaster.com/coasters/all-american-triple-loop"
+      ]
+    },
+    "ORPH-007": {
+      "facts": [
+        "**Batman & Robin: The Chiller** was a dueling Premier LIM shuttle at **Six Flags Great Adventure**, opened 1997, plagued with downtime, last operated 2007 and subsequently removed (track scrapped)."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Batman_%26_Robin:_The_Chiller",
+        "https://www.greatadventurehistory.com/BTR.htm"
+      ]
+    },
+    "ORPH-008": {
+      "facts": [
+        "The B&M inverted Batman clones by year: **SFGAm 1992**, SFGAd 1993, **SFMM 1994**, SFSt. Louis 1995, SFOG 1997, **SFOT 1999**, SFNO 2003.",
+        "Six Flags Great America ALREADY has a `Batman: The Ride` row (opening 1993 — wrong; the true opening is May 9, **1992**). Recommended: merge this orphan into the existing row and fix the year to 1992.",
+        "The orphan's 1992 opening_date is more accurate than the existing row's."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/Batman:_The_Ride"]
+    },
+    "ORPH-009": {
+      "facts": [
+        "Six Flags Magic Mountain ALREADY has a `Batman: The Ride` row (opening 1997 — wrong; the true opening is March 26, **1994**). Recommended: merge this orphan into the existing row and fix the year to 1994."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/Batman:_The_Ride"]
+    },
+    "ORPH-010": {
+      "facts": [
+        "Six Flags Over Texas has no Batman: The Ride row yet. Its clone opened **May 26, 1999** and operates. Re-home here creates the row with the correct year."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/Batman:_The_Ride"]
+    },
+    "ORPH-011": {
+      "facts": [
+        "The 2003 clone opened at **Six Flags New Orleans (April 12, 2003)**; the park closed permanently after Hurricane Katrina (2005). The physical ride was relocated to Six Flags Fiesta Texas where it operates as **Chupacabra** (2008, renamed 2024).",
+        "DB has neither an SFNO row nor a Chupacabra row. Cleanest: re-home this orphan to Six Flags New Orleans with status `defunct` (or `relocated`), and treat 'Chupacabra' as a future creation at Fiesta Texas (different name, same physical coaster — an alias candidate)."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/Batman:_The_Ride"]
+    },
+    "ORPH-012": {
+      "facts": [
+        "Only two 4D Free Spin Batmen exist: **Six Flags Fiesta Texas (May 23, 2015)** and **Six Flags Discovery Kingdom (May 25, 2019)**. This 2015 row belongs to Fiesta Texas, which has no such row yet."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Batman:_The_Ride_(S%26S_Free_Spin)",
+        "https://coasterpedia.net/wiki/4D_Free_Spin_(S%26S_Worldwide_product)"
+      ]
+    },
+    "ORPH-013": {
+      "facts": [
+        "The 2019 4D Free Spin Batman belongs to **Six Flags Discovery Kingdom** (opened May 25, 2019), which has no such row yet."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Batman:_The_Ride_(S%26S_Free_Spin)",
+        "https://coasterpedia.net/wiki/4D_Free_Spin_(S%26S_Worldwide_product)"
+      ]
+    },
+    "ORPH-041": {
+      "facts": [
+        "The two `Flashback` rows headed to Magic Mountain (1985/1988) are **one physical ride**: the Intamin Space Diver that operated as **Z-Force @ Six Flags Great America (1985–87)**, then **Z-Force @ Six Flags Over Georgia (1988–91)**, then **Flashback @ Six Flags Magic Mountain (April 25, 1992 – 2003**, scrapped 2007).",
+        "Recommended: merge the two orphans into ONE Magic Mountain row with opening year **1992**, status `defunct`; add aliases `Z-Force`."
+      ],
+      "sources": [
+        "https://coasterpedia.net/wiki/Flashback_(Six_Flags_Magic_Mountain)",
+        "https://rcdb.com/128.htm"
+      ]
+    },
+    "ORPH-042": {
+      "facts": [
+        "Same physical ride as ORPH-041 (see context there): merge both into a single Magic Mountain row, opening **1992**, `defunct`."
+      ],
+      "sources": ["https://coasterpedia.net/wiki/Flashback_(Six_Flags_Magic_Mountain)"]
+    },
+    "ORPH-043": {
+      "facts": [
+        "`Flashback` at **Six Flags Over Texas** was a Vekoma Boomerang (operated 1989–2004; removed). The orphan's 1989 opening year matches."
+      ],
+      "sources": ["https://coasterpedia.net/wiki/Flashback"]
+    },
+    "ORPH-044": {
+      "facts": [
+        "`Flashback` at **Six Flags New England** is a Vekoma Boomerang (operating) with the relocation chain Star Lake → Kentucky Kingdom (`Vampire`) → SFNE (`Flashback`). The 1990/2000 orphan rows are the same ride double-listed — after re-home, merge into one row."
+      ],
+      "sources": ["https://rcdb.com/629.htm"]
+    },
+    "ORPH-045": {
+      "facts": [
+        "Same physical ride as ORPH-044 — merge the two after re-homing to Six Flags New England."
+      ],
+      "sources": ["https://rcdb.com/629.htm"]
+    },
+    "DUP-001": {
+      "facts": [
+        "The four `American Dreier Looping` rows are life stages of ONE physical coaster — see ORPH-002 context. Recommended composite action: merge all four, re-home the survivor to **Indiana Beach**, rename to **All American Triple Loop**, opening **2024**, status `operating`, aliases: `Dreier Looping`, `Triple Loop Coaster`, `Magnum Force`, `Montaña Infinitum`, `Quimera`."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/All_American_Triple_Loop"]
+    },
+    "DUP-028": {
+      "facts": [
+        "Do NOT merge: Journey to Atlantis is **three distinct rides** — SeaWorld Orlando (Apr 17, 1998, Mack Water Coaster), SeaWorld San Diego (May 29, 2004), SeaWorld San Antonio (May 11, 2007, Mack SuperSplash). All three parks exist in the DB.",
+        "The slug year-suffixes (-2004, -2007) are the sister parks' build years that the source data flattened into the Orlando Location. Recommended: keep the 1998 row at Orlando; re-home the -2004 row to SeaWorld San Diego and the -2007 row to SeaWorld San Antonio."
+      ],
+      "sources": ["https://en.wikipedia.org/wiki/Journey_to_Atlantis"]
+    }
+  }
+}
