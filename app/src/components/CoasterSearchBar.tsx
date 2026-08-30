@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
+import { useAllCoasters, useParks, buildParkMap, parkLabel, type RankingRow } from '../lib/coasters'
 import { fieldClassName } from './ui'
 
 type Props = {
@@ -138,7 +138,7 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
                     <span className="min-w-0">
                       <span className="block truncate font-medium text-ink">{row.name}</span>
                       <span className="block truncate text-xs text-muted">
-                        {park?.name ?? 'Unknown park'}
+                        {parkLabel(park, 'Unknown park')}
                       </span>
                     </span>
                     <Plus className="ml-2 h-4 w-4 shrink-0 text-accent-strong" />

@@ -75,6 +75,20 @@ export default function ShareListCard({
   const url = username ? riderPageUrl(username) : null
   const live = Boolean(username && publicList)
 
+  // State-aware heading (issue #91): "Your list is taking shape" clashed with
+  // the "your page is ready" body once a username existed, and with the live
+  // body once sharing was on. Milestone 2 stays count-led regardless of state.
+  let heading: string
+  if (milestone === 2) {
+    heading = `${rankedCount} coasters ranked!`
+  } else if (!username) {
+    heading = 'Your list is taking shape'
+  } else if (!publicList) {
+    heading = 'Your page is ready'
+  } else {
+    heading = 'Your ranking is live'
+  }
+
   return (
     <Panel
       className={`relative p-5 ${milestone === 2 ? 'border-accent/50 shadow-accent' : ''}`}
@@ -92,9 +106,7 @@ export default function ShareListCard({
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
         {milestone === 2 ? 'Milestone unlocked' : 'Milestone'}
       </p>
-      <h2 className="display-heading mt-1 text-2xl text-ink">
-        {milestone === 2 ? `${rankedCount} coasters ranked!` : 'Your list is taking shape'}
-      </h2>
+      <h2 className="display-heading mt-1 text-2xl text-ink">{heading}</h2>
 
       <div className="mt-3">
         {!username ? (

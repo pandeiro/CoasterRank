@@ -171,6 +171,19 @@ export function buildParkMap(parks: Park[]): Map<string, Park> {
   return new Map(parks.map((p) => [p.id, p]))
 }
 
+// Synthetic park the importer uses for coasters with no usable location
+// (scripts/import-coasters). Display surfaces substitute a neutral label
+// instead of showing this name verbatim (issue #91); matching by name is the
+// established convention — see getOtherParkId.
+export const OTHER_PARK_NAME = 'Other (unknown location)'
+
+// Compact-surface park label (search results, list rows): the park's name, or
+// the fallback for both missing parks and the synthetic "Other" park.
+export function parkLabel(park: Park | undefined, fallback: string): string {
+  if (!park) return fallback
+  return park.name === OTHER_PARK_NAME ? fallback : park.name
+}
+
 export function isFewVotes(comparisons: number | null): boolean {
   return comparisons !== null && comparisons < FEW_VOTES_THRESHOLD
 }
@@ -517,7 +530,7 @@ export async function getOtherParkId() {
   const { data, error } = await supabase
     .from('parks')
     .select('id')
-    .eq('name', 'Other (unknown location)')
+    .eq('name', OTHER_PARK_NAME)
     .maybeSingle()
   if (error) throw error
   return data?.id

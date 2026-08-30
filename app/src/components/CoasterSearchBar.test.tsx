@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import CoasterSearchBar from './CoasterSearchBar'
-import { useAllCoasters, useParks } from '../lib/coasters'
+import { useAllCoasters, useParks, OTHER_PARK_NAME } from '../lib/coasters'
 import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -98,5 +98,19 @@ describe('CoasterSearchBar', () => {
     const input = await typeQuery(user, 'alpha')
     await user.click(await screen.findByRole('option', { name: /alpha 1/i }))
     expect(input).toHaveValue('')
+  })
+
+  it('shows a neutral label instead of the synthetic Other park name', async () => {
+    // Issue #91: "Other (unknown location)" leaked verbatim into results.
+    const user = userEvent.setup()
+    mockCatalog([makeRankingRow({ name: 'Dragon Coaster', slug: 'dragon-coaster' })])
+    vi.mocked(useParks).mockReturnValue({
+      data: [makePark({ name: OTHER_PARK_NAME })],
+    } as never)
+    renderBar()
+    await typeQuery(user, 'dragon')
+    const option = await screen.findByRole('option', { name: /dragon coaster/i })
+    expect(option).toHaveTextContent('Unknown park')
+    expect(option).not.toHaveTextContent(OTHER_PARK_NAME)
   })
 })

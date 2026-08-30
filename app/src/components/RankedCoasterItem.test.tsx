@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { makeUserRide, makeUserRideCoaster, makePark } from '../test/fixtures'
+import { OTHER_PARK_NAME } from '../lib/coasters'
 import RankedCoasterItem from './RankedCoasterItem'
 
 function wrap(node: React.ReactNode) {
@@ -81,6 +82,24 @@ describe('RankedCoasterItem', () => {
       ),
     )
     expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('shows no park label for the synthetic Other park', () => {
+    // Issue #91: "Other (unknown location)" leaked verbatim into list rows.
+    const ride = makeUserRide()
+    render(
+      wrap(
+        <ul>
+          <RankedCoasterItem
+            ride={ride}
+            rank={1}
+            park={makePark({ name: OTHER_PARK_NAME })}
+            onRemove={vi.fn()}
+          />
+        </ul>,
+      ),
+    )
+    expect(screen.queryByText(OTHER_PARK_NAME)).not.toBeInTheDocument()
   })
 
   it('shows the drag handle only when handleProps is provided', () => {
