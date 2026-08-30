@@ -18,6 +18,7 @@ export default {
         accent: {
           DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
           strong: 'rgb(var(--color-accent-strong) / <alpha-value>)',
+          dark: 'rgb(var(--color-accent-dark) / <alpha-value>)',
         },
         coral: 'rgb(var(--color-coral) / <alpha-value>)',
         success: 'rgb(var(--color-success) / <alpha-value>)',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
@@ -60,6 +60,14 @@ function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
   } as never)
 }
 
+function statusRadio(name: string) {
+  return within(screen.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name })
+}
+
+function materialRadio(name: string) {
+  return within(screen.getByRole('radiogroup', { name: 'Material' })).getByRole('radio', { name })
+}
+
 describe('BoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -72,9 +80,9 @@ describe('BoardPage', () => {
     mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
   })
 
-  it('renders the CoasterRank heading', () => {
+  it('renders the board heading', () => {
     renderBoard()
-    expect(screen.getByRole('heading', { name: /coasterrank/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /community board/i })).toBeInTheDocument()
   })
 
   it('shows a loading state while pending', () => {
@@ -114,7 +122,7 @@ describe('BoardPage', () => {
   it('writes status=all to the URL when non-operational coasters are included', async () => {
     const user = userEvent.setup()
     renderBoard()
-    await user.click(screen.getByLabelText('Include non-operational'))
+    await user.click(statusRadio('Any'))
     await waitFor(() => {
       expect(screen.getByTestId('location').textContent).toBe('status=all')
     })
@@ -122,11 +130,11 @@ describe('BoardPage', () => {
 
   it('reads filters from the URL', () => {
     renderBoard(['/?status=all&material=wood'])
-    expect(screen.getByLabelText('Include non-operational')).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Wooden only' })).toBeChecked()
+    expect(statusRadio('Any')).toBeChecked()
+    expect(materialRadio('Wood')).toBeChecked()
   })
 
-  it('shows only operating coasters by default and all when the box is checked', async () => {
+  it('shows only operating coasters by default and all when the status is set to Any', async () => {
     mockAllCoasters([
       { name: 'Live', status: 'operating' },
       { name: 'Gone', status: 'defunct' },
@@ -136,11 +144,21 @@ describe('BoardPage', () => {
     expect(screen.queryByText('Gone')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
-    await user.click(screen.getByLabelText('Include non-operational'))
+    await user.click(statusRadio('Any'))
     await waitFor(() => {
       expect(screen.getByText('Gone')).toBeInTheDocument()
     })
     expect(screen.getByText('Live')).toBeInTheDocument()
+  })
+
+  it('offers country and manufacturer filters in the Filters popover', async () => {
+    const user = userEvent.setup()
+    renderBoard()
+    expect(screen.queryByRole('combobox', { name: 'Country' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /filters/i }))
+    expect(screen.getByRole('combobox', { name: 'Country' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
   })
 
   it('shows first-place data only past the user gate', async () => {
