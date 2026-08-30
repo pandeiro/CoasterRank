@@ -276,6 +276,7 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 - **Retention**: 7-day rotation. Old backups (`coasterrank-YYYY-MM-DD.sql.gz`) are automatically deleted before each commit.
 - **Prerequisites**: `SUPABASE_DB_URL` (direct Postgres connection, already a repo secret) and `BACKUP_PAT` (PAT with `repo` scope, must be generated manually — see `docs/RUNBOOKS.md`).
 - **Failure notifications**: workflow annotations surface the cause (missing secrets, empty dump).
+- **Restore verified (2026-08-30)**: full restore drill passed — nightly dump restored into scratch Postgres 17 (OrbStack) with all public/auth/storage data byte-identical to prod; procedure + error triage + Supabase-DR variant documented in `docs/RUNBOOKS.md` ("Restore drill & disaster recovery").
 
 ### 9.6 SPA hosting — Cloudflare Workers (unified, single project)
 - Connect the GitHub repo; build command `npm run build`; root directory `app/`; `app/wrangler.toml` declares `assets.directory = "./dist"` + `assets.not_found_handling = "single-page-application"` for SPA fallback; `run_worker_first = ["/api/*", "/riders/*"]` scopes Worker invocations to those prefixes (default path serves static directly from edge, no Worker cost).

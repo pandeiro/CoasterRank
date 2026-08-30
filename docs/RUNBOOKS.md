@@ -201,9 +201,167 @@ gh repo clone pandeiro/CoasterRankBackups /tmp/backup-repo
 ls -lh /tmp/backup-repo/coasterrank-*.sql.gz
 ```
 
-To restore a backup locally:
+To restore a backup locally, follow the restore drill procedure below.
+
+### Restore drill & disaster recovery
+
+*Verified end-to-end on 2026-08-30 against `coasterrank-2026-08-30.sql.gz` (workflow_dispatch run
+[33323232098](https://github.com/pandeiro/CoasterRank/actions/runs/33323232098)): all public/auth/
+storage rows restored byte-identical (count + content checksums vs prod); every restore error was
+accounted for and platform-internal (see error triage table).*
+
+The dump is **plain-text SQL** (pg_dump default, gzipped — not custom format), so it is applied with
+`psql`, not `pg_restore`. It contains every non-system schema: `public`, `auth`, `storage`,
+`realtime`, `supabase_migrations`, `extensions`, `graphql`/`graphql_public`, `pgbouncer`, `vault`,
+plus data for `cron.job` / `cron.job_run_details` (pg_cron schedules **are** in the backup).
+Extension *internals* (objects created by `pg_cron`, `pg_net`, `supabase_vault` themselves) are
+not dumped — they come back by installing the extension.
+
+#### Step 0 — Prerequisites
+
+- **psql client ≥ 17.6.** pg_dump 17.6 emits `\restrict` / `\unrestrict` psql guards at the
+  top/bottom of the dump; psql 17.5 and older print `invalid command \restrict` and skip the guard
+  (the dump still restores, but the anti-tamper guard is inactive). Homebrew psql 17.5 was fine for
+  the drill but upgrade before relying on it.
+- Docker (OrbStack) for the scratch instance.
+- Repo `.env` for read-only comparison queries against prod.
+
+#### Step 1 — Fetch and verify the backup
 
 ```bash
-gunzip -c coasterrank-YYYY-MM-DD.sql.gz | psql "postgresql://localhost:5432/your_local_db"
+git -C ../CoasterRankBackups pull --ff-only   # or: gh repo clone pandeiro/CoasterRankBackups
+D=../CoasterRankBackups/coasterrank-YYYY-MM-DD.sql.gz
+gunzip -t "$D"                                # gzip integrity
+gunzip -c "$D" | head  | grep -a "PostgreSQL database dump"            # header
+gunzip -c "$D" | tail -4 | grep -a "PostgreSQL database dump complete" # footer (pg17 dumps end with \unrestrict line)
+```
+
+#### Step 2 — Scratch Postgres (OrbStack)
+
+```bash
+docker run -d --name coasterrank-restore-drill \
+  -e POSTGRES_PASSWORD=restore-drill -p 5433:5432 \
+  postgres:17-alpine -c shared_preload_libraries=pg_stat_statements
+docker exec coasterrank-restore-drill psql -U postgres -c "CREATE DATABASE restore_drill;"
+```
+
+Port 5433 avoids colliding with any local Postgres. The preload flag lets the dump's
+`pg_stat_statements` extension pre-create cleanly.
+
+#### Step 3 — Pre-create Supabase roles + available extensions
+
+The dump references Supabase roles in GRANTs and object ownership; without them those statements
+error and cascade. RLS policies on this schema use `public.is_admin()` / `true`, so policies
+themselves have no role deps.
+
+```bash
+psql "postgresql://postgres:restore-drill@localhost:5433/restore_drill" -v ON_ERROR_STOP=1 <<'EOF'
+CREATE ROLE anon NOLOGIN;
+CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE service_role NOLOGIN;
+CREATE ROLE dashboard_user NOLOGIN;
+CREATE ROLE pgbouncer NOLOGIN;
+CREATE ROLE supabase_admin NOLOGIN;
+CREATE ROLE supabase_auth_admin NOLOGIN;
+CREATE ROLE supabase_realtime_admin NOLOGIN;
+CREATE ROLE supabase_storage_admin NOLOGIN;
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
+EOF
+```
+
+(For a general-purpose script, derive the role list from the dump:
+`grep -aoE "OWNER TO [a-z_0-9]+" dump.sql | sort -u` plus the `TO <role>` GRANT targets.)
+
+#### Step 4 — Apply the dump (tolerant mode)
+
+```bash
+gunzip -c "$D" | psql "postgresql://postgres:restore-drill@localhost:5433/restore_drill" \
+  -X -v VERBOSITY=verbose -v ON_ERROR_STOP=0 > /tmp/restore-stdout.log 2> /tmp/restore-errors.log
+echo "exit=$?"   # 0 = whole stream processed (errors don't abort in tolerant mode)
+```
+
+Do **not** use `psql -1` (single transaction): the first Supabase-only failure would abort
+everything. Tolerant mode + full error triage is the correct pattern.
+
+#### Step 5 — Triage the error log
+
+Expected errors on vanilla Postgres (2026-08-30 drill: ~5,160 error lines, **all** in these
+categories; zero app-data failures):
+
+| Error (SQLSTATE) | Cause | Concern? |
+| --- | --- | --- |
+| `invalid command \restrict` / `\unrestrict` | psql client < 17.6 (see Step 0) | No — upgrade client |
+| `extension "pg_cron" is not available` / `does not exist` (0A000/42704) | Supabase-only extension | No |
+| `extension "pg_net" is not available` / `does not exist` | Supabase-only extension | No |
+| `extension "supabase_vault" is not available` / `does not exist` | Supabase-only extension | No |
+| `schema "cron" does not exist` (3F000) ×~14 | pg_cron owns that schema; absent on vanilla | No |
+| `schema "net" does not exist` ×~5 | pg_net owns that schema | No |
+| `relation "cron.jobid_seq"/"cron.runid_seq"/"vault.secrets"/"vault.decrypted_secrets" does not exist` (42P01) | Extension-member objects aren't dumped as DDL | No |
+| `function vault.create_secret/... does not exist` (42883) | Vault triggers → member functions absent | No |
+| `permission denied to change owner of event trigger` (42501) | Owner must be superuser; `supabase_admin` is superuser on Supabase, not on vanilla | No |
+| `syntax error at or near "…"` (42601) ×1260 | **Cascade**: data lines of failed COPYs (`cron.job` 3 rows + `cron.job_run_details` 1256 rows) spill as SQL. If the count ≈ those row counts, nothing else spilled | No |
+| `schema "extensions" already exists` (42P06) ×1 | We pre-created it in Step 3 | No |
+
+**Anything not matching this table = a real failure. Investigate before trusting the restore.**
+
+#### Step 6 — Validate the restored data
+
+All prod queries are read-only (source `.env` first). Compare against the scratch DB:
+
+```bash
+R="postgresql://postgres:restore-drill@localhost:5433/restore_drill"
+# 1. Row counts: all public tables + auth.users/refresh_tokens/sessions/identities + storage.buckets/objects/migrations
+for T in coasters parks manufacturers profiles coaster_ratings coaster_aliases coaster_submissions \
+         user_rides user_number_ones cron_execution_logs; do
+  P=$(psql "$SUPABASE_DB_URL" -tAc "SELECT count(*) FROM public.$T")
+  X=$(psql "$R" -tAc "SELECT count(*) FROM public.$T"); echo "$T prod=$P restored=$X"
+done
+# 2. Content checksum (any core table; columns must exist on both sides)
+P=$(psql "$SUPABASE_DB_URL" -tAc "SELECT md5(array_agg(h ORDER BY h)::text) FROM (SELECT md5(concat_ws('|', co.id, co.name, co.slug, co.park_id)) h FROM public.coasters co) s")
+X=$(psql "$R" -tAc "…same query…"); echo "$P vs $X"
+# 3. Recency: newest restored row == last row before backup time (prod may have drifted past it since)
+psql "$R" -tAc "SELECT max(created_at) FROM public.cron_execution_logs"
+# 4. RLS parity: relrowsecurity flags + `SELECT count(*) FROM pg_policies WHERE schemaname='public'`
+# 5. Join sanity on the restored DB (FK graph intact):
+psql "$R" -tAc "SELECT count(*) FROM public.coasters c JOIN public.parks p ON c.park_id=p.id
+                JOIN public.manufacturers m ON c.manufacturer_id=m.id"
+```
+
+Accepted variance: prod row counts may be *higher* than restored for append-heavy tables
+(`cron_execution_logs`) — the recompute cron keeps writing after the backup moment. Verify via
+check 3 that the restored max `created_at` ≤ backup time and that prod's count of rows
+`created_at <= restored_max` equals the restored count.
+
+#### True DR: restoring onto a fresh Supabase project
+
+The scratch drill proves the *data*; a real DR restore targets a **new Supabase project**, which
+removes most of Step 5's friction (all roles exist, extensions including `pg_cron`/`pg_net`/
+`supabase_vault` are preinstalled — `cron.job` schedules and data restore from the dump):
+
+1. Create the new Supabase project (same region; Postgres major version must be ≥ dump's, ideally same).
+2. Apply the dump as-is over the pooler connection string, tolerant mode (Step 4) — as `postgres`,
+   which can `ALTER OWNER` to the platform roles. Expect a much shorter error log; still triage it.
+3. Rebind everything that pointed at the old project (new ref = new host + new keys):
+   - App: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (new project's keys) → redeploy Workers.
+   - GitHub secrets: `SUPABASE_DB_URL` (backup + deploy workflows), `PROJECT_REF`,
+     `SUPABASE_SERVICE_ROLE_KEY`; re-run `supabase link --project-ref <new-ref>` locally with a
+     fresh `SUPABASE_ACCESS_TOKEN`.
+   - External services keyed to the old project (Sentry, Telegram bots keep working — they're repo-side).
+4. Post-restore checks: `cron.job` has the 3 schedules; trigger a manual recompute; confirm
+   `cron_execution_logs` and `coaster_ratings` start filling; sign in through the app (auth.users
+   came across, but Supabase Auth service config is project-level — verify SMTP/rate-limit settings
+   in the dashboard).
+5. Note the **RPO**: nightly dumps ⇒ up to 24h of data loss. If that ever becomes unacceptable,
+   enable Supabase PITR (WAL add-on) — the dump drill remains the last-resort path.
+
+#### Cleanup after a drill
+
+```bash
+docker rm -f coasterrank-restore-drill   # scratch instance
+# keep the dump + logs as long as useful; /tmp is ephemeral anyway
 ```
 
