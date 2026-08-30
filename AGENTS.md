@@ -66,6 +66,10 @@ npm run import-coasters -- data/coaster_db.csv      # optional: explicit CSV pat
 npm run typecheck                 # tsc --noEmit for the scripts package
 ```
 
+Test & mock data lives in `scripts/src/testride/` (`npm run testride:seed|report|cleanup|confirm|recompute`
+— synthetic users for UI testing and BT exercise; dry-run by default). Full guide + scenarios:
+[`docs/TEST_DATA.md`](docs/TEST_DATA.md). Never leave synthetic users in prod past launch.
+
 The Bradley-Terry package (`packages/bt`) also has its **own** `package.json` (same standalone-package pattern as `scripts/` — no root workspace):
 
 ```bash

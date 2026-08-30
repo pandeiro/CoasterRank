@@ -66,16 +66,34 @@ update public.profiles set is_admin = true
 where id = (select id from auth.users where email = 'you@example.com');
 ```
 
-## Cleanup a test user created in prod
+## Test & mock data: the `testride` CLI
 
-Because we develop against prod Supabase, test users created during local dev land in the prod auth
-table. To remove one:
+The `testride` CLI (`scripts/src/testride/`) creates, inspects, impersonates, and removes
+synthetic test users. **Full guide + scenarios: [`docs/TEST_DATA.md`](TEST_DATA.md).** Quick
+reference:
 
-```sql
--- in the Supabase SQL editor
-delete from auth.users where email = 'test@example.com';
--- user_rides/profiles rows cascade or are cleaned by the handle_new_user trigger relationship
-```
+- **Markers** (either suffices): email on the `@test.coasterrank.dev` domain — adopt this when
+  signing up manual test users through the UI — and `raw_user_meta_data.synthetic = true` (set by
+  `testride:seed`). Seeded users are login-ready with no email verification (shared password
+  `testride-password`).
+- **Commands**: `testride:seed` (dry-run unless `--apply`), `testride:report`, `testride:cleanup`
+  (preview unless `--yes`), `testride:confirm`, `testride:recompute`. All target prod (`.env`) by
+  default; other projects via `--db-url / --supabase-url / --service-key`.
+- **Cleanup inverse map**: `profiles`/`user_rides`/their submissions FK-cascade from `auth.users`;
+  avatar storage files are removed first via the service-role API (no cascade); derived
+  `coaster_ratings` are restored by the next recompute. Un-undoable residue: Telegram pings and
+  `cron_execution_logs` rows. Don't approve mock submissions (created coasters survive cleanup).
+- **Assume identity (impersonation):** the admin page's *Assume identity* tab lists synthetic
+  users and logs you in as one (one-time magiclink via the `assume-identity` Edge Function — no
+  password needed, works even for manual test signups whose password you don't know). The admin
+  session is backed up before switching; **"Return to admin"** in the bottom banner restores it.
+  Server-side, the function only ever impersonates marker-matched synthetic users — real users
+  are unreachable by design.
+- **Pre-launch gate**: `testride:report` must show 0 synthetic users before public launch (the
+  shared test password must not survive to launch).
+
+Fallback (no tooling available): `delete from auth.users where email = '…';` in the SQL editor
+cascades profiles/rides/submissions, then recompute.
 
 ## Bootstrap the rankings recompute (one-time, after the Phase 6 deploy)
 
@@ -188,3 +206,4 @@ To restore a backup locally:
 ```bash
 gunzip -c coasterrank-YYYY-MM-DD.sql.gz | psql "postgresql://localhost:5432/your_local_db"
 ```
+

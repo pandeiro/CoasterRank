@@ -17,6 +17,10 @@
 // Observability: every execution is logged to cron_execution_logs.
 // On failure: Telegram alert via CoasterRankAlerts bot.
 // On #1 change: Telegram event via CoasterRankEvents bot.
+// Dispatch control: messages are prefixed with the APP_ENV function secret
+// ('prod' when unset). On non-prod clones/staging, simply do NOT set the
+// Telegram token secrets — the sends below no-op silently when they're absent,
+// so a staging function can never ping the prod channels.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Pure-TS MM implementation shared with the Vitest suite; bundled at deploy.
 import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
@@ -82,6 +86,10 @@ async function rpcWithRetry<T>(
 }
 
 // ── Telegram helpers ────────────────────────────────────────────────────
+// APP_ENV prefixes every outbound message so the source project is always
+// identifiable ('prod' when unset).
+const APP_ENV = Deno.env.get('APP_ENV') ?? 'prod'
+
 async function sendTelegramMessage(botToken: string, message: string) {
   const userId = Deno.env.get('TELEGRAM_USER_ID')
   if (!botToken || !userId) return
@@ -97,7 +105,7 @@ function sendFailureAlert(message: string, durationMs: number, triggerSource: st
   const botToken = Deno.env.get('COASTER_RANK_ALERTS_BOT_TOKEN') ?? ''
   const ts = new Date().toISOString()
   const text =
-    `🚨 BT Recompute FAILED\n` +
+    `[${APP_ENV}] 🚨 BT Recompute FAILED\n` +
     `⏰ Time: ${ts}\n` +
     `⏱️ Failed after: ${durationMs}ms\n` +
     `❌ Error: ${message}\n` +
@@ -108,7 +116,7 @@ function sendFailureAlert(message: string, durationMs: number, triggerSource: st
 function sendNumberOneEvent(newName: string, prevName: string | null) {
   const botToken = Deno.env.get('COASTER_RANK_EVENTS_BOT_TOKEN') ?? ''
   const overtakes = prevName ? ` (overtook ${prevName})` : ''
-  const text = `🏆 New #1: ${newName}${overtakes}`
+  const text = `[${APP_ENV}] 🏆 New #1: ${newName}${overtakes}`
   return sendTelegramMessage(botToken, text)
 }
 
