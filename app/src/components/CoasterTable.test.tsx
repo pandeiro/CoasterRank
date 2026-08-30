@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import CoasterTable from './CoasterTable'
@@ -82,6 +82,19 @@ describe('CoasterTable', () => {
     expect(screen.queryByText('9 (90%)')).not.toBeInTheDocument()
   })
 
+  it('shows a status pill — SBNO or Historic — and none for operating coasters', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'Standing', status: 'sbno' },
+        { name: 'Gone', status: 'defunct' },
+        { name: 'Live', status: 'operating' },
+      ]),
+    )
+    expect(screen.getByText('SBNO')).toBeInTheDocument()
+    expect(screen.getByText('Historic')).toBeInTheDocument()
+    expect(screen.queryByText('Operating')).not.toBeInTheDocument()
+  })
+
   it('does not render a first-place column header', () => {
     renderTable(rowsFrom())
     expect(screen.queryByText('#1 votes')).not.toBeInTheDocument()
@@ -112,5 +125,28 @@ describe('CoasterTable', () => {
   it('renders an empty message for no rows', () => {
     renderTable([])
     expect(screen.getByText('No coasters match those filters.')).toBeInTheDocument()
+  })
+
+  it('renders the stacked mobile list — name, badges, park, no material', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    )
+    try {
+      renderTable(rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }]))
+      expect(screen.getByRole('link', { name: 'Steel Vengeance' })).toHaveAttribute(
+        'href',
+        '/coasters/steel-vengeance',
+      )
+      expect(screen.getByText('Test Park')).toBeInTheDocument()
+      expect(screen.queryByText('Steel')).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Coaster' })).not.toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

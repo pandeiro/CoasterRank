@@ -45,7 +45,7 @@ describe('App', () => {
     } as never)
 
     render(<App />)
-    expect(await screen.findByRole('heading', { name: /coasterrank/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /community board/i })).toBeInTheDocument()
     expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
   })
 })

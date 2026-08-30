@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
 import ScrollSentinel from '../components/ScrollSentinel'
-import { Badge, MessageState, PageHeader } from '../components/ui'
+import { MessageState } from '../components/ui'
 import {
   countryOptions,
   filterCoasters,
@@ -60,19 +60,14 @@ export default function BoardPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="The community board"
-        title="CoasterRank"
-        description="A live ranking of the world's roller coasters"
-        action={<Badge tone="accent">Live board</Badge>}
-      />
+      <h1 className="sr-only">The community board</h1>
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}
         countries={countries}
         manufacturers={manufacturers}
       />
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         {coasters.isError ? (
           <MessageState tone="danger">Couldn&apos;t load the board.</MessageState>
         ) : coasters.isPending ? (
