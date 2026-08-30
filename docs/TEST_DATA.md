@@ -35,10 +35,10 @@ npm run testride:confirm -- --email x@test.coasterrank.dev --apply
 npm run testride:recompute                                  # on-demand recompute (service-role invoke)
 ```
 
-Seed flags: `--users` (required), `--rides <n|min-max>` (random distinct coasters per user,
+Seed flags: `--users` (required; creates N _additional_ synthetic users, continuing numbering after the highest existing mock-XXXX user), `--rides <n|min-max>` (random distinct coasters per user,
 ranked `1..M`; omit = no rides), `--unranked <n>` (ridden-but-unranked extras), `--with-submissions`
-(one pending submission per user), `--seed <n>` (deterministic; re-runs skip existing users,
-rides are `ON CONFLICT DO NOTHING`).
+(one pending submission per user), `--seed <n>` (deterministic per batch; rides are
+`ON CONFLICT DO NOTHING`).
 
 ## Scenarios
 
@@ -88,7 +88,7 @@ Sign up through the UI as `anything@test.coasterrank.dev`, then:
 npm run testride:confirm -- --email anything@test.coasterrank.dev --apply
 ```
 
-(Confirming a *non*-synthetic email requires `--any-email` — it would verify an account you may
+(Confirming a _non_-synthetic email requires `--any-email` — it would verify an account you may
 not own.) These users carry marker 1, so bulk cleanup finds them too.
 
 ### 4. Admin-queue testing
@@ -112,13 +112,13 @@ npm run testride:report                     # verify: synthetic (either marker):
 
 Inverse map — what deleting the `auth.users` rows does:
 
-| Data | Mechanism |
-| --- | --- |
-| `profiles`, `user_rides`, their submissions | FK cascade from `auth.users` |
-| Submissions they **reviewed** | kept; `reviewed_by` set to NULL (preview warns) |
-| Avatar / OG-card storage files | deleted first via the service-role storage API (no cascade) |
-| `coaster_ratings` (derived) | next recompute; with no real ranked rides left, the all-unranked path clears the table — the board is back to fully unrated |
-| `cron_execution_logs` rows, Telegram pings | residue that cannot be undone (harmless; mute the events bot during testing if pings annoy you) |
+| Data                                        | Mechanism                                                                                                                   |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`, `user_rides`, their submissions | FK cascade from `auth.users`                                                                                                |
+| Submissions they **reviewed**               | kept; `reviewed_by` set to NULL (preview warns)                                                                             |
+| Avatar / OG-card storage files              | deleted first via the service-role storage API (no cascade)                                                                 |
+| `coaster_ratings` (derived)                 | next recompute; with no real ranked rides left, the all-unranked path clears the table — the board is back to fully unrated |
+| `cron_execution_logs` rows, Telegram pings  | residue that cannot be undone (harmless; mute the events bot during testing if pings annoy you)                             |
 
 With real ranked rides in the system, cleanup re-derives rankings from whatever real data
 remains — synthetic influence simply disappears.

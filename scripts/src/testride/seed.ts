@@ -9,8 +9,8 @@
 //
 // Manual levers only: --users, --rides (<n> or <min>-<max> ranked coasters per
 // user), --unranked, --with-submissions. Dry-run by default; --apply writes.
-// Deterministic for a given --seed: re-runs skip existing users; rides are
-// ON CONFLICT DO NOTHING.
+// Purely additive: --users N creates N *additional* synthetic users, continuing
+// numbering after the highest existing mock-XXXX user.
 import { randomUUID } from 'node:crypto'
 import type { Pool } from 'pg'
 import { printBanner, requirePool, type Connections } from './connections'
@@ -69,20 +69,42 @@ interface GenUser {
   unranked: number
 }
 
-function generateUsers(rng: Rng, rides: RideSpec, unranked: number, count: number): GenUser[] {
+function generateUsers(
+  rng: Rng,
+  rides: RideSpec,
+  unranked: number,
+  count: number,
+  startOffset = 0,
+): GenUser[] {
   const users: GenUser[] = []
   for (let i = 0; i < count; i++) {
-    const username = `mock-${String(i + 1).padStart(4, '0')}`
+    const num = startOffset + i + 1
+    const username = `mock-${String(num).padStart(4, '0')}`
     const counts = rideCounts(rng, rides, unranked)
     users.push({
       id: randomUUID(),
       email: syntheticEmail(username),
       username,
-      displayName: `Mock Rider ${i + 1}`,
+      displayName: `Mock Rider ${num}`,
       ...counts,
     })
   }
   return users
+}
+
+async function maxExistingUsernameNumber(pool: Pool): Promise<number> {
+  const res = await pool.query<{ username: string }>(
+    `select raw_user_meta_data->>'username' as username from auth.users where raw_user_meta_data->>'username' like 'mock-%'`,
+  )
+  let max = 0
+  for (const row of res.rows) {
+    const m = row.username.match(/^mock-(\d+)$/)
+    if (m?.[1]) {
+      const n = Number.parseInt(m[1], 10)
+      if (n > max) max = n
+    }
+  }
+  return max
 }
 
 interface ExistingRow {
@@ -265,12 +287,15 @@ export async function runSeed(conns: Connections, opts: SeedOptions): Promise<vo
     process.exit(1)
   }
 
+  const maxExisting = await maxExistingUsernameNumber(pool)
   const rng = makeRng(opts.seed)
-  const users = generateUsers(rng, opts.rides, opts.unranked, opts.users)
+  const users = generateUsers(rng, opts.rides, opts.unranked, opts.users, maxExisting)
   const totalRanked = users.reduce((acc, u) => acc + u.ranked, 0)
   const totalUnranked = users.reduce((acc, u) => acc + u.unranked, 0)
 
-  console.log(`users         : ${users.length}`)
+  console.log(
+    `users         : ${maxExisting} existing + ${users.length} new = ${maxExisting + users.length} total`,
+  )
   console.log(`rides per user: ${ridesLabel} ranked + ${opts.unranked} unranked`)
   console.log(
     `rides planned : ${totalRanked} ranked + ${totalUnranked} unranked (coasters available: ${coasterCount})`,
