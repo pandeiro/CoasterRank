@@ -158,10 +158,11 @@ curl -s -D - -o /dev/null https://coasterrank.app/api/ranking | grep -iE "x-rank
   any non-OK/parse failure, so a broken worker shows up as slightly heavier Supabase load /
   slower board loads, never as user-visible errors. If Supabase metrics show unexplained
   read spikes, check the worker first (502s in Workers Logs, deploy state in Cloudflare).
-- The endpoint is GET-only (405 otherwise), CORS allowlist-reflected, and has no purge/bypass
-  param on purpose — see PLAN §10 Phase 4.2 before adding one. The allowlist defaults to
-  `coasterrank.app` + localhost; to change it, set the `RANKING_ALLOWED_ORIGINS` Worker var
-  (comma-separated, dashboard Settings → Variables — takes effect without a code deploy).
+- The endpoint is GET-only (405 otherwise), and has no purge/bypass param on purpose — see
+  PLAN §10 Phase 4.2 before adding one. CORS: the worker's own origin is always reflected;
+  extra cross-origin consumers (staging, local dev against prod) via the
+  `RANKING_ALLOWED_ORIGINS` Worker var (comma-separated, dashboard Settings → Variables —
+  takes effect without a code deploy). No domains are hard-coded in the worker source.
 
 ## Anti-abuse & rate limits (what's already in place)
 

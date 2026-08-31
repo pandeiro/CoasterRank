@@ -6,7 +6,9 @@
  *    served from the edge cache (Cache API, 15-minute TTL — mirrors the
  *    pg_cron recompute cadence; worst-case staleness ≤ 30 min). Supabase is
  *    only hit on cache misses, so homepage loads skip Supabase entirely.
- *    GET/OPTIONS only, CORS allowlist-reflected; upstream failures return
+ *    GET/OPTIONS only, CORS: self-origin reflected, others only via the
+ *    RANKING_ALLOWED_ORIGINS var (no domains hard-coded — forks deploy under
+ *    their own domain); upstream failures return
  *    502 (the SPA falls back to direct Supabase queries on any non-OK).
  *  - `/riders/:username` + social-crawler User-Agent → prerendered HTML with
  *    full OG/Twitter meta tags (most link-unfurling crawlers don't execute
@@ -238,24 +240,20 @@ const RANKING_BROWSER_TTL_SECONDS = 60
 // during a spike; a timeout surfaces as 502 → client falls back to Supabase.
 const RANKING_UPSTREAM_TIMEOUT_MS = 10_000
 
-// The SPA calls this same-origin, so CORS is a formality — the explicit
-// allowlist keeps the endpoint from being embedded cross-origin while still
-// permitting local development against production. Overridable without a
-// redeploy via the RANKING_ALLOWED_ORIGINS Worker var (comma-separated) —
-// plain var, not a secret: it's configuration, not a credential.
-const DEFAULT_ALLOWED_ORIGINS = [
-  'https://coasterrank.app',
-  'https://www.coasterrank.app',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-]
-
-function allowedOrigins(env: Env): Set<string> {
-  const configured = (env.RANKING_ALLOWED_ORIGINS ?? '')
+// CORS policy — zero domains in source (open-source: forks deploy under their
+// own domain). Requests from the worker's own origin don't need CORS at all,
+// but reflecting it is harmless and keeps the response contract uniform.
+// Additional cross-origin consumers (staging, local dev against prod, third
+// parties) are enabled via the RANKING_ALLOWED_ORIGINS Worker var
+// (comma-separated). Plain var, not a secret: it's configuration, not a
+// credential. Everything else is rejected — no cross-origin embedding unless
+// explicitly configured.
+function isAllowedOrigin(origin: string, request: Request, env: Env): boolean {
+  if (origin === new URL(request.url).origin) return true
+  return (env.RANKING_ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((value) => value.trim())
-    .filter(Boolean)
-  return new Set(configured.length > 0 ? configured : DEFAULT_ALLOWED_ORIGINS)
+    .includes(origin)
 }
 
 type EdgeCache = {
@@ -280,7 +278,7 @@ function rankingCacheKey(requestUrl: string): Request {
 
 function corsHeaders(request: Request, env: Env): Record<string, string> {
   const origin = request.headers.get('origin')
-  return origin && allowedOrigins(env).has(origin)
+  return origin && isAllowedOrigin(origin, request, env)
     ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
     : {}
 }
