@@ -384,6 +384,25 @@ describe('worker: /api/ranking', () => {
     expect(stranger.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
 
+  it('honors a RANKING_ALLOWED_ORIGINS var override without a redeploy', async () => {
+    const env = makeEnv()
+    env.RANKING_ALLOWED_ORIGINS = 'https://staging.coasterrank.app, https://other.example'
+    makeCacheStub()
+    stubRankingUpstream()
+
+    const allowed = await worker.fetch(
+      rankingRequest({ origin: 'https://staging.coasterrank.app' }),
+      env,
+    )
+    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://staging.coasterrank.app',
+    )
+
+    // The var replaces (not extends) the default list.
+    const defaultOrigin = await worker.fetch(rankingRequest(), env)
+    expect(defaultOrigin.headers.get('Access-Control-Allow-Origin')).toBeNull()
+  })
+
   it('returns 502 (no-store) when Supabase fails so the SPA can fall back', async () => {
     const env = makeEnv()
     const cache = makeCacheStub()

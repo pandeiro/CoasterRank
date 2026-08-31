@@ -31,6 +31,8 @@ export interface Env {
   SUPABASE_ANON_KEY?: string
   VITE_SUPABASE_URL?: string
   VITE_SUPABASE_ANON_KEY?: string
+  /** Optional comma-separated CORS allowlist override (plain var, not secret). */
+  RANKING_ALLOWED_ORIGINS?: string
 }
 
 // Link-unfurling crawlers known to skip JS. iMessage/Apple Messages uses a
@@ -238,13 +240,23 @@ const RANKING_UPSTREAM_TIMEOUT_MS = 10_000
 
 // The SPA calls this same-origin, so CORS is a formality — the explicit
 // allowlist keeps the endpoint from being embedded cross-origin while still
-// permitting local development against production.
-const RANKING_ALLOWED_ORIGINS = new Set([
+// permitting local development against production. Overridable without a
+// redeploy via the RANKING_ALLOWED_ORIGINS Worker var (comma-separated) —
+// plain var, not a secret: it's configuration, not a credential.
+const DEFAULT_ALLOWED_ORIGINS = [
   'https://coasterrank.app',
   'https://www.coasterrank.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-])
+]
+
+function allowedOrigins(env: Env): Set<string> {
+  const configured = (env.RANKING_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return new Set(configured.length > 0 ? configured : DEFAULT_ALLOWED_ORIGINS)
+}
 
 type EdgeCache = {
   match(key: Request | string): Promise<Response | undefined>
@@ -266,9 +278,9 @@ function rankingCacheKey(requestUrl: string): Request {
   return new Request(keyUrl.toString(), { method: 'GET' })
 }
 
-function corsHeaders(request: Request): Record<string, string> {
+function corsHeaders(request: Request, env: Env): Record<string, string> {
   const origin = request.headers.get('origin')
-  return origin && RANKING_ALLOWED_ORIGINS.has(origin)
+  return origin && allowedOrigins(env).has(origin)
     ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
     : {}
 }
@@ -277,13 +289,14 @@ function rankingJsonResponse(
   body: string,
   status: number,
   request: Request,
+  env: Env,
   extraHeaders: Record<string, string> = {},
 ): Response {
   return new Response(body, {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders(request),
+      ...corsHeaders(request, env),
       ...extraHeaders,
     },
   })
@@ -326,15 +339,21 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
-        ...corsHeaders(request),
+        ...corsHeaders(request, env),
       },
     })
   }
   if (request.method !== 'GET') {
-    return rankingJsonResponse(JSON.stringify({ error: 'Method not allowed' }), 405, request, {
-      Allow: 'GET, OPTIONS',
-      'Cache-Control': 'no-store',
-    })
+    return rankingJsonResponse(
+      JSON.stringify({ error: 'Method not allowed' }),
+      405,
+      request,
+      env,
+      {
+        Allow: 'GET, OPTIONS',
+        'Cache-Control': 'no-store',
+      },
+    )
   }
 
   const cache = getEdgeCache()
@@ -346,10 +365,16 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
       // returning the edge copy verbatim: the stored response carries the
       // LONG edge TTL, and CORS must be reflected per-request origin.
       const body = await hit.text()
-      return rankingJsonResponse(body, 200, request, {
-        'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
-        'X-Ranking-Cache': 'HIT',
-      })
+      return rankingJsonResponse(
+        body,
+        200,
+        request,
+        env,
+        {
+          'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
+          'X-Ranking-Cache': 'HIT',
+        },
+      )
     }
   }
 
@@ -363,9 +388,15 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
   if (!payload) {
     // Upstream failure: 502 with no-store. The SPA treats any non-OK as a
     // signal to fall back to direct Supabase queries.
-    return rankingJsonResponse(JSON.stringify({ error: 'Upstream unavailable' }), 502, request, {
-      'Cache-Control': 'no-store',
-    })
+    return rankingJsonResponse(
+      JSON.stringify({ error: 'Upstream unavailable' }),
+      502,
+      request,
+      env,
+      {
+        'Cache-Control': 'no-store',
+      },
+    )
   }
 
   const body = JSON.stringify(payload)
@@ -396,7 +427,7 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
   console.log(
     `[ranking] cache fill: ${payload.rankings.length} rankings / ${payload.parks.length} parks in ${Date.now() - fillStartedAt}ms`,
   )
-  return rankingJsonResponse(body, 200, request, {
+  return rankingJsonResponse(body, 200, request, env, {
     'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
     'X-Ranking-Cache': cache ? 'MISS' : 'BYPASS',
   })
