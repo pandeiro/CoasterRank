@@ -257,7 +257,7 @@ const rankingPayload = {
 }
 
 function rankingRequest(overrides: { method?: string; origin?: string | null } = {}) {
-  const { method = 'GET', origin = 'https://coasterrank.com' } = overrides
+  const { method = 'GET', origin = 'https://coasterrank.app' } = overrides
   const headers: Record<string, string> = {}
   if (origin) headers.origin = origin
   return new Request('https://coasterrank.test/api/ranking', { method, headers })
@@ -328,7 +328,7 @@ describe('worker: /api/ranking', () => {
     expect(await response.json()).toEqual(rankingPayload)
     expect(response.headers.get('Cache-Control')).toContain('max-age=60')
     expect(response.headers.get('X-Ranking-Cache')).toBe('HIT')
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.app')
     expect(fetchMock).not.toHaveBeenCalled()
     expect(cache.put).not.toHaveBeenCalled()
   })
@@ -351,7 +351,7 @@ describe('worker: /api/ranking', () => {
     stubRankingUpstream()
 
     const request = new Request('https://coasterrank.test/api/ranking?utm=bogus', {
-      headers: { origin: 'https://coasterrank.com' },
+      headers: { origin: 'https://coasterrank.app' },
     })
     await worker.fetch(request, env)
     const [putKey] = cache.put.mock.calls[0] as unknown as [Request]
@@ -375,10 +375,10 @@ describe('worker: /api/ranking', () => {
 
     const preflight = await worker.fetch(rankingRequest({ method: 'OPTIONS' }), env)
     expect(preflight.status).toBe(204)
-    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.app')
 
     const allowed = await worker.fetch(rankingRequest(), env)
-    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.app')
 
     const stranger = await worker.fetch(rankingRequest({ origin: 'https://evil.example' }), env)
     expect(stranger.headers.get('Access-Control-Allow-Origin')).toBeNull()

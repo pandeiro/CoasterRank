@@ -144,7 +144,7 @@ Phase 4.2, for why and for the only acceptable fix, purge-on-recompute). When it
 
 ```bash
 # Is the cache working? First request after a TTL window: MISS, then HIT.
-curl -s -D - -o /dev/null https://coasterrank.com/api/ranking | grep -iE "x-ranking-cache|cache-control"
+curl -s -D - -o /dev/null https://coasterrank.app/api/ranking | grep -iE "x-ranking-cache|cache-control"
 ```
 
 - **Logs**: cache fills log one line each (`[ranking] cache fill: N rankings / M parks in Xms`),

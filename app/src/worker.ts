@@ -240,8 +240,8 @@ const RANKING_UPSTREAM_TIMEOUT_MS = 10_000
 // allowlist keeps the endpoint from being embedded cross-origin while still
 // permitting local development against production.
 const RANKING_ALLOWED_ORIGINS = new Set([
-  'https://coasterrank.com',
-  'https://www.coasterrank.com',
+  'https://coasterrank.app',
+  'https://www.coasterrank.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ])
