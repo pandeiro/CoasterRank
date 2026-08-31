@@ -365,3 +365,41 @@ docker rm -f coasterrank-restore-drill   # scratch instance
 # keep the dump + logs as long as useful; /tmp is ephemeral anyway
 ```
 
+
+## Data curation: coaster identity & status rubric
+
+How to decide one-row-vs-two and which `status` to set when a ride closes, rebrands, or gets
+rebuilt. Every transition needs a **current news citation** — DB self-consistency is not
+evidence, because the CSV seed's statuses are a 2023 snapshot (the Superman: Escape from
+Krypton lesson: closed Mar 2025, still `operating` in our data until news-checked). Worked
+examples: `data/coverage/park-audit-2026-08-30.md`.
+
+### Identity: one coaster row or two?
+
+| Situation | Modeling |
+| --- | --- |
+| Cosmetic rename / rebrand, same track (Mulholland→Goofy's Sky School, Intimidator 305→Pantherian) | One row: current name on the row, former name(s) → `coaster_aliases`. Never put the *new* name in the alias of an old-name row. |
+| Track replaced / structural transformation (Colossus→Twisted Colossus, Hurler→Twisted Timbers) | Two rows: historic ride → `defunct` with its true opening date; the new ride gets its own row and dates. Preserves "rode the original" credits. |
+| Same-layout restoration / re-engineering (Montezooma's Revenge→MonteZOOMa: KumbaK LSM rebuild, original spikes/station kept) | One row: current name, model/manufacturer updated to the current build, former name aliased, original opening date kept. |
+| Generational namesakes — different rides sharing a name (The Bat '81/'93, Big Dipper '35/'21 at one park) | Two rows; disambiguate names when both would render identically on the board. |
+| Relocation to another park | Edit `park_id`, keep `operating`. The `relocated` status is reserved for rides standing at their old site awaiting a move. |
+
+### Status transitions
+
+| Situation | Status |
+| --- | --- |
+| Temporary shutdown ≤ 3 months (routine refit) | Keep `operating`. |
+| Closed for announced repairs / remodel / rebuild, any duration (MonteZOOMa, Tokyo Space Mountain) | `under_construction`. |
+| Closed > 3 months, cause or fate unclear | `sbno` (El Toro). |
+| Removal announced / demolished | `defunct`. |
+| Parent park closes permanently (Six Flags America, Nov 2025) | All the park's rows → `defunct`. |
+
+### Procedure
+
+1. Verify with a current news citation (brave / press / official site), then classify with the
+   tables above. When genuinely ambiguous between generations or parks, prefer two
+   disambiguated rows over merging (Journey to Atlantis and Big Dipper lessons).
+2. Apply via guarded ad-hoc psql (slug+park guards, one transaction; backup first for batches)
+   or a crafted `decisions.json` item through the applier.
+3. Add former names as aliases, keep the current name on the row, and re-run
+   `npm run coverage:doc`-style checks where applicable.
