@@ -43,6 +43,7 @@ import {
   type AdminPark,
   useParks,
   useManufacturers,
+  refreshBoardData,
   type Park,
   type Manufacturer,
 } from '../lib/coasters'
@@ -248,7 +249,9 @@ export default function AdminPage() {
       return data!
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rankings'] })
+      // Bypass the /api/ranking edge cache — the whole point of this button
+      // is to see fresh scores immediately.
+      void refreshBoardData(queryClient).catch(() => {})
       queryClient.invalidateQueries({ queryKey: ['cron-execution-logs'] })
     },
   })
@@ -259,7 +262,8 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
-      queryClient.invalidateQueries({ queryKey: ['rankings'] })
+      // New coaster must show up on the board immediately, edge cache aside.
+      void refreshBoardData(queryClient).catch(() => {})
       queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
       queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
       notify('Submission approved and coaster created.')
@@ -343,7 +347,7 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
-      queryClient.invalidateQueries({ queryKey: ['parks'] })
+      void refreshBoardData(queryClient).catch(() => {})
       setEditingPark(null)
       setIsAddingPark(false)
       notify('Park saved.')

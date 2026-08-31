@@ -2,20 +2,28 @@
  * Cloudflare Worker — unified project with static assets.
  *
  * Route handling:
+ *  - `/api/ranking` → the global board dataset (rankings + parks) as JSON,
+ *    served from the edge cache (Cache API, 15-minute TTL — mirrors the
+ *    pg_cron recompute cadence; worst-case staleness ≤ 30 min). Supabase is
+ *    only hit on cache misses, so homepage loads skip Supabase entirely.
+ *    GET/OPTIONS only, CORS allowlist-reflected; upstream failures return
+ *    502 (the SPA falls back to direct Supabase queries on any non-OK).
  *  - `/riders/:username` + social-crawler User-Agent → prerendered HTML with
  *    full OG/Twitter meta tags (most link-unfurling crawlers don't execute
  *    JS, so the SPA shell would otherwise unfurl as a bare "CoasterRank").
  *    Humans on the same URL fall through to static assets (the SPA).
  *  - Everything else → static assets directly (no Worker cost).
  *
- * Data comes from the same `public_rider_page()` PostgREST RPC the SPA uses
- * (anon key; RLS-equivalent privacy enforced in the function itself — only
- * opted-in riders are returned). NULL result → shared "not found" HTML, so
+ * Data comes from the same public PostgREST surfaces the SPA uses (anon key;
+ * RLS-equivalent privacy enforced server-side — the rider RPC only returns
+ * opted-in riders). NULL result → shared "not found" HTML, so
  * private/unknown usernames are indistinguishable.
  *
  * Runtime env: SUPABASE_URL / SUPABASE_ANON_KEY, falling back to the
  * VITE_-prefixed names already configured in the Cloudflare dashboard.
  */
+
+import type { RankingBoardPayload } from './lib/board-types'
 
 export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
@@ -216,9 +224,193 @@ async function fetchRiderPageFromSupabase(
   return (await response.json()) as WorkerRiderPage | null
 }
 
+// /api/ranking — edge-cached board payload ----------------------------------
+
+// Edge TTL mirrors the pg_cron recompute cadence (every 15 min): worst-case
+// staleness is edge TTL + recompute period (≤ 30 min, accepted — BT scores
+// move glacially). The browser TTL stays short so reloads revalidate against
+// the (cheap, same-colo) edge cache instead of skipping it.
+const RANKING_EDGE_TTL_SECONDS = 900
+const RANKING_BROWSER_TTL_SECONDS = 60
+// Bound upstream reads so a hung Supabase can't pile up in-flight requests
+// during a spike; a timeout surfaces as 502 → client falls back to Supabase.
+const RANKING_UPSTREAM_TIMEOUT_MS = 10_000
+
+// The SPA calls this same-origin, so CORS is a formality — the explicit
+// allowlist keeps the endpoint from being embedded cross-origin while still
+// permitting local development against production.
+const RANKING_ALLOWED_ORIGINS = new Set([
+  'https://coasterrank.com',
+  'https://www.coasterrank.com',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+])
+
+type EdgeCache = {
+  match(key: Request | string): Promise<Response | undefined>
+  put(key: Request | string, response: Response): Promise<void>
+}
+
+// `caches.default` exists in the Workers runtime; absent in unit tests and
+// other runtimes — the endpoint still works there, just uncached.
+function getEdgeCache(): EdgeCache | undefined {
+  return (globalThis as { caches?: { default?: EdgeCache } }).caches?.default
+}
+
+// Canonical cache key: one entry regardless of query-string noise, so `?x=1`
+// variants can't fragment the cache.
+function rankingCacheKey(requestUrl: string): Request {
+  const keyUrl = new URL(requestUrl)
+  keyUrl.search = ''
+  keyUrl.hash = ''
+  return new Request(keyUrl.toString(), { method: 'GET' })
+}
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin')
+  return origin && RANKING_ALLOWED_ORIGINS.has(origin)
+    ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
+    : {}
+}
+
+function rankingJsonResponse(
+  body: string,
+  status: number,
+  request: Request,
+  extraHeaders: Record<string, string> = {},
+): Response {
+  return new Response(body, {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders(request),
+      ...extraHeaders,
+    },
+  })
+}
+
+async function fetchRankingBoardFromSupabase(env: Env): Promise<RankingBoardPayload | null> {
+  const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+  const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) return null
+
+  const headers = {
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+    Accept: 'application/json',
+  }
+  const [rankingsRes, parksRes] = await Promise.all([
+    // limit=10000 mirrors the SPA's .range(0, 9999): the view is ~1.2k rows
+    // today with headroom for full-RCDB adoption (~6.6k rows).
+    fetch(
+      `${supabaseUrl}/rest/v1/v_coaster_rankings?select=*&order=score.desc.nullslast&limit=10000`,
+      { headers, signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS) },
+    ),
+    fetch(
+      `${supabaseUrl}/rest/v1/parks?select=id,name,slug,country,region,city&order=name&limit=10000`,
+      { headers, signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS) },
+    ),
+  ])
+  if (!rankingsRes.ok || !parksRes.ok) return null
+  const rankings = await rankingsRes.json()
+  const parks = await parksRes.json()
+  if (!Array.isArray(rankings) || !Array.isArray(parks)) return null
+  return { rankings, parks, generated_at: new Date().toISOString() } as RankingBoardPayload
+}
+
+export async function handleRankingRequest(request: Request, env: Env): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400',
+        ...corsHeaders(request),
+      },
+    })
+  }
+  if (request.method !== 'GET') {
+    return rankingJsonResponse(JSON.stringify({ error: 'Method not allowed' }), 405, request, {
+      Allow: 'GET, OPTIONS',
+      'Cache-Control': 'no-store',
+    })
+  }
+
+  const cache = getEdgeCache()
+  const cacheKey = rankingCacheKey(request.url)
+  if (cache) {
+    const hit = await cache.match(cacheKey)
+    if (hit) {
+      // Rebuild the client-facing response from the cached body rather than
+      // returning the edge copy verbatim: the stored response carries the
+      // LONG edge TTL, and CORS must be reflected per-request origin.
+      const body = await hit.text()
+      return rankingJsonResponse(body, 200, request, {
+        'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
+        'X-Ranking-Cache': 'HIT',
+      })
+    }
+  }
+
+  const fillStartedAt = Date.now()
+  let payload: RankingBoardPayload | null = null
+  try {
+    payload = await fetchRankingBoardFromSupabase(env)
+  } catch {
+    payload = null
+  }
+  if (!payload) {
+    // Upstream failure: 502 with no-store. The SPA treats any non-OK as a
+    // signal to fall back to direct Supabase queries.
+    return rankingJsonResponse(JSON.stringify({ error: 'Upstream unavailable' }), 502, request, {
+      'Cache-Control': 'no-store',
+    })
+  }
+
+  const body = JSON.stringify(payload)
+  if (cache) {
+    // Edge copy carries the long TTL; separate Response objects (a body can't
+    // be shared) so the client-facing copy below can use the short browser TTL.
+    try {
+      await cache.put(
+        cacheKey,
+        new Response(body, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': `public, max-age=${RANKING_EDGE_TTL_SECONDS}`,
+          },
+        }),
+      )
+    } catch (error) {
+      // A cache-write failure must not take the endpoint down — serve fresh
+      // and let the next request retry the fill.
+      console.error('[ranking] cache.put failed:', error)
+    }
+  }
+
+  // Observability: the hit ratio is near-deterministic (one fill per colo per
+  // TTL window), so a log line per fill — not a dashboard — is the useful
+  // signal: fill failures, row-count surprises, and fill latency. Visible via
+  // Workers Logs (see [observability] in wrangler.toml) and `wrangler tail`.
+  console.log(
+    `[ranking] cache fill: ${payload.rankings.length} rankings / ${payload.parks.length} parks in ${Date.now() - fillStartedAt}ms`,
+  )
+  return rankingJsonResponse(body, 200, request, {
+    'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
+    'X-Ranking-Cache': cache ? 'MISS' : 'BYPASS',
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
+    const pathname = url.pathname.replace(/\/+$/, '') || '/'
+
+    if (pathname === '/api/ranking') {
+      return handleRankingRequest(request, env)
+    }
+
     const match = RIDER_PATH_RE.exec(url.pathname)
 
     if (!match || !isSocialCrawler(request.headers.get('user-agent'))) {

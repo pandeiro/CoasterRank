@@ -136,6 +136,31 @@ source .env && curl -s -X POST \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 
+## Debug the `/api/ranking` edge cache
+
+The board payload is served by the Worker from the Cloudflare Cache API (15-min edge TTL,
+mirroring the recompute cadence; ≤30-min display staleness is **by design** — see PLAN §10,
+Phase 4.2, for why and for the only acceptable fix, purge-on-recompute). When it looks off:
+
+```bash
+# Is the cache working? First request after a TTL window: MISS, then HIT.
+curl -s -D - -o /dev/null https://coasterrank.com/api/ranking | grep -iE "x-ranking-cache|cache-control"
+```
+
+- **Logs**: cache fills log one line each (`[ranking] cache fill: N rankings / M parks in Xms`),
+  visible in the dashboard (Workers → coasterrank → Logs — enabled via `[observability]` in
+  `wrangler.toml`) or locally via `npx wrangler tail`. Missing fill lines for >15 min = cache
+  is broken or upstream is failing (fills log AFTER a successful Supabase read).
+- **Trap**: Cloudflare's standard CDN cache analytics do NOT cover Cache API operations
+  (`cf-cache-status` is always absent here) — the `X-Ranking-Cache` header and worker logs are
+  the only observability. Don't conclude "cache isn't working" from the analytics dashboard.
+- **Worker failures are silent by design**: the SPA falls back to direct Supabase queries on
+  any non-OK/parse failure, so a broken worker shows up as slightly heavier Supabase load /
+  slower board loads, never as user-visible errors. If Supabase metrics show unexplained
+  read spikes, check the worker first (502s in Workers Logs, deploy state in Cloudflare).
+- The endpoint is GET-only (405 otherwise), CORS allowlist-reflected, and has no purge/bypass
+  param on purpose — see PLAN §10 Phase 4.2 before adding one.
+
 ## Anti-abuse & rate limits (what's already in place)
 
 Most abuse protection is delegated to Supabase's built-in, server-side limits rather than custom
