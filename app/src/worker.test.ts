@@ -227,3 +227,183 @@ describe('worker: not-found HTML', () => {
     expect(html).toContain("doesn't exist or isn't shared")
   })
 })
+
+// /api/ranking ---------------------------------------------------------------
+
+const rankingRows = [
+  {
+    id: 'c1',
+    name: 'Steel Vengeance',
+    slug: 'steel-vengeance',
+    score: 1.23,
+    rank: 1,
+  },
+]
+const parkRows = [
+  {
+    id: 'p1',
+    name: 'Cedar Point',
+    slug: 'cedar-point',
+    country: 'US',
+    region: null,
+    city: 'Sandusky',
+  },
+]
+// What the worker assembles from the two upstream responses.
+const rankingPayload = {
+  rankings: rankingRows,
+  parks: parkRows,
+  generated_at: '2026-08-31T00:00:00.000Z',
+}
+
+function rankingRequest(overrides: { method?: string; origin?: string | null } = {}) {
+  const { method = 'GET', origin = 'https://coasterrank.com' } = overrides
+  const headers: Record<string, string> = {}
+  if (origin) headers.origin = origin
+  return new Request('https://coasterrank.test/api/ranking', { method, headers })
+}
+
+function makeCacheStub() {
+  const cache = {
+    match: vi.fn(async () => undefined as Response | undefined),
+    put: vi.fn(async () => {}),
+  }
+  vi.stubGlobal('caches', { default: cache })
+  return cache
+}
+
+// The worker makes two upstream reads (rankings view + parks table); each
+// returns a bare PostgREST JSON array.
+function stubRankingUpstream(status = 200) {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const payload = String(input).includes('v_coaster_rankings') ? rankingRows : parkRows
+    return new Response(JSON.stringify(payload), { status })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+describe('worker: /api/ranking', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('serves the combined payload and caches it at the edge with the long TTL', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(rankingRequest(), env)
+    const body = await response.json()
+
+    expect(body).toEqual({ ...rankingPayload, generated_at: expect.any(String) })
+    expect(response.headers.get('Content-Type')).toContain('application/json')
+    // Browser copy: short TTL. Edge copy: 15-min TTL.
+    expect(response.headers.get('Cache-Control')).toContain('max-age=60')
+    expect(response.headers.get('X-Ranking-Cache')).toBe('MISS')
+    expect(cache.put).toHaveBeenCalledTimes(1)
+    const [putKey, putResponse] = cache.put.mock.calls[0] as unknown as [Request, Response]
+    expect(putKey.url).toBe('https://coasterrank.test/api/ranking')
+    expect(putResponse.headers.get('Cache-Control')).toContain('max-age=900')
+    // Two upstream reads (rankings + parks), both with the anon key.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('serves a cache hit without touching Supabase, with browser TTL and CORS intact', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    // The edge copy stores the LONG TTL (that's what expires the entry);
+    // the response served to the browser must still carry the SHORT one.
+    cache.match.mockResolvedValue(
+      new Response(JSON.stringify(rankingPayload), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': `public, max-age=${900}`,
+        },
+      }),
+    )
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(await response.json()).toEqual(rankingPayload)
+    expect(response.headers.get('Cache-Control')).toContain('max-age=60')
+    expect(response.headers.get('X-Ranking-Cache')).toBe('HIT')
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(cache.put).not.toHaveBeenCalled()
+  })
+
+  it('still serves fresh data when the cache write fails', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    cache.put.mockRejectedValue(new Error('cache full'))
+    const fillMock = stubRankingUpstream()
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ...rankingPayload, generated_at: expect.any(String) })
+    expect(fillMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('normalizes the cache key so query strings cannot fragment the cache', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    stubRankingUpstream()
+
+    const request = new Request('https://coasterrank.test/api/ranking?utm=bogus', {
+      headers: { origin: 'https://coasterrank.com' },
+    })
+    await worker.fetch(request, env)
+    const [putKey] = cache.put.mock.calls[0] as unknown as [Request]
+    expect(putKey.url).toBe('https://coasterrank.test/api/ranking')
+  })
+
+  it('returns 405 for non-GET methods', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(rankingRequest({ method: 'POST' }), env)
+    expect(response.status).toBe(405)
+    expect(response.headers.get('Allow')).toContain('GET')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('answers CORS preflights and reflects allowed origins only', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+
+    const preflight = await worker.fetch(rankingRequest({ method: 'OPTIONS' }), env)
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+
+    const allowed = await worker.fetch(rankingRequest(), env)
+    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+
+    const stranger = await worker.fetch(rankingRequest({ origin: 'https://evil.example' }), env)
+    expect(stranger.headers.get('Access-Control-Allow-Origin')).toBeNull()
+  })
+
+  it('returns 502 (no-store) when Supabase fails so the SPA can fall back', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    stubRankingUpstream(500)
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(502)
+    expect(response.headers.get('Cache-Control')).toContain('no-store')
+    expect(cache.put).not.toHaveBeenCalled()
+  })
+
+  it('returns 502 without fetching when env vars are missing', async () => {
+    const env = makeEnv()
+    env.SUPABASE_URL = undefined
+    env.SUPABASE_ANON_KEY = undefined
+    makeCacheStub()
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(502)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

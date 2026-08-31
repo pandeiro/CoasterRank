@@ -1,10 +1,29 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import type {
+  CoasterMaterial,
+  CoasterStatus,
+  Park,
+  RankingBoardPayload,
+  RankingRow,
+} from './board-types'
+
+// The board payload types live in ./board-types (also imported by the worker)
+// and are re-exported here so callers keep their existing import paths.
+export type {
+  CoasterMaterial,
+  CoasterStatus,
+  Park,
+  RankingBoardPayload,
+  RankingRow,
+} from './board-types'
 
 // Data access strategy (see PLAN §4.4 / Phase 4) — the "why" behind how the
 // board and detail pages load data:
 //
-// - The board batch-fetches the FULL `v_coaster_rankings` view once, then
+// - The board batch-fetches the FULL `v_coaster_rankings` dataset once (via
+//   the edge-cached `/api/ranking` worker endpoint, falling back to direct
+//   Supabase queries — see the board-data section below), then filters and
 //   filters and paginates in the browser (see filterCoasters / BoardPage).
 //   The dataset is small enough for this (~1k coasters today, up to ~6.6k if
 //   we adopt the full RCDB list), and it makes every filter change instant
@@ -28,59 +47,16 @@ export const FEW_VOTES_THRESHOLD = 10
 // submission_cap): a user may have at most this many PENDING submissions.
 export const SUBMISSION_PENDING_CAP = 5
 
-export const COASTER_STATUSES = [
+export const COASTER_STATUSES: readonly CoasterStatus[] = [
   'operating',
   'defunct',
   'sbno',
   'under_construction',
   'relocated',
   'unknown',
-] as const
+]
 
-export const COASTER_MATERIALS = ['steel', 'wood', 'hybrid', 'other'] as const
-
-export type CoasterStatus = (typeof COASTER_STATUSES)[number]
-export type CoasterMaterial = (typeof COASTER_MATERIALS)[number]
-
-// A row of v_coaster_rankings: the coaster plus BT metrics and its live rank.
-// Park/manufacturer display fields and aliases are denormalized onto the row
-// by the view so the board can filter and search without reference lookups.
-export type RankingRow = {
-  id: string
-  park_id: string
-  name: string
-  slug: string
-  manufacturer_id: string | null
-  model: string | null
-  opening_date: string | null
-  status: CoasterStatus
-  material: CoasterMaterial
-  height_m: number | null
-  speed_kmh: number | null
-  length_m: number | null
-  inversions: number | null
-  type: string | null
-  park_name: string | null
-  park_slug: string | null
-  park_country: string | null
-  park_city: string | null
-  manufacturer_name: string | null
-  aliases: string[] | null
-  score: number | null
-  comparisons: number | null
-  participants: number | null
-  first_place_votes: number | null
-  rank: number | null
-}
-
-export type Park = {
-  id: string
-  name: string
-  slug: string
-  country: string | null
-  region: string | null
-  city: string | null
-}
+export const COASTER_MATERIALS: readonly CoasterMaterial[] = ['steel', 'wood', 'hybrid', 'other']
 
 export type AdminPark = Park & {
   lat: number | null
@@ -555,20 +531,71 @@ export async function moveCoasterToPark(coasterId: string, newParkId: string) {
   if (error) throw error
 }
 
-// The whole board dataset, fetched once. Ordered by BT score so filtering
+// The whole board dataset (rankings + parks) --------------------------------
+//
+// Fetch path (Phase 4.2): the edge-cached worker endpoint `/api/ranking`
+// (Cloudflare Cache API, 15-minute TTL — mirrors the pg_cron recompute
+// cadence) so board/homepage loads skip Supabase entirely. Falls back to
+// direct Supabase queries when the worker is unavailable (Vite dev server,
+// worker outage) so the board degrades gracefully.
+//
+// One query powers both slices: useAllCoasters and useParks share the
+// ['board-data'] cache entry (select projects each slice), so a page mounting
+// both — e.g. the search bar — triggers a single network fetch. staleTime
+// matches the 15-minute recompute cadence: refetching more often than the
+// data can change is pure waste. Mutations that need immediate freshness
+// (admin flows) call refreshBoardData(), which bypasses the edge cache.
+export const BOARD_QUERY_KEY = ['board-data'] as const
+export const BOARD_STALE_TIME_MS = 15 * 60_000
+
+async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
+  const [rankings, parks] = await Promise.all([
+    supabase
+      .from('v_coaster_rankings')
+      .select('*')
+      .order('score', { ascending: false, nullsFirst: false })
+      .range(0, 9999),
+    supabase.from('parks').select('id, name, slug, country, region, city').order('name'),
+  ])
+  if (rankings.error) throw rankings.error
+  if (parks.error) throw parks.error
+  return {
+    rankings: rankings.data as RankingRow[],
+    parks: parks.data as Park[],
+    generated_at: new Date().toISOString(),
+  }
+}
+
+async function fetchBoardData(): Promise<RankingBoardPayload> {
+  try {
+    const response = await fetch('/api/ranking')
+    if (response.ok) {
+      const payload = (await response.json()) as RankingBoardPayload
+      if (Array.isArray(payload.rankings) && Array.isArray(payload.parks)) return payload
+    }
+  } catch {
+    // Worker unreachable (dev server, outage) — fall through to Supabase.
+  }
+  return fetchBoardDataFromSupabase()
+}
+
+// Post-mutation freshness for admin flows: refetches straight from Supabase
+// (bypassing the worker's edge cache) and seeds the ['board-data'] cache, so
+// the board reflects the change immediately — a plain invalidateQueries would
+// refetch through the edge cache and could serve up-to-15-minute-old data.
+export async function refreshBoardData(queryClient: QueryClient): Promise<void> {
+  const data = await fetchBoardDataFromSupabase()
+  queryClient.setQueryData(BOARD_QUERY_KEY, data)
+}
+
+// The whole rankings dataset, fetched once. Ordered by BT score so filtering
 // preserves the ranking. Filters and pagination happen client-side.
 export function useAllCoasters() {
   return useQuery({
-    queryKey: ['rankings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_coaster_rankings')
-        .select('*')
-        .order('score', { ascending: false, nullsFirst: false })
-        .range(0, 9999)
-      if (error) throw error
-      return data as RankingRow[]
-    },
+    queryKey: BOARD_QUERY_KEY,
+    queryFn: fetchBoardData,
+    staleTime: BOARD_STALE_TIME_MS,
+    select: (data) => data.rankings,
   })
 }
 
@@ -606,15 +633,10 @@ export function usePark(slug: string | undefined) {
 
 export function useParks() {
   return useQuery({
-    queryKey: ['parks'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('parks')
-        .select('id, name, slug, country, region, city')
-        .order('name')
-      if (error) throw error
-      return data as Park[]
-    },
+    queryKey: BOARD_QUERY_KEY,
+    queryFn: fetchBoardData,
+    staleTime: BOARD_STALE_TIME_MS,
+    select: (data) => data.parks,
   })
 }
 
