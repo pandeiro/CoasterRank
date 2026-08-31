@@ -40,11 +40,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `American Dreier Looping` (unmodeled)",
+      "title": "Decide home for `Boomerang` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "8ff8a33b-342d-48d6-a530-bd7999912626",
-        "coaster_name": "American Dreier Looping",
+        "coaster_id": "7a93f724-80a2-4112-adf7-7294743c0020",
+        "coaster_name": "Boomerang",
         "from_park": "other"
       },
       "supersededBy": "DUP-001"
@@ -54,11 +54,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `American Dreier Looping` (unmodeled)",
+      "title": "Decide home for `Cactus Coaster` (Little Dipper)",
       "decided": false,
       "payload": {
-        "coaster_id": "bf748c36-90d9-40f2-bff6-c8f07794889e",
-        "coaster_name": "American Dreier Looping",
+        "coaster_id": "29added3-9d32-4b18-858a-d08b1b1589e9",
+        "coaster_name": "Cactus Coaster",
         "from_park": "other"
       },
       "supersededBy": "DUP-001"
@@ -68,11 +68,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `American Dreier Looping` (unmodeled)",
+      "title": "Decide home for `Déjà Vu` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "c8ef53a7-cb2e-477e-972b-b975072cc9b8",
-        "coaster_name": "American Dreier Looping",
+        "coaster_id": "a38b8f9f-7e5c-4961-8810-8d3882a98f66",
+        "coaster_name": "Déjà Vu",
         "from_park": "other"
       },
       "supersededBy": "DUP-001"
@@ -82,11 +82,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Astro Storm` (Four Man Bob)",
+      "title": "Decide home for `Dragon Challenge` (Inverted Coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "74c202b3-1ee2-4e21-8523-ec0147e729e6",
-        "coaster_name": "Astro Storm",
+        "coaster_id": "972c5c58-4975-45d5-baf7-152a52d4600d",
+        "coaster_name": "Dragon Challenge",
         "from_park": "other"
       }
     },
@@ -264,11 +264,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Big Thunder Mountain Railroad` (Mine Train)",
+      "title": "Decide home for `Flying Unicorn` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
       "decided": false,
       "payload": {
-        "coaster_id": "021f17d9-ee00-49f7-bdb4-adc05bbe823f",
-        "coaster_name": "Big Thunder Mountain Railroad",
+        "coaster_id": "96434db6-a1f8-47db-8b63-f2d69a644a43",
+        "coaster_name": "Flying Unicorn",
         "from_park": "other"
       }
     },
@@ -277,11 +277,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Big Thunder Mountain Railroad` (Mine Train)",
+      "title": "Decide home for `Frankie's Mine Train` (Family Gravity Coaster 80STD)",
       "decided": false,
       "payload": {
-        "coaster_id": "d3946701-f880-454c-be77-782a042362e9",
-        "coaster_name": "Big Thunder Mountain Railroad",
+        "coaster_id": "28157c85-4c93-4b88-a3a5-9de392cd9c76",
+        "coaster_name": "Frankie's Mine Train",
         "from_park": "other"
       }
     },
@@ -290,11 +290,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Big Thunder Mountain Railroad` (Mine Train)",
+      "title": "Decide home for `Galaxi` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "e9678b4b-740d-42e1-b5f4-075778bb98b0",
-        "coaster_name": "Big Thunder Mountain Railroad",
+        "coaster_id": "0d9a3a1b-4717-433a-a007-f69147f5c889",
+        "coaster_name": "Galaxi",
         "from_park": "other"
       }
     },
@@ -303,11 +303,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Big Thunder Mountain Railroad` (Mine Train)",
+      "title": "Decide home for `Giant Inverted Boomerang` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "84dd1120-abec-4a92-8744-028cc5970e29",
-        "coaster_name": "Big Thunder Mountain Railroad",
+        "coaster_id": "dd880e9a-1800-4776-a2ef-e1518ce26264",
+        "coaster_name": "Giant Inverted Boomerang",
         "from_park": "other"
       }
     },
@@ -316,11 +316,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Boomerang` (unmodeled)",
+      "title": "Decide home for `Giant Skyrocket` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "7a93f724-80a2-4112-adf7-7294743c0020",
-        "coaster_name": "Boomerang",
+        "coaster_id": "d537c6fc-1e21-43ec-a328-ef0bd9423b7a",
+        "coaster_name": "Giant Skyrocket",
         "from_park": "other"
       }
     },
@@ -345,11 +345,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Boomerang: Coast to Coaster` (Boomerang)",
+      "title": "Decide home for `Gulf Coaster` (Little Dipper)",
       "decided": false,
       "payload": {
-        "coaster_id": "dae30563-13b0-44cc-9a63-bb0e53b240e3",
-        "coaster_name": "Boomerang: Coast to Coaster",
+        "coaster_id": "febb022c-884c-4b0c-8ba8-268771e43870",
+        "coaster_name": "Gulf Coaster",
         "from_park": "other"
       }
     },
@@ -358,11 +358,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Boomerang: Coast to Coaster` (Boomerang)",
+      "title": "Decide home for `Half Pipe` (Half Pipe Coaster (30m))",
       "decided": false,
       "payload": {
-        "coaster_id": "d8ef16ba-ac34-417f-8b56-b439950ca030",
-        "coaster_name": "Boomerang: Coast to Coaster",
+        "coaster_id": "7a08fb70-d9ad-460d-b2c9-3d2db2402992",
+        "coaster_name": "Half Pipe",
         "from_park": "other"
       }
     },
@@ -371,11 +371,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Boomerang: Coast to Coaster` (Boomerang)",
+      "title": "Decide home for `Hornet` (Twister roller coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "75df4be1-5ea7-4ca2-8a3e-e968250fda03",
-        "coaster_name": "Boomerang: Coast to Coaster",
+        "coaster_id": "3426dda8-04db-4f4e-bc4e-cd97138334a9",
+        "coaster_name": "Hornet",
         "from_park": "other"
       }
     },
@@ -384,11 +384,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Cactus Coaster` (Little Dipper)",
+      "title": "Decide home for `Hurler` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "29added3-9d32-4b18-858a-d08b1b1589e9",
-        "coaster_name": "Cactus Coaster",
+        "coaster_id": "37549fd5-84db-4cea-a8bd-32097c0094e0",
+        "coaster_name": "Hurler",
         "from_park": "other"
       }
     },
@@ -445,11 +445,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dauling Dragon` (Racing roller coaster)",
+      "title": "Decide home for `Iron Wolf` (Floorless)",
       "decided": false,
       "payload": {
-        "coaster_id": "55b12f3d-2f56-43ea-aab6-ca36149f031a",
-        "coaster_name": "Dauling Dragon",
+        "coaster_id": "da04a107-094b-4681-bc77-88cf0de3608b",
+        "coaster_name": "Iron Wolf",
         "from_park": "other"
       }
     },
@@ -458,11 +458,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Déjà Vu` (unmodeled)",
+      "title": "Decide home for `Italian Job: Turbo Coaster` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "a38b8f9f-7e5c-4961-8810-8d3882a98f66",
-        "coaster_name": "Déjà Vu",
+        "coaster_id": "13fb71dd-64af-48f0-94e5-be40178adc89",
+        "coaster_name": "Italian Job: Turbo Coaster",
         "from_park": "other"
       }
     },
@@ -471,11 +471,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dragon Challenge` (Inverted Coaster)",
+      "title": "Decide home for `Jet Star` (Jet Star)",
       "decided": false,
       "payload": {
-        "coaster_id": "972c5c58-4975-45d5-baf7-152a52d4600d",
-        "coaster_name": "Dragon Challenge",
+        "coaster_id": "4a8016b7-6a3e-4acd-a26a-d18f33518cf3",
+        "coaster_name": "Jet Star",
         "from_park": "other"
       }
     },
@@ -484,11 +484,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dragon Challenge` (Inverted Coaster)",
+      "title": "Decide home for `Jumbo Jet` (Jet Star 3 / Jumbo Jet)",
       "decided": false,
       "payload": {
-        "coaster_id": "6768e8aa-4897-4c95-9dea-f684339f7a07",
-        "coaster_name": "Dragon Challenge",
+        "coaster_id": "05a7bc8a-645e-4d24-8084-408d3ed55e8b",
+        "coaster_name": "Jumbo Jet",
         "from_park": "other"
       }
     },
@@ -497,11 +497,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dragon Coaster` (Powered Coaster)",
+      "title": "Decide home for `Katapul` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "31ea8fcc-ee86-4721-b945-9deecb576b48",
-        "coaster_name": "Dragon Coaster",
+        "coaster_id": "a8b3ad12-61bb-4bf7-bd17-ccb1cfa21da1",
+        "coaster_name": "Katapul",
         "from_park": "other"
       }
     },
@@ -510,11 +510,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dragon's Run` (Sitting Coaster)",
+      "title": "Decide home for `Klondike Gold Mine` (ZL42)",
       "decided": false,
       "payload": {
-        "coaster_id": "3daf84b4-6bc8-4d5b-b444-02b66b5181e0",
-        "coaster_name": "Dragon's Run",
+        "coaster_id": "dbd9e487-874a-4aed-84b4-0f699d7c1f71",
+        "coaster_name": "Klondike Gold Mine",
         "from_park": "other"
       }
     },
@@ -523,11 +523,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Dragon's Run` (Sitting Coaster)",
+      "title": "Decide home for `Knightmare` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "6a9a8223-2330-41f5-b3f5-b54a6833a842",
-        "coaster_name": "Dragon's Run",
+        "coaster_id": "deb2142e-b82f-4330-a6f0-6a2ea5996f26",
+        "coaster_name": "Knightmare",
         "from_park": "other"
       }
     },
@@ -536,11 +536,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Ednör – L'Attaque` (SLC (689m Standard))",
+      "title": "Decide home for `Kong` (Suspended Looping Coaster (689m Standard))",
       "decided": false,
       "payload": {
-        "coaster_id": "c2f9fb65-c6f9-4304-86f7-453056e64d8e",
-        "coaster_name": "Ednör – L'Attaque",
+        "coaster_id": "91f7868d-3fc6-4805-94c7-d4a9837fc523",
+        "coaster_name": "Kong",
         "from_park": "other"
       }
     },
@@ -549,11 +549,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Eurostar` (Portable Inverted Coaster)",
+      "title": "Decide home for `Lightnin' Loops` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "65c14e8f-b968-4764-9115-7ea45aade891",
-        "coaster_name": "Eurostar",
+        "coaster_id": "288f8c9f-50a5-4934-8a12-a3ecb73124ec",
+        "coaster_name": "Lightnin' Loops",
         "from_park": "other"
       }
     },
@@ -562,11 +562,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Eurostar` (Portable Inverted Coaster)",
+      "title": "Decide home for `Loop the Loop` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "63ed715e-a9de-4331-bc2f-0cf68c6f21ae",
-        "coaster_name": "Eurostar",
+        "coaster_id": "6033ef83-dec2-4939-9527-150d088d5cea",
+        "coaster_name": "Loop the Loop",
         "from_park": "other"
       }
     },
@@ -575,11 +575,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Fiorano GT Challenge` (unmodeled)",
+      "title": "Decide home for `Magic Flyer` (Little Dipper)",
       "decided": false,
       "payload": {
-        "coaster_id": "e973dc7f-2c64-46b2-97b8-afe8cf399303",
-        "coaster_name": "Fiorano GT Challenge",
+        "coaster_id": "59962761-9aa5-4f09-a6cc-50dcf0183b95",
+        "coaster_name": "Magic Flyer",
         "from_park": "other"
       }
     },
@@ -588,11 +588,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Firebird` (Floorless)",
+      "title": "Decide home for `Montaña Rusa` (Speed Racer / Extended Jumbo Jet)",
       "decided": false,
       "payload": {
-        "coaster_id": "cf2df6b6-9303-463a-87d3-92a9bbecff96",
-        "coaster_name": "Firebird",
+        "coaster_id": "ca45918e-e275-4f97-9a75-f464528c167b",
+        "coaster_name": "Montaña Rusa",
         "from_park": "other"
       }
     },
@@ -601,11 +601,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Firebird` (Floorless)",
+      "title": "Decide home for `Nightmare at Crack Axle Canyon` (Twister roller coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "9aae809f-44b9-4baf-a162-2c9f943c3769",
-        "coaster_name": "Firebird",
+        "coaster_id": "f78f875a-c18b-4aa1-a9ea-e6568a4d517f",
+        "coaster_name": "Nightmare at Crack Axle Canyon",
         "from_park": "other"
       }
     },
@@ -614,11 +614,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Firehawk` (Flying Dutchman (1018m))",
+      "title": "Decide home for `Powder Keg: A Blast into the Wilderness` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "63e4b461-41c4-4817-b778-8494db7d2ea1",
-        "coaster_name": "Firehawk",
+        "coaster_id": "699a934b-9435-4bab-85db-720b93a34898",
+        "coaster_name": "Powder Keg: A Blast into the Wilderness",
         "from_park": "other"
       }
     },
@@ -654,18 +654,13 @@
       "id": "ORPH-042",
       "kind": "orphan_rehome",
       "action": "review",
-      "confidence": "medium",
-      "title": "Resolve collision: `Flashback` → Six Flags Magic Mountain (target park already has 1 same-name row(s))",
+      "confidence": "low",
+      "title": "Decide home for `RC Racer` (Half Pipe Coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "aab607b2-ed96-4a4b-9410-059aa7128348",
-        "coaster_name": "Flashback",
-        "from_park": "other",
-        "to_park_slug": "six-flags-magic-mountain",
-        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f",
-        "collides_with": [
-          "7e381e83-74da-4814-8379-b11b1e15081f"
-        ]
+        "coaster_id": "dd7a8520-0c81-461b-b35c-ab14642e7668",
+        "coaster_name": "RC Racer",
+        "from_park": "other"
       },
       "supersededBy": "ORPH-041"
     },
@@ -734,11 +729,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flight of Fear` (LIM Catapult)",
+      "title": "Decide home for `Roar` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "3523a6e1-0bd3-40cd-bc12-0f740654a4a6",
-        "coaster_name": "Flight of Fear",
+        "coaster_id": "4bcf2e2b-e5ae-4fbb-813a-7f8c4022d1de",
+        "coaster_name": "Roar",
         "from_park": "other"
       }
     },
@@ -747,11 +742,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flight of the Hippogriff` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
+      "title": "Decide home for `Rock 'n' Roller Coaster Starring Aerosmith` (LSM Coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "ad0fd2ad-48c6-4957-8220-5ccd4f3ee305",
-        "coaster_name": "Flight of the Hippogriff",
+        "coaster_id": "3d2c08d6-65ba-4eea-b282-66e161f491f8",
+        "coaster_name": "Rock 'n' Roller Coaster Starring Aerosmith",
         "from_park": "other"
       }
     },
@@ -760,11 +755,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flight of the Hippogriff` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
+      "title": "Decide home for `Rock n' Roller Coaster` (Mine Train)",
       "decided": false,
       "payload": {
-        "coaster_id": "c51de4f4-559a-47ce-bca1-b48535031b48",
-        "coaster_name": "Flight of the Hippogriff",
+        "coaster_id": "c111b3f0-e7af-46f8-9712-8105936d2221",
+        "coaster_name": "Rock n' Roller Coaster",
         "from_park": "other"
       }
     },
@@ -773,11 +768,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flight of the Hippogriff` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
+      "title": "Decide home for `Roller Coaster` (Large Tivoli)",
       "decided": false,
       "payload": {
-        "coaster_id": "0718e897-c0d2-4637-9226-2ddb74e07ce3",
-        "coaster_name": "Flight of the Hippogriff",
+        "coaster_id": "14237dba-d917-40cf-bc9f-3fe8b8ffba29",
+        "coaster_name": "Roller Coaster",
         "from_park": "other"
       }
     },
@@ -786,11 +781,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flight of the Hippogriff` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
+      "title": "Decide home for `Rolling Thunder` (Racing roller coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "60b7b5a9-eab7-470f-90f0-a133c38c024b",
-        "coaster_name": "Flight of the Hippogriff",
+        "coaster_id": "08fc157d-8d05-4ef4-b7b2-047861d6b86b",
+        "coaster_name": "Rolling Thunder",
         "from_park": "other"
       }
     },
@@ -814,11 +809,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flying Dutchman Gold Mine` (Wild Mouse (compact park))",
+      "title": "Decide home for `Screamin' Demon` (Launched Loop)",
       "decided": false,
       "payload": {
-        "coaster_id": "e61dcbf9-d788-43fb-a06f-4e1f2b39b572",
-        "coaster_name": "Flying Dutchman Gold Mine",
+        "coaster_id": "7931d41d-360d-4ac2-b904-9388d86bab64",
+        "coaster_name": "Screamin' Demon",
         "from_park": "other"
       }
     },
@@ -827,11 +822,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Flying Unicorn` (Junior Coaster (335m)[1] Youngstar Coaster (Hollywood, Beijing) [1])",
+      "title": "Decide home for `Shuttle Loop` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "96434db6-a1f8-47db-8b63-f2d69a644a43",
-        "coaster_name": "Flying Unicorn",
+        "coaster_id": "38aaeb95-00f5-4d08-812f-b39d65d627f7",
+        "coaster_name": "Shuttle Loop",
         "from_park": "other"
       }
     },
@@ -840,11 +835,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Frankie's Mine Train` (Family Gravity Coaster 80STD)",
+      "title": "Decide home for `Skyliner` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "28157c85-4c93-4b88-a3a5-9de392cd9c76",
-        "coaster_name": "Frankie's Mine Train",
+        "coaster_id": "43e385c9-7ed0-41f7-b01c-81e03605cd09",
+        "coaster_name": "Skyliner",
         "from_park": "other"
       }
     },
@@ -853,11 +848,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Frankie's Mine Train` (Family Gravity Coaster 80STD)",
+      "title": "Decide home for `Soarin' Eagle` (Volare)",
       "decided": false,
       "payload": {
-        "coaster_id": "d00bd594-f8bd-4f64-a5ad-9179f5b2d0a5",
-        "coaster_name": "Frankie's Mine Train",
+        "coaster_id": "76fcf5dc-21b9-4b27-bf29-ec6bc48b37f5",
+        "coaster_name": "Soarin' Eagle",
         "from_park": "other"
       }
     },
@@ -866,11 +861,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Gadget's Go Coaster` (Junior Coaster (207m))",
+      "title": "Decide home for `Speed – The Ride` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "46da20d0-e0b2-4c17-858f-d7cdffbb8e23",
-        "coaster_name": "Gadget's Go Coaster",
+        "coaster_id": "0f03e001-8c26-4a38-9fec-93f62d677cd4",
+        "coaster_name": "Speed – The Ride",
         "from_park": "other"
       }
     },
@@ -879,11 +874,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Gadget's Go Coaster` (Junior Coaster (207m))",
+      "title": "Decide home for `Steel First` (Little Dipper)",
       "decided": false,
       "payload": {
-        "coaster_id": "514c179b-653b-4729-b143-5c5ec3fcfa81",
-        "coaster_name": "Gadget's Go Coaster",
+        "coaster_id": "1deabbbe-0be9-4a37-b4bc-dd6632733f15",
+        "coaster_name": "Steel First",
         "from_park": "other"
       }
     },
@@ -892,11 +887,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Galaxi` (unmodeled)",
+      "title": "Decide home for `Stinger` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "0d9a3a1b-4717-433a-a007-f69147f5c889",
-        "coaster_name": "Galaxi",
+        "coaster_id": "6697a817-5fd4-4f5d-8255-97fe151f1628",
+        "coaster_name": "Stinger",
         "from_park": "other"
       }
     },
@@ -905,11 +900,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Giant Inverted Boomerang` (unmodeled)",
+      "title": "Decide home for `Superman – Ride of Steel` (Mega Coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "dd880e9a-1800-4776-a2ef-e1518ce26264",
-        "coaster_name": "Giant Inverted Boomerang",
+        "coaster_id": "8aa9a4de-3e83-4ece-94bc-d7f092c62ef2",
+        "coaster_name": "Superman – Ride of Steel",
         "from_park": "other"
       }
     },
@@ -918,11 +913,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Giant Skyrocket` (unmodeled)",
+      "title": "Decide home for `Superman: Ultimate Flight` (Flying Coaster - Superman)",
       "decided": false,
       "payload": {
-        "coaster_id": "d537c6fc-1e21-43ec-a328-ef0bd9423b7a",
-        "coaster_name": "Giant Skyrocket",
+        "coaster_id": "43b3a5f1-1e7a-4079-a0cb-796e2618046b",
+        "coaster_name": "Superman: Ultimate Flight",
         "from_park": "other"
       }
     },
@@ -946,11 +941,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Gotham City Gauntlet: Escape from Arkham Asylum` (Wilde Maus Classic)",
+      "title": "Decide home for `The Flying Cobras` (Boomerang)",
       "decided": false,
       "payload": {
-        "coaster_id": "160d2ad5-afe4-4411-8ba0-ae14ec8d738e",
-        "coaster_name": "Gotham City Gauntlet: Escape from Arkham Asylum",
+        "coaster_id": "e008d197-d27c-41c8-8f11-a6a3b84caaa6",
+        "coaster_name": "The Flying Cobras",
         "from_park": "other"
       }
     },
@@ -959,11 +954,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Gotham City Gauntlet: Escape from Arkham Asylum` (Wilde Maus Classic)",
+      "title": "Decide home for `The Gold Coaster` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "18ec385d-cdcf-4ab4-89f7-604a2bfda267",
-        "coaster_name": "Gotham City Gauntlet: Escape from Arkham Asylum",
+        "coaster_id": "772baa53-4358-4434-afee-d995163152cd",
+        "coaster_name": "The Gold Coaster",
         "from_park": "other"
       }
     },
@@ -1047,11 +1042,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Gulf Coaster` (Little Dipper)",
+      "title": "Decide home for `Tiger Express` (Wild Mouse (compact park))",
       "decided": false,
       "payload": {
-        "coaster_id": "febb022c-884c-4b0c-8ba8-268771e43870",
-        "coaster_name": "Gulf Coaster",
+        "coaster_id": "74d2fad1-b1f3-49cc-b229-e189e011c3a3",
+        "coaster_name": "Tiger Express",
         "from_park": "other"
       }
     },
@@ -1060,11 +1055,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Half Pipe` (Half Pipe Coaster (30m))",
+      "title": "Decide home for `Triops` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "7a08fb70-d9ad-460d-b2c9-3d2db2402992",
-        "coaster_name": "Half Pipe",
+        "coaster_id": "731f15ac-e9f0-43b0-9cdb-7a94daad4f88",
+        "coaster_name": "Triops",
         "from_park": "other"
       }
     },
@@ -1073,11 +1068,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Half Pipe` (Half Pipe Coaster (30m))",
+      "title": "Decide home for `Tron Lightcycle Power Run` (Motorbike roller coaster)",
       "decided": false,
       "payload": {
-        "coaster_id": "a611d2c8-9a20-4176-9ba5-a612ed875a77",
-        "coaster_name": "Half Pipe",
+        "coaster_id": "359083d4-7d37-4c86-bfca-1ee27bf7ba2f",
+        "coaster_name": "Tron Lightcycle Power Run",
         "from_park": "other"
       }
     },
@@ -1086,11 +1081,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Hornet` (Twister roller coaster)",
+      "title": "Decide home for `Tsunami` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "3426dda8-04db-4f4e-bc4e-cd97138334a9",
-        "coaster_name": "Hornet",
+        "coaster_id": "36e9f95f-fae6-4ac1-bb15-097288e92abd",
+        "coaster_name": "Tsunami",
         "from_park": "other"
       }
     },
@@ -1099,11 +1094,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Hurler` (unmodeled)",
+      "title": "Decide home for `Two Face: The Flip Side` (unmodeled)",
       "decided": false,
       "payload": {
-        "coaster_id": "37549fd5-84db-4cea-a8bd-32097c0094e0",
-        "coaster_name": "Hurler",
+        "coaster_id": "2700861a-bd93-46a1-9a96-2cbcf47a378c",
+        "coaster_name": "Two Face: The Flip Side",
         "from_park": "other"
       }
     },
@@ -1112,11 +1107,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Infusion` (Suspended Looping Coaster)",
+      "title": "Decide home for `Ultra Twister` (Ultratwister)",
       "decided": false,
       "payload": {
-        "coaster_id": "f8ae7e23-7259-4fc8-87d9-892ea1d23655",
-        "coaster_name": "Infusion",
+        "coaster_id": "4154fb5b-c24d-42aa-8939-761d490b3adb",
+        "coaster_name": "Ultra Twister",
         "from_park": "other"
       }
     },
@@ -1125,11 +1120,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Invertigo` (unmodeled)",
+      "title": "Decide home for `Vipère` (Ball Coaster – ZacSpin)",
       "decided": false,
       "payload": {
-        "coaster_id": "88997f5d-22ba-4dff-acde-1b5e06b921a0",
-        "coaster_name": "Invertigo",
+        "coaster_id": "1fb3752c-524e-4654-a577-0501cac2c084",
+        "coaster_name": "Vipère",
         "from_park": "other"
       }
     },
@@ -1168,11 +1163,11 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Iron Wolf` (Floorless)",
+      "title": "Decide home for `Wild West Express Coaster` (Tivoli)",
       "decided": false,
       "payload": {
-        "coaster_id": "da04a107-094b-4681-bc77-88cf0de3608b",
-        "coaster_name": "Iron Wolf",
+        "coaster_id": "70ebfc43-19e6-4079-9cd4-0ed1abc53351",
+        "coaster_name": "Wild West Express Coaster",
         "from_park": "other"
       }
     },
@@ -1211,1398 +1206,6 @@
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
-      "title": "Decide home for `Italian Job: Turbo Coaster` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "13fb71dd-64af-48f0-94e5-be40178adc89",
-        "coaster_name": "Italian Job: Turbo Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-082",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Jet Star` (Jet Star)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4a8016b7-6a3e-4acd-a26a-d18f33518cf3",
-        "coaster_name": "Jet Star",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-083",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Jumbo Jet` → Cedar Point",
-      "decided": true,
-      "payload": {
-        "coaster_id": "30997f4e-4c5a-4211-a16c-4e375ecf176a",
-        "coaster_name": "Jumbo Jet",
-        "from_park": "other",
-        "to_park_slug": "cedar-point",
-        "to_park_id": "e8f9a50c-63a1-41a4-984c-65fe985d8e8a"
-      }
-    },
-    {
-      "id": "ORPH-084",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Jumbo Jet` (Jet Star 3 / Jumbo Jet)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "05a7bc8a-645e-4d24-8084-408d3ed55e8b",
-        "coaster_name": "Jumbo Jet",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-085",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Katapul` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "a8b3ad12-61bb-4bf7-bd17-ccb1cfa21da1",
-        "coaster_name": "Katapul",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-086",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Klondike Gold Mine` (ZL42)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "dbd9e487-874a-4aed-84b4-0f699d7c1f71",
-        "coaster_name": "Klondike Gold Mine",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-087",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Klondike Gold Mine` (ZL42)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "08166273-d08a-4a1f-85a4-cfcc311f11fc",
-        "coaster_name": "Klondike Gold Mine",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-088",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Knightmare` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "deb2142e-b82f-4330-a6f0-6a2ea5996f26",
-        "coaster_name": "Knightmare",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-089",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Knightmare` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "e1c89d99-c68c-4b3f-9e59-d74cb770f58d",
-        "coaster_name": "Knightmare",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-090",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Kong` (Suspended Looping Coaster (689m Standard))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "91f7868d-3fc6-4805-94c7-d4a9837fc523",
-        "coaster_name": "Kong",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-091",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `La Vibora` (Swiss Bob)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "53116809-95c3-41e5-8661-215481d2d642",
-        "coaster_name": "La Vibora",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-092",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `La Vibora` (Swiss Bob)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "e348bf04-f396-4bdf-a4ff-76c0fb88b3cc",
-        "coaster_name": "La Vibora",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-093",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `La Vibora` (Swiss Bob)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "d7c4e756-d64d-438d-ac19-85bec247422c",
-        "coaster_name": "La Vibora",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-094",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Le Monstre` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "0d6c284e-4920-47d9-a61e-8a25355e5d56",
-        "coaster_name": "Le Monstre",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-095",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lego Technic Test Track` (Wild Mouse (large park))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "1e299aa7-2c0a-4c2c-beaf-e1a13ee6097b",
-        "coaster_name": "Lego Technic Test Track",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-096",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lego Technic Test Track` (Wild Mouse (large park))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "10c14fd6-d050-4b99-b54a-7fc91965c1e9",
-        "coaster_name": "Lego Technic Test Track",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-097",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lego Technic Test Track` (Wild Mouse (large park))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4e193250-fd8e-4535-b885-3e4d1233ec17",
-        "coaster_name": "Lego Technic Test Track",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-098",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lego Technic Test Track` (Wild Mouse (large park))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "d31c5d07-d5c5-4c07-901a-a6088af488df",
-        "coaster_name": "Lego Technic Test Track",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-099",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lightnin' Loops` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "288f8c9f-50a5-4934-8a12-a3ecb73124ec",
-        "coaster_name": "Lightnin' Loops",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-100",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Lightnin' Loops` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "dc97ddb4-b36f-44b1-b078-1c15e95cefc3",
-        "coaster_name": "Lightnin' Loops",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-101",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Little Dipper` → Six Flags Great America",
-      "decided": true,
-      "payload": {
-        "coaster_id": "aef1ba5c-2351-43ff-bca7-371164a5b8a9",
-        "coaster_name": "Little Dipper",
-        "from_park": "other",
-        "to_park_slug": "six-flags-great-america",
-        "to_park_id": "4f93a3b7-4be1-4ecb-a19b-57ce40ae2c81"
-      }
-    },
-    {
-      "id": "ORPH-102",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Little Dipper` → Six Flags Great America",
-      "decided": true,
-      "payload": {
-        "coaster_id": "9322e873-2d9d-478a-a523-914f8ce44533",
-        "coaster_name": "Little Dipper",
-        "from_park": "other",
-        "to_park_slug": "six-flags-great-america",
-        "to_park_id": "4f93a3b7-4be1-4ecb-a19b-57ce40ae2c81"
-      }
-    },
-    {
-      "id": "ORPH-103",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Loop the Loop` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "6033ef83-dec2-4939-9527-150d088d5cea",
-        "coaster_name": "Loop the Loop",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-104",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Loop the Loop` → Coney Island",
-      "decided": true,
-      "payload": {
-        "coaster_id": "39df3955-22b9-4b9e-a0c9-48a263ae632c",
-        "coaster_name": "Loop the Loop",
-        "from_park": "other",
-        "to_park_slug": "coney-island",
-        "to_park_id": "d6b425f4-36b6-4d99-91fe-a3033dd6adb0"
-      }
-    },
-    {
-      "id": "ORPH-105",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Magic Flyer` (Little Dipper)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "59962761-9aa5-4f09-a6cc-50dcf0183b95",
-        "coaster_name": "Magic Flyer",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-106",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Montaña Rusa` (Speed Racer / Extended Jumbo Jet)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "ca45918e-e275-4f97-9a75-f464528c167b",
-        "coaster_name": "Montaña Rusa",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-107",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Nightmare at Crack Axle Canyon` (Twister roller coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "f78f875a-c18b-4aa1-a9ea-e6568a4d517f",
-        "coaster_name": "Nightmare at Crack Axle Canyon",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-108",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Pandemonium` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "77224563-d77e-4ac1-800e-133fd535e683",
-        "coaster_name": "Pandemonium",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-109",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Pandemonium` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "5d64fc90-7a8f-4123-b592-3bde2e7ee3df",
-        "coaster_name": "Pandemonium",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-110",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Pandemonium` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "0341e103-7a02-4b1f-a1c8-bdd8184d99e1",
-        "coaster_name": "Pandemonium",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-111",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Powder Keg: A Blast into the Wilderness` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "699a934b-9435-4bab-85db-720b93a34898",
-        "coaster_name": "Powder Keg: A Blast into the Wilderness",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-112",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Ragin' Cajun` (Twister Coaster 420STD)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4ca366ab-4554-4580-8211-8b068581711e",
-        "coaster_name": "Ragin' Cajun",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-113",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Ragin' Cajun` (Twister Coaster 420STD)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "6607253f-bdbd-4711-b8d5-cfe3847daecf",
-        "coaster_name": "Ragin' Cajun",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-114",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `RC Racer` (Half Pipe Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "dd7a8520-0c81-461b-b35c-ab14642e7668",
-        "coaster_name": "RC Racer",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-115",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `RC Racer` (Half Pipe Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "952bda6a-9547-4ec4-acbe-ad684bf7b908",
-        "coaster_name": "RC Racer",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-116",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `RC Racer` (Half Pipe Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "3dd6cf53-e2a6-48a4-831f-5271a9ceeff2",
-        "coaster_name": "RC Racer",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-117",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Recoil` (Boomerang)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "c0f760aa-0c51-4b19-ad75-d4844f68555d",
-        "coaster_name": "Recoil",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-118",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Revenge of the Mummy` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "ed309509-1452-4114-87e2-11575c83e6f8",
-        "coaster_name": "Revenge of the Mummy",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-119",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Revenge of the Mummy` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "e5de71e4-52da-4c6a-a10a-d8a67fe2fcae",
-        "coaster_name": "Revenge of the Mummy",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-120",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Road Runner Express` → Six Flags New Orleans",
-      "decided": true,
-      "payload": {
-        "coaster_id": "a929ac13-1d4f-4d88-92df-103cf1ae0a0d",
-        "coaster_name": "Road Runner Express",
-        "from_park": "other",
-        "to_park_slug": "six-flags-new-orleans",
-        "to_park_id": "f47ff715-25b6-4307-8f37-da10e63b3f0e"
-      }
-    },
-    {
-      "id": "ORPH-121",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Road Runner Express` → Kentucky Kingdom",
-      "decided": true,
-      "payload": {
-        "coaster_id": "b826df4f-37f9-4b5e-be89-655a6193cd31",
-        "coaster_name": "Road Runner Express",
-        "from_park": "other",
-        "to_park_slug": "kentucky-kingdom",
-        "to_park_id": "6dab562e-7c76-42a0-b261-fd3811bc0821"
-      }
-    },
-    {
-      "id": "ORPH-122",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Road Runner Express` → Six Flags Magic Mountain",
-      "decided": true,
-      "payload": {
-        "coaster_id": "bbf58e51-6a4b-4841-8703-1de58d9f7db8",
-        "coaster_name": "Road Runner Express",
-        "from_park": "other",
-        "to_park_slug": "six-flags-magic-mountain",
-        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f"
-      }
-    },
-    {
-      "id": "ORPH-123",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Roar` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4bcf2e2b-e5ae-4fbb-813a-7f8c4022d1de",
-        "coaster_name": "Roar",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-124",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Roar` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "3aaf122c-50d2-4662-8a7c-ccbceada4ea8",
-        "coaster_name": "Roar",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-125",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Rock 'n' Roller Coaster Starring Aerosmith` (LSM Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "3d2c08d6-65ba-4eea-b282-66e161f491f8",
-        "coaster_name": "Rock 'n' Roller Coaster Starring Aerosmith",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-126",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Rock 'n' Roller Coaster Starring Aerosmith` (LSM Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "5e540cbf-4c16-47be-81fd-6d439d607c4a",
-        "coaster_name": "Rock 'n' Roller Coaster Starring Aerosmith",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-127",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Rock n' Roller Coaster` (Mine Train)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "c111b3f0-e7af-46f8-9712-8105936d2221",
-        "coaster_name": "Rock n' Roller Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-128",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Roller Coaster` (Large Tivoli)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "14237dba-d917-40cf-bc9f-3fe8b8ffba29",
-        "coaster_name": "Roller Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-129",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Roller Coaster` (Large Tivoli)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "a7ebb61a-dd03-462a-8a19-a9ef4137f1a2",
-        "coaster_name": "Roller Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-130",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Rolling Thunder` (Racing roller coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "08fc157d-8d05-4ef4-b7b2-047861d6b86b",
-        "coaster_name": "Rolling Thunder",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-131",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Sand Serpent` (Wild Maus)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "5725cdfc-a19c-474e-8ce1-86dca2612237",
-        "coaster_name": "Sand Serpent",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-132",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Screamin' Demon` (Launched Loop)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "7931d41d-360d-4ac2-b904-9388d86bab64",
-        "coaster_name": "Screamin' Demon",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-133",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Seven Dwarfs Mine Train` (Custom)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "3d76a54d-87d4-4eec-ae23-bc69166476b7",
-        "coaster_name": "Seven Dwarfs Mine Train",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-134",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Seven Dwarfs Mine Train` (Custom)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "fa5a7935-4570-468a-9d49-97bbb3de221f",
-        "coaster_name": "Seven Dwarfs Mine Train",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-135",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Shuttle Loop` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "38aaeb95-00f5-4d08-812f-b39d65d627f7",
-        "coaster_name": "Shuttle Loop",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-136",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Sidewinder` → Elitch Gardens",
-      "decided": true,
-      "payload": {
-        "coaster_id": "88c7a678-458f-46a8-9859-1669dbc5cac6",
-        "coaster_name": "Sidewinder",
-        "from_park": "other",
-        "to_park_slug": "elitch-gardens",
-        "to_park_id": "3d927c29-0626-426e-a115-03e0286e3a8a"
-      }
-    },
-    {
-      "id": "ORPH-137",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Skyliner` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "43e385c9-7ed0-41f7-b01c-81e03605cd09",
-        "coaster_name": "Skyliner",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-138",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Smoky Mountain Alpine Coaster` (Mountain coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "48cbaa90-db76-42b7-99da-a8edaa66281a",
-        "coaster_name": "Smoky Mountain Alpine Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-139",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Soarin' Eagle` (Volare)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "76fcf5dc-21b9-4b27-bf29-ec6bc48b37f5",
-        "coaster_name": "Soarin' Eagle",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-140",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Speed – The Ride` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "0f03e001-8c26-4a38-9fec-93f62d677cd4",
-        "coaster_name": "Speed – The Ride",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-141",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Speed – The Ride` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "a13756b5-0883-4f44-90b1-4a0768459035",
-        "coaster_name": "Speed – The Ride",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-142",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Stampida` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "b400cab0-f0b8-4456-ac1d-0e680c425f5c",
-        "coaster_name": "Stampida",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-143",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Steel First` (Little Dipper)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "1deabbbe-0be9-4a37-b4bc-dd6632733f15",
-        "coaster_name": "Steel First",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-144",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Stinger` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "6697a817-5fd4-4f5d-8255-97fe151f1628",
-        "coaster_name": "Stinger",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-145",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Super Grover's Box Car Derby` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "bd86f009-df54-448e-8505-9b72b2ee3de1",
-        "coaster_name": "Super Grover's Box Car Derby",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-146",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Super Grover's Box Car Derby` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "625cdd08-39f8-482f-83cd-8417c8172a1b",
-        "coaster_name": "Super Grover's Box Car Derby",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-147",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Super Grover's Box Car Derby` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "470619a3-6dc7-4177-9027-a3202eb85e58",
-        "coaster_name": "Super Grover's Box Car Derby",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-148",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Superman – Ride of Steel` (Mega Coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "8aa9a4de-3e83-4ece-94bc-d7f092c62ef2",
-        "coaster_name": "Superman – Ride of Steel",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-149",
-      "kind": "coaster_merge",
-      "action": "merge_coasters",
-      "confidence": "medium",
-      "title": "Merge orphan into the existing SFFT `Superman: Krypton Coaster` row (same ride; CSV had it twice under different parks)",
-      "decided": true,
-      "payload": {
-        "survivor_id": "1aa71281-4f3d-4bad-9222-25f0d5ede941",
-        "merge_ids": [
-          "968e71eb-06fc-4995-bcb2-5f97633a3cf3"
-        ],
-        "aliases": [],
-        "overrides": {
-          "status": "operating"
-        }
-      },
-      "crafted": true
-    },
-    {
-      "id": "ORPH-150",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Superman: Ultimate Flight` (Flying Coaster - Superman)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "43b3a5f1-1e7a-4079-a0cb-796e2618046b",
-        "coaster_name": "Superman: Ultimate Flight",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-151",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Superman: Ultimate Flight` (Flying Coaster - Superman)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "2587a5a2-36a1-40d4-8e3a-f2bdc4fe6d2f",
-        "coaster_name": "Superman: Ultimate Flight",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-152",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `The Bat` → Canada's Wonderland",
-      "decided": true,
-      "payload": {
-        "coaster_id": "76aa9a09-2964-4c1f-8a2c-7b32afcd93d8",
-        "coaster_name": "The Bat",
-        "from_park": "other",
-        "to_park_slug": "canada-s-wonderland",
-        "to_park_id": "230bd22e-4321-4249-b2bd-ff44edca23d3"
-      }
-    },
-    {
-      "id": "ORPH-153",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Dark Knight Coaster` (Wild Mouse (compact mobile, rev. 2))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "e39c5560-6ef9-4ccd-9a6a-133f7bde4d7e",
-        "coaster_name": "The Dark Knight Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-154",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Dark Knight Coaster` (Wild Mouse (compact mobile, rev. 2))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "225154cb-b2a6-4023-976a-4180cf23b84d",
-        "coaster_name": "The Dark Knight Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-155",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Flying Cobras` (Boomerang)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "e008d197-d27c-41c8-8f11-a6a3b84caaa6",
-        "coaster_name": "The Flying Cobras",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-156",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Gold Coaster` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "772baa53-4358-4434-afee-d995163152cd",
-        "coaster_name": "The Gold Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-157",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Gold Coaster` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "bc7dc10a-8a0c-49e5-8298-2b499b94efd9",
-        "coaster_name": "The Gold Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-158",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Jester` (Hurricane)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "6a8ba4af-36cc-4365-b6e2-0afd61fe5954",
-        "coaster_name": "The Jester",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-159",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `The Joker` → Six Flags New England",
-      "decided": true,
-      "payload": {
-        "coaster_id": "4dd47825-cad0-4b67-a5eb-289d709c665e",
-        "coaster_name": "The Joker",
-        "from_park": "other",
-        "to_park_slug": "six-flags-new-england",
-        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0"
-      }
-    },
-    {
-      "id": "ORPH-160",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `The Joker's Revenge` (Hurricane)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "b308de1d-0c6c-4988-a11b-9e4a7e6a5c42",
-        "coaster_name": "The Joker's Revenge",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-161",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `The Mind Eraser` → Geauga Lake",
-      "decided": true,
-      "payload": {
-        "coaster_id": "eb322939-5b27-4ec6-91f3-b416b8ae518f",
-        "coaster_name": "The Mind Eraser",
-        "from_park": "other",
-        "to_park_slug": "geauga-lake",
-        "to_park_id": "b8603948-d925-42f6-b7ec-bdf0eca4bc7e"
-      }
-    },
-    {
-      "id": "ORPH-162",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `The Monster` → Walygator Parc",
-      "decided": true,
-      "payload": {
-        "coaster_id": "c32402cd-71d8-4889-95bd-766e8ceb0191",
-        "coaster_name": "The Monster",
-        "from_park": "other",
-        "to_park_slug": "walygator-parc",
-        "to_park_id": "297ae332-1b29-4038-ab6b-623f22624488"
-      }
-    },
-    {
-      "id": "ORPH-163",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Thunder Looper` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "14914529-4d8e-49f8-b1fe-a1a8c081a7d4",
-        "coaster_name": "Thunder Looper",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-164",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Thunder Road` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "b34696cf-2beb-438d-83eb-834bbb469f44",
-        "coaster_name": "Thunder Road",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-165",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Thunderbolt` → Celebration City",
-      "decided": true,
-      "payload": {
-        "coaster_id": "0fa08972-cebb-43bd-9f60-978d2b6c36d0",
-        "coaster_name": "Thunderbolt",
-        "from_park": "other",
-        "to_park_slug": "celebration-city",
-        "to_park_id": "8b70ad4f-0123-4ec8-ba16-2d9b345410d8"
-      }
-    },
-    {
-      "id": "ORPH-166",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Thunderbolt Express` (Launched Loop)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "9a43ae98-3645-4491-9b76-6f3931eae7fa",
-        "coaster_name": "Thunderbolt Express",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-167",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Thunderhawk` → Michigan's Adventure",
-      "decided": true,
-      "payload": {
-        "coaster_id": "a2588a84-abbb-4f21-ab01-40d006ddd272",
-        "coaster_name": "Thunderhawk",
-        "from_park": "other",
-        "to_park_slug": "michigan-s-adventure",
-        "to_park_id": "886284ad-fa1e-4b26-9cfb-4070b9487018"
-      }
-    },
-    {
-      "id": "ORPH-168",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Tiger Express` (Wild Mouse (compact park))",
-      "decided": false,
-      "payload": {
-        "coaster_id": "74d2fad1-b1f3-49cc-b229-e189e011c3a3",
-        "coaster_name": "Tiger Express",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-169",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Triops` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "731f15ac-e9f0-43b0-9cdb-7a94daad4f88",
-        "coaster_name": "Triops",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-170",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Tron Lightcycle Power Run` (Motorbike roller coaster)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "359083d4-7d37-4c86-bfca-1ee27bf7ba2f",
-        "coaster_name": "Tron Lightcycle Power Run",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-171",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Tsunami` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "36e9f95f-fae6-4ac1-bb15-097288e92abd",
-        "coaster_name": "Tsunami",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-172",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Two Face: The Flip Side` (unmodeled)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "2700861a-bd93-46a1-9a96-2cbcf47a378c",
-        "coaster_name": "Two Face: The Flip Side",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-173",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Ultra Twister` (Ultratwister)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4154fb5b-c24d-42aa-8939-761d490b3adb",
-        "coaster_name": "Ultra Twister",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-174",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Ultra Twister` (Ultratwister)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "417d1ed9-e2a8-4da6-93a7-d7bc50da1d19",
-        "coaster_name": "Ultra Twister",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-175",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Vipère` (Ball Coaster – ZacSpin)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "1fb3752c-524e-4654-a577-0501cac2c084",
-        "coaster_name": "Vipère",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-176",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Whizzer` (Speed Racer / Extended Jumbo Jet)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "cf616143-32dc-4f7f-b7f3-27c0ad30e40f",
-        "coaster_name": "Whizzer",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-177",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Wild Kitty` (Little Dipper)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4896ef62-1077-4d23-9c56-11e826d56bf3",
-        "coaster_name": "Wild Kitty",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-178",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Wild West Express Coaster` (Tivoli)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "70ebfc43-19e6-4079-9cd4-0ed1abc53351",
-        "coaster_name": "Wild West Express Coaster",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-179",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Wildcat` → Frontier City",
-      "decided": true,
-      "payload": {
-        "coaster_id": "c6827758-9e99-4809-b742-ecd3f222cc45",
-        "coaster_name": "Wildcat",
-        "from_park": "other",
-        "to_park_slug": "frontier-city",
-        "to_park_id": "40f6a9bf-dd26-42bc-91e5-fb06fcc90b10"
-      }
-    },
-    {
-      "id": "ORPH-180",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Wilde maus` (Wild Maus)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "4e473ae0-2998-4291-b98c-2da4fc9850d0",
-        "coaster_name": "Wilde maus",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-181",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Windjammer Surf Racers` (Wild Mouse/Looping)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "1dffc821-0fbe-4691-881a-1c366c4d30f1",
-        "coaster_name": "Windjammer Surf Racers",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-182",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
-      "title": "Decide home for `Winja's Fear & Force` (Xtended SC 3000)",
-      "decided": false,
-      "payload": {
-        "coaster_id": "06cd2747-fdf2-4761-a842-0d89fe019b52",
-        "coaster_name": "Winja's Fear & Force",
-        "from_park": "other"
-      }
-    },
-    {
-      "id": "ORPH-183",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `Woodstock's Express` → California's Great America",
-      "decided": true,
-      "payload": {
-        "coaster_id": "85fb143c-2039-49fe-b5de-ca5fa85cbf18",
-        "coaster_name": "Woodstock's Express",
-        "from_park": "other",
-        "to_park_slug": "california-s-great-america",
-        "to_park_id": "b01829a2-4a33-4419-89b9-472ce55ed5d1"
-      }
-    },
-    {
-      "id": "ORPH-184",
-      "kind": "orphan_rehome",
-      "action": "rehome",
-      "confidence": "high",
-      "title": "Re-home `X-Flight` → Geauga Lake",
-      "decided": true,
-      "payload": {
-        "coaster_id": "e550fdee-e787-47b2-944c-8316b343c9c5",
-        "coaster_name": "X-Flight",
-        "from_park": "other",
-        "to_park_slug": "geauga-lake",
-        "to_park_id": "b8603948-d925-42f6-b7ec-bdf0eca4bc7e"
-      }
-    },
-    {
-      "id": "ORPH-185",
-      "kind": "orphan_rehome",
-      "action": "review",
-      "confidence": "low",
       "title": "Decide home for `Zimerman` (Looping roller coaster)",
       "decided": false,
       "payload": {
@@ -2612,7 +1215,7 @@
       }
     },
     {
-      "id": "ORPH-186",
+      "id": "ORPH-082",
       "kind": "orphan_rehome",
       "action": "review",
       "confidence": "low",
@@ -2675,41 +1278,677 @@
       }
     },
     {
-      "id": "DUP-003",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 6 rows of `Batman: The Ride` @ Other (unknown location) (orphan bucket)",
+      "id": "MISS-019",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Project 305` @ Kings Dominion",
       "decided": false,
       "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "a468b213-3cf6-4352-b4e9-10b6f7945d97",
-          "d15a5cf7-57df-42a9-a6bd-922f3978bbf4",
-          "404929fb-3275-481a-bcc4-465a7f808fdb",
-          "751829ed-97d7-4eac-b7d0-90adbb1393a6",
-          "1e42b025-25b4-49e0-8e42-77230094feb0",
-          "361722bc-19fa-46c4-ba65-94345dea4d64"
-        ]
+        "name": "Project 305",
+        "park_name": "Kings Dominion",
+        "park_slug": "kings-dominion",
+        "park_create": false,
+        "opening_year": "2010",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "votecoasters-2024",
+        "rank": 19
       }
     },
     {
-      "id": "DUP-004",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 4 rows of `Big Thunder Mountain Railroad` @ Other (unknown location) (orphan bucket)",
+      "id": "MISS-065",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Starry Sky Ripper` @ Joyland",
       "decided": false,
       "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "021f17d9-ee00-49f7-bdb4-adc05bbe823f",
-          "d3946701-f880-454c-be77-782a042362e9",
-          "e9678b4b-740d-42e1-b5f4-075778bb98b0",
-          "84dd1120-abec-4a92-8744-028cc5970e29"
-        ]
+        "name": "Starry Sky Ripper",
+        "park_name": "Joyland",
+        "park_slug": "joyland",
+        "park_create": false,
+        "opening_year": "2011",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 65
+      }
+    },
+    {
+      "id": "MISS-127",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `na Fianna Force` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "na Fianna Force",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2024",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Vekoma",
+        "source_list": "votecoasters-2024",
+        "rank": 127
+      }
+    },
+    {
+      "id": "MISS-154",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Cú Chulainn",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2015",
+        "material": "wood",
+        "status": "operating",
+        "suggested_manufacturer": "Gravity Group",
+        "source_list": "votecoasters-2024",
+        "rank": 154
+      }
+    },
+    {
+      "id": "MISS-183",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `GaleForce` @ Playland's Castaway Cove (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "GaleForce",
+        "park_name": "Playland's Castaway Cove",
+        "park_slug": "playland-s-castaway-cove",
+        "park_create": true,
+        "opening_year": "2017",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "S&S Sansei Technologies",
+        "source_list": "votecoasters-2024",
+        "rank": 183
+      }
+    },
+    {
+      "id": "MISS-213",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Wild Train` @ Fantasiana (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Wild Train",
+        "park_name": "Fantasiana",
+        "park_slug": "fantasiana",
+        "park_create": true,
+        "opening_year": "2005",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Pax Company",
+        "source_list": "votecoasters-2024",
+        "rank": 213
+      }
+    },
+    {
+      "id": "MISS-220",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Florida",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Florida",
+        "park_slug": "universal-studios-florida",
+        "park_create": false,
+        "opening_year": "2004",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 220
+      }
+    },
+    {
+      "id": "MISS-256",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Altair` @ Cinecitta World (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Altair",
+        "park_name": "Cinecitta World",
+        "park_slug": "cinecitta-world",
+        "park_create": true,
+        "opening_year": "2014",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "votecoasters-2024",
+        "rank": 256
+      }
+    },
+    {
+      "id": "MISS-275",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Giant Digger` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Giant Digger",
+        "park_name": "Lotte World Adventure Busan - Magic Forest",
+        "park_slug": "lotte-world-adventure-busan-magic-forest",
+        "park_create": true,
+        "opening_year": "2022",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Mack Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 275
+      }
+    },
+    {
+      "id": "MISS-287",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Freischutz` @ Bayern Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Freischutz",
+        "park_name": "Bayern Park",
+        "park_slug": "bayern-park",
+        "park_create": true,
+        "opening_year": "2011",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Maurer",
+        "source_list": "votecoasters-2024",
+        "rank": 287
+      }
+    },
+    {
+      "id": "MISS-311",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Singapore",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Singapore",
+        "park_slug": "universal-studios-singapore",
+        "park_create": false,
+        "opening_year": "2010",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 311
+      }
+    },
+    {
+      "id": "MISS-313",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Inferno` @ Cinecitta World (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Inferno",
+        "park_name": "Cinecitta World",
+        "park_slug": "cinecitta-world",
+        "park_create": true,
+        "opening_year": "2014",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "votecoasters-2024",
+        "rank": 313
+      }
+    },
+    {
+      "id": "MISS-346",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Surf Coaster Leviathan` @ Sea Paradise (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Surf Coaster Leviathan",
+        "park_name": "Sea Paradise",
+        "park_slug": "sea-paradise",
+        "park_create": true,
+        "opening_year": "1993",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Togo",
+        "source_list": "votecoasters-2024",
+        "rank": 346
+      }
+    },
+    {
+      "id": "MISS-391",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Phobia Phear Coaster` @ Lake Compounce",
+      "decided": false,
+      "payload": {
+        "name": "Phobia Phear Coaster",
+        "park_name": "Lake Compounce",
+        "park_slug": "lake-compounce",
+        "park_create": false,
+        "opening_year": "2016",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 391
+      }
+    },
+    {
+      "id": "MISS-397",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Revenge of the Mummy` @ Universal Studios Hollywood",
+      "decided": false,
+      "payload": {
+        "name": "Revenge of the Mummy",
+        "park_name": "Universal Studios Hollywood",
+        "park_slug": "universal-studios-hollywood",
+        "park_create": false,
+        "opening_year": "2004",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Premier Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 397
+      }
+    },
+    {
+      "id": "MISS-483",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Giant Splash` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Giant Splash",
+        "park_name": "Lotte World Adventure Busan - Magic Forest",
+        "park_slug": "lotte-world-adventure-busan-magic-forest",
+        "park_create": true,
+        "opening_year": "2022",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Mack Rides",
+        "source_list": "votecoasters-2024",
+        "rank": 483
+      }
+    },
+    {
+      "id": "MISS-488",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Maximus - Der Flug des Wächters` @ Legoland Deutschland",
+      "decided": false,
+      "payload": {
+        "name": "Maximus - Der Flug des Wächters",
+        "park_name": "Legoland Deutschland",
+        "park_slug": "legoland-deutschland",
+        "park_create": false,
+        "opening_year": "2023",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Bolliger & Mabillard",
+        "source_list": "votecoasters-2024",
+        "rank": 488
+      }
+    },
+    {
+      "id": "MISS-500",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Ziegel-Blitz` @ Jaderpark (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Ziegel-Blitz",
+        "park_name": "Jaderpark",
+        "park_slug": "jaderpark",
+        "park_create": true,
+        "opening_year": "2024",
+        "material": "steel",
+        "status": "operating",
+        "suggested_manufacturer": "Gerstlauer",
+        "source_list": "votecoasters-2024",
+        "rank": 500
+      }
+    },
+    {
+      "id": "MISS-580",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "high",
+      "title": "Create `Colossos` @ Heide Park",
+      "decided": false,
+      "payload": {
+        "name": "Colossos",
+        "park_name": "Heide Park",
+        "park_slug": "heide-park",
+        "park_create": false,
+        "opening_year": "2001",
+        "material": "other",
+        "status": "operating",
+        "suggested_manufacturer": "Intamin",
+        "source_list": "golden-ticket-wooden-2025",
+        "rank": 30
+      }
+    },
+    {
+      "id": "MISS-596",
+      "kind": "create_coaster",
+      "action": "create_coaster",
+      "confidence": "medium",
+      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
+      "decided": false,
+      "payload": {
+        "name": "Cú Chulainn",
+        "park_name": "Emerald Park",
+        "park_slug": "emerald-park",
+        "park_create": true,
+        "opening_year": "2015",
+        "material": "other",
+        "status": "operating",
+        "suggested_manufacturer": "The Gravity Group",
+        "source_list": "golden-ticket-wooden-2025",
+        "rank": 46
+      }
+    },
+    {
+      "id": "ORPH-083",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Jumbo Jet` → Cedar Point",
+      "decided": true,
+      "payload": {
+        "coaster_id": "30997f4e-4c5a-4211-a16c-4e375ecf176a",
+        "coaster_name": "Jumbo Jet",
+        "from_park": "other",
+        "to_park_slug": "cedar-point",
+        "to_park_id": "e8f9a50c-63a1-41a4-984c-65fe985d8e8a"
+      }
+    },
+    {
+      "id": "ORPH-101",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Little Dipper` → Six Flags Great America",
+      "decided": true,
+      "payload": {
+        "coaster_id": "aef1ba5c-2351-43ff-bca7-371164a5b8a9",
+        "coaster_name": "Little Dipper",
+        "from_park": "other",
+        "to_park_slug": "six-flags-great-america",
+        "to_park_id": "4f93a3b7-4be1-4ecb-a19b-57ce40ae2c81"
+      }
+    },
+    {
+      "id": "ORPH-102",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Little Dipper` → Six Flags Great America",
+      "decided": true,
+      "payload": {
+        "coaster_id": "9322e873-2d9d-478a-a523-914f8ce44533",
+        "coaster_name": "Little Dipper",
+        "from_park": "other",
+        "to_park_slug": "six-flags-great-america",
+        "to_park_id": "4f93a3b7-4be1-4ecb-a19b-57ce40ae2c81"
+      }
+    },
+    {
+      "id": "ORPH-104",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Loop the Loop` → Coney Island",
+      "decided": true,
+      "payload": {
+        "coaster_id": "39df3955-22b9-4b9e-a0c9-48a263ae632c",
+        "coaster_name": "Loop the Loop",
+        "from_park": "other",
+        "to_park_slug": "coney-island",
+        "to_park_id": "d6b425f4-36b6-4d99-91fe-a3033dd6adb0"
+      }
+    },
+    {
+      "id": "ORPH-120",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Road Runner Express` → Six Flags New Orleans",
+      "decided": true,
+      "payload": {
+        "coaster_id": "a929ac13-1d4f-4d88-92df-103cf1ae0a0d",
+        "coaster_name": "Road Runner Express",
+        "from_park": "other",
+        "to_park_slug": "six-flags-new-orleans",
+        "to_park_id": "f47ff715-25b6-4307-8f37-da10e63b3f0e"
+      }
+    },
+    {
+      "id": "ORPH-121",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Road Runner Express` → Kentucky Kingdom",
+      "decided": true,
+      "payload": {
+        "coaster_id": "b826df4f-37f9-4b5e-be89-655a6193cd31",
+        "coaster_name": "Road Runner Express",
+        "from_park": "other",
+        "to_park_slug": "kentucky-kingdom",
+        "to_park_id": "6dab562e-7c76-42a0-b261-fd3811bc0821"
+      }
+    },
+    {
+      "id": "ORPH-122",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Road Runner Express` → Six Flags Magic Mountain",
+      "decided": true,
+      "payload": {
+        "coaster_id": "bbf58e51-6a4b-4841-8703-1de58d9f7db8",
+        "coaster_name": "Road Runner Express",
+        "from_park": "other",
+        "to_park_slug": "six-flags-magic-mountain",
+        "to_park_id": "dad273f2-4d9d-47dc-bf25-91fa42d89b2f"
+      }
+    },
+    {
+      "id": "ORPH-136",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Sidewinder` → Elitch Gardens",
+      "decided": true,
+      "payload": {
+        "coaster_id": "88c7a678-458f-46a8-9859-1669dbc5cac6",
+        "coaster_name": "Sidewinder",
+        "from_park": "other",
+        "to_park_slug": "elitch-gardens",
+        "to_park_id": "3d927c29-0626-426e-a115-03e0286e3a8a"
+      }
+    },
+    {
+      "id": "ORPH-149",
+      "kind": "coaster_merge",
+      "action": "merge_coasters",
+      "confidence": "medium",
+      "title": "Merge orphan into the existing SFFT `Superman: Krypton Coaster` row (same ride; CSV had it twice under different parks)",
+      "decided": true,
+      "payload": {
+        "survivor_id": "1aa71281-4f3d-4bad-9222-25f0d5ede941",
+        "merge_ids": [
+          "968e71eb-06fc-4995-bcb2-5f97633a3cf3"
+        ],
+        "aliases": [],
+        "overrides": {
+          "status": "operating"
+        }
+      },
+      "crafted": true
+    },
+    {
+      "id": "ORPH-152",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `The Bat` → Canada's Wonderland",
+      "decided": true,
+      "payload": {
+        "coaster_id": "76aa9a09-2964-4c1f-8a2c-7b32afcd93d8",
+        "coaster_name": "The Bat",
+        "from_park": "other",
+        "to_park_slug": "canada-s-wonderland",
+        "to_park_id": "230bd22e-4321-4249-b2bd-ff44edca23d3"
+      }
+    },
+    {
+      "id": "ORPH-159",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `The Joker` → Six Flags New England",
+      "decided": true,
+      "payload": {
+        "coaster_id": "4dd47825-cad0-4b67-a5eb-289d709c665e",
+        "coaster_name": "The Joker",
+        "from_park": "other",
+        "to_park_slug": "six-flags-new-england",
+        "to_park_id": "024d7a76-6cb3-4265-a9f8-fe738cbff1c0"
+      }
+    },
+    {
+      "id": "ORPH-161",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `The Mind Eraser` → Geauga Lake",
+      "decided": true,
+      "payload": {
+        "coaster_id": "eb322939-5b27-4ec6-91f3-b416b8ae518f",
+        "coaster_name": "The Mind Eraser",
+        "from_park": "other",
+        "to_park_slug": "geauga-lake",
+        "to_park_id": "b8603948-d925-42f6-b7ec-bdf0eca4bc7e"
+      }
+    },
+    {
+      "id": "ORPH-162",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `The Monster` → Walygator Parc",
+      "decided": true,
+      "payload": {
+        "coaster_id": "c32402cd-71d8-4889-95bd-766e8ceb0191",
+        "coaster_name": "The Monster",
+        "from_park": "other",
+        "to_park_slug": "walygator-parc",
+        "to_park_id": "297ae332-1b29-4038-ab6b-623f22624488"
+      }
+    },
+    {
+      "id": "ORPH-165",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Thunderbolt` → Celebration City",
+      "decided": true,
+      "payload": {
+        "coaster_id": "0fa08972-cebb-43bd-9f60-978d2b6c36d0",
+        "coaster_name": "Thunderbolt",
+        "from_park": "other",
+        "to_park_slug": "celebration-city",
+        "to_park_id": "8b70ad4f-0123-4ec8-ba16-2d9b345410d8"
+      }
+    },
+    {
+      "id": "ORPH-167",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Thunderhawk` → Michigan's Adventure",
+      "decided": true,
+      "payload": {
+        "coaster_id": "a2588a84-abbb-4f21-ab01-40d006ddd272",
+        "coaster_name": "Thunderhawk",
+        "from_park": "other",
+        "to_park_slug": "michigan-s-adventure",
+        "to_park_id": "886284ad-fa1e-4b26-9cfb-4070b9487018"
+      }
+    },
+    {
+      "id": "ORPH-179",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Wildcat` → Frontier City",
+      "decided": true,
+      "payload": {
+        "coaster_id": "c6827758-9e99-4809-b742-ecd3f222cc45",
+        "coaster_name": "Wildcat",
+        "from_park": "other",
+        "to_park_slug": "frontier-city",
+        "to_park_id": "40f6a9bf-dd26-42bc-91e5-fb06fcc90b10"
+      }
+    },
+    {
+      "id": "ORPH-183",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `Woodstock's Express` → California's Great America",
+      "decided": true,
+      "payload": {
+        "coaster_id": "85fb143c-2039-49fe-b5de-ca5fa85cbf18",
+        "coaster_name": "Woodstock's Express",
+        "from_park": "other",
+        "to_park_slug": "california-s-great-america",
+        "to_park_id": "b01829a2-4a33-4419-89b9-472ce55ed5d1"
+      }
+    },
+    {
+      "id": "ORPH-184",
+      "kind": "orphan_rehome",
+      "action": "rehome",
+      "confidence": "high",
+      "title": "Re-home `X-Flight` → Geauga Lake",
+      "decided": true,
+      "payload": {
+        "coaster_id": "e550fdee-e787-47b2-944c-8316b343c9c5",
+        "coaster_name": "X-Flight",
+        "from_park": "other",
+        "to_park_slug": "geauga-lake",
+        "to_park_id": "b8603948-d925-42f6-b7ec-bdf0eca4bc7e"
       }
     },
     {
@@ -2746,39 +1985,6 @@
           "635eacb0-01ec-40bb-9c31-222b57e4efef"
         ],
         "aliases": []
-      }
-    },
-    {
-      "id": "DUP-007",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Boomerang` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "7a93f724-80a2-4112-adf7-7294743c0020",
-          "470bb52b-5b23-4626-a237-6b7cb0c3cf08"
-        ]
-      }
-    },
-    {
-      "id": "DUP-008",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `Boomerang: Coast to Coaster` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "dae30563-13b0-44cc-9a63-bb0e53b240e3",
-          "d8ef16ba-ac34-417f-8b56-b439950ca030",
-          "75df4be1-5ea7-4ca2-8a3e-e968250fda03"
-        ]
       }
     },
     {
@@ -2890,43 +2096,6 @@
       }
     },
     {
-      "id": "DUP-015",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 5 rows of `Flashback` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "5be825ca-5aaf-4b07-8298-9400462d24a2",
-          "aab607b2-ed96-4a4b-9410-059aa7128348",
-          "1bfddcf5-f796-4131-bee4-2ef30f928447",
-          "ef2cc48e-f973-493c-a130-b119255bf052",
-          "caec868e-3475-49a0-96d0-08a390400c04"
-        ]
-      }
-    },
-    {
-      "id": "DUP-016",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 4 rows of `Flight of the Hippogriff` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "ad0fd2ad-48c6-4957-8220-5ccd4f3ee305",
-          "c51de4f4-559a-47ce-bca1-b48535031b48",
-          "0718e897-c0d2-4637-9226-2ddb74e07ce3",
-          "60b7b5a9-eab7-470f-90f0-a133c38c024b"
-        ]
-      }
-    },
-    {
       "id": "DUP-017",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3017,22 +2186,6 @@
       }
     },
     {
-      "id": "DUP-022",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Greezed Lightnin'` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "2ecf3952-3905-4baf-8011-bf69c1e53859",
-          "bd6dede2-425f-4639-a588-0f0b5c486cf8"
-        ]
-      }
-    },
-    {
       "id": "DUP-023",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3087,39 +2240,6 @@
       }
     },
     {
-      "id": "DUP-026",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `Invertigo` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "88997f5d-22ba-4dff-acde-1b5e06b921a0",
-          "6f3ec65f-3ae4-44d7-858e-863f90b6a08f",
-          "3b79dffa-af26-4f22-b21c-2a9449f599d0"
-        ]
-      }
-    },
-    {
-      "id": "DUP-027",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Italian Job: Stunt Track` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "e03eb0ae-1945-482d-856d-d3ad11e70dd4",
-          "6bb0c1da-2967-4d56-88f0-43ab526d3925"
-        ]
-      }
-    },
-    {
       "id": "DUP-028",
       "kind": "coaster_merge",
       "action": "review",
@@ -3137,22 +2257,6 @@
       },
       "crafted": true,
       "supersededBy": "DUP-028a"
-    },
-    {
-      "id": "DUP-029",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Jumbo Jet` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "30997f4e-4c5a-4211-a16c-4e375ecf176a",
-          "05a7bc8a-645e-4d24-8084-408d3ed55e8b"
-        ]
-      }
     },
     {
       "id": "DUP-030",
@@ -3206,41 +2310,6 @@
           "f4f5aae8-e987-4731-b0c5-8bb5ee28f43f"
         ],
         "aliases": []
-      }
-    },
-    {
-      "id": "DUP-033",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `La Vibora` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "53116809-95c3-41e5-8661-215481d2d642",
-          "e348bf04-f396-4bdf-a4ff-76c0fb88b3cc",
-          "d7c4e756-d64d-438d-ac19-85bec247422c"
-        ]
-      }
-    },
-    {
-      "id": "DUP-034",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 4 rows of `Lego Technic Test Track` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "1e299aa7-2c0a-4c2c-beaf-e1a13ee6097b",
-          "10c14fd6-d050-4b99-b54a-7fc91965c1e9",
-          "4e193250-fd8e-4535-b885-3e4d1233ec17",
-          "d31c5d07-d5c5-4c07-901a-a6088af488df"
-        ]
       }
     },
     {
@@ -3316,55 +2385,6 @@
       }
     },
     {
-      "id": "DUP-039",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Loop the Loop` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "6033ef83-dec2-4939-9527-150d088d5cea",
-          "39df3955-22b9-4b9e-a0c9-48a263ae632c"
-        ]
-      }
-    },
-    {
-      "id": "DUP-040",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `Pandemonium` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "77224563-d77e-4ac1-800e-133fd535e683",
-          "5d64fc90-7a8f-4123-b592-3bde2e7ee3df",
-          "0341e103-7a02-4b1f-a1c8-bdd8184d99e1"
-        ]
-      }
-    },
-    {
-      "id": "DUP-041",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Pantherian` @ Kings Dominion",
-      "decided": false,
-      "payload": {
-        "park_id": "fc25f44e-fb1d-48d4-8539-d612c085f230",
-        "park_slug": "kings-dominion",
-        "ids": [
-          "b9b62e2e-44cc-4fd4-a52c-027587775a33",
-          "bcda4cfb-2243-4418-ab61-1c5f100c3dd4"
-        ]
-      }
-    },
-    {
       "id": "DUP-042",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3419,23 +2439,6 @@
       }
     },
     {
-      "id": "DUP-045",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `RC Racer` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "dd7a8520-0c81-461b-b35c-ab14642e7668",
-          "952bda6a-9547-4ec4-acbe-ad684bf7b908",
-          "3dd6cf53-e2a6-48a4-831f-5271a9ceeff2"
-        ]
-      }
-    },
-    {
       "id": "DUP-046",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3451,23 +2454,6 @@
           "e5de71e4-52da-4c6a-a10a-d8a67fe2fcae"
         ],
         "aliases": []
-      }
-    },
-    {
-      "id": "DUP-047",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `Road Runner Express` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "a929ac13-1d4f-4d88-92df-103cf1ae0a0d",
-          "b826df4f-37f9-4b5e-be89-655a6193cd31",
-          "bbf58e51-6a4b-4841-8703-1de58d9f7db8"
-        ]
       }
     },
     {
@@ -3615,23 +2601,6 @@
       }
     },
     {
-      "id": "DUP-056",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 3 rows of `Super Grover's Box Car Derby` @ Other (unknown location) (orphan bucket)",
-      "decided": false,
-      "payload": {
-        "park_id": "9f370e1d-fe71-4e01-9d8f-ab1ae767ca10",
-        "park_slug": "other",
-        "ids": [
-          "bd86f009-df54-448e-8505-9b72b2ee3de1",
-          "625cdd08-39f8-482f-83cd-8417c8172a1b",
-          "470619a3-6dc7-4177-9027-a3202eb85e58"
-        ]
-      }
-    },
-    {
       "id": "DUP-057",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3665,22 +2634,6 @@
           "2587a5a2-36a1-40d4-8e3a-f2bdc4fe6d2f"
         ],
         "aliases": []
-      }
-    },
-    {
-      "id": "DUP-059",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `The Bat` @ Kings Island",
-      "decided": false,
-      "payload": {
-        "park_id": "f0c80d82-0044-4c76-b6ce-2fa9e8b7dba0",
-        "park_slug": "kings-island",
-        "ids": [
-          "95b471da-8e80-41e4-8dda-206dc037357a",
-          "eac5c178-6212-4819-b47c-dcdc2802f4be"
-        ]
       }
     },
     {
@@ -3846,22 +2799,6 @@
       }
     },
     {
-      "id": "DUP-069",
-      "kind": "coaster_merge",
-      "action": "review",
-      "confidence": "low",
-      "title": "Review 2 rows of `Woodstock Express` @ Kings Island",
-      "decided": false,
-      "payload": {
-        "park_id": "f0c80d82-0044-4c76-b6ce-2fa9e8b7dba0",
-        "park_slug": "kings-island",
-        "ids": [
-          "b4fcdfec-51ec-4282-a949-122ed85e4112",
-          "5a580681-97cd-454d-a0ca-80e0de7cbdac"
-        ]
-      }
-    },
-    {
       "id": "DUP-070",
       "kind": "coaster_merge",
       "action": "merge_coasters",
@@ -3929,646 +2866,6 @@
         "coaster_remap": 2
       },
       "crafted": true
-    },
-    {
-      "id": "MISS-065",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Starry Sky Ripper` @ Joyland",
-      "decided": false,
-      "payload": {
-        "name": "Starry Sky Ripper",
-        "park_name": "Joyland",
-        "park_slug": "joyland",
-        "park_create": false,
-        "opening_year": "2011",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 65
-      }
-    },
-    {
-      "id": "MISS-127",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `na Fianna Force` @ Emerald Park (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "na Fianna Force",
-        "park_name": "Emerald Park",
-        "park_slug": "emerald-park",
-        "park_create": true,
-        "opening_year": "2024",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Vekoma",
-        "source_list": "votecoasters-2024",
-        "rank": 127
-      }
-    },
-    {
-      "id": "MISS-135",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Flucht von Novgorod` @ Hansa Park",
-      "decided": false,
-      "payload": {
-        "name": "Flucht von Novgorod",
-        "park_name": "Hansa Park",
-        "park_slug": "hansa-park",
-        "park_create": false,
-        "opening_year": "2009",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Gerstlauer",
-        "source_list": "votecoasters-2024",
-        "rank": 135
-      }
-    },
-    {
-      "id": "MISS-154",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Cú Chulainn",
-        "park_name": "Emerald Park",
-        "park_slug": "emerald-park",
-        "park_create": true,
-        "opening_year": "2015",
-        "material": "wood",
-        "status": "operating",
-        "suggested_manufacturer": "Gravity Group",
-        "source_list": "votecoasters-2024",
-        "rank": 154
-      }
-    },
-    {
-      "id": "MISS-183",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `GaleForce` @ Playland's Castaway Cove (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "GaleForce",
-        "park_name": "Playland's Castaway Cove",
-        "park_slug": "playland-s-castaway-cove",
-        "park_create": true,
-        "opening_year": "2017",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "S&S Sansei Technologies",
-        "source_list": "votecoasters-2024",
-        "rank": 183
-      }
-    },
-    {
-      "id": "MISS-206",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Batman The Ride` @ Six Flags Over Georgia",
-      "decided": false,
-      "payload": {
-        "name": "Batman The Ride",
-        "park_name": "Six Flags Over Georgia",
-        "park_slug": "six-flags-over-georgia",
-        "park_create": false,
-        "opening_year": "1997",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 206
-      }
-    },
-    {
-      "id": "MISS-213",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Wild Train` @ Fantasiana (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Wild Train",
-        "park_name": "Fantasiana",
-        "park_slug": "fantasiana",
-        "park_create": true,
-        "opening_year": "2005",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Pax Company",
-        "source_list": "votecoasters-2024",
-        "rank": 213
-      }
-    },
-    {
-      "id": "MISS-220",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Revenge of the Mummy` @ Universal Studios Florida",
-      "decided": false,
-      "payload": {
-        "name": "Revenge of the Mummy",
-        "park_name": "Universal Studios Florida",
-        "park_slug": "universal-studios-florida",
-        "park_create": false,
-        "opening_year": "2004",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 220
-      }
-    },
-    {
-      "id": "MISS-237",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Batman The Ride` @ Six Flags St. Louis",
-      "decided": false,
-      "payload": {
-        "name": "Batman The Ride",
-        "park_name": "Six Flags St. Louis",
-        "park_slug": "six-flags-st-louis",
-        "park_create": false,
-        "opening_year": "1995",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 237
-      }
-    },
-    {
-      "id": "MISS-238",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Batman The Ride` @ Six Flags Great Adventure",
-      "decided": false,
-      "payload": {
-        "name": "Batman The Ride",
-        "park_name": "Six Flags Great Adventure",
-        "park_slug": "six-flags-great-adventure",
-        "park_create": false,
-        "opening_year": "1993",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 238
-      }
-    },
-    {
-      "id": "MISS-256",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Altair` @ Cinecitta World (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Altair",
-        "park_name": "Cinecitta World",
-        "park_slug": "cinecitta-world",
-        "park_create": true,
-        "opening_year": "2014",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Intamin",
-        "source_list": "votecoasters-2024",
-        "rank": 256
-      }
-    },
-    {
-      "id": "MISS-264",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Batman The Ride` @ Six Flags Over Texas",
-      "decided": false,
-      "payload": {
-        "name": "Batman The Ride",
-        "park_name": "Six Flags Over Texas",
-        "park_slug": "six-flags-over-texas",
-        "park_create": false,
-        "opening_year": "1999",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 264
-      }
-    },
-    {
-      "id": "MISS-275",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Giant Digger` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Giant Digger",
-        "park_name": "Lotte World Adventure Busan - Magic Forest",
-        "park_slug": "lotte-world-adventure-busan-magic-forest",
-        "park_create": true,
-        "opening_year": "2022",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Mack Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 275
-      }
-    },
-    {
-      "id": "MISS-286",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Anubis: The Ride` @ Plopsaland De Panne",
-      "decided": false,
-      "payload": {
-        "name": "Anubis: The Ride",
-        "park_name": "Plopsaland De Panne",
-        "park_slug": "plopsaland-de-panne",
-        "park_create": false,
-        "opening_year": "2009",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Gerstlauer",
-        "source_list": "votecoasters-2024",
-        "rank": 286
-      }
-    },
-    {
-      "id": "MISS-287",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Freischutz` @ Bayern Park (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Freischutz",
-        "park_name": "Bayern Park",
-        "park_slug": "bayern-park",
-        "park_create": true,
-        "opening_year": "2011",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Maurer",
-        "source_list": "votecoasters-2024",
-        "rank": 287
-      }
-    },
-    {
-      "id": "MISS-311",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Revenge of the Mummy` @ Universal Studios Singapore",
-      "decided": false,
-      "payload": {
-        "name": "Revenge of the Mummy",
-        "park_name": "Universal Studios Singapore",
-        "park_slug": "universal-studios-singapore",
-        "park_create": false,
-        "opening_year": "2010",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 311
-      }
-    },
-    {
-      "id": "MISS-313",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Inferno` @ Cinecitta World (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Inferno",
-        "park_name": "Cinecitta World",
-        "park_slug": "cinecitta-world",
-        "park_create": true,
-        "opening_year": "2014",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Intamin",
-        "source_list": "votecoasters-2024",
-        "rank": 313
-      }
-    },
-    {
-      "id": "MISS-321",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Superman - Ultimate Flight` @ Six Flags Over Georgia",
-      "decided": false,
-      "payload": {
-        "name": "Superman - Ultimate Flight",
-        "park_name": "Six Flags Over Georgia",
-        "park_slug": "six-flags-over-georgia",
-        "park_create": false,
-        "opening_year": "2002",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 321
-      }
-    },
-    {
-      "id": "MISS-326",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Superman - Ultimate Flight` @ Six Flags Great Adventure",
-      "decided": false,
-      "payload": {
-        "name": "Superman - Ultimate Flight",
-        "park_name": "Six Flags Great Adventure",
-        "park_slug": "six-flags-great-adventure",
-        "park_create": false,
-        "opening_year": "2003",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 326
-      }
-    },
-    {
-      "id": "MISS-346",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Surf Coaster Leviathan` @ Sea Paradise (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Surf Coaster Leviathan",
-        "park_name": "Sea Paradise",
-        "park_slug": "sea-paradise",
-        "park_create": true,
-        "opening_year": "1993",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Togo",
-        "source_list": "votecoasters-2024",
-        "rank": 346
-      }
-    },
-    {
-      "id": "MISS-376",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Superman - Ultimate Flight` @ Six Flags Great America",
-      "decided": false,
-      "payload": {
-        "name": "Superman - Ultimate Flight",
-        "park_name": "Six Flags Great America",
-        "park_slug": "six-flags-great-america",
-        "park_create": false,
-        "opening_year": "2003",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 376
-      }
-    },
-    {
-      "id": "MISS-391",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Phobia Phear Coaster` @ Lake Compounce",
-      "decided": false,
-      "payload": {
-        "name": "Phobia Phear Coaster",
-        "park_name": "Lake Compounce",
-        "park_slug": "lake-compounce",
-        "park_create": false,
-        "opening_year": "2016",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 391
-      }
-    },
-    {
-      "id": "MISS-396",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Heidi The Ride` @ Plopsaland De Panne",
-      "decided": false,
-      "payload": {
-        "name": "Heidi The Ride",
-        "park_name": "Plopsaland De Panne",
-        "park_slug": "plopsaland-de-panne",
-        "park_create": false,
-        "opening_year": "2017",
-        "material": "wood",
-        "status": "operating",
-        "suggested_manufacturer": "Great Coasters International",
-        "source_list": "votecoasters-2024",
-        "rank": 396
-      }
-    },
-    {
-      "id": "MISS-397",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Revenge of the Mummy` @ Universal Studios Hollywood",
-      "decided": false,
-      "payload": {
-        "name": "Revenge of the Mummy",
-        "park_name": "Universal Studios Hollywood",
-        "park_slug": "universal-studios-hollywood",
-        "park_create": false,
-        "opening_year": "2004",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 397
-      }
-    },
-    {
-      "id": "MISS-402",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Flight of Fear` @ Kings Island",
-      "decided": false,
-      "payload": {
-        "name": "Flight of Fear",
-        "park_name": "Kings Island",
-        "park_slug": "kings-island",
-        "park_create": false,
-        "opening_year": "1996",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 402
-      }
-    },
-    {
-      "id": "MISS-411",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Flight of Fear` @ Kings Dominion",
-      "decided": false,
-      "payload": {
-        "name": "Flight of Fear",
-        "park_name": "Kings Dominion",
-        "park_slug": "kings-dominion",
-        "park_create": false,
-        "opening_year": "1996",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Premier Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 411
-      }
-    },
-    {
-      "id": "MISS-483",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Giant Splash` @ Lotte World Adventure Busan - Magic Forest (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Giant Splash",
-        "park_name": "Lotte World Adventure Busan - Magic Forest",
-        "park_slug": "lotte-world-adventure-busan-magic-forest",
-        "park_create": true,
-        "opening_year": "2022",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Mack Rides",
-        "source_list": "votecoasters-2024",
-        "rank": 483
-      }
-    },
-    {
-      "id": "MISS-488",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Maximus - Der Flug des Wächters` @ Legoland Deutschland",
-      "decided": false,
-      "payload": {
-        "name": "Maximus - Der Flug des Wächters",
-        "park_name": "Legoland Deutschland",
-        "park_slug": "legoland-deutschland",
-        "park_create": false,
-        "opening_year": "2023",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Bolliger & Mabillard",
-        "source_list": "votecoasters-2024",
-        "rank": 488
-      }
-    },
-    {
-      "id": "MISS-500",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Ziegel-Blitz` @ Jaderpark (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Ziegel-Blitz",
-        "park_name": "Jaderpark",
-        "park_slug": "jaderpark",
-        "park_create": true,
-        "opening_year": "2024",
-        "material": "steel",
-        "status": "operating",
-        "suggested_manufacturer": "Gerstlauer",
-        "source_list": "votecoasters-2024",
-        "rank": 500
-      }
-    },
-    {
-      "id": "MISS-517",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Stardust Racers` @ Universal Epic Universe (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Stardust Racers",
-        "park_name": "Universal Epic Universe",
-        "park_slug": "universal-epic-universe",
-        "park_create": true,
-        "opening_year": "2025",
-        "material": "other",
-        "status": "operating",
-        "suggested_manufacturer": "Mack",
-        "source_list": "golden-ticket-steel-2025",
-        "rank": 17
-      }
-    },
-    {
-      "id": "MISS-580",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "high",
-      "title": "Create `Colossos` @ Heide Park",
-      "decided": false,
-      "payload": {
-        "name": "Colossos",
-        "park_name": "Heide Park",
-        "park_slug": "heide-park",
-        "park_create": false,
-        "opening_year": "2001",
-        "material": "other",
-        "status": "operating",
-        "suggested_manufacturer": "Intamin",
-        "source_list": "golden-ticket-wooden-2025",
-        "rank": 30
-      }
-    },
-    {
-      "id": "MISS-596",
-      "kind": "create_coaster",
-      "action": "create_coaster",
-      "confidence": "medium",
-      "title": "Create `Cú Chulainn` @ Emerald Park (+ create park)",
-      "decided": false,
-      "payload": {
-        "name": "Cú Chulainn",
-        "park_name": "Emerald Park",
-        "park_slug": "emerald-park",
-        "park_create": true,
-        "opening_year": "2015",
-        "material": "other",
-        "status": "operating",
-        "suggested_manufacturer": "The Gravity Group",
-        "source_list": "golden-ticket-wooden-2025",
-        "rank": 46
-      }
     },
     {
       "id": "DUP-028a",
