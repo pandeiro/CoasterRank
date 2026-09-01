@@ -149,7 +149,7 @@ export default function ProfilePage() {
       </p>
       <Panel className="mt-6 p-5 sm:p-6">
         <div className="grid gap-6 sm:grid-cols-4">
-          <div className="flex justify-center sm:justify-start">
+          <div className="flex items-start justify-center sm:justify-start">
             <div className="relative">
               <Avatar
                 src={profile?.avatar_url ?? null}
