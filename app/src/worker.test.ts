@@ -257,7 +257,7 @@ const rankingPayload = {
 }
 
 function rankingRequest(overrides: { method?: string; origin?: string | null } = {}) {
-  const { method = 'GET', origin = 'https://coasterrank.com' } = overrides
+  const { method = 'GET', origin } = overrides
   const headers: Record<string, string> = {}
   if (origin) headers.origin = origin
   return new Request('https://coasterrank.test/api/ranking', { method, headers })
@@ -324,11 +324,12 @@ describe('worker: /api/ranking', () => {
     )
     const fetchMock = stubRankingUpstream()
 
-    const response = await worker.fetch(rankingRequest(), env)
+    const response = await worker.fetch(rankingRequest({ origin: 'https://coasterrank.test' }), env)
     expect(await response.json()).toEqual(rankingPayload)
     expect(response.headers.get('Cache-Control')).toContain('max-age=60')
     expect(response.headers.get('X-Ranking-Cache')).toBe('HIT')
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    // Self-origin (the worker's own deployment host) is reflected per-request.
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.test')
     expect(fetchMock).not.toHaveBeenCalled()
     expect(cache.put).not.toHaveBeenCalled()
   })
@@ -351,7 +352,7 @@ describe('worker: /api/ranking', () => {
     stubRankingUpstream()
 
     const request = new Request('https://coasterrank.test/api/ranking?utm=bogus', {
-      headers: { origin: 'https://coasterrank.com' },
+      headers: { origin: 'https://coasterrank.app' },
     })
     await worker.fetch(request, env)
     const [putKey] = cache.put.mock.calls[0] as unknown as [Request]
@@ -369,19 +370,42 @@ describe('worker: /api/ranking', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('answers CORS preflights and reflects allowed origins only', async () => {
+  it('reflects self-origin always; other origins only via the var; no domains in source', async () => {
     const env = makeEnv()
     makeCacheStub()
 
-    const preflight = await worker.fetch(rankingRequest({ method: 'OPTIONS' }), env)
+    // The worker's own origin needs no config — works for any fork's domain.
+    const preflight = await worker.fetch(
+      rankingRequest({ method: 'OPTIONS', origin: 'https://coasterrank.test' }),
+      env,
+    )
     expect(preflight.status).toBe(204)
-    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.test')
 
-    const allowed = await worker.fetch(rankingRequest(), env)
-    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.com')
+    const selfOrigin = await worker.fetch(
+      rankingRequest({ origin: 'https://coasterrank.test' }),
+      env,
+    )
+    expect(selfOrigin.headers.get('Access-Control-Allow-Origin')).toBe('https://coasterrank.test')
 
+    // Cross-origin without configuration: rejected.
     const stranger = await worker.fetch(rankingRequest({ origin: 'https://evil.example' }), env)
     expect(stranger.headers.get('Access-Control-Allow-Origin')).toBeNull()
+  })
+
+  it('enables configured cross-origin consumers via RANKING_ALLOWED_ORIGINS', async () => {
+    const env = makeEnv()
+    env.RANKING_ALLOWED_ORIGINS = 'https://staging.example, https://other.example'
+    makeCacheStub()
+    stubRankingUpstream()
+
+    const allowed = await worker.fetch(rankingRequest({ origin: 'https://staging.example' }), env)
+    expect(allowed.headers.get('Access-Control-Allow-Origin')).toBe('https://staging.example')
+
+    // The var is the entire cross-origin allowlist — anything unlisted (and
+    // not self-origin) stays rejected.
+    const unlisted = await worker.fetch(rankingRequest({ origin: 'https://evil.example' }), env)
+    expect(unlisted.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
 
   it('returns 502 (no-store) when Supabase fails so the SPA can fall back', async () => {
