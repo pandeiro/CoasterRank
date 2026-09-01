@@ -134,21 +134,25 @@ and a fresh `npm install`.
 
 When the user asks for a worktree:
 
-1. **Ask for a name** — short, kebab-case (e.g. `park-dedup`). Used for the directory and branch.
-2. **Ask for the change type** — `feat`, `fix`, `refactor`, `chore`, etc. Becomes the branch prefix.
-3. **Ask for provenance** — default: branch from latest `main`. Offer the option to branch from the
-   current branch instead.
-4. **Create the worktree:**
+1. **Derive name, type, and provenance from context** — do not ask three separate questions. Try:
+   - **Name**: infer from the user's request (e.g. "let's work on park dedup" → `park-dedup`).
+     Only ask if the intent is unclear.
+   - **Type**: infer from the request wording (`feat`, `fix`, `refactor`, `chore`, etc.).
+     If ambiguous, ask with a short list of options.
+   - **Provenance**: default to latest `main`. Check `git log --oneline -5` for context — if the
+     user is mid-feature on the current branch, offer to branch from there instead.
+   Keep it to one concise question max; combine when possible.
+2. **Create the worktree:**
    ```bash
    git worktree add .worktrees/<name> -b <type>/<name> <base>
    ```
-5. **Symlink `.env`** (relative path for portability):
+3. **Symlink `.env`** (relative path for portability):
    ```bash
    ln -s ../../.env .worktrees/<name>/.env
    ```
-6. **Re-home the session** — all subsequent commands run from the worktree root.
-7. **Install deps:** `npm run install:all`
-8. **Verify:** `npm run gates`
+4. **Re-home the session** — all subsequent commands run from the worktree root.
+5. **Install deps:** `npm run install:all`
+6. **Verify:** `npm run gates`
 
 ### Cleaning up a worktree
 
