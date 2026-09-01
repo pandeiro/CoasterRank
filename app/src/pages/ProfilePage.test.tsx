@@ -134,11 +134,26 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('That username is taken.')).toBeInTheDocument()
   })
 
-  it('shows the public page URL for a valid username', async () => {
+  it('shows the public page URL only after the share toggle is on', async () => {
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
 
+    expect(
+      screen.queryByText(`${window.location.origin}/riders/coaster_fan`),
+    ).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByLabelText(/share my ranking/i))
+
     expect(screen.getByText(`${window.location.origin}/riders/coaster_fan`)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument()
+  })
+
+  it('renders avatar badges for changing and removing the photo', async () => {
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+
+    expect(screen.getByRole('button', { name: /change profile photo/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /remove profile photo/i })).toBeInTheDocument()
   })
 
   it('persists the public-list toggle in the update payload', async () => {
@@ -146,7 +161,7 @@ describe('ProfilePage', () => {
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
 
-    await userEvent.click(screen.getByLabelText(/share my ranking publicly/i))
+    await userEvent.click(screen.getByLabelText(/share my ranking/i))
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await screen.findByText(/view your public page/i)
@@ -160,7 +175,7 @@ describe('ProfilePage', () => {
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
 
-    await userEvent.click(screen.getByLabelText(/share my ranking publicly/i))
+    await userEvent.click(screen.getByLabelText(/share my ranking/i))
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await waitFor(() => {
