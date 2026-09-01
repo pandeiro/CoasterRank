@@ -42,6 +42,9 @@ data/coverage/top_coasters.txt
 data/coverage/sweep.json
 data/coverage/apply-log-*.md
 
+# Worktrees (created via the workflow in AGENTS.md)
+.worktrees/
+
 # Logs
 *.log
 npm-debug.log*

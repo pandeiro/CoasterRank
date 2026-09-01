@@ -125,6 +125,43 @@ One `.env` file at the repo root holds everything (gitignored). Vite reads it vi
 **Critical rule:** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY`
 and `SUPABASE_ACCESS_TOKEN` must NEVER have a `VITE_` prefix.
 
+## Worktrees
+
+Worktrees live in `.worktrees/` (gitignored). Each gets its own branch, a symlinked `.env`,
+and a fresh `npm install`.
+
+### Creating a worktree
+
+When the user asks for a worktree:
+
+1. **Ask for a name** — short, kebab-case (e.g. `park-dedup`). Used for the directory and branch.
+2. **Ask for the change type** — `feat`, `fix`, `refactor`, `chore`, etc. Becomes the branch prefix.
+3. **Ask for provenance** — default: branch from latest `main`. Offer the option to branch from the
+   current branch instead.
+4. **Create the worktree:**
+   ```bash
+   git worktree add .worktrees/<name> -b <type>/<name> <base>
+   ```
+5. **Symlink `.env`** (relative path for portability):
+   ```bash
+   ln -s ../../.env .worktrees/<name>/.env
+   ```
+6. **Re-home the session** — all subsequent commands run from the worktree root.
+7. **Install deps:** `npm run install:all`
+8. **Verify:** `npm run gates`
+
+### Cleaning up a worktree
+
+When the user says they're done with a worktree:
+
+1. **Check the branch was pushed:** `git log origin/<branch>..HEAD` — if there are unpushed commits, warn the user.
+2. **Check for unfinished work:** `git status --short` — if there are uncommitted or untracked changes, warn the user.
+3. **If clean and pushed:**
+   - Move the working directory back to the repo root.
+   - Remove the worktree: `git worktree remove .worktrees/<name>`
+   - Prune stale state: `git worktree prune`
+4. **If not clean:** do not remove; prompt the user to commit, stash, or discard.
+
 ## Multi-account Supabase CLI auth
 
 The CoasterRank Supabase account is one of several on this machine. Do NOT run `supabase login`
