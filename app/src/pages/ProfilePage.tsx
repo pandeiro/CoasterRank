@@ -137,7 +137,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto max-w-xl">
       <h1 className="display-heading text-4xl text-ink">Profile</h1>
       <p className="mt-1 text-sm text-muted">
         {user?.email}
@@ -148,24 +148,20 @@ export default function ProfilePage() {
         )}
       </p>
       <Panel className="mt-6 p-5 sm:p-6">
-        {/* Avatar section */}
-        <div className="flex items-center gap-4 pb-5 border-b border-line">
-          <div className="relative">
-            <Avatar
-              src={profile?.avatar_url ?? null}
-              userId={user!.id}
-              size={96}
-              className={isUploading ? 'opacity-50' : ''}
-            />
-            {isUploading && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="block">
-              <span className="sr-only">Change profile photo</span>
+        <div className="grid gap-6 sm:grid-cols-4">
+          <div className="flex justify-center sm:justify-start">
+            <div className="relative">
+              <Avatar
+                src={profile?.avatar_url ?? null}
+                userId={user!.id}
+                size={96}
+                className={isUploading ? 'opacity-50' : ''}
+              />
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -174,99 +170,106 @@ export default function ProfilePage() {
                 onChange={handleFileChange}
                 disabled={isUploading}
               />
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
+                title="Change photo"
+                aria-label="Change profile photo"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
+                className="absolute -right-1 -bottom-1 flex h-7 w-7 items-center justify-center rounded-full bg-ink text-canvas ring-2 ring-surface-bright transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Camera size={14} />
-                Change photo
-              </Button>
-            </label>
-            {profile?.avatar_url && (
-              <Button variant="ghost" size="sm" onClick={handleRemove} disabled={isUploading}>
-                <Trash2 size={14} />
-                Remove photo
-              </Button>
-            )}
+              </button>
+              {profile?.avatar_url && (
+                <button
+                  type="button"
+                  title="Remove photo"
+                  aria-label="Remove profile photo"
+                  onClick={handleRemove}
+                  disabled={isUploading}
+                  className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-danger text-white ring-2 ring-surface-bright transition-colors hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-        {uploadError && <p className="mt-3 text-sm text-danger">{uploadError}</p>}
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className={`mt-1 ${fieldClassName}`}
-            />
-            <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
-            {username && USERNAME_RE.test(username) && (
-              <div className="mt-2 flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
+          <form onSubmit={onSubmit} className="space-y-5 sm:col-span-3">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`mt-1 ${fieldClassName}`}
+              />
+              <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border border-line bg-surface px-3 py-3">
+              <input
+                id="publicList"
+                type="checkbox"
+                checked={publicList}
+                onChange={(e) => setPublicList(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-coral"
+              />
+              <label htmlFor="publicList" className="block text-sm">
+                <span className="font-medium text-ink">Share my ranking</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  Puts your ranked list at{' '}
+                  <code className="font-mono">/riders/{username || '…'}</code>
+                  {username ? '' : ' (once you claim a username)'}. Your email and any unranked
+                  coasters stay private.
+                </span>
+              </label>
+            </div>
+            {publicList && username && USERNAME_RE.test(username) && (
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
                 <code className="min-w-0 flex-1 truncate font-mono text-xs text-ink-soft">
                   {riderPageUrl(username)}
                 </code>
                 <CopyLinkButton url={riderPageUrl(username)} label="Copy" />
               </div>
             )}
-          </div>
-          <div className="flex items-start gap-3 rounded-lg border border-line bg-surface px-3 py-3">
-            <input
-              id="publicList"
-              type="checkbox"
-              checked={publicList}
-              onChange={(e) => setPublicList(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-coral"
-            />
-            <label htmlFor="publicList" className="block text-sm">
-              <span className="font-medium text-ink">Share my ranking publicly</span>
-              <span className="mt-0.5 block text-xs text-muted">
-                Puts your ranked list at{' '}
-                <code className="font-mono">/riders/{username || '…'}</code>
-                {username ? '' : ' (once you claim a username)'}. Your email and any unranked
-                coasters stay private.
-              </span>
-            </label>
-          </div>
-          <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-ink-soft">
-              Display name
-            </label>
-            <input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className={`mt-1 ${fieldClassName}`}
-            />
-          </div>
-          {formError && <p className="text-sm text-danger">{formError}</p>}
-          {saved && (
-            <p className="text-sm text-success">
-              Saved.
-              {publicList && username && (
-                <>
-                  {' '}
-                  <Link
-                    to={`/riders/${username}`}
-                    className="font-medium text-ink underline underline-offset-4"
-                  >
-                    View your public page →
-                  </Link>
-                </>
-              )}
-            </p>
-          )}
-          <Button type="submit" disabled={save.isPending} className="w-full">
-            {save.isPending ? 'Saving…' : 'Save'}
-          </Button>
-        </form>
+            <div>
+              <label htmlFor="displayName" className="block text-sm font-medium text-ink-soft">
+                Display name
+              </label>
+              <input
+                id="displayName"
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className={`mt-1 ${fieldClassName}`}
+              />
+            </div>
+            {formError && <p className="text-sm text-danger">{formError}</p>}
+            {saved && (
+              <p className="text-sm text-success">
+                Saved.
+                {publicList && username && (
+                  <>
+                    {' '}
+                    <Link
+                      to={`/riders/${username}`}
+                      className="font-medium text-ink underline underline-offset-4"
+                    >
+                      View your public page →
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
+            <Button type="submit" disabled={save.isPending} className="w-full">
+              {save.isPending ? 'Saving…' : 'Save'}
+            </Button>
+          </form>
+        </div>
+        {uploadError && <p className="mt-3 text-sm text-danger">{uploadError}</p>}
       </Panel>
     </div>
   )
