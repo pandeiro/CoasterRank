@@ -342,16 +342,10 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
     })
   }
   if (request.method !== 'GET') {
-    return rankingJsonResponse(
-      JSON.stringify({ error: 'Method not allowed' }),
-      405,
-      request,
-      env,
-      {
-        Allow: 'GET, OPTIONS',
-        'Cache-Control': 'no-store',
-      },
-    )
+    return rankingJsonResponse(JSON.stringify({ error: 'Method not allowed' }), 405, request, env, {
+      Allow: 'GET, OPTIONS',
+      'Cache-Control': 'no-store',
+    })
   }
 
   const cache = getEdgeCache()
@@ -363,16 +357,10 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
       // returning the edge copy verbatim: the stored response carries the
       // LONG edge TTL, and CORS must be reflected per-request origin.
       const body = await hit.text()
-      return rankingJsonResponse(
-        body,
-        200,
-        request,
-        env,
-        {
-          'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
-          'X-Ranking-Cache': 'HIT',
-        },
-      )
+      return rankingJsonResponse(body, 200, request, env, {
+        'Cache-Control': `public, max-age=${RANKING_BROWSER_TTL_SECONDS}`,
+        'X-Ranking-Cache': 'HIT',
+      })
     }
   }
 
