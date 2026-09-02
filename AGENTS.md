@@ -127,12 +127,10 @@ and `SUPABASE_ACCESS_TOKEN` must NEVER have a `VITE_` prefix.
 
 ## Repo skills (load on demand)
 
-Procedures and hard-won testing knowledge live in `.agents/skills/` (registered
-for opencode via `skills.paths` in `opencode.json`). Read the relevant SKILL.md
-before the task it covers — don't rediscover it:
+Procedures and hard-won testing knowledge live in `.agents/skills/` and the
+user-level `~/.agents/skills/` (both auto-discovered by opencode). Read the
+relevant SKILL.md before the task it covers — don't rediscover it:
 
-- **worktree-workflow** — creating/cleaning up `.worktrees/` sandboxes
-  (branch naming, `.env` symlink, install, gates, safe removal).
 - **mobile-drag-qa** — Playwright/CDP QA of touch & drag flows: matchMedia
   pinning, long-press dispatch, synthetic-user protocol (check existence with
   the read-only report; ask before seeding), known false alarms.
@@ -143,7 +141,7 @@ before the task it covers — don't rediscover it:
 ## Worktrees
 
 Worktrees live in `.worktrees/` (gitignored) with their own branch and a
-symlinked `.env`. Follow the **worktree-workflow** skill (above) for the full
+symlinked `.env`. Follow the **worktree-workflow** skill (user-level) for the full
 create/cleanup procedure.
 
 ## Multi-account Supabase CLI auth
