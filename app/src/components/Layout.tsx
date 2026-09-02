@@ -15,15 +15,11 @@ export default function Layout() {
   const { user, isLoading, signOut } = useAuth()
   const navigate = useNavigate()
 
-  // Tagline intro: fade in shortly after load, hold ~4s, fade out for good.
+  // Tagline intro: fade in shortly after load, then stay.
   const [showTagline, setShowTagline] = useState(false)
   useEffect(() => {
     const show = setTimeout(() => setShowTagline(true), 400)
-    const hide = setTimeout(() => setShowTagline(false), 4400)
-    return () => {
-      clearTimeout(show)
-      clearTimeout(hide)
-    }
+    return () => clearTimeout(show)
   }, [])
 
   // Same queryKey as ProfilePage/RequireAdmin, so the fetch is shared; we only
@@ -50,7 +46,7 @@ export default function Layout() {
             </span>
             <span
               aria-hidden="true"
-              className={`ml-1 hidden text-sm text-muted opacity-0 transition-opacity duration-500 lg:inline ${
+              className={`ml-1 hidden text-sm italic text-muted opacity-0 transition-opacity duration-500 lg:inline ${
                 showTagline ? 'opacity-60' : ''
               }`}
             >
