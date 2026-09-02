@@ -42,6 +42,16 @@ export default {
       transitionTimingFunction: {
         spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
+      keyframes: {
+        // Rank numerals "rewrite" when the list reorders: fade + rise back in.
+        'rank-pop': {
+          '0%': { opacity: '0.15', transform: 'translateY(3px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'rank-pop': 'rank-pop 240ms ease-out',
+      },
     },
   },
   plugins: [],

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
-import RankedCoasterList, { type PendingAdd } from '../components/RankedCoasterList'
+import RankedCoasterList, { REMOVE_UNDO_MS, type PendingAdd } from '../components/RankedCoasterList'
 import ShareListCard from '../components/ShareListCard'
 import Toast from '../components/Toast'
 import { MessageState, PageHeader } from '../components/ui'
@@ -17,7 +17,14 @@ import {
   SHARE_CTA_DISMISS_KEY,
 } from '../lib/share-cta'
 
-type ToastState = { id: number; message: string; tone: 'info' | 'error' }
+type ToastAction = { label: string; onClick: () => void }
+type ToastState = {
+  id: number
+  message: string
+  tone: 'info' | 'error'
+  action?: ToastAction
+  durationMs?: number
+}
 
 // The sticky search bar only gets its backdrop once it has actually stuck to
 // the header — in normal flow it stays transparent so adjacent card shadows
@@ -81,10 +88,17 @@ export default function MyCoastersPage() {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  const notify = useCallback((message: string, tone: ToastState['tone'] = 'info') => {
-    toastSeq.current += 1
-    setToast({ id: toastSeq.current, message, tone })
-  }, [])
+  const notify = useCallback(
+    (
+      message: string,
+      tone: ToastState['tone'] = 'info',
+      extra?: Omit<ToastState, 'id' | 'message' | 'tone'>,
+    ) => {
+      toastSeq.current += 1
+      setToast({ id: toastSeq.current, message, tone, ...extra })
+    },
+    [],
+  )
   const dismissToast = useCallback(() => setToast(null), [])
 
   const handleAdd = useCallback((coasterId: string, coasterName: string) => {
@@ -98,6 +112,18 @@ export default function MyCoastersPage() {
       notify(`Added ${coasterName} at #${rank}`)
       setHighlightId(coasterId)
       setTimeout(() => setHighlightId(null), 2000)
+    },
+    [notify],
+  )
+
+  // Removal is deferred client-side; the undo action rolls it back with zero
+  // server calls. Toast lifetime mirrors the list's undo window.
+  const handleRemoved = useCallback(
+    (coasterName: string, undo: () => void) => {
+      notify(`Removed ${coasterName}`, 'info', {
+        action: { label: 'Undo', onClick: undo },
+        durationMs: REMOVE_UNDO_MS,
+      })
     },
     [notify],
   )
@@ -176,13 +202,25 @@ export default function MyCoastersPage() {
             instantAdd={isTouch}
             onPendingClear={clearPendingAdd}
             onInserted={handleInserted}
+            onRemoved={handleRemoved}
             onError={handleError}
           />
         )}
       </div>
 
+      {/* Scroll headroom so the newest row can rest ~2/3 down the viewport
+          instead of flush against the bottom device edge. */}
+      <div aria-hidden="true" className="h-[30vh]" />
+
       {toast && (
-        <Toast key={toast.id} message={toast.message} tone={toast.tone} onDismiss={dismissToast} />
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          tone={toast.tone}
+          durationMs={toast.durationMs}
+          action={toast.action}
+          onDismiss={dismissToast}
+        />
       )}
     </div>
   )
