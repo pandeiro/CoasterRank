@@ -24,9 +24,16 @@ type Props = {
   showPark?: boolean
   /** Ids whose row shows the first-place pill (see firstPlaceVisibleIds). */
   firstPlaceIds?: Set<string>
+  /** 'board' swaps Material for Manufacturer + Country (home page table). */
+  variant?: 'default' | 'board'
 }
 
-export default function CoasterTable({ rows, showPark = true, firstPlaceIds = new Set() }: Props) {
+export default function CoasterTable({
+  rows,
+  showPark = true,
+  firstPlaceIds = new Set(),
+  variant = 'default',
+}: Props) {
   const isDesktop = useMediaQuery('(min-width: 640px)')
 
   if (rows.length === 0) {
@@ -133,8 +140,15 @@ export default function CoasterTable({ rows, showPark = true, firstPlaceIds = ne
                 <span className="sr-only">Rank</span>
               </th>
               <th className="px-4 py-3">Coaster</th>
-              {showPark && <th className="w-[38%] px-4 py-3">Park</th>}
-              <th className="w-28 px-4 py-3">Material</th>
+              {showPark && <th className="w-[30%] px-4 py-3">Park</th>}
+              {variant === 'board' ? (
+                <>
+                  <th className="hidden w-44 px-4 py-3 lg:table-cell">Manufacturer</th>
+                  <th className="w-36 px-4 py-3">Country</th>
+                </>
+              ) : (
+                <th className="w-28 px-4 py-3">Material</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-line/70">
@@ -164,7 +178,18 @@ export default function CoasterTable({ rows, showPark = true, firstPlaceIds = ne
                       <div className="truncate">{parkCell(row)}</div>
                     </td>
                   )}
-                  <td className="px-4 py-3 capitalize text-muted">{capitalize(row.material)}</td>
+                  {variant === 'board' ? (
+                    <>
+                      <td className="hidden px-4 py-3 text-muted lg:table-cell">
+                        <div className="truncate">{row.manufacturer_name ?? '—'}</div>
+                      </td>
+                      <td className="px-4 py-3 text-muted">
+                        <div className="truncate">{row.park_country ?? '—'}</div>
+                      </td>
+                    </>
+                  ) : (
+                    <td className="px-4 py-3 capitalize text-muted">{capitalize(row.material)}</td>
+                  )}
                 </tr>
               )
             })}

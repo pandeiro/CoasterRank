@@ -74,7 +74,7 @@ export default function BoardPage() {
           <MessageState>Loading…</MessageState>
         ) : (
           <>
-            <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} />
+            <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} variant="board" />
             <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
             {!hasNextPage && visibleRows.length > 0 && (
               <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">

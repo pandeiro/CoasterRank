@@ -11,10 +11,20 @@ function rowsFrom(overrides: Parameters<typeof makeRankingRow>[0][] = []): Ranki
     : [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })]
 }
 
-function renderTable(rows: RankingRow[], firstPlaceIds: Set<string> = new Set(), showPark = true) {
+function renderTable(
+  rows: RankingRow[],
+  firstPlaceIds: Set<string> = new Set(),
+  showPark = true,
+  variant: 'default' | 'board' = 'default',
+) {
   return render(
     <MemoryRouter>
-      <CoasterTable rows={rows} firstPlaceIds={firstPlaceIds} showPark={showPark} />
+      <CoasterTable
+        rows={rows}
+        firstPlaceIds={firstPlaceIds}
+        showPark={showPark}
+        variant={variant}
+      />
     </MemoryRouter>,
   )
 }
@@ -26,6 +36,7 @@ describe('CoasterTable', () => {
     expect(screen.getByText('Test Park')).toBeInTheDocument()
     expect(screen.getByText('Steel')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.queryByText('Manufacturer')).not.toBeInTheDocument()
   })
 
   it('links to the coaster and park detail pages', () => {
@@ -120,6 +131,36 @@ describe('CoasterTable', () => {
   it('hides the park column when showPark is false', () => {
     renderTable(rowsFrom([{ name: 'Twisted' }]), new Set(), false)
     expect(screen.queryByRole('link', { name: 'Test Park' })).not.toBeInTheDocument()
+  })
+
+  it('board variant swaps material for manufacturer and country', () => {
+    renderTable(
+      rowsFrom([
+        {
+          name: 'Steel Vengeance',
+          slug: 'steel-vengeance',
+          manufacturer_name: 'Intamin',
+          park_country: 'United States',
+        },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(screen.getByText('Intamin')).toBeInTheDocument()
+    expect(screen.getByText('United States')).toBeInTheDocument()
+    expect(screen.queryByText('Material')).not.toBeInTheDocument()
+    expect(screen.queryByText('Manufacturer')).not.toBeNull()
+  })
+
+  it('board variant shows an em dash for unknown manufacturer or country', () => {
+    renderTable(
+      rowsFrom([{ name: 'Mystery', manufacturer_name: null, park_country: null }]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(screen.getAllByText('—')).toHaveLength(2)
   })
 
   it('renders an empty message for no rows', () => {
