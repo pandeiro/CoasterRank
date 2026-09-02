@@ -72,6 +72,8 @@ function syntheticRideFromRow(row: RankingRow): UserRide {
       status: row.status,
       material: row.material,
       park_id: row.park_id,
+      manufacturer_name: row.manufacturer_name,
+      park_country: row.park_country,
     },
   }
 }

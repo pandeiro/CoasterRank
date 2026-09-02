@@ -11,7 +11,7 @@ function wrap(node: React.ReactNode) {
 }
 
 describe('RankedCoasterItem', () => {
-  it('renders rank, coaster name, park, and material', () => {
+  it('renders rank, coaster name, park, manufacturer, and country', () => {
     const ride = makeUserRide()
     const park = makePark({ name: 'Cedar Point' })
     render(
@@ -23,7 +23,8 @@ describe('RankedCoasterItem', () => {
     )
     expect(screen.getByText('Coaster 1')).toBeInTheDocument()
     expect(screen.getByText('Cedar Point')).toBeInTheDocument()
-    expect(screen.getByText('Steel')).toBeInTheDocument()
+    expect(screen.getByText('B&M')).toBeInTheDocument()
+    expect(screen.getByText('United States')).toBeInTheDocument()
   })
 
   it('calls onRemove when the remove button is clicked', async () => {
@@ -37,6 +38,8 @@ describe('RankedCoasterItem', () => {
         status: 'operating',
         material: 'steel',
         park_id: 'p1',
+        manufacturer_name: 'Intamin',
+        park_country: 'Germany',
       },
     })
     render(
@@ -59,6 +62,8 @@ describe('RankedCoasterItem', () => {
         status: 'operating',
         material: 'steel',
         park_id: 'p1',
+        manufacturer_name: 'RMC',
+        park_country: 'United States',
       },
     })
     render(
@@ -160,7 +165,12 @@ describe('RankedCoasterItem', () => {
     const onRank = vi.fn()
     const ride = makeUserRide({
       rank: null,
-      coaster: makeUserRideCoaster({ id: 'g1', name: 'Ghost Rider' }),
+      coaster: makeUserRideCoaster({
+        id: 'g1',
+        name: 'Ghost Rider',
+        manufacturer_name: 'CCI',
+        park_country: 'United States',
+      }),
     })
     render(
       wrap(

@@ -13,6 +13,8 @@ export type UserRideCoaster = {
   status: string
   material: string
   park_id: string
+  manufacturer_name: string | null
+  park_country: string | null
 }
 
 export type UserRide = {
@@ -38,23 +40,49 @@ export function useMyRides() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_rides')
-        .select('coaster_id, rank, coasters(id, name, slug, status, material, park_id)')
+        .select(
+          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(country))',
+        )
         .order('rank', { ascending: true, nullsFirst: false })
       if (error) throw error
       // PostgREST returns a many-to-one embed as an object; older code assumed
       // an array and crashed on `park_id` reads (issue #91 Blocker 2). Accept
       // both shapes so a payload quirk degrades gracefully instead of throwing.
+      type CoasterRow = {
+        id: string
+        name: string
+        slug: string
+        status: string
+        material: string
+        park_id: string
+        manufacturers: { name: string } | { name: string }[] | null
+        parks: { country: string } | { country: string }[] | null
+      }
       return (
         data as {
           coaster_id: string
           rank: number | null
-          coasters: UserRideCoaster | UserRideCoaster[]
+          coasters: CoasterRow | CoasterRow[]
         }[]
-      ).map((row) => ({
-        coaster_id: row.coaster_id,
-        rank: row.rank,
-        coaster: Array.isArray(row.coasters) ? row.coasters[0] : row.coasters,
-      }))
+      ).map((row) => {
+        const raw = Array.isArray(row.coasters) ? row.coasters[0] : row.coasters
+        const mfg = Array.isArray(raw.manufacturers) ? raw.manufacturers[0] : raw.manufacturers
+        const park = Array.isArray(raw.parks) ? raw.parks[0] : raw.parks
+        return {
+          coaster_id: row.coaster_id,
+          rank: row.rank,
+          coaster: {
+            id: raw.id,
+            name: raw.name,
+            slug: raw.slug,
+            status: raw.status,
+            material: raw.material,
+            park_id: raw.park_id,
+            manufacturer_name: mfg?.name ?? null,
+            park_country: park?.country ?? null,
+          },
+        }
+      })
     },
   })
 }

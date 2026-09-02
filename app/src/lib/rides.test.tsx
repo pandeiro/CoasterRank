@@ -91,7 +91,7 @@ describe('useMyRides', () => {
     const { result } = renderMyRides()
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(select).toHaveBeenCalledWith(
-      'coaster_id, rank, coasters(id, name, slug, status, material, park_id)',
+      'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(country))',
     )
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('score'))
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('comparisons'))
@@ -112,6 +112,8 @@ describe('useMyRides', () => {
             status: 'operating',
             material: 'steel',
             park_id: 'p1',
+            manufacturers: { name: 'RMC' },
+            parks: { country: 'United States' },
           },
         },
         {
@@ -124,6 +126,8 @@ describe('useMyRides', () => {
             status: 'operating',
             material: 'steel',
             park_id: 'p2',
+            manufacturers: { name: 'B&M' },
+            parks: { country: 'United States' },
           },
         },
       ],
@@ -143,6 +147,8 @@ describe('useMyRides', () => {
           status: 'operating',
           material: 'steel',
           park_id: 'p1',
+          manufacturer_name: 'RMC',
+          park_country: 'United States',
         },
       },
       {
@@ -155,6 +161,8 @@ describe('useMyRides', () => {
           status: 'operating',
           material: 'steel',
           park_id: 'p2',
+          manufacturer_name: 'B&M',
+          park_country: 'United States',
         },
       },
     ])
@@ -168,11 +176,28 @@ describe('useMyRides', () => {
       status: 'operating',
       material: 'wood',
       park_id: 'p1',
+      manufacturers: { name: 'GCI' },
+      parks: { country: 'United Kingdom' },
     }
     mockQuery({ data: [{ coaster_id: 'c1', rank: 1, coasters: [coaster] }], error: null })
     const { result } = renderMyRides()
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toEqual([{ coaster_id: 'c1', rank: 1, coaster }])
+    expect(result.current.data).toEqual([
+      {
+        coaster_id: 'c1',
+        rank: 1,
+        coaster: {
+          id: 'c1',
+          name: 'Wicker Man',
+          slug: 'wicker-man',
+          status: 'operating',
+          material: 'wood',
+          park_id: 'p1',
+          manufacturer_name: 'GCI',
+          park_country: 'United Kingdom',
+        },
+      },
+    ])
   })
 
   it('orders by rank ascending with nulls last', async () => {

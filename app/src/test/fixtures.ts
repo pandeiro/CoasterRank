@@ -66,6 +66,8 @@ export function makeUserRideCoaster(overrides: Partial<UserRideCoaster> = {}): U
     status: 'operating',
     material: 'steel',
     park_id: 'park-1',
+    manufacturer_name: 'B&M',
+    park_country: 'United States',
     ...overrides,
   }
 }
