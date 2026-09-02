@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const LAST_UPDATED = 'September 2, 2026'
+const LAST_UPDATED = 'August 29, 2026'
 
 export default function PrivacyPage() {
   return (
@@ -32,10 +32,6 @@ export default function PrivacyPage() {
               rankings, and any other content you contribute to the Service.
             </li>
             <li>
-              <strong className="text-ink">Signup country:</strong> The two-letter country code
-              (e.g. US) derived from the Cloudflare edge for new signups — no IP address is stored.
-            </li>
-            <li>
               <strong className="text-ink">Server logs:</strong> Standard web server log data
               including IP address, browser type, operating system, and access timestamps. These are
               collected automatically by our hosting providers.
@@ -59,16 +55,14 @@ export default function PrivacyPage() {
         <section>
           <h2 className="mb-3 text-base font-semibold text-ink">4. Cookies &amp; Tracking</h2>
           <p>
-            CoasterRank uses essential cookies to maintain your login session. We do not use
-            third-party analytics trackers, advertising cookies, or cross-site tracking
+            CoasterRank uses essential cookies to maintain your login session. We do not currently
+            use third-party analytics trackers, advertising cookies, or cross-site tracking
             technologies.
           </p>
           <p className="mt-3">
             We use Cloudflare Web Analytics, a privacy-friendly, cookieless analytics tool that does
-            not collect personal data, plus minimal internal event logging (signup country only — no
-            IP) to monitor signups, submissions, and share opt-ins. These events emit to an
-            append-only log with the same visibility as your profile and can be silenced from the
-            admin Control Panel without storing additional personal data.
+            not collect personal data. It helps us understand aggregate traffic patterns without
+            tracking individual users.
           </p>
         </section>
 
