@@ -125,25 +125,6 @@ One `.env` file at the repo root holds everything (gitignored). Vite reads it vi
 **Critical rule:** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY`
 and `SUPABASE_ACCESS_TOKEN` must NEVER have a `VITE_` prefix.
 
-## Repo skills (load on demand)
-
-Procedures and hard-won testing knowledge live in `.agents/skills/` and the
-user-level `~/.agents/skills/` (both auto-discovered by opencode). Read the
-relevant SKILL.md before the task it covers — don't rediscover it:
-
-- **mobile-drag-qa** — Playwright/CDP QA of touch & drag flows: matchMedia
-  pinning, long-press dispatch, synthetic-user protocol (check existence with
-  the read-only report; ask before seeding), known false alarms.
-- **jsdom-testing** — vitest conventions + jsdom gap workarounds
-  (IntersectionObserver/matchMedia/WAAPI stubs, fake timers, class pinning,
-  PostgREST embed quirks).
-
-## Worktrees
-
-Worktrees live in `.worktrees/` (gitignored) with their own branch and a
-symlinked `.env`. Follow the **worktree-workflow** skill (user-level) for the full
-create/cleanup procedure.
-
 ## Multi-account Supabase CLI auth
 
 The CoasterRank Supabase account is one of several on this machine. Do NOT run `supabase login`
