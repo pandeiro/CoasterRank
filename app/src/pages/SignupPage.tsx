@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { fireAnalyticsEvent } from '../lib/analytics'
 import { supabase } from '../lib/supabase'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
@@ -37,9 +36,6 @@ export default function SignupPage() {
       setError(error.message)
       return
     }
-    // Analytics: country comes from the Worker edge (CF-IPCountry), not the
-    // payload; synthetic @test.coasterrank.dev signups are filtered server-side.
-    if (!error) fireAnalyticsEvent('signup', { username, email })
     if (data.session) {
       // Confirmation off (dev/test): a session is returned immediately.
       navigate('/me', { replace: true })

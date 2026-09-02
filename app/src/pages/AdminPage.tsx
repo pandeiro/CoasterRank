@@ -69,7 +69,7 @@ const ADMIN_TABS = [
 ] as const
 type AdminTab = (typeof ADMIN_TABS)[number]
 
-type AppSetting = { key: string; enabled: boolean; updated_at: string }
+type AppSetting = { key: string; enabled: boolean; label?: string | null; updated_at: string }
 
 function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
@@ -193,7 +193,7 @@ export default function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('key, enabled, updated_at')
+        .select('key, enabled, label, updated_at')
         .order('key')
       if (error) throw error
       return data as AppSetting[]
@@ -1368,9 +1368,7 @@ export default function AdminPage() {
             <Panel className="p-6">
               <h2 className="text-lg font-semibold text-ink">Control Panel</h2>
               <p className="mt-1 text-sm text-muted">
-                Future toggles live here. Telegram EVENT dispatch can be silenced without redeploy —
-                rows are still logged in{' '}
-                <code className="rounded bg-surface px-1 text-xs">analytics_events</code>.
+                Toggle Telegram event notifications on or off in real-time without redeploying code.
               </p>
               {appSettings.isLoading ? (
                 <MessageState>Loading settings…</MessageState>
@@ -1384,13 +1382,8 @@ export default function AdminPage() {
                       className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-3"
                     >
                       <span className="text-sm font-medium text-ink">
-                        {s.key === 'signup_events'
-                          ? 'Signup events'
-                          : s.key === 'submission_events'
-                            ? 'Submission events'
-                            : s.key === 'share_events'
-                              ? 'Share events'
-                              : s.key}
+                        {s.label ??
+                          s.key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                       </span>
                       <input
                         type="checkbox"
@@ -1404,9 +1397,7 @@ export default function AdminPage() {
                     </label>
                   ))}
                   <p className="text-xs text-muted">
-                    Changes apply to the next{' '}
-                    <code className="rounded bg-surface px-1">/api/events</code> request (no
-                    deploy).
+                    Changes apply immediately to backend triggers (no redeploy).
                   </p>
                 </div>
               )}

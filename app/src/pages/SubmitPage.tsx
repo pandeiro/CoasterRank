@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import Toast from '../components/Toast'
 import { Button, fieldClassName, MessageState, Panel, selectClassName } from '../components/ui'
-import { fireAnalyticsEvent } from '../lib/analytics'
 import { useAuth } from '../lib/auth-context'
 import {
   getMySubmissions,
@@ -52,14 +51,9 @@ export default function SubmitPage() {
 
   const mutation = useMutation({
     mutationFn: submitCoaster,
-    onSuccess: (_data, vars) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-submissions', user?.id] })
       setToast({ message: 'Submission received — an admin will review it.', tone: 'info' })
-      // Worker derives country; meta carries the coaster/park for the Telegram line.
-      fireAnalyticsEvent('submission', {
-        username: user?.email?.split('@')[0] ?? null,
-        meta: { coaster_name: vars.coaster_name, park_name: vars.park_name },
-      })
     },
     onError: (error) => {
       setToast({
