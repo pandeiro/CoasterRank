@@ -9,6 +9,7 @@ import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 import { useMyRides } from '../lib/rides'
+import { isCoarsePointer } from '../lib/use-media-query'
 import {
   milestoneForRankedCount,
   persistDismissedMilestone,
@@ -41,6 +42,10 @@ export default function MyCoastersPage() {
   const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
   const searchSentinelRef = useRef<HTMLDivElement>(null)
   const [searchStuck, setSearchStuck] = useState(false)
+  // Touch users skip position picking: the add lands at the end of the list
+  // instantly and can be long-press dragged into place (keyboard/scroll
+  // constraints make the desktop pick-a-position flow hostile on mobile).
+  const [isTouch] = useState(isCoarsePointer)
 
   useEffect(() => {
     const sentinel = searchSentinelRef.current
@@ -141,7 +146,7 @@ export default function MyCoastersPage() {
         }`}
       >
         <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
-        {pendingAdd && (
+        {pendingAdd && !isTouch && (
           <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
             <span>
               Adding <span className="font-medium">{pendingAdd.name}</span> — choose a position
@@ -168,6 +173,7 @@ export default function MyCoastersPage() {
             rides={rides}
             highlightId={highlightId}
             pendingAdd={pendingAdd}
+            instantAdd={isTouch}
             onPendingClear={clearPendingAdd}
             onInserted={handleInserted}
             onError={handleError}

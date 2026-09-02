@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus } from 'lucide-react'
-import { useParks, buildParkMap } from '../lib/coasters'
+import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
 import { useMediaQuery } from '../lib/use-media-query'
 import { useRemoveRide, useSaveRanks, renumberRanks, insertIdAt, type UserRide } from '../lib/rides'
 import RankedCoasterItem from './RankedCoasterItem'
@@ -30,6 +30,8 @@ type Props = {
   rides: UserRide[]
   highlightId?: string | null
   pendingAdd?: PendingAdd | null
+  /** Coarse pointers: selecting a coaster inserts it at the end immediately. */
+  instantAdd?: boolean
   onPendingClear?: () => void
   onInserted?: (coasterId: string, coasterName: string, rank: number) => void
   onError?: (message: string) => void
@@ -39,6 +41,24 @@ type ItemProps = Omit<
   React.ComponentProps<typeof RankedCoasterItem>,
   'style' | 'dragging' | 'handleProps' | 'itemRef'
 >
+
+// An optimistic stand-in for a ride the server hasn't echoed back yet, built
+// from the board dataset the search row came from — so a newly inserted card
+// renders in full instead of a "Saving…" stub until the refetch lands.
+function syntheticRideFromRow(row: RankingRow): UserRide {
+  return {
+    coaster_id: row.id,
+    rank: null,
+    coaster: {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      status: row.status,
+      material: row.material,
+      park_id: row.park_id,
+    },
+  }
+}
 
 // Snappier settle than dnd-kit's default 200ms ease — governs row-shift
 // animations and the drop settle alike (useSortable has no dropAnimation prop
@@ -96,20 +116,38 @@ export default function RankedCoasterList({
   rides,
   highlightId,
   pendingAdd,
+  instantAdd = false,
   onPendingClear,
   onInserted,
   onError,
 }: Props) {
   const parks = useParks()
+  const coasters = useAllCoasters()
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
   const removeRide = useRemoveRide()
   const saveRanks = useSaveRanks()
   const isTouch = useMediaQuery('(pointer: coarse)')
 
+  // Optimistic rides awaiting the server echo; real rides take precedence.
+  const [pendingRides, setPendingRides] = useState<UserRide[]>([])
+
   const ranked = useMemo(() => rides.filter((r) => r.rank !== null), [rides])
   const unranked = useMemo(() => rides.filter((r) => r.rank === null), [rides])
   const rankedIds = useMemo(() => ranked.map((r) => r.coaster_id), [ranked])
-  const rideMap = useMemo(() => new Map(rides.map((r) => [r.coaster_id, r])), [rides])
+  const rideMap = useMemo(
+    () => new Map([...pendingRides, ...rides].map((r) => [r.coaster_id, r])),
+    [rides, pendingRides],
+  )
+
+  // Drop stand-ins once the real rows arrive from the server.
+  useEffect(() => {
+    setPendingRides((prev) => {
+      if (prev.length === 0) return prev
+      const serverIds = new Set(rides.map((r) => r.coaster_id))
+      const next = prev.filter((r) => !serverIds.has(r.coaster_id))
+      return next.length === prev.length ? prev : next
+    })
+  }, [rides])
 
   const [items, setItems] = useState<string[]>(rankedIds)
 
@@ -142,6 +180,16 @@ export default function RankedCoasterList({
   const insertAt = useCallback(
     (coasterId: string, coasterName: string, index: number) => {
       if (items.includes(coasterId)) return
+      if (!rideMap.has(coasterId)) {
+        const row = (coasters.data ?? []).find((c) => c.id === coasterId)
+        if (row) {
+          setPendingRides((prev) =>
+            prev.some((r) => r.coaster_id === coasterId)
+              ? prev
+              : [...prev, syntheticRideFromRow(row)],
+          )
+        }
+      }
       commitRanks(
         insertIdAt(items, coasterId, index),
         items,
@@ -149,8 +197,17 @@ export default function RankedCoasterList({
         () => onInserted?.(coasterId, coasterName, index + 1),
       )
     },
-    [items, commitRanks, onInserted],
+    [items, rideMap, coasters.data, commitRanks, onInserted],
   )
+
+  // Coarse pointers skip the position-picking step entirely: the add lands at
+  // the end of the ranked list immediately (drag to reposition). Runs in a
+  // layout effect so no divider/empty-state flash is painted first.
+  useLayoutEffect(() => {
+    if (!instantAdd || !pendingAdd) return
+    insertAt(pendingAdd.id, pendingAdd.name, items.length)
+    onPendingClear?.()
+  }, [instantAdd, pendingAdd, insertAt, onPendingClear, items.length])
 
   const handlePendingInsert = useCallback(
     (index: number) => {
@@ -205,6 +262,9 @@ export default function RankedCoasterList({
   )
 
   const showEmptyState = items.length === 0 && !pendingAdd
+  // On touch (instantAdd) the add never pauses for position picking, so the
+  // insert targets never render — not even for the pre-layout-effect frame.
+  const showInsertTargets = pendingAdd != null && !instantAdd
 
   return (
     <div>
@@ -220,14 +280,14 @@ export default function RankedCoasterList({
               </p>
             )}
             <ul className="space-y-2">
-              {pendingAdd && items.length === 0 && (
+              {showInsertTargets && items.length === 0 && (
                 <InsertDivider label={dividerLabel(0, 0)} onClick={() => handlePendingInsert(0)} />
               )}
               {items.map((id, i) => {
                 const ride = rideMap.get(id)
                 return (
                   <Fragment key={id}>
-                    {pendingAdd && (
+                    {showInsertTargets && (
                       <InsertDivider
                         label={dividerLabel(i, items.length)}
                         onClick={() => handlePendingInsert(i)}
@@ -249,7 +309,7 @@ export default function RankedCoasterList({
                   </Fragment>
                 )
               })}
-              {pendingAdd && items.length > 0 && (
+              {showInsertTargets && items.length > 0 && (
                 <InsertDivider
                   label={dividerLabel(items.length, items.length)}
                   onClick={() => handlePendingInsert(items.length)}
