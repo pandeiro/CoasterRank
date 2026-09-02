@@ -59,8 +59,17 @@ type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
 
-const ADMIN_TABS = ['coasters', 'parks', 'rehome', 'submissions', 'impersonate'] as const
+const ADMIN_TABS = [
+  'coasters',
+  'parks',
+  'rehome',
+  'submissions',
+  'impersonate',
+  'control-panel',
+] as const
 type AdminTab = (typeof ADMIN_TABS)[number]
+
+type AppSetting = { key: string; enabled: boolean; label?: string | null; updated_at: string }
 
 function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
@@ -177,6 +186,31 @@ export default function AdminPage() {
   const assume = useMutation({
     mutationFn: assumeIdentity,
     onError: (err: Error) => notify(err.message, 'error'),
+  })
+
+  const appSettings = useQuery({
+    queryKey: ['app-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, enabled, label, updated_at')
+        .order('key')
+      if (error) throw error
+      return data as AppSetting[]
+    },
+    enabled: activeTab === 'control-panel',
+  })
+
+  const toggleSetting = useMutation({
+    mutationFn: async ({ key, enabled }: { key: string; enabled: boolean }) => {
+      const { error } = await supabase.from('app_settings').update({ enabled }).eq('key', key)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] })
+      notify('Setting updated.')
+    },
+    onError: (e: Error) => notify(e.message, 'error'),
   })
 
   const {
@@ -520,7 +554,9 @@ export default function AdminPage() {
                   : 'text-muted hover:text-ink'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'control-panel'
+                ? 'Control Panel'
+                : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Link>
           ))}
         </div>
@@ -1323,6 +1359,46 @@ export default function AdminPage() {
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+            </Panel>
+          )}
+
+          {activeTab === 'control-panel' && (
+            <Panel className="p-6">
+              <h2 className="text-lg font-semibold text-ink">Control Panel</h2>
+              <p className="mt-1 text-sm text-muted">
+                Toggle Telegram event notifications on or off in real-time without redeploying code.
+              </p>
+              {appSettings.isLoading ? (
+                <MessageState>Loading settings…</MessageState>
+              ) : appSettings.isError ? (
+                <MessageState tone="danger">Couldn&apos;t load app settings.</MessageState>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {(appSettings.data ?? []).map((s) => (
+                    <label
+                      key={s.key}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-3"
+                    >
+                      <span className="text-sm font-medium text-ink">
+                        {s.label ??
+                          s.key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={s.enabled}
+                        disabled={toggleSetting.isPending}
+                        onChange={(e) =>
+                          toggleSetting.mutate({ key: s.key, enabled: e.target.checked })
+                        }
+                        className="h-5 w-5 accent-coral"
+                      />
+                    </label>
+                  ))}
+                  <p className="text-xs text-muted">
+                    Changes apply immediately to backend triggers (no redeploy).
+                  </p>
                 </div>
               )}
             </Panel>
