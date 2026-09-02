@@ -3,7 +3,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -16,8 +17,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus } from 'lucide-react'
+import { GripVertical, Plus } from 'lucide-react'
 import { useParks, buildParkMap } from '../lib/coasters'
+import { useMediaQuery } from '../lib/use-media-query'
 import { useRemoveRide, useSaveRanks, renumberRanks, insertIdAt, type UserRide } from '../lib/rides'
 import RankedCoasterItem from './RankedCoasterItem'
 import { MessageState } from './ui'
@@ -38,14 +40,27 @@ type ItemProps = Omit<
   'style' | 'dragging' | 'handleProps' | 'itemRef'
 >
 
+// Snappier settle than dnd-kit's default 200ms ease — governs row-shift
+// animations and the drop settle alike (useSortable has no dropAnimation prop
+// without a DragOverlay).
+const sortableTransition = { duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
+
 function SortableRankedCoasterItem(props: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.ride.coaster_id,
+    transition: sortableTransition,
   })
   return (
     <RankedCoasterItem
       {...props}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        // While actively dragging, dnd-kit clears its inline transition — if we
+        // let the element's CSS transition (transition-colors aside, any legacy
+        // transition-all) win, every pointermove animates and the card lags
+        // behind the cursor before snapping forward. Disable it outright.
+        transition: isDragging ? 'none' : transition,
+      }}
       dragging={isDragging}
       handleProps={{ ...attributes, ...listeners } as React.ComponentPropsWithoutRef<'button'>}
       itemRef={setNodeRef}
@@ -89,6 +104,7 @@ export default function RankedCoasterList({
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
   const removeRide = useRemoveRide()
   const saveRanks = useSaveRanks()
+  const isTouch = useMediaQuery('(pointer: coarse)')
 
   const ranked = useMemo(() => rides.filter((r) => r.rank !== null), [rides])
   const unranked = useMemo(() => rides.filter((r) => r.rank === null), [rides])
@@ -102,7 +118,10 @@ export default function RankedCoasterList({
   }, [rankedIds])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Desktop: drag on 5px movement. Touch: long-press (200ms) so vertical
+    // scrolling never fights the drag gesture — the native mobile pattern.
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -194,6 +213,12 @@ export default function RankedCoasterList({
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
+            {isTouch && items.length > 0 && (
+              <p className="mb-2 flex items-center gap-1.5 pl-1 text-xs text-muted">
+                <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                Hold and drag a row to reorder
+              </p>
+            )}
             <ul className="space-y-2">
               {pendingAdd && items.length === 0 && (
                 <InsertDivider label={dividerLabel(0, 0)} onClick={() => handlePendingInsert(0)} />

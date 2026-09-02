@@ -48,7 +48,7 @@ export default function RankedCoasterItem({
     <li
       ref={mergedRef}
       style={style}
-      className={`flex items-center gap-3 rounded-xl border bg-surface-bright px-3 py-3 text-sm transition-all ${
+      className={`flex items-center gap-3 rounded-xl border bg-surface-bright px-3 py-3 text-sm transition-colors ${
         highlight ? 'border-accent-strong shadow-accent' : 'border-line'
       } ${dragging ? 'z-20 shadow-lg opacity-90' : ''}`}
     >
