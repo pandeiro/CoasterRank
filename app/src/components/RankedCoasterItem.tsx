@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { GripVertical, ListPlus, X } from 'lucide-react'
-import { capitalize, parkLabel, type Park } from '../lib/coasters'
+import { parkLabel, type Park } from '../lib/coasters'
 import type { UserRide } from '../lib/rides'
-import { Badge } from './ui'
 
 type Props = {
   ride: UserRide
@@ -196,7 +195,12 @@ export default function RankedCoasterItem({
           )}
         </div>
       </div>
-      <Badge className="hidden shrink-0 sm:inline-flex">{capitalize(ride.coaster.material)}</Badge>
+      <span className="hidden shrink-0 truncate text-xs text-muted sm:inline">
+        {ride.coaster.manufacturer_name ?? '—'}
+      </span>
+      <span className="hidden shrink-0 truncate text-xs text-muted sm:inline">
+        {ride.coaster.park_country ?? '—'}
+      </span>
       {onRank && (
         <button
           type="button"
