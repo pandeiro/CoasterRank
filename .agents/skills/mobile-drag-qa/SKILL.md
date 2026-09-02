@@ -96,6 +96,28 @@ Verify the scroll guard held: `window.scrollY` must be identical before and
 after the moves (the row's `touchmove` guard prevents native panning only
 after activation; real swipes past the 8px tolerance must still scroll).
 
+## Dev-server hygiene
+
+An orphaned dev server from ANOTHER worktree branch can still own port 5199
+and silently serve stale code — scenarios then "pass"/"fail" against behavior
+that doesn't exist in your checkout. Kill by port, not by name pattern
+(`pkill -f vite` misses the node child):
+
+```bash
+lsof -ti :5199 | xargs kill -9
+```
+
+Verify what's actually served: `curl localhost:5199/src/components/<File>.tsx`
+returns the transformed module — grep it for the feature you think you're
+testing.
+
+## Drag precision
+
+Drag **center-to-center** (source handle center → target handle center).
+Pitch arithmetic with overshoot lands on adjacent slots whenever row heights
+differ from assumptions (two-line mobile cards). dnd-kit's collision uses
+rest-layout rects, so the target handle's center is deterministic.
+
 ## Known false alarms (don't debug these)
 
 - **Dragging row 1 upward changes nothing** — `over` correctly stays the
