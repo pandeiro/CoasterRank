@@ -7,6 +7,24 @@ import {
   matchRoutes,
 } from 'react-router-dom'
 
+let replayStarted = false
+
+export function startReplay() {
+  if (replayStarted) return
+  const replay = Sentry.getReplay()
+  if (!replay) return
+  replay.start()
+  replayStarted = true
+}
+
+export function stopReplay() {
+  if (!replayStarted) return
+  const replay = Sentry.getReplay()
+  if (!replay) return
+  replay.stop()
+  replayStarted = false
+}
+
 export function initSentry() {
   // Only initialize in production builds
   if (!import.meta.env.PROD) {

@@ -8,6 +8,7 @@ import Toast from '../components/Toast'
 import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
+import { startReplay, stopReplay } from '../lib/sentry'
 import { useMyRides } from '../lib/rides'
 import { isCoarsePointer } from '../lib/use-media-query'
 import {
@@ -66,6 +67,11 @@ export default function MyCoastersPage() {
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    startReplay()
+    return () => stopReplay()
   }, [])
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
