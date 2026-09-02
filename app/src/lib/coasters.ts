@@ -147,6 +147,42 @@ export function buildParkMap(parks: Park[]): Map<string, Park> {
   return new Map(parks.map((p) => [p.id, p]))
 }
 
+// Typeahead search ranking for the /me add-coaster input (previously there
+// was NO explicit ordering: matches simply kept the board's incoming order —
+// BT score desc — so high-scoring park-name matches crowded out exact-ish
+// name matches; e.g. typing "silver" surfaced Silver Dollar City coasters
+// ahead of Silver Bullet itself. The user's own ranking has never been a
+// factor and still isn't.)
+//
+// Tiered scoring, cheapest wins:
+//   0. coaster name starts with the query
+//   1. coaster name contains the query
+//   2. an alias (former/regional name, e.g. "Intimidator 305") contains it
+//   3. the park name contains it
+// Within a tier, board order (BT score desc, nulls last) is preserved —
+// Array#sort is stable, so equal tiers keep their input sequence.
+export function filterAndRankCoasters(
+  rows: RankingRow[],
+  term: string,
+  parkMap: Map<string, Park>,
+  existingCoasterIds: Set<string>,
+): RankingRow[] {
+  const q = term.toLowerCase()
+  const scored: { row: RankingRow; tier: number }[] = []
+  for (const row of rows) {
+    if (existingCoasterIds.has(row.id)) continue
+    const name = row.name.toLowerCase()
+    let tier: number
+    if (name.startsWith(q)) tier = 0
+    else if (name.includes(q)) tier = 1
+    else if (row.aliases?.some((alias) => alias.toLowerCase().includes(q))) tier = 2
+    else if (parkMap.get(row.park_id)?.name.toLowerCase().includes(q)) tier = 3
+    else continue
+    scored.push({ row, tier })
+  }
+  return scored.sort((a, b) => a.tier - b.tier).map((s) => s.row)
+}
+
 // Synthetic park the importer uses for coasters with no usable location
 // (scripts/import-coasters). Display surfaces substitute a neutral label
 // instead of showing this name verbatim (issue #91); matching by name is the
