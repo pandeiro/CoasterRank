@@ -31,6 +31,7 @@ export default function RankedCoasterItem({
   itemRef,
 }: Props) {
   const liRef = useRef<HTMLLIElement>(null)
+  const parkText = parkLabel(park, '')
 
   useEffect(() => {
     if (highlight && liRef.current) {
@@ -54,9 +55,9 @@ export default function RankedCoasterItem({
       {handleProps && (
         <button
           type="button"
-          // p-2 + -m-2: 32x32 hit area (WCAG 2.5.8 minimum is 24x24) without
-          // changing the row layout — the icon itself stays h-4 w-4.
-          className="-m-2 cursor-grab touch-none p-2 text-muted transition-colors hover:text-ink active:cursor-grabbing"
+          // p-3.5 + -m-3 gives a 44px hit target on touch (WCAG 2.5.5 / HIG)
+          // without changing the row layout; sm+ reverts to the compact 32px.
+          className="-m-3 cursor-grab touch-none p-3.5 text-muted transition-colors hover:text-ink active:cursor-grabbing sm:-m-2 sm:p-2"
           aria-label="Drag to reorder"
           {...handleProps}
         >
@@ -67,13 +68,17 @@ export default function RankedCoasterItem({
         {rank > 0 ? rank : '—'}
       </span>
       <div className="min-w-0 flex-1">
-        <Link
-          to={`/coasters/${ride.coaster.slug}`}
-          className="font-semibold text-ink underline-offset-4 hover:underline"
-        >
-          {ride.coaster.name}
-        </Link>
-        <span className="ml-2 text-xs text-muted">{parkLabel(park, '')}</span>
+        <div className="flex min-w-0 gap-x-2 gap-y-0.5 max-sm:flex-col sm:items-baseline">
+          <Link
+            to={`/coasters/${ride.coaster.slug}`}
+            className="min-w-0 truncate font-semibold text-ink underline-offset-4 hover:underline"
+          >
+            {ride.coaster.name}
+          </Link>
+          {parkText && (
+            <span className="min-w-0 truncate text-xs text-muted max-sm:text-sm">{parkText}</span>
+          )}
+        </div>
       </div>
       <Badge className="hidden shrink-0 sm:inline-flex">{capitalize(ride.coaster.material)}</Badge>
       {onRank && (

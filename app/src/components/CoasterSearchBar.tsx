@@ -51,7 +51,15 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
     onAdd(row.id, row.name)
     setQuery('')
     setIsOpen(false)
-    inputRef.current?.focus()
+    // Desktop: keep focus for rapid consecutive adds. Touch: blur so the
+    // keyboard dismisses and the user can see + place the coaster in the list.
+    const finePointer =
+      typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches
+    if (finePointer) {
+      inputRef.current?.focus()
+    } else {
+      inputRef.current?.blur()
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {

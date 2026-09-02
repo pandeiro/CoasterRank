@@ -130,8 +130,9 @@ describe('RankedCoasterItem', () => {
 
   it('gives the drag handle a padded hit area without changing the row layout', () => {
     // Issue #91: the grip was a 16x16 target (WCAG 2.5.8 minimum is 24x24).
-    // p-2 enlarges the hit area; -m-2 keeps the layout identical. Pinned via
-    // classes because jsdom applies no Tailwind styles to compute sizes.
+    // p-3.5 enlarges the hit area to 44px on touch; -m-3 keeps the layout
+    // identical. sm+ reverts to the compact 32px. Pinned via classes because
+    // jsdom applies no Tailwind styles to compute sizes.
     const ride = makeUserRide()
     render(
       wrap(
@@ -146,7 +147,12 @@ describe('RankedCoasterItem', () => {
         </ul>,
       ),
     )
-    expect(screen.getByRole('button', { name: /drag to reorder/i })).toHaveClass('p-2', '-m-2')
+    expect(screen.getByRole('button', { name: /drag to reorder/i })).toHaveClass(
+      'p-3.5',
+      '-m-3',
+      'sm:p-2',
+      'sm:-m-2',
+    )
   })
 
   it('calls onRank when the add-to-ranking button is clicked', async () => {
