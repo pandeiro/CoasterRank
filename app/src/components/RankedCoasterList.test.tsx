@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { useParks } from '../lib/coasters'
+import { useAllCoasters, useParks } from '../lib/coasters'
 import { useRemoveRide, useSaveRanks } from '../lib/rides'
 import RankedCoasterList from './RankedCoasterList'
-import { makeUserRide, makeUserRideCoaster } from '../test/fixtures'
+import { makeRankingRow, makeUserRide, makeUserRideCoaster } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
-  return { ...actual, useParks: vi.fn() }
+  return { ...actual, useAllCoasters: vi.fn(), useParks: vi.fn() }
 })
 
 vi.mock('../lib/rides', async (importOriginal) => {
@@ -44,6 +44,7 @@ function mockMutations({
   vi.mocked(useSaveRanks).mockReturnValue({ mutate: saveMutate } as never)
   vi.mocked(useRemoveRide).mockReturnValue({ mutate: removeMutate } as never)
   vi.mocked(useParks).mockReturnValue({ data: [] } as never)
+  vi.mocked(useAllCoasters).mockReturnValue({ data: [], isLoading: false } as never)
   return { saveMutate, removeMutate }
 }
 
@@ -208,5 +209,44 @@ describe('RankedCoasterList', () => {
       expect.anything(),
     )
     expect(onInserted).toHaveBeenCalledWith('c3', 'Gamma', 3)
+  })
+
+  it('inserts instantly at the end in instantAdd mode without showing targets', () => {
+    // Mobile: select -> insert, no position-picking step.
+    const { saveMutate } = mockMutations()
+    const onInserted = vi.fn()
+    const onPendingClear = vi.fn()
+    renderList({
+      pendingAdd: { id: 'c9', name: 'New One' },
+      instantAdd: true,
+      onInserted,
+      onPendingClear,
+    })
+    expect(saveMutate).toHaveBeenCalledWith(
+      [
+        { coaster_id: 'c1', rank: 1 },
+        { coaster_id: 'c2', rank: 2 },
+        { coaster_id: 'c9', rank: 3 },
+      ],
+      expect.anything(),
+    )
+    expect(onInserted).toHaveBeenCalledWith('c9', 'New One', 3)
+    expect(onPendingClear).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: /add to top/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /insert at #/i })).not.toBeInTheDocument()
+  })
+
+  it('renders an optimistically inserted coaster in full instead of "Saving…"', () => {
+    mockMutations()
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: [makeRankingRow({ id: 'c9', name: 'New One', slug: 'new-one' })],
+      isLoading: false,
+    } as never)
+    renderList({
+      pendingAdd: { id: 'c9', name: 'New One' },
+      instantAdd: true,
+    })
+    expect(screen.getByText('New One')).toBeInTheDocument()
+    expect(screen.queryByText('Saving…')).not.toBeInTheDocument()
   })
 })

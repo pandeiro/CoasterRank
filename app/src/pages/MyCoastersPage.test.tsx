@@ -8,6 +8,16 @@ import { fetchProfile } from '../lib/profile'
 import { useAuth } from '../lib/auth-context'
 import MyCoastersPage from './MyCoastersPage'
 
+// jsdom has no IntersectionObserver; the page only needs it to no-op here.
+vi.stubGlobal(
+  'IntersectionObserver',
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+)
+
 vi.mock('../lib/rides', () => ({
   useMyRides: vi.fn(),
 }))

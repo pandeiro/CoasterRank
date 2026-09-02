@@ -9,6 +9,7 @@ import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 import { useMyRides } from '../lib/rides'
+import { isCoarsePointer } from '../lib/use-media-query'
 import {
   milestoneForRankedCount,
   persistDismissedMilestone,
@@ -17,6 +18,11 @@ import {
 } from '../lib/share-cta'
 
 type ToastState = { id: number; message: string; tone: 'info' | 'error' }
+
+// The sticky search bar only gets its backdrop once it has actually stuck to
+// the header — in normal flow it stays transparent so adjacent card shadows
+// (milestone card above, first ranked card below) aren't painted over.
+const SEARCH_STUCK_ROOT_MARGIN = '-64px 0px 0px 0px'
 
 export default function MyCoastersPage() {
   const { user, isConfirmed } = useAuth()
@@ -34,6 +40,26 @@ export default function MyCoastersPage() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null)
   const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
+  const searchSentinelRef = useRef<HTMLDivElement>(null)
+  const [searchStuck, setSearchStuck] = useState(false)
+  // Touch users skip position picking: the add lands at the end of the list
+  // instantly and can be long-press dragged into place (keyboard/scroll
+  // constraints make the desktop pick-a-position flow hostile on mobile).
+  const [isTouch] = useState(isCoarsePointer)
+
+  useEffect(() => {
+    const sentinel = searchSentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry) setSearchStuck(!entry.isIntersecting)
+      },
+      { rootMargin: SEARCH_STUCK_ROOT_MARGIN },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
   const rankedCount = useMemo(() => (rides ?? []).filter((r) => r.rank !== null).length, [rides])
@@ -92,7 +118,6 @@ export default function MyCoastersPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Your ride log"
         title="My Coasters"
         description={
           rankedCount > 0
@@ -113,9 +138,15 @@ export default function MyCoastersPage() {
         </div>
       )}
 
-      <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 pb-4 pt-4 backdrop-blur sm:-mx-8 sm:px-8">
+      <div ref={searchSentinelRef} aria-hidden="true" className="h-px" />
+
+      <div
+        className={`sticky top-16 z-20 pb-3 pt-3 transition-colors duration-200 ${
+          searchStuck ? 'bg-canvas/95 backdrop-blur' : ''
+        }`}
+      >
         <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
-        {pendingAdd && (
+        {pendingAdd && !isTouch && (
           <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
             <span>
               Adding <span className="font-medium">{pendingAdd.name}</span> — choose a position
@@ -142,6 +173,7 @@ export default function MyCoastersPage() {
             rides={rides}
             highlightId={highlightId}
             pendingAdd={pendingAdd}
+            instantAdd={isTouch}
             onPendingClear={clearPendingAdd}
             onInserted={handleInserted}
             onError={handleError}

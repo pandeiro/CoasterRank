@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { useAllCoasters, useParks, buildParkMap, parkLabel, type RankingRow } from '../lib/coasters'
+import {
+  useAllCoasters,
+  useParks,
+  buildParkMap,
+  parkLabel,
+  filterAndRankCoasters,
+  type RankingRow,
+} from '../lib/coasters'
 import { fieldClassName } from './ui'
 
 type Props = {
@@ -32,15 +39,13 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   // "Showing 8 of N" instead of silently hiding the rest (issue #91).
   const results = useMemo(() => {
     if (!debouncedQuery || debouncedQuery.length < MIN_QUERY_LENGTH) return { rows: [], total: 0 }
-    const term = debouncedQuery.toLowerCase()
-    const matches = (coasters.data ?? [])
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(term) ||
-          parkMap.get(c.park_id)?.name.toLowerCase().includes(term),
-      )
-      .filter((c) => !existingCoasterIds.has(c.id))
-    return { rows: matches.slice(0, MAX_RESULTS), total: matches.length }
+    const rows = filterAndRankCoasters(
+      coasters.data ?? [],
+      debouncedQuery,
+      parkMap,
+      existingCoasterIds,
+    )
+    return { rows: rows.slice(0, MAX_RESULTS), total: rows.length }
   }, [debouncedQuery, coasters.data, parkMap, existingCoasterIds])
 
   useEffect(() => {
@@ -51,7 +56,15 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
     onAdd(row.id, row.name)
     setQuery('')
     setIsOpen(false)
-    inputRef.current?.focus()
+    // Desktop: keep focus for rapid consecutive adds. Touch: blur so the
+    // keyboard dismisses and the user can see + place the coaster in the list.
+    const finePointer =
+      typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches
+    if (finePointer) {
+      inputRef.current?.focus()
+    } else {
+      inputRef.current?.blur()
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {

@@ -72,6 +72,9 @@ export function useRemoveRide() {
         .eq('coaster_id', coasterId)
       if (error) throw error
     },
+    // Retry transient failures before the caller's rollback kicks in.
+    retry: 2,
+    retryDelay: (attempt) => 500 * 2 ** attempt,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
     },
@@ -95,6 +98,9 @@ export function useSaveRanks() {
       )
       if (error) throw error
     },
+    // Retry transient failures before the caller's rollback kicks in.
+    retry: 2,
+    retryDelay: (attempt) => 500 * 2 ** attempt,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
     },

@@ -1,9 +1,10 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -16,8 +17,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus } from 'lucide-react'
-import { useParks, buildParkMap } from '../lib/coasters'
+import { GripVertical, Plus } from 'lucide-react'
+import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
+import { useMediaQuery } from '../lib/use-media-query'
 import { useRemoveRide, useSaveRanks, renumberRanks, insertIdAt, type UserRide } from '../lib/rides'
 import RankedCoasterItem from './RankedCoasterItem'
 import { MessageState } from './ui'
@@ -28,6 +30,8 @@ type Props = {
   rides: UserRide[]
   highlightId?: string | null
   pendingAdd?: PendingAdd | null
+  /** Coarse pointers: selecting a coaster inserts it at the end immediately. */
+  instantAdd?: boolean
   onPendingClear?: () => void
   onInserted?: (coasterId: string, coasterName: string, rank: number) => void
   onError?: (message: string) => void
@@ -38,14 +42,45 @@ type ItemProps = Omit<
   'style' | 'dragging' | 'handleProps' | 'itemRef'
 >
 
+// An optimistic stand-in for a ride the server hasn't echoed back yet, built
+// from the board dataset the search row came from — so a newly inserted card
+// renders in full instead of a "Saving…" stub until the refetch lands.
+function syntheticRideFromRow(row: RankingRow): UserRide {
+  return {
+    coaster_id: row.id,
+    rank: null,
+    coaster: {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      status: row.status,
+      material: row.material,
+      park_id: row.park_id,
+    },
+  }
+}
+
+// Snappier settle than dnd-kit's default 200ms ease — governs row-shift
+// animations and the drop settle alike (useSortable has no dropAnimation prop
+// without a DragOverlay).
+const sortableTransition = { duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
+
 function SortableRankedCoasterItem(props: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.ride.coaster_id,
+    transition: sortableTransition,
   })
   return (
     <RankedCoasterItem
       {...props}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        // While actively dragging, dnd-kit clears its inline transition — if we
+        // let the element's CSS transition (transition-colors aside, any legacy
+        // transition-all) win, every pointermove animates and the card lags
+        // behind the cursor before snapping forward. Disable it outright.
+        transition: isDragging ? 'none' : transition,
+      }}
       dragging={isDragging}
       handleProps={{ ...attributes, ...listeners } as React.ComponentPropsWithoutRef<'button'>}
       itemRef={setNodeRef}
@@ -66,7 +101,7 @@ function InsertDivider({ label, onClick }: { label: string; onClick: () => void 
       <button
         type="button"
         onClick={onClick}
-        className="group flex w-full items-center gap-2 py-1 text-xs font-medium text-muted hover:text-accent-strong"
+        className="group flex min-h-11 w-full items-center gap-2 rounded-lg py-2 text-sm font-medium text-muted transition-colors hover:bg-accent/5 hover:text-accent-strong sm:min-h-0 sm:py-1 sm:text-xs"
       >
         <span className="h-px flex-1 rounded bg-line group-hover:bg-accent" />
         <Plus className="h-3 w-3" />
@@ -81,19 +116,38 @@ export default function RankedCoasterList({
   rides,
   highlightId,
   pendingAdd,
+  instantAdd = false,
   onPendingClear,
   onInserted,
   onError,
 }: Props) {
   const parks = useParks()
+  const coasters = useAllCoasters()
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
   const removeRide = useRemoveRide()
   const saveRanks = useSaveRanks()
+  const isTouch = useMediaQuery('(pointer: coarse)')
+
+  // Optimistic rides awaiting the server echo; real rides take precedence.
+  const [pendingRides, setPendingRides] = useState<UserRide[]>([])
 
   const ranked = useMemo(() => rides.filter((r) => r.rank !== null), [rides])
   const unranked = useMemo(() => rides.filter((r) => r.rank === null), [rides])
   const rankedIds = useMemo(() => ranked.map((r) => r.coaster_id), [ranked])
-  const rideMap = useMemo(() => new Map(rides.map((r) => [r.coaster_id, r])), [rides])
+  const rideMap = useMemo(
+    () => new Map([...pendingRides, ...rides].map((r) => [r.coaster_id, r])),
+    [rides, pendingRides],
+  )
+
+  // Drop stand-ins once the real rows arrive from the server.
+  useEffect(() => {
+    setPendingRides((prev) => {
+      if (prev.length === 0) return prev
+      const serverIds = new Set(rides.map((r) => r.coaster_id))
+      const next = prev.filter((r) => !serverIds.has(r.coaster_id))
+      return next.length === prev.length ? prev : next
+    })
+  }, [rides])
 
   const [items, setItems] = useState<string[]>(rankedIds)
 
@@ -102,7 +156,10 @@ export default function RankedCoasterList({
   }, [rankedIds])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Desktop: drag on 5px movement. Touch: long-press (200ms) so vertical
+    // scrolling never fights the drag gesture — the native mobile pattern.
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -123,6 +180,16 @@ export default function RankedCoasterList({
   const insertAt = useCallback(
     (coasterId: string, coasterName: string, index: number) => {
       if (items.includes(coasterId)) return
+      if (!rideMap.has(coasterId)) {
+        const row = (coasters.data ?? []).find((c) => c.id === coasterId)
+        if (row) {
+          setPendingRides((prev) =>
+            prev.some((r) => r.coaster_id === coasterId)
+              ? prev
+              : [...prev, syntheticRideFromRow(row)],
+          )
+        }
+      }
       commitRanks(
         insertIdAt(items, coasterId, index),
         items,
@@ -130,8 +197,17 @@ export default function RankedCoasterList({
         () => onInserted?.(coasterId, coasterName, index + 1),
       )
     },
-    [items, commitRanks, onInserted],
+    [items, rideMap, coasters.data, commitRanks, onInserted],
   )
+
+  // Coarse pointers skip the position-picking step entirely: the add lands at
+  // the end of the ranked list immediately (drag to reposition). Runs in a
+  // layout effect so no divider/empty-state flash is painted first.
+  useLayoutEffect(() => {
+    if (!instantAdd || !pendingAdd) return
+    insertAt(pendingAdd.id, pendingAdd.name, items.length)
+    onPendingClear?.()
+  }, [instantAdd, pendingAdd, insertAt, onPendingClear, items.length])
 
   const handlePendingInsert = useCallback(
     (index: number) => {
@@ -186,6 +262,9 @@ export default function RankedCoasterList({
   )
 
   const showEmptyState = items.length === 0 && !pendingAdd
+  // On touch (instantAdd) the add never pauses for position picking, so the
+  // insert targets never render — not even for the pre-layout-effect frame.
+  const showInsertTargets = pendingAdd != null && !instantAdd
 
   return (
     <div>
@@ -194,15 +273,21 @@ export default function RankedCoasterList({
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
+            {isTouch && items.length > 0 && (
+              <p className="mb-2 flex items-center gap-1.5 pl-1 text-xs text-muted">
+                <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                Hold and drag a row to reorder
+              </p>
+            )}
             <ul className="space-y-2">
-              {pendingAdd && items.length === 0 && (
+              {showInsertTargets && items.length === 0 && (
                 <InsertDivider label={dividerLabel(0, 0)} onClick={() => handlePendingInsert(0)} />
               )}
               {items.map((id, i) => {
                 const ride = rideMap.get(id)
                 return (
                   <Fragment key={id}>
-                    {pendingAdd && (
+                    {showInsertTargets && (
                       <InsertDivider
                         label={dividerLabel(i, items.length)}
                         onClick={() => handlePendingInsert(i)}
@@ -224,7 +309,7 @@ export default function RankedCoasterList({
                   </Fragment>
                 )
               })}
-              {pendingAdd && items.length > 0 && (
+              {showInsertTargets && items.length > 0 && (
                 <InsertDivider
                   label={dividerLabel(items.length, items.length)}
                   onClick={() => handlePendingInsert(items.length)}

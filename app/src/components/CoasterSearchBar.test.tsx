@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import CoasterSearchBar from './CoasterSearchBar'
-import { useAllCoasters, useParks, OTHER_PARK_NAME } from '../lib/coasters'
+import { useAllCoasters, useParks, OTHER_PARK_NAME, filterAndRankCoasters } from '../lib/coasters'
 import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -112,5 +112,88 @@ describe('CoasterSearchBar', () => {
     const option = await screen.findByRole('option', { name: /dragon coaster/i })
     expect(option).toHaveTextContent('Unknown park')
     expect(option).not.toHaveTextContent(OTHER_PARK_NAME)
+  })
+
+  it('finds coasters by former name via alias', async () => {
+    // Intimidator 305 was renamed Pantherian — users type the old name.
+    mockCatalog([
+      makeRankingRow({
+        name: 'Pantherian',
+        slug: 'pantherian',
+        aliases: ['Intimidator 305'],
+      }),
+    ])
+    const user = userEvent.setup()
+    renderBar()
+    await typeQuery(user, 'intimidator')
+    expect(await screen.findByRole('option', { name: /pantherian/i })).toBeInTheDocument()
+  })
+})
+
+describe('filterAndRankCoasters', () => {
+  const knotts = makePark({ id: 'knotts', name: "Knott's Berry Farm" })
+  const sdc = makePark({ id: 'sdc', name: 'Silver Dollar City' })
+  const parkMap = new Map([
+    ['knotts', knotts],
+    ['sdc', sdc],
+  ])
+
+  it('ranks name matches above park-name matches (the "silver" case)', () => {
+    // Regression pin: "silver" used to surface Silver Dollar City coasters
+    // (high BT scores, park-name matches) ahead of Silver Bullet itself.
+    const rows = [
+      makeRankingRow({ id: 'tw', name: 'Time Traveler', park_id: 'sdc' }),
+      makeRankingRow({ id: 'or', name: 'Outlaw Run', park_id: 'sdc' }),
+      makeRankingRow({ id: 'sb', name: 'Silver Bullet', park_id: 'knotts' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'silver', parkMap, new Set())
+    expect(result.map((r) => r.id)).toEqual(['sb', 'tw', 'or'])
+  })
+
+  it('prefers name startsWith over plain name substring', () => {
+    const rows = [
+      makeRankingRow({ id: 'mid', name: 'Blast from Silverwood', park_id: 'knotts' }),
+      makeRankingRow({ id: 'pre', name: 'Silver Bullet', park_id: 'knotts' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'silver', parkMap, new Set())
+    expect(result.map((r) => r.id)).toEqual(['pre', 'mid'])
+  })
+
+  it('matches aliases below exact name matches but above park matches', () => {
+    const intimidatorPark = makePark({ id: 'ip', name: 'Intimidator Amusement Park' })
+    const map = new Map([
+      ['knotts', knotts],
+      ['ip', intimidatorPark],
+    ])
+    const rows = [
+      makeRankingRow({ id: 'parkmatch', name: 'Vortex', park_id: 'ip' }),
+      makeRankingRow({
+        id: 'alias',
+        name: 'Pantherian',
+        aliases: ['The Intimidator'],
+        park_id: 'knotts',
+      }),
+    ]
+    const result = filterAndRankCoasters(rows, 'intimidator', map, new Set())
+    expect(result.map((r) => r.id)).toEqual(['alias', 'parkmatch'])
+  })
+
+  it('keeps board order (BT score desc) within a tier', () => {
+    const rows = [
+      makeRankingRow({ id: 'a', name: 'Wildfire', park_id: 'sdc' }),
+      makeRankingRow({ id: 'b', name: 'Outlaw Run', park_id: 'sdc' }),
+      makeRankingRow({ id: 'c', name: 'Thunderation', park_id: 'sdc' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'city', parkMap, new Set())
+    expect(result.map((r) => r.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('excludes coasters already on the list', () => {
+    const rows = [
+      makeRankingRow({ id: 'sb', name: 'Silver Bullet', park_id: 'knotts' }),
+      makeRankingRow({ id: 'tw', name: 'Time Traveler', park_id: 'sdc' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'silver', parkMap, new Set(['sb']))
+    expect(result.map((r) => r.id)).toEqual(['tw'])
   })
 })
