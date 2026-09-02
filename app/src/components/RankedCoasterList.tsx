@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -21,10 +22,15 @@ import { GripVertical, Plus } from 'lucide-react'
 import { useAllCoasters, useParks, buildParkMap, type RankingRow } from '../lib/coasters'
 import { useMediaQuery } from '../lib/use-media-query'
 import { useRemoveRide, useSaveRanks, renumberRanks, insertIdAt, type UserRide } from '../lib/rides'
-import RankedCoasterItem from './RankedCoasterItem'
+import RankedCoasterItem, { TOUCH_DRAG_DELAY_MS } from './RankedCoasterItem'
 import { MessageState } from './ui'
 
 export type PendingAdd = { id: string; name: string }
+
+/** How long a removed row can be undone before the server delete commits. */
+export const REMOVE_UNDO_MS = 5000
+/** How long the dissolve-out animation runs before the row stops rendering. */
+const REMOVE_DISSOLVE_MS = 280
 
 type Props = {
   rides: UserRide[]
@@ -34,6 +40,8 @@ type Props = {
   instantAdd?: boolean
   onPendingClear?: () => void
   onInserted?: (coasterId: string, coasterName: string, rank: number) => void
+  /** A row entered the undo window; `undo()` cancels the pending removal. */
+  onRemoved?: (coasterName: string, undo: () => void) => void
   onError?: (message: string) => void
 }
 
@@ -41,6 +49,14 @@ type ItemProps = Omit<
   React.ComponentProps<typeof RankedCoasterItem>,
   'style' | 'dragging' | 'handleProps' | 'itemRef'
 >
+
+type PendingRemoval = {
+  /** Position in the ranked list, or null for unranked rows. */
+  index: number | null
+  ride: UserRide
+  timer: ReturnType<typeof setTimeout>
+  dissolved: boolean
+}
 
 // An optimistic stand-in for a ride the server hasn't echoed back yet, built
 // from the board dataset the search row came from — so a newly inserted card
@@ -70,6 +86,7 @@ function SortableRankedCoasterItem(props: ItemProps) {
     id: props.ride.coaster_id,
     transition: sortableTransition,
   })
+  const touchDraggable = props.touchDraggable ?? false
   return (
     <RankedCoasterItem
       {...props}
@@ -82,7 +99,12 @@ function SortableRankedCoasterItem(props: ItemProps) {
         transition: isDragging ? 'none' : transition,
       }}
       dragging={isDragging}
-      handleProps={{ ...attributes, ...listeners } as React.ComponentPropsWithoutRef<'button'>}
+      handleProps={
+        touchDraggable
+          ? (attributes as unknown as React.ComponentPropsWithoutRef<'button'>)
+          : ({ ...attributes, ...listeners } as React.ComponentPropsWithoutRef<'button'>)
+      }
+      rowListeners={touchDraggable ? (listeners as React.HTMLAttributes<HTMLLIElement>) : undefined}
       itemRef={setNodeRef}
     />
   )
@@ -119,6 +141,7 @@ export default function RankedCoasterList({
   instantAdd = false,
   onPendingClear,
   onInserted,
+  onRemoved,
   onError,
 }: Props) {
   const parks = useParks()
@@ -130,6 +153,8 @@ export default function RankedCoasterList({
 
   // Optimistic rides awaiting the server echo; real rides take precedence.
   const [pendingRides, setPendingRides] = useState<UserRide[]>([])
+  // Rows in the remove-undo window: animating out, not yet deleted server-side.
+  const [pendingRemovals, setPendingRemovals] = useState<Map<string, PendingRemoval>>(new Map())
 
   const ranked = useMemo(() => rides.filter((r) => r.rank !== null), [rides])
   const unranked = useMemo(() => rides.filter((r) => r.rank === null), [rides])
@@ -138,6 +163,16 @@ export default function RankedCoasterList({
     () => new Map([...pendingRides, ...rides].map((r) => [r.coaster_id, r])),
     [rides, pendingRides],
   )
+
+  const [items, setItems] = useState<string[]>(rankedIds)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const pendingRemovalsRef = useRef(pendingRemovals)
+  pendingRemovalsRef.current = pendingRemovals
+
+  useEffect(() => {
+    setItems(rankedIds)
+  }, [rankedIds])
 
   // Drop stand-ins once the real rows arrive from the server.
   useEffect(() => {
@@ -149,17 +184,41 @@ export default function RankedCoasterList({
     })
   }, [rides])
 
-  const [items, setItems] = useState<string[]>(rankedIds)
+  // Clear undo timers if the page unloads mid-window.
+  useEffect(
+    () => () => {
+      pendingRemovalsRef.current.forEach((entry) => clearTimeout(entry.timer))
+    },
+    [],
+  )
 
-  useEffect(() => {
-    setItems(rankedIds)
-  }, [rankedIds])
+  // Rows animating out stay mounted; once dissolved they stop rendering but
+  // remain in `items` so an undo restores them with zero reshuffling.
+  const visibleItems = useMemo(
+    () =>
+      items.filter((id) => {
+        const entry = pendingRemovals.get(id)
+        return !entry || !entry.dissolved
+      }),
+    [items, pendingRemovals],
+  )
+  const visibleUnranked = useMemo(
+    () =>
+      unranked.filter((r) => {
+        const entry = pendingRemovals.get(r.coaster_id)
+        return !entry || !entry.dissolved
+      }),
+    [unranked, pendingRemovals],
+  )
 
   const sensors = useSensors(
-    // Desktop: drag on 5px movement. Touch: long-press (200ms) so vertical
-    // scrolling never fights the drag gesture — the native mobile pattern.
+    // Desktop: drag on 5px movement. Touch: long-press anywhere on the row
+    // so vertical scrolling never fights the drag gesture. The delay must
+    // match TOUCH_DRAG_DELAY_MS in RankedCoasterItem (its scroll guard).
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: TOUCH_DRAG_DELAY_MS, tolerance: 8 },
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -209,6 +268,94 @@ export default function RankedCoasterList({
     onPendingClear?.()
   }, [instantAdd, pendingAdd, insertAt, onPendingClear, items.length])
 
+  // Put a removed row back, exactly where it was, with zero server calls.
+  const restoreRemoval = useCallback((coasterId: string) => {
+    const entry = pendingRemovalsRef.current.get(coasterId)
+    clearTimeout(entry?.timer)
+    setPendingRemovals((prev) => {
+      if (!prev.has(coasterId)) return prev
+      const next = new Map(prev)
+      next.delete(coasterId)
+      return next
+    })
+    // Pre-commit undo: the id is still in `items`, so unhiding suffices.
+    // Post-commit failure: the id was filtered out — reinsert it in place.
+    if (entry && entry.index !== null) {
+      setItems((prev) =>
+        prev.includes(coasterId)
+          ? prev
+          : insertIdAt(prev, coasterId, Math.min(entry.index ?? 0, prev.length)),
+      )
+    }
+  }, [])
+
+  const restoreRemovalRef = useRef(restoreRemoval)
+  restoreRemovalRef.current = restoreRemoval
+
+  // Undo window expired: now (and only now) talk to the server.
+  const commitRemoval = useCallback(
+    (coasterId: string) => {
+      const entry = pendingRemovalsRef.current.get(coasterId)
+      if (!entry) return
+      const name = entry.ride.coaster.name
+      const wasRanked = entry.index !== null
+      setItems((prev) => prev.filter((id) => id !== coasterId))
+      removeRide.mutate(coasterId, {
+        onSuccess: () => {
+          if (wasRanked) {
+            saveRanks.mutate(renumberRanks(itemsRef.current.filter((id) => id !== coasterId)), {
+              onError: () =>
+                onError?.(
+                  `Removed ${name}, but couldn't renumber your ranks. They'll tidy up on your next change.`,
+                ),
+            })
+          }
+        },
+        onError: () => {
+          restoreRemovalRef.current(coasterId)
+          onError?.(`Couldn't remove ${name}. Please try again.`)
+        },
+      })
+    },
+    [removeRide, saveRanks, onError],
+  )
+
+  const commitRemovalRef = useRef(commitRemoval)
+  commitRemovalRef.current = commitRemoval
+
+  const handleRemove = useCallback(
+    (coasterId: string) => {
+      if (pendingRemovalsRef.current.has(coasterId)) return
+      const ride = rideMap.get(coasterId)
+      if (!ride) return
+      const index = itemsRef.current.indexOf(coasterId)
+      // Dissolve the row out, keep it restorable for a few seconds, and only
+      // then commit the server delete.
+      setTimeout(() => {
+        setPendingRemovals((prev) => {
+          const entry = prev.get(coasterId)
+          if (!entry) return prev
+          const next = new Map(prev)
+          next.set(coasterId, { ...entry, dissolved: true })
+          return next
+        })
+      }, REMOVE_DISSOLVE_MS)
+      const timer = setTimeout(() => commitRemovalRef.current(coasterId), REMOVE_UNDO_MS)
+      setPendingRemovals((prev) => {
+        const next = new Map(prev)
+        next.set(coasterId, {
+          index: index === -1 ? null : index,
+          ride,
+          timer,
+          dissolved: false,
+        })
+        return next
+      })
+      onRemoved?.(ride.coaster.name, () => restoreRemovalRef.current(coasterId))
+    },
+    [rideMap, onRemoved],
+  )
+
   const handlePendingInsert = useCallback(
     (index: number) => {
       if (!pendingAdd) return
@@ -234,34 +381,12 @@ export default function RankedCoasterList({
     [items, commitRanks],
   )
 
-  const handleRemove = useCallback(
-    (coasterId: string) => {
-      const snapshot = items
-      const wasRanked = snapshot.includes(coasterId)
-      const next = snapshot.filter((id) => id !== coasterId)
-      const name = rideMap.get(coasterId)?.coaster.name ?? 'coaster'
-      setItems(next)
-      removeRide.mutate(coasterId, {
-        onSuccess: () => {
-          if (wasRanked && next.length > 0) {
-            saveRanks.mutate(renumberRanks(next), {
-              onError: () =>
-                onError?.(
-                  `Removed ${name}, but couldn't renumber your ranks. They'll tidy up on your next change.`,
-                ),
-            })
-          }
-        },
-        onError: () => {
-          setItems(snapshot)
-          onError?.(`Couldn't remove ${name}. Please try again.`)
-        },
-      })
-    },
-    [items, rideMap, removeRide, saveRanks, onError],
-  )
+  const handleDragStart = useCallback((_event: DragStartEvent) => {
+    // Subtle native-feel cue on devices that support it (Android; no-op iOS).
+    navigator.vibrate?.(10)
+  }, [])
 
-  const showEmptyState = items.length === 0 && !pendingAdd
+  const showEmptyState = visibleItems.length === 0 && !pendingAdd
   // On touch (instantAdd) the add never pauses for position picking, so the
   // insert targets never render — not even for the pre-layout-effect frame.
   const showInsertTargets = pendingAdd != null && !instantAdd
@@ -271,25 +396,30 @@ export default function RankedCoasterList({
       {showEmptyState ? (
         <MessageState>No coasters ranked yet. Search above to add some!</MessageState>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            {isTouch && items.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={visibleItems} strategy={verticalListSortingStrategy}>
+            {isTouch && visibleItems.length > 0 && (
               <p className="mb-2 flex items-center gap-1.5 pl-1 text-xs text-muted">
                 <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
                 Hold and drag a row to reorder
               </p>
             )}
             <ul className="space-y-2">
-              {showInsertTargets && items.length === 0 && (
+              {showInsertTargets && visibleItems.length === 0 && (
                 <InsertDivider label={dividerLabel(0, 0)} onClick={() => handlePendingInsert(0)} />
               )}
-              {items.map((id, i) => {
+              {visibleItems.map((id, i) => {
                 const ride = rideMap.get(id)
                 return (
                   <Fragment key={id}>
                     {showInsertTargets && (
                       <InsertDivider
-                        label={dividerLabel(i, items.length)}
+                        label={dividerLabel(i, visibleItems.length)}
                         onClick={() => handlePendingInsert(i)}
                       />
                     )}
@@ -300,6 +430,8 @@ export default function RankedCoasterList({
                         park={parkMap.get(ride.coaster.park_id)}
                         onRemove={handleRemove}
                         highlight={id === highlightId}
+                        removing={pendingRemovals.has(id)}
+                        touchDraggable={isTouch}
                       />
                     ) : (
                       <li className="flex items-center gap-3 rounded-xl border border-line bg-surface-bright px-3 py-3 text-sm text-muted">
@@ -309,10 +441,10 @@ export default function RankedCoasterList({
                   </Fragment>
                 )
               })}
-              {showInsertTargets && items.length > 0 && (
+              {showInsertTargets && visibleItems.length > 0 && (
                 <InsertDivider
-                  label={dividerLabel(items.length, items.length)}
-                  onClick={() => handlePendingInsert(items.length)}
+                  label={dividerLabel(visibleItems.length, visibleItems.length)}
+                  onClick={() => handlePendingInsert(visibleItems.length)}
                 />
               )}
             </ul>
@@ -320,13 +452,13 @@ export default function RankedCoasterList({
         </DndContext>
       )}
 
-      {unranked.length > 0 && (
+      {visibleUnranked.length > 0 && (
         <div className="mt-6">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
             Added but not ranked
           </h3>
           <ul className="space-y-2">
-            {unranked.map((ride) => (
+            {visibleUnranked.map((ride) => (
               <RankedCoasterItem
                 key={ride.coaster_id}
                 ride={ride}
@@ -341,6 +473,7 @@ export default function RankedCoasterList({
                   )
                 }
                 highlight={ride.coaster_id === highlightId}
+                removing={pendingRemovals.has(ride.coaster_id)}
               />
             ))}
           </ul>

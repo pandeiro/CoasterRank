@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { useAllCoasters, useParks } from '../lib/coasters'
 import { useRemoveRide, useSaveRanks } from '../lib/rides'
-import RankedCoasterList from './RankedCoasterList'
+import RankedCoasterList, { REMOVE_UNDO_MS } from './RankedCoasterList'
 import { makeRankingRow, makeUserRide, makeUserRideCoaster } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -60,6 +60,10 @@ describe('RankedCoasterList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockMutations()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renders ranked coasters plus the unranked section', () => {
@@ -165,33 +169,85 @@ describe('RankedCoasterList', () => {
     expect(screen.queryByText('New One')).not.toBeInTheDocument()
   })
 
-  it('removes a ranked coaster and renumbers the remaining ranks', async () => {
-    const user = userEvent.setup()
-    const { saveMutate, removeMutate } = mockMutations()
-    renderList()
-    await user.click(screen.getByRole('button', { name: /remove alpha/i }))
-    expect(removeMutate).toHaveBeenCalledWith('c1', expect.anything())
-    expect(saveMutate).toHaveBeenCalledWith([{ coaster_id: 'c2', rank: 1 }], expect.anything())
-    expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
+  it('removes a ranked coaster with an undo window before committing', () => {
+    vi.useFakeTimers()
+    try {
+      const { saveMutate, removeMutate } = mockMutations()
+      const onRemoved = vi.fn()
+      renderList({ onRemoved })
+      fireEvent.click(screen.getByRole('button', { name: /remove alpha/i }))
+      // Not committed yet; the row is dissolving out but still mounted.
+      expect(removeMutate).not.toHaveBeenCalled()
+      expect(saveMutate).not.toHaveBeenCalled()
+      expect(onRemoved).toHaveBeenCalledWith('Alpha', expect.any(Function))
+      expect(screen.getByText('Alpha')).toBeInTheDocument()
+      // After the dissolve it stops rendering…
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
+      // …and the server delete only commits once the undo window closes.
+      act(() => vi.advanceTimersByTime(REMOVE_UNDO_MS))
+      expect(removeMutate).toHaveBeenCalledWith('c1', expect.anything())
+      expect(saveMutate).toHaveBeenCalledWith([{ coaster_id: 'c2', rank: 1 }], expect.anything())
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('does not renumber when removing an unranked coaster', async () => {
-    const user = userEvent.setup()
-    const { saveMutate, removeMutate } = mockMutations()
-    renderList()
-    await user.click(screen.getByRole('button', { name: /remove gamma/i }))
-    expect(removeMutate).toHaveBeenCalledWith('c3', expect.anything())
-    expect(saveMutate).not.toHaveBeenCalled()
+  it('restores a removed ranked coaster on undo without any server call', () => {
+    vi.useFakeTimers()
+    try {
+      const { saveMutate, removeMutate } = mockMutations()
+      const onRemoved = vi.fn()
+      renderList({ onRemoved })
+      fireEvent.click(screen.getByRole('button', { name: /remove alpha/i }))
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
+      const undo = onRemoved.mock.calls[0][1] as () => void
+      act(() => undo())
+      expect(screen.getByText('Alpha')).toBeInTheDocument()
+      expect(screen.getByText('1')).toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(REMOVE_UNDO_MS + 1000))
+      expect(removeMutate).not.toHaveBeenCalled()
+      expect(saveMutate).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('reverts removal and reports an error when deleting fails', async () => {
-    const user = userEvent.setup()
-    mockMutations({ removeSucceeds: false })
-    const onError = vi.fn()
-    renderList({ onError })
-    await user.click(screen.getByRole('button', { name: /remove beta/i }))
-    expect(screen.getByText('Beta')).toBeInTheDocument()
-    expect(onError).toHaveBeenCalledWith(expect.stringMatching(/couldn't remove beta/i))
+  it('defers removal of an unranked coaster the same way', () => {
+    vi.useFakeTimers()
+    try {
+      const { saveMutate, removeMutate } = mockMutations()
+      renderList()
+      fireEvent.click(screen.getByRole('button', { name: /remove gamma/i }))
+      expect(screen.getByText('Gamma')).toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.queryByText('Gamma')).not.toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(REMOVE_UNDO_MS))
+      expect(removeMutate).toHaveBeenCalledWith('c3', expect.anything())
+      // Unranked rows carry no rank — no renumbering needed.
+      expect(saveMutate).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('restores the row and reports an error when the deferred delete fails', () => {
+    vi.useFakeTimers()
+    try {
+      mockMutations({ removeSucceeds: false })
+      const onError = vi.fn()
+      const onRemoved = vi.fn()
+      renderList({ onError, onRemoved })
+      fireEvent.click(screen.getByRole('button', { name: /remove beta/i }))
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.queryByText('Beta')).not.toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(REMOVE_UNDO_MS))
+      expect(screen.getByText('Beta')).toBeInTheDocument()
+      expect(onError).toHaveBeenCalledWith(expect.stringMatching(/couldn't remove beta/i))
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('ranks an unranked coaster via the add-to-ranking action', async () => {
