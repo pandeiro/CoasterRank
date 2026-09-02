@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
+import { fireAnalyticsEvent } from '../lib/analytics'
 import { riderPageUrl } from '../lib/rider'
 import { fetchProfile, type Profile } from '../lib/profile'
 import { refreshOgCard } from '../lib/og-card'
@@ -86,6 +87,10 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
       // The card bakes in name/username, so refresh it after edits too.
       syncOgCard(profile?.avatar_url ?? null)
+      // Share opt-in: only when flipping false→true with a valid username.
+      if (!profile?.public_list && publicList && USERNAME_RE.test(username)) {
+        fireAnalyticsEvent('share', { username, meta: { rankedCount: rankedRides.length } })
+      }
     },
     onError: (error) => {
       // Postgres unique_violation => profiles.username is taken.
