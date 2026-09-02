@@ -125,46 +125,26 @@ One `.env` file at the repo root holds everything (gitignored). Vite reads it vi
 **Critical rule:** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY`
 and `SUPABASE_ACCESS_TOKEN` must NEVER have a `VITE_` prefix.
 
+## Repo skills (load on demand)
+
+Procedures and hard-won testing knowledge live in `.agents/skills/` (registered
+for opencode via `skills.paths` in `opencode.json`). Read the relevant SKILL.md
+before the task it covers — don't rediscover it:
+
+- **worktree-workflow** — creating/cleaning up `.worktrees/` sandboxes
+  (branch naming, `.env` symlink, install, gates, safe removal).
+- **mobile-drag-qa** — Playwright/CDP QA of touch & drag flows: matchMedia
+  pinning, long-press dispatch, synthetic-user protocol (check existence with
+  the read-only report; ask before seeding), known false alarms.
+- **jsdom-testing** — vitest conventions + jsdom gap workarounds
+  (IntersectionObserver/matchMedia/WAAPI stubs, fake timers, class pinning,
+  PostgREST embed quirks).
+
 ## Worktrees
 
-Worktrees live in `.worktrees/` (gitignored). Each gets its own branch, a symlinked `.env`,
-and a fresh `npm install`.
-
-### Creating a worktree
-
-When the user asks for a worktree:
-
-1. **Derive name, type, and provenance from context** — do not ask three separate questions. Try:
-   - **Name**: infer from the user's request (e.g. "let's work on park dedup" → `park-dedup`).
-     Only ask if the intent is unclear.
-   - **Type**: infer from the request wording (`feat`, `fix`, `refactor`, `chore`, etc.).
-     If ambiguous, ask with a short list of options.
-   - **Provenance**: default to latest `main`. Check `git log --oneline -5` for context — if the
-     user is mid-feature on the current branch, offer to branch from there instead.
-   Keep it to one concise question max; combine when possible.
-2. **Create the worktree:**
-   ```bash
-   git worktree add .worktrees/<name> -b <type>/<name> <base>
-   ```
-3. **Symlink `.env`** (relative path for portability):
-   ```bash
-   ln -s ../../.env .worktrees/<name>/.env
-   ```
-4. **Re-home the session** — all subsequent commands run from the worktree root.
-5. **Install deps:** `npm run install:all`
-6. **Verify:** `npm run gates`
-
-### Cleaning up a worktree
-
-When the user says they're done with a worktree:
-
-1. **Check the branch was pushed:** `git log origin/<branch>..HEAD` — if there are unpushed commits, warn the user.
-2. **Check for unfinished work:** `git status --short` — if there are uncommitted or untracked changes, warn the user.
-3. **If clean and pushed:**
-   - Move the working directory back to the repo root.
-   - Remove the worktree: `git worktree remove .worktrees/<name>`
-   - Prune stale state: `git worktree prune`
-4. **If not clean:** do not remove; prompt the user to commit, stash, or discard.
+Worktrees live in `.worktrees/` (gitignored) with their own branch and a
+symlinked `.env`. Follow the **worktree-workflow** skill (above) for the full
+create/cleanup procedure.
 
 ## Multi-account Supabase CLI auth
 
