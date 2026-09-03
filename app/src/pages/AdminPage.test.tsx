@@ -7,6 +7,7 @@ import AdminPage from './AdminPage'
 import { supabase } from '../lib/supabase'
 import {
   approveSubmission,
+  deletePark,
   getAllCoastersAdmin,
   getAllParksAdmin,
   getCoastersInPark,
@@ -38,6 +39,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     approveSubmission: vi.fn(),
     rejectSubmission: vi.fn(),
     moveCoasterToPark: vi.fn(),
+    deletePark: vi.fn(),
   }
 })
 
@@ -80,6 +82,7 @@ function mockBase() {
   vi.mocked(approveSubmission).mockResolvedValue(undefined)
   vi.mocked(rejectSubmission).mockResolvedValue(undefined)
   vi.mocked(moveCoasterToPark).mockResolvedValue(undefined)
+  vi.mocked(deletePark).mockResolvedValue(undefined)
 }
 
 describe('AdminPage', () => {
@@ -253,6 +256,26 @@ describe('AdminPage', () => {
       await userEvent.click(screen.getByRole('button', { name: /add park/i }))
       expect(await screen.findByText('Add New Park')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /save park/i })).toBeInTheDocument()
+    })
+
+    it('asks for confirmation and deletes an empty park', async () => {
+      vi.mocked(getAllParksAdmin).mockResolvedValue(parks)
+      renderPage()
+      await switchToParks()
+      await userEvent.click(await screen.findByTitle('Delete park'))
+      expect(
+        await screen.findByText(/Are you sure you want to delete "Cedar Point"\?/),
+      ).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      await waitFor(() => expect(deletePark).toHaveBeenCalledWith('p1'))
+    })
+
+    it('warns about cascading coaster deletion when the park has coasters', async () => {
+      vi.mocked(getAllParksAdmin).mockResolvedValue([{ ...parks[0], coaster_count: 3 }])
+      renderPage()
+      await switchToParks()
+      await userEvent.click(await screen.findByTitle('Delete park'))
+      expect(await screen.findByText(/delete its 3 coaster\(s\)/)).toBeInTheDocument()
     })
   })
 

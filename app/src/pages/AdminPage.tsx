@@ -30,6 +30,7 @@ import {
   getAllParksAdmin,
   updatePark,
   createPark,
+  deletePark,
   getOtherParkId,
   getCoastersInPark,
   moveCoasterToPark,
@@ -137,6 +138,7 @@ export default function AdminPage() {
   const [editingPark, setEditingPark] = useState<Partial<AdminPark> | null>(null)
   const [isAddingPark, setIsAddingPark] = useState(false)
   const [parkLimit, setParkLimit] = useState(COASTER_PAGE_SIZE)
+  const [parkToDelete, setParkToDelete] = useState<AdminPark | null>(null)
 
   const { data: allParks = [] } = useParks()
   const { data: allManufacturers = [] } = useManufacturers()
@@ -388,6 +390,26 @@ export default function AdminPage() {
     },
     onError: (error) => {
       notify(`Couldn't save park: ${error.message}`, 'error')
+    },
+  })
+
+  const removePark = useMutation({
+    mutationFn: async (id: string) => {
+      await deletePark(id)
+    },
+    onSuccess: () => {
+      // A park delete cascades to its coasters (and their rides/ratings), so
+      // both admin lists and the board need refreshing.
+      queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
+      queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
+      void refreshBoardData(queryClient).catch(() => {})
+      setEditingPark(null)
+      setIsAddingPark(false)
+      setParkToDelete(null)
+      notify('Park deleted.')
+    },
+    onError: (error) => {
+      notify(`Couldn't delete park: ${error.message}`, 'error')
     },
   })
 
@@ -1059,6 +1081,13 @@ export default function AdminPage() {
                               >
                                 <Edit size={14} />
                               </button>
+                              <button
+                                onClick={() => setParkToDelete(p)}
+                                title="Delete park"
+                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1188,21 +1217,32 @@ export default function AdminPage() {
                       className={fieldClassName}
                     />
                   </div>
-                  <div className="mt-2 flex justify-end gap-2 md:col-span-3">
-                    <button
-                      type="button"
-                      onClick={closeParkForm}
-                      className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savePark.isPending}
-                      className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
-                    >
-                      {savePark.isPending ? 'Saving...' : 'Save Park'}
-                    </button>
+                  <div className="mt-2 flex justify-between gap-2 md:col-span-3">
+                    {editingPark && (
+                      <button
+                        type="button"
+                        onClick={() => setParkToDelete(editingPark as AdminPark)}
+                        className="rounded-full px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+                      >
+                        Delete Park
+                      </button>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={closeParkForm}
+                        className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savePark.isPending}
+                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                      >
+                        {savePark.isPending ? 'Saving...' : 'Save Park'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </Modal>
@@ -1487,6 +1527,22 @@ export default function AdminPage() {
         }}
         title="Delete Coaster"
         message={`Are you sure you want to delete "${coasterToDelete?.name}"? This will also remove all user rides and rankings for this coaster. This action cannot be undone.`}
+      />
+
+      <ConfirmDialog
+        isOpen={!!parkToDelete}
+        onClose={() => setParkToDelete(null)}
+        onConfirm={() => {
+          if (parkToDelete) {
+            removePark.mutate(parkToDelete.id)
+          }
+        }}
+        title="Delete Park"
+        message={
+          parkToDelete && parkToDelete.coaster_count > 0
+            ? `Are you sure you want to delete "${parkToDelete.name}"? This will also delete its ${parkToDelete.coaster_count} coaster(s) plus all user rides and rankings for them. This action cannot be undone.`
+            : `Are you sure you want to delete "${parkToDelete?.name}"? This action cannot be undone.`
+        }
       />
     </div>
   )

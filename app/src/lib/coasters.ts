@@ -536,6 +536,11 @@ export async function createPark(data: Partial<AdminPark>) {
   return result as AdminPark
 }
 
+export async function deletePark(id: string) {
+  const { error } = await supabase.from('parks').delete().eq('id', id)
+  if (error) throw error
+}
+
 // Re-home helpers ----------------------------------------------------------
 
 export async function getOtherParkId() {
