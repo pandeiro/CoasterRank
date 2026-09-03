@@ -91,6 +91,13 @@ export default function Layout() {
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm sm:gap-5">
+            {/* The board's hero anchors home; every other page needs an
+                explicit path back to the global ranking. */}
+            {!isBoard && (
+              <NavLink to="/" end className={navLinkClass}>
+                Ranking
+              </NavLink>
+            )}
             {isLoading ? null : user ? (
               <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
             ) : (

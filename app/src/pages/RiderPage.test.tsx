@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import RiderPage from './RiderPage'
 import { useRiderPage, type RiderPageData } from '../lib/rider'
+import { AuthContext, type AuthContextValue } from '../lib/auth-context'
 
 vi.mock('../lib/rider', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/rider')>()
@@ -12,6 +13,14 @@ vi.mock('../lib/rider', async (importOriginal) => {
     useRiderPage: vi.fn(),
   }
 })
+
+const anonymousAuth: AuthContextValue = {
+  session: null,
+  user: null,
+  isLoading: false,
+  isConfirmed: false,
+  signOut: vi.fn(),
+}
 
 const riderData: RiderPageData = {
   profile: {
@@ -47,14 +56,16 @@ const riderData: RiderPageData = {
   ],
 }
 
-function renderAt(path = '/riders/coaster_fan') {
+function renderAt(path = '/riders/coaster_fan', auth: AuthContextValue = anonymousAuth) {
   return render(
     <HelmetProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/riders/:username" element={<RiderPage />} />
-        </Routes>
-      </MemoryRouter>
+      <AuthContext.Provider value={auth}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/riders/:username" element={<RiderPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
     </HelmetProvider>,
   )
 }
@@ -82,6 +93,22 @@ describe('RiderPage', () => {
     expect(screen.getByText('Cedar Point')).toBeInTheDocument()
     expect(screen.getByText('#1 pick')).toBeInTheDocument()
     expect(screen.getByText('Build your own ranking')).toBeInTheDocument()
+  })
+
+  it('hides the signup CTA for logged-in users', () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: riderData,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAt('/riders/coaster_fan', {
+      ...anonymousAuth,
+      session: {} as never,
+      user: { id: 'u1' } as never,
+    })
+
+    expect(screen.queryByText('Build your own ranking')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sign up free')).not.toBeInTheDocument()
   })
 
   it('sets human-facing title and meta description via helmet', async () => {
