@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
-import { capitalize } from '../lib/coasters'
 import type { RiderRide } from '../lib/rider'
-import { Badge } from './ui'
 
 /**
  * Read-only ranked list for public rider pages. Unlike RankedCoasterItem there
@@ -46,12 +44,6 @@ export default function RiderRideList({ rides }: { rides: RiderRide[] }) {
                 )}
               </span>
             </div>
-            {ride.score !== null && (
-              <span className="hidden shrink-0 font-mono text-xs text-muted sm:inline">
-                {ride.score.toFixed(2)}
-              </span>
-            )}
-            <Badge className="hidden shrink-0 sm:inline-flex">{capitalize(ride.material)}</Badge>
           </li>
         )
       })}
