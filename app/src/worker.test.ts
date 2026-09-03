@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import worker, {
   isSocialCrawler,
   escapeHtml,
+  renderHomeHtml,
+  homeMeta,
   renderRiderHtml,
   renderRiderNotFoundHtml,
   type Env,
@@ -123,6 +125,65 @@ describe('worker: helpers', () => {
     expect(html).toContain('property="og:image" content="https://img.test/og-card.png"')
     expect(html).toContain('name="twitter:image" content="https://img.test/og-card.png"')
     expect(html).not.toContain('og-default.png')
+  })
+})
+
+describe('worker: home unfurl', () => {
+  it('builds absolute, origin-relative meta for the base URL', () => {
+    const meta = homeMeta('https://coasterrank.test')
+    expect(meta.url).toBe('https://coasterrank.test/')
+    expect(meta.image).toBe('https://coasterrank.test/og-default.png')
+    expect(meta.title).toContain('CoasterRank')
+  })
+
+  it('includes full OG/Twitter meta in the prerendered home HTML', () => {
+    const html = renderHomeHtml('https://coasterrank.test')
+    expect(html).toContain('property="og:type" content="website"')
+    expect(html).toContain('property="og:image" content="https://coasterrank.test/og-default.png"')
+    expect(html).toContain('property="og:image:width" content="1200"')
+    expect(html).toContain('property="og:image:height" content="630"')
+    expect(html).toContain('name="twitter:card" content="summary_large_image"')
+    expect(html).toContain('rel="canonical" href="https://coasterrank.test/"')
+  })
+
+  it('prerenders the home card for social crawlers on /', async () => {
+    const env = makeEnv()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      env,
+    )
+    const html = await response.text()
+    expect(response.headers.get('Content-Type')).toContain('text/html')
+    expect(response.headers.get('Cache-Control')).toContain('max-age=3600')
+    expect(html).toContain(
+      '<title>CoasterRank — A live ranking of the world’s roller coasters</title>',
+    )
+    expect(html).toContain('property="og:image" content="https://coasterrank.test/og-default.png"')
+    // Static content: no Supabase call, no SPA shell.
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+  })
+
+  it('serves the SPA shell to humans on /', async () => {
+    const env = makeEnv()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Mozilla/5.0 Safari' } }),
+      env,
+    )
+    expect(await response.text()).toBe('spa-shell')
+    expect(env.ASSETS.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('prerenders the home card for bare-URL requests with a query string', async () => {
+    const env = makeEnv()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/?utm_source=slack', {
+        headers: { 'user-agent': 'Slackbot-LinkExpanding 1.0' },
+      }),
+      env,
+    )
+    const html = await response.text()
+    expect(html).toContain('property="og:url" content="https://coasterrank.test/"')
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
   })
 })
 

@@ -14,6 +14,11 @@
  *    full OG/Twitter meta tags (most link-unfurling crawlers don't execute
  *    JS, so the SPA shell would otherwise unfurl as a bare "CoasterRank").
  *    Humans on the same URL fall through to static assets (the SPA).
+ *  - `/` + social-crawler User-Agent → static prerendered OG HTML for the
+ *    homepage unfurl: the shell only carries og:site_name, so shares of the
+ *    base URL would otherwise unfurl with no preview image. Content is
+ *    static (no Supabase dependency) and URLs are computed from the request
+ *    origin, so forks stay zero-config. Humans fall through to assets.
  *  - Everything else → static assets directly (no Worker cost).
  *
  * Data comes from the same public PostgREST surfaces the SPA uses (anon key;
@@ -202,6 +207,68 @@ export function renderRiderNotFoundHtml(origin: string): string {
   This rider page doesn't exist or isn't shared.
   <a href="${escapeHtml(origin)}" style="color:#1A1A2E">Back to CoasterRank</a>
 </p>
+</body>
+</html>`
+}
+
+// Base-URL unfurl (/) — static prerendered OG HTML ---------------------------
+// The SPA shell's static head only carries og:site_name (og:image must be an
+// absolute URL and the deployment domain isn't known at build time — forks
+// deploy under their own domains), so link previews of the base URL fell
+// back to title + description with no image. Crawlers hitting `/` get this
+// prerendered card instead; all URLs are computed from the request origin.
+
+export function homeMeta(origin: string) {
+  const title = 'CoasterRank — A live ranking of the world’s roller coasters'
+  const description =
+    "Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
+  return {
+    title,
+    description,
+    url: `${origin}/`,
+    image: `${origin}/og-default.png`,
+  }
+}
+
+export function renderHomeHtml(origin: string): string {
+  const { title, description, url, image } = homeMeta(origin)
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(url)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta property="og:image" content="${escapeHtml(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CoasterRank — the live community board with the current top 4 coasters">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:image" content="${escapeHtml(image)}">
+<style>${CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div>
+      <p class="eyebrow">Live community ranking</p>
+      <h1>CoasterRank</h1>
+      <p class="meta">Rank the coasters you've ridden — drag-sort your list and the community board updates.</p>
+    </div>
+  </div>
+  <footer>
+    <a class="cta" href="${escapeHtml(url)}">See the live board</a>
+    <p>Bradley–Terry scored · recomputed every 15 minutes.</p>
+  </footer>
+</div>
 </body>
 </html>`
 }
@@ -426,6 +493,18 @@ export default {
 
     if (pathname === '/api/ranking') {
       return handleRankingRequest(request, env)
+    }
+
+    if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {
+      return new Response(renderHomeHtml(url.origin), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          // Static content — cached an hour, so copy tweaks after a deploy
+          // propagate without a manual cache purge.
+          'Cache-Control': 'public, max-age=3600',
+        },
+      })
     }
 
     const match = RIDER_PATH_RE.exec(url.pathname)
