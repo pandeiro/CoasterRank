@@ -95,6 +95,107 @@ export function DesignBoard() {
           </p>
         </div>
 
+        <Section title="Mark">
+          <Panel className="p-6 sm:p-8">
+            <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+              <img
+                src="/logo.svg"
+                alt="CoasterRank mark — hill, heart, loop"
+                className="h-16 w-auto sm:h-24"
+              />
+              <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
+                Coaster<span className="text-coral">Rank</span>
+              </span>
+              <span className="pb-1 text-sm italic text-muted sm:pb-2 sm:text-base">
+                A live ranking of the world&apos;s roller coasters
+              </span>
+            </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Hill · Ink #1A1A2E
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  The lift & drop. Anchors the mark on the left; rendered in ink on canvas, reversed
+                  to canvas on the app icon tile.
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Heart · Coral #E85D75
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  The ride’s pulse — centered, small, and unmistakable at 16 px.
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Loop · Accent #48CAE4
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  The return. Accent on canvas in UI, white on the badge.
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-muted">
+              Single vector{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                viewBox 49.7 199 1068 679
+              </code>{' '}
+              (quantized + potrace). Shipped as{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/logo.svg</code>{' '}
+              (mark),{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/favicon.svg</code>{' '}
+              (same, for the tab), and{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                apple-touch-icon.png
+              </code>{' '}
+              (180 × 180, ink tile via{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">badge.svg</code>).
+              The homepage hero reuses the same lockup: mark + wordmark + tagline, bottom-aligned.
+              Workshop explorations are archived in{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                docs/logo-archive
+              </code>
+              .
+            </p>
+          </Panel>
+        </Section>
+
+        <Section title="Headings">
+          <Panel className="space-y-6 p-6 sm:p-8">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Hero lockup · BoardPage
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
+                  Coaster<span className="text-coral">Rank</span>
+                </span>
+                <span className="pb-1 text-sm italic text-muted sm:pb-2">
+                  A live ranking of the world&apos;s roller coasters
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                BoardPage is the home page now — tagline sits to the right of the wordmark, not
+                below it, with{' '}
+                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">items-end</code>{' '}
+                so bottom edges line up. The top navbar is intentionally empty of branding; auth
+                actions live there alone.
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Display · Racing Sans One
+              </p>
+              <p className="display-heading text-5xl text-ink sm:text-6xl">Fury 325</p>
+              <p className="mt-2 text-sm text-muted">
+                Page titles, rank numbers, and brand moments.
+              </p>
+            </div>
+          </Panel>
+        </Section>
+
         <Section title="Colors">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {swatches.map((swatch) => (

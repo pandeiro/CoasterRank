@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="49.7 199.0 1068.2 679.5">
-  <title>CoasterRank mark</title>
-<!-- logo-base.svg from logo-base.png via quantized 4-color + potrace (dark #1A1A2E, coral #E85D75, blue #48CAE4) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="49.7 199.0 1068.2 679.5" width="1068" height="680">
+<!-- logo-base.svg from logo-base.png via quantized 4-color + potrace (dark #202030, coral #E85D75, blue #48CAE4) -->
 <!-- background transparent -->
 <g transform="translate(0,1060) scale(0.1,-0.1)">
 <path d="M5490 8467 c-147 -45 -256 -116 -388 -249 -164 -166 -296 -365 -467
@@ -15,7 +14,7 @@
 41 -139 102 -370 28 -109 176 -697 198 -787 4 -17 19 -26 63 -39 93 -27 186
 -78 308 -171 17 -12 34 -23 37 -23 24 0 -14 179 -209 985 -31 126 -104 388
 -184 660 -91 306 -216 643 -319 858 -201 417 -411 655 -663 749 -73 27 -98 32
--208 35 -109 3 -135 0 -200 -20z" fill="#1A1A2E" stroke="none"/>
+-208 35 -109 3 -135 0 -200 -20z" fill="#202030" stroke="none"/>
 <path d="M6467 5249 c-164 -33 -299 -108 -428 -238 -131 -132 -204 -268 -249
 -461 -42 -178 -27 -426 36 -625 88 -276 304 -590 646 -937 107 -109 112 -108
 177 35 28 63 51 127 51 143 0 23 -23 53 -110 147 -298 321 -451 572 -505 829
