@@ -6,10 +6,15 @@ import type { RiderRide } from '../lib/rider'
  * is no drag/remove/mutation surface — rank is the primary visual signal,
  * matching the board's presentation (DECISIONS.md §Layout).
  */
+function rankRowClass(rank: number): string {
+  if (rank === 1) return 'bg-coral/[0.08] hover:bg-coral/[0.08]'
+  if (rank === 2) return 'bg-coral/[0.06] hover:bg-coral/[0.06]'
+  if (rank === 3) return 'bg-coral/[0.04] hover:bg-coral/[0.04]'
+  return 'bg-surface-bright hover:bg-canvas'
+}
+
 function rankNumberClass(rank: number): string {
-  if (rank === 1) return 'bg-coral/10 text-accent-strong [text-shadow:0_1px_0_rgb(255_255_255)]'
-  if (rank === 2) return 'bg-coral/5 text-accent-strong [text-shadow:0_1px_0_rgb(255_255_255)]'
-  if (rank === 3) return 'bg-coral/2 text-accent-strong [text-shadow:0_1px_0_rgb(255_255_255)]'
+  if (rank <= 3) return 'bg-white text-accent-strong shadow-sm'
   return 'text-muted'
 }
 
@@ -20,7 +25,7 @@ export default function RiderRideList({ rides }: { rides: RiderRide[] }) {
         return (
           <li
             key={ride.coaster_id}
-            className="flex items-center gap-3 bg-surface-bright px-4 py-3 text-sm transition-colors hover:bg-canvas"
+            className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${rankRowClass(ride.rank)}`}
           >
             <span
               className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl ${rankNumberClass(ride.rank)}`}
