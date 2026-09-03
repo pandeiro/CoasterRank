@@ -61,6 +61,18 @@ export default function BoardPage() {
   return (
     <>
       <h1 className="sr-only">The community board</h1>
+      <header
+        data-board-hero
+        className="flex flex-wrap items-end gap-x-3 gap-y-1.5 pb-2 sm:gap-x-5 sm:pb-3"
+      >
+        <img src="/logo.svg" alt="" className="h-14 w-auto sm:h-20" />
+        <span className="display-heading text-[2.55rem] leading-none tracking-wide sm:text-[3.85rem]">
+          Coaster<span className="text-coral">Rank</span>
+        </span>
+        <span className="pb-1 text-xs italic text-muted/60 sm:pb-[0.4rem] sm:text-sm">
+          A live ranking of the world&apos;s roller coasters
+        </span>
+      </header>
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
 import ImpersonationBanner from './ImpersonationBanner'
@@ -14,13 +14,46 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 export default function Layout() {
   const { user, isLoading, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isBoard = location.pathname === '/'
+  const [scrolledPastHero, setScrolledPastHero] = useState(false)
 
-  // Tagline intro: fade in shortly after load, then stay.
-  const [showTagline, setShowTagline] = useState(false)
   useEffect(() => {
-    const show = setTimeout(() => setShowTagline(true), 400)
-    return () => clearTimeout(show)
-  }, [])
+    if (!isBoard) {
+      setScrolledPastHero(false)
+      return
+    }
+    let raf = 0
+    let observer: IntersectionObserver | null = null
+    let hero: Element | null = null
+
+    const handle = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        hero = document.querySelector('[data-board-hero]')
+        if (!hero) return
+        if (observer) observer.disconnect()
+        observer = new IntersectionObserver(
+          ([entry]) => {
+            // When hero bottom is above the sticky header (~64px), it is no longer intersecting.
+            setScrolledPastHero(!entry.isIntersecting)
+          },
+          { rootMargin: '-64px 0px 0px 0px', threshold: 0 },
+        )
+        observer.observe(hero)
+      })
+    }
+
+    handle()
+    // Hero mounts after Layout, so observe DOM mutations until it appears.
+    const mo = new MutationObserver(handle)
+    mo.observe(document.body, { childList: true, subtree: true })
+    return () => {
+      mo.disconnect()
+      if (observer) observer.disconnect()
+      cancelAnimationFrame(raf)
+    }
+  }, [isBoard, location.pathname])
 
   // Same queryKey as ProfilePage/RequireAdmin, so the fetch is shared; we only
   // need the admin flag here to decide whether to show the Admin link.
@@ -37,20 +70,24 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-30 border-b border-line/80 bg-canvas/95 backdrop-blur">
+      <header
+        className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
+          scrolledPastHero ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
+        }`}
+      >
         <div className="page-container flex min-h-16 items-center justify-between gap-6">
-          <Link to="/" className="flex shrink-0 items-baseline gap-2 text-ink">
-            <img src="/logo.svg" alt="" className="h-8 w-8 self-center" />
-            <span className="display-heading text-xl tracking-wide">
+          <Link
+            to="/"
+            aria-hidden={!scrolledPastHero}
+            className={`flex shrink-0 items-center gap-2 text-ink transition-all duration-300 ease-out ${
+              scrolledPastHero
+                ? 'translate-y-0 opacity-100'
+                : 'pointer-events-none -translate-y-1 opacity-0'
+            }`}
+          >
+            <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0 sm:h-7 sm:w-7" />
+            <span className="display-heading text-lg tracking-wide sm:text-xl">
               Coaster<span className="text-coral">Rank</span>
-            </span>
-            <span
-              aria-hidden="true"
-              className={`ml-1 hidden text-sm italic text-muted opacity-0 transition-opacity duration-500 lg:inline ${
-                showTagline ? 'opacity-60' : ''
-              }`}
-            >
-              A live ranking of the world&apos;s roller coasters
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm sm:gap-5">

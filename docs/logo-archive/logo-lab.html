@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Racing+Sans+One&display=swap"
+      rel="stylesheet"
+    />
+    <title>Heartline mark workshop — CoasterRank</title>
+    <style>
+      :root {
+        --ink: #1a1a2e;
+        --ink-soft: #2f2e48;
+        --canvas: #fefcf3;
+        --surface: #f5f0e8;
+        --bright: #ffffff;
+        --line: #e0dbd1;
+        --muted: #4a4a5a;
+        --accent: #48cae4;
+        --accent-strong: #159ab8;
+        --coral: #e85d75;
+        --success: #2e8b73;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+      }
+      .display {
+        font-family: 'Racing Sans One', Arial, sans-serif;
+        font-weight: 400;
+      }
+      header {
+        background: var(--ink);
+        color: var(--canvas);
+        padding: 20px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      header .wordmark {
+        font-size: 26px;
+        letter-spacing: 0.02em;
+      }
+      header .wordmark em {
+        font-style: normal;
+        color: var(--coral);
+      }
+      header .tag {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgb(254 252 243 / 0.65);
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 40px 32px 80px;
+      }
+      .intro {
+        max-width: 720px;
+      }
+      .kicker {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--accent-strong);
+      }
+      h1 {
+        font-size: 44px;
+        margin: 8px 0 12px;
+        line-height: 1.1;
+      }
+      h2 {
+        font-size: 24px;
+        margin: 0;
+      }
+      section {
+        margin-top: 56px;
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+      }
+      .section-head span {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      @media (max-width: 760px) {
+        .cols-2,
+        .cols-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--bright);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card .stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+        min-height: 200px;
+      }
+      .card.dark {
+        background: var(--ink);
+        border-color: var(--ink-soft);
+      }
+      .card.dark .meta,
+      .card.dark .meta code {
+        color: rgb(254 252 243 / 0.7);
+      }
+      .card.dark .controls label,
+      .card.dark .toggles label {
+        color: rgb(254 252 243 / 0.75);
+      }
+      .card.soft {
+        background: var(--surface);
+      }
+      .card .meta {
+        border-top: 1px solid var(--line);
+        padding: 12px 16px;
+      }
+      .card.dark .meta {
+        border-top-color: var(--ink-soft);
+      }
+      .meta .name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .meta .desc {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .meta code {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .card img {
+        max-width: 100%;
+        height: auto;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .pill.coral {
+        background: rgb(232 93 117 / 0.12);
+        border-color: rgb(232 93 117 / 0.3);
+        color: #c24156;
+      }
+      .pill.accent {
+        background: rgb(72 202 228 / 0.14);
+        border-color: rgb(72 202 228 / 0.4);
+        color: var(--accent-strong);
+      }
+      .ladder {
+        display: flex;
+        align-items: flex-end;
+        gap: 28px;
+        flex-wrap: wrap;
+      }
+      .rung {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .rung .size {
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .tile {
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tile.light {
+        background: var(--bright);
+        border: 1px solid var(--line);
+      }
+      .tile.dark {
+        background: var(--ink);
+      }
+      .navmock {
+        background: var(--ink);
+        color: var(--canvas);
+        border-radius: 14px;
+        padding: 14px 22px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+      }
+      .navmock .links {
+        margin-left: auto;
+        display: flex;
+        gap: 18px;
+        font-size: 13px;
+        color: rgb(254 252 243 / 0.7);
+      }
+      .navmock.light {
+        background: var(--bright);
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .navmock.light .links {
+        color: var(--muted);
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      footer {
+        margin-top: 72px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      footer code {
+        background: var(--surface);
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+      .badge-row img {
+        width: 128px;
+        height: 128px;
+      }
+      .lockup-stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 36px;
+      }
+      .lockup-stage img {
+        max-width: 100%;
+      }
+      .anatomy-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        justify-content: center;
+      }
+      .toggles label,
+      .controls label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12.5px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .controls input[type='range'] {
+        width: 150px;
+        accent-color: var(--coral);
+      }
+      .controls input[type='checkbox'] {
+        accent-color: var(--coral);
+      }
+      .swatch-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: baseline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wordmark display">Coaster<em>Rank</em></div>
+      <div class="tag">Heartline mark · workshop</div>
+    </header>
+
+    <main>
+      <div class="intro">
+        <p class="kicker">Logo iteration · v2 concepts</p>
+        <h1 class="display">The Heartline mark.</h1>
+        <p class="lede">
+          Iteration on the current chart-hill logo — more coaster-forward, with the community's
+          heart in it. A heartline is a real coaster element: the track your body traces through a
+          loop. Same brand palette (ink, coral, accent), new story. Everything below is generated
+          from one traced SVG; variants are just fills.
+        </p>
+      </div>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">From source to vector</h2>
+          <span>provenance</span>
+        </div>
+        <div class="grid cols-3">
+          <div class="card">
+            <div class="stage">
+              <img
+                src="/logos/heartline-source.png"
+                alt="Original hand-drawn design"
+                style="max-height: 150px"
+              />
+            </div>
+            <div class="meta">
+              <div class="name">Source sketch</div>
+              <div class="desc">Hand-drawn design, PNG. Traced with potrace (logo preset).</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img
+                src="/logos/heartline-mono.svg"
+                alt="Traced mono mark"
+                style="max-height: 130px"
+              />
+            </div>
+            <div class="meta">
+              <div class="name">Traced mono</div>
+              <div class="desc">
+                Single-path vector, all ink. The base geometry for every variant.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img
+                src="/logos/heartline-anatomy.svg"
+                alt="Component anatomy"
+                style="max-height: 130px"
+              />
+            </div>
+            <div class="meta">
+              <div class="name">Anatomy — 12 components</div>
+              <div class="anatomy-legend">
+                <span class="pill"><i class="swatch-dot" style="background: #4363d8"></i>hill</span>
+                <span class="pill"
+                  ><i class="swatch-dot" style="background: #e6194b"></i>track</span
+                >
+                <span class="pill"
+                  ><i class="swatch-dot" style="background: #f032e6"></i>heart + pulse</span
+                >
+                <span class="pill"><i class="swatch-dot" style="background: #911eb4"></i>loop</span>
+                <span class="pill"
+                  ><i class="swatch-dot" style="background: #3cb44b"></i>lattice</span
+                >
+                <span class="pill"
+                  ><i class="swatch-dot" style="background: #f58231"></i>hill 2</span
+                >
+                <span class="pill"
+                  ><i class="swatch-dot" style="background: #008080"></i>rails</span
+                >
+                <span class="pill"><i class="swatch-dot" style="background: #9a6324"></i>tail</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">Colorways</h2>
+          <span>full detail · light stage</span>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-signature.svg" alt="Signature colorway" />
+            </div>
+            <div class="meta">
+              <div class="name">Signature <span class="pill coral">recommended</span></div>
+              <div class="desc">
+                Coral ride + coral heart, accent loop, ink structure. Carries the current logo's
+                coral-track DNA.
+              </div>
+              <code>heartline-signature.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-heart.svg" alt="Heart hero colorway" />
+            </div>
+            <div class="meta">
+              <div class="name">Heart hero</div>
+              <div class="desc">
+                Ink track, coral heart only, accent loop. Quieter, heart does the talking.
+              </div>
+              <code>heartline-heart.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-heritage.svg" alt="Heritage colorway" />
+            </div>
+            <div class="meta">
+              <div class="name">Heritage</div>
+              <div class="desc">
+                Accent lattice echoes the current logo's cyan bars. Coral ride, ink loop.
+              </div>
+              <code>heartline-heritage.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-duotone.svg" alt="Duotone colorway" />
+            </div>
+            <div class="meta">
+              <div class="name">Duotone</div>
+              <div class="desc">Ink + coral only. Merch, stickers, single-ink print runs.</div>
+              <code>heartline-duotone.svg</code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">Dark stages</h2>
+          <span>reversed &amp; friends</span>
+        </div>
+        <div class="grid cols-2">
+          <div class="card dark">
+            <div class="stage">
+              <img src="/logos/heartline-reversed.svg" alt="Reversed colorway" />
+            </div>
+            <div class="meta">
+              <div class="name">Reversed</div>
+              <div class="desc">
+                Canvas strokes, coral heart, accent loop — for the ink header/footer.
+              </div>
+              <code>heartline-reversed.svg</code>
+            </div>
+          </div>
+          <div class="card dark">
+            <div class="stage">
+              <img src="/logos/heartline-mark-reversed.svg" alt="Reversed simplified mark" />
+            </div>
+            <div class="meta">
+              <div class="name">Reversed · simplified</div>
+              <div class="desc">Same story, lattice dropped — the one that survives 24px.</div>
+              <code>heartline-mark-reversed.svg</code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">Simplification</h2>
+          <span>full → mark</span>
+        </div>
+        <p class="lede">
+          The support lattice reads great large and disappears below ~48px. The simplified mark
+          keeps hill, second hill, track, heart, loop, tail.
+        </p>
+        <div class="grid cols-2">
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-mark.svg" alt="Simplified mark" />
+            </div>
+            <div class="meta">
+              <div class="name">Simplified mark · signature colors</div>
+              <div class="desc">Favicon / avatar workhorse. <code>heartline-mark.svg</code></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-mark-mono.svg" alt="Simplified mark mono" />
+            </div>
+            <div class="meta">
+              <div class="name">Simplified mark · mono</div>
+              <div class="desc">Single-color contexts. <code>heartline-mark-mono.svg</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">Size ladder</h2>
+          <span>mark · 16 → 384 px</span>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <div class="stage">
+              <div class="ladder">
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="384" alt="" /><span class="size"
+                    >384</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="192" alt="" /><span class="size"
+                    >192</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="96" alt="" /><span class="size"
+                    >96</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="48" alt="" /><span class="size"
+                    >48</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="24" alt="" /><span class="size"
+                    >24</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark.svg" width="16" alt="" /><span class="size"
+                    >16</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="name">Signature colors on light</div>
+            </div>
+          </div>
+          <div class="card dark">
+            <div class="stage">
+              <div class="ladder">
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="384" alt="" /><span
+                    class="size"
+                    >384</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="192" alt="" /><span
+                    class="size"
+                    >192</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="96" alt="" /><span
+                    class="size"
+                    >96</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="48" alt="" /><span
+                    class="size"
+                    >48</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="24" alt="" /><span
+                    class="size"
+                    >24</span
+                  >
+                </div>
+                <div class="rung">
+                  <img src="/logos/heartline-mark-reversed.svg" width="16" alt="" /><span
+                    class="size"
+                    >16</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="name">Reversed on ink</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">v2 workshop — simplify &amp; thicken</h2>
+          <span>live · toggle &amp; slide</span>
+        </div>
+        <p class="lede">
+          Two tools. Left: the full mark with lattice / rails / support details toggleable — hide
+          them as the size shrinks (this is how the mini mark was born). Right: the mini mark — your
+          winning toggle config (hill + heart + loop) re-traced at four weight levels. Slide the
+          weight and watch the ladder; the thickest levels are for tab/favicon sizes.
+        </p>
+        <div class="grid cols-2">
+          <div class="card">
+            <div class="stage" style="flex-direction: column; gap: 16px">
+              <div id="fullmark-mount" style="width: 100%"></div>
+              <div class="toggles" id="fullmark-toggles"></div>
+            </div>
+            <div class="meta">
+              <div class="name">Full mark · signature colors · detail toggles</div>
+              <div class="desc">Same traced geometry as every variant above.</div>
+            </div>
+          </div>
+          <div class="card" id="mini-card">
+            <div class="stage" style="flex-direction: column; gap: 14px">
+              <div id="mini-preview" style="width: 84%"></div>
+              <div class="controls">
+                <label>
+                  weight
+                  <input type="range" id="mini-sw" min="0" max="3" value="2" step="1" />
+                  <span id="mini-sw-val">2 - thick</span>
+                </label>
+                <label><input type="checkbox" id="mini-dark" /> ink stage</label>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="name">Mini mark - hill + heart + loop</div>
+              <div class="desc">Your winning toggle config as its own mark. Slide the weight.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 16px">
+          <div class="stage">
+            <div class="ladder" id="mini-ladder"></div>
+          </div>
+          <div class="meta">
+            <div class="name">Mini mark · live size ladder — follows the controls above</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">App icons</h2>
+          <span>1024 tiles · shown at 128</span>
+        </div>
+        <div class="grid cols-3 badge-row">
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-badge-ink.svg" alt="Badge: heart on ink" />
+            </div>
+            <div class="meta">
+              <div class="name">Heart on ink</div>
+              <code>heartline-badge-ink.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-badge-coral.svg" alt="Badge: heart on coral" />
+            </div>
+            <div class="meta">
+              <div class="name">Heart on coral</div>
+              <code>heartline-badge-coral.svg</code>
+            </div>
+          </div>
+          <div class="card soft">
+            <div class="stage">
+              <img src="/logos/heartline-badge-canvas.svg" alt="Badge: heart on canvas" />
+            </div>
+            <div class="meta">
+              <div class="name">Heart on canvas</div>
+              <code>heartline-badge-canvas.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-badge-mark.svg" alt="Badge: full mark on ink" />
+            </div>
+            <div class="meta">
+              <div class="name">Full mark on ink</div>
+              <code>heartline-badge-mark.svg</code>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stage">
+              <img src="/logos/heartline-badge-mini.svg" alt="Badge: mini mark on ink" />
+            </div>
+            <div class="meta">
+              <div class="name">Mini mark on ink</div>
+              <code>heartline-badge-mini.svg</code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">Lockups</h2>
+          <span>mark + wordmark</span>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="lockup-stage" style="gap: 40px">
+              <img src="/logos/heartline-mark.svg" style="height: 88px" alt="Heartline mark" />
+              <span class="display" style="font-size: 72px; line-height: 1"
+                >Coaster<span style="color: var(--coral)">Rank</span></span
+              >
+            </div>
+            <div class="meta">
+              <div class="name">Horizontal</div>
+              <div class="desc">
+                Shown composed live (font-safe). Standalone file: <code>heartline-lockup.svg</code>
+                — text uses Racing Sans One with Arial fallback.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="lockup-stage" style="flex-direction: column; gap: 20px; padding: 44px">
+              <img src="/logos/heartline-mark.svg" style="height: 110px" alt="Heartline mark" />
+              <span class="display" style="font-size: 64px; line-height: 1"
+                >Coaster<span style="color: var(--coral)">Rank</span></span
+              >
+            </div>
+            <div class="meta">
+              <div class="name">Stacked</div>
+              <div class="desc">Standalone file: <code>heartline-lockup-stacked.svg</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2 class="display">In context</h2>
+          <span>navbar &amp; favicon row</span>
+        </div>
+        <div class="grid">
+          <div class="navmock">
+            <img src="/logos/heartline-mark-reversed.svg" width="44" alt="" />
+            <span class="display" style="font-size: 20px"
+              >Coaster<span style="color: var(--coral)">Rank</span></span
+            >
+            <div class="links"><span>Rankings</span><span>Parks</span><span>My Coasters</span></div>
+          </div>
+          <div class="navmock light">
+            <img src="/logos/heartline-mark.svg" width="44" alt="" />
+            <span class="display" style="font-size: 20px"
+              >Coaster<span style="color: var(--coral)">Rank</span></span
+            >
+            <div class="links"><span>Rankings</span><span>Parks</span><span>My Coasters</span></div>
+          </div>
+          <div class="card">
+            <div class="stage" style="gap: 24px">
+              <img
+                src="/logos/heartline-badge-mini.svg"
+                style="width: 32px; height: 32px; border-radius: 7px"
+                alt=""
+              />
+              <img
+                src="/logos/heartline-badge-mini.svg"
+                style="width: 32px; height: 32px; border-radius: 7px"
+                alt=""
+              />
+              <img
+                src="/logos/heartline-badge-ink.svg"
+                style="width: 32px; height: 32px; border-radius: 7px"
+                alt=""
+              />
+              <img src="/logos/heartline-mini-2.svg" style="width: 32px" alt="" />
+              <img src="/logos/heartline-mark.svg" style="width: 32px" alt="" />
+              <img src="/logo.svg" style="width: 32px" alt="" />
+              <span class="pill">← new candidates · current →</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          Workshop only — <code>app/public/logo.svg</code> (live favicon) is untouched. Mark
+          geometry: potrace <code>--turdsize 5 --alphamax 1.2</code> on the source sketch, with a
+          surgical rail cut at <code>x 774–802, y 504–532</code> so the heart can take its own fill.
+          Mini mark: your winning toggle config as a thickness ladder — rebuild with
+          <code>scripts/src/oneoff/logo-lab/compose.mjs</code>. Palette:
+          <code>app/src/index.css</code> tokens. Files: <code>app/public/logos/</code>.
+        </p>
+      </footer>
+    </main>
+    <script type="module">
+      const ink = '#1A1A2E'
+      const coral = '#E85D75'
+      const accent = '#48CAE4'
+      const canvas = '#FEFCF3'
+
+      const mono = await (await fetch('/logos/heartline-mono.svg')).text()
+      const dAttrs = [...mono.matchAll(/<path d="([^"]+)"/g)].map((m) => m[1])
+      const W = 'translate(0,602) scale(0.1,-0.1)'
+
+      // --- full mark: detail toggles ---
+      const sigColors = [ink, ink, ink, ink, coral, accent, coral, ink, ink, ink, ink, ink]
+      const toggleDefs = [
+        ['lattice + rails', [2, 7]],
+        ['support line', [1]],
+        ['baseline ticks', [9, 10, 11]],
+        ['second hill', [3]],
+        ['tail swoosh', [8]],
+        ['track', [4]],
+        ['loop', [5]],
+      ]
+      const hidden = new Set()
+      const fullMount = document.getElementById('fullmark-mount')
+      function renderFull() {
+        const body = dAttrs
+          .map((d, i) => (hidden.has(i) ? '' : `<path d="${d}" fill="${sigColors[i]}"/>`))
+          .join('')
+        fullMount.innerHTML = `<svg viewBox="0 0 1436 602" style="width:100%;height:auto;display:block"><g transform="${W}">${body}</g></svg>`
+      }
+      const fullToggles = document.getElementById('fullmark-toggles')
+      for (const [label, idxs] of toggleDefs) {
+        const label2 = document.createElement('label')
+        label2.innerHTML = `<input type="checkbox" /> ${label}`
+        label2.querySelector('input').addEventListener('change', (e) => {
+          for (const i of idxs) e.target.checked ? hidden.add(i) : hidden.delete(i)
+          renderFull()
+        })
+        fullToggles.appendChild(label2)
+      }
+      renderFull()
+
+      // --- mini mark live builder ---
+      const miniState = { weight: 2, dark: false }
+      const miniPreview = document.getElementById('mini-preview')
+      const miniLadder = document.getElementById('mini-ladder')
+      function renderMini() {
+        const suffix = miniState.dark ? '-reversed' : ''
+        const src = `/logos/heartline-mini-${miniState.weight}${suffix}.svg`
+        miniPreview.innerHTML = `<img src="${src}" style="width:100%;display:block" alt="" />`
+        miniLadder.innerHTML = [128, 64, 48, 32, 24, 16]
+          .map(
+            (px) =>
+              `<div class="rung"><img src="${src}" width="${px}" alt="" /><span class="size">${px}</span></div>`,
+          )
+          .join('')
+      }
+      const weightNames = ['0 - base', '1 - medium', '2 - thick', '3 - extra thick']
+      document.getElementById('mini-sw').addEventListener('input', (e) => {
+        miniState.weight = Number(e.target.value)
+        document.getElementById('mini-sw-val').textContent = weightNames[miniState.weight]
+        renderMini()
+      })
+      document.getElementById('mini-dark').addEventListener('change', (e) => {
+        miniState.dark = e.target.checked
+        document.getElementById('mini-card').classList.toggle('dark', miniState.dark)
+        renderMini()
+      })
+      renderMini()
+    </script>
+  </body>
+</html>
