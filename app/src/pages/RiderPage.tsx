@@ -4,6 +4,7 @@ import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
 import StatBlock from '../components/StatBlock'
 import { MessageState, Panel } from '../components/ui'
+import { useAuth } from '../lib/auth-context'
 import { riderPageUrl, useRiderPage } from '../lib/rider'
 
 function yearOf(iso: string | null): number | null {
@@ -14,6 +15,7 @@ function yearOf(iso: string | null): number | null {
 
 export default function RiderPage() {
   const { username } = useParams()
+  const { user } = useAuth()
   const { data, isPending, isError } = useRiderPage(username)
 
   if (isPending) {
@@ -108,22 +110,25 @@ export default function RiderPage() {
         )}
       </div>
 
-      {/* Growth loop: every shared visit is a signup opportunity */}
-      <Panel className="mt-8 flex flex-col items-center gap-3 p-6 text-center">
-        <h2 className="display-heading text-2xl text-ink">Build your own ranking</h2>
-        <p className="max-w-md text-sm text-muted">
-          Rank the coasters you&apos;ve ridden and get a shareable page just like this one.
-        </p>
-        <Link
-          to="/signup"
-          className="mt-1 rounded-full bg-coral px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-coral/90"
-        >
-          Sign up free
-        </Link>
-        <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
-          See the live board
-        </Link>
-      </Panel>
+      {/* Growth loop: every shared visit is a signup opportunity — but only
+          pitch it to visitors who can actually sign up. */}
+      {!user && (
+        <Panel className="mt-8 flex flex-col items-center gap-3 p-6 text-center">
+          <h2 className="display-heading text-2xl text-ink">Build your own ranking</h2>
+          <p className="max-w-md text-sm text-muted">
+            Rank the coasters you&apos;ve ridden and get a shareable page just like this one.
+          </p>
+          <Link
+            to="/signup"
+            className="mt-1 rounded-full bg-coral px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-coral/90"
+          >
+            Sign up free
+          </Link>
+          <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
+            See the live board
+          </Link>
+        </Panel>
+      )}
     </div>
   )
 }
