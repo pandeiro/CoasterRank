@@ -46,12 +46,15 @@ export function fitText(
   return `${text.slice(0, low)}…`
 }
 
+// The card bakes in only slow-changing identity content (name, username,
+// avatar) — the same fields whose edit points trigger regeneration on the
+// ProfilePage. Ride stats deliberately stay OFF the card: they change between
+// regen triggers, so any baked count goes stale (og:description carries the
+// live count instead — see worker.ts riderMeta).
 export type OgCardSpec = {
   name: string
   username: string
   avatarSrc: string | null
-  topCoaster: string | null
-  rankedCount: number
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -139,17 +142,6 @@ function drawCard(
   ctx.fillStyle = ACCENT
   ctx.font = `30px ${BODY_FONT}`
   ctx.fillText(`@${spec.username}`, textX, textY + 52)
-
-  ctx.fillStyle = 'rgba(254, 252, 243, 0.65)'
-  ctx.font = `28px ${BODY_FONT}`
-  const stats = spec.topCoaster
-    ? `${spec.rankedCount} coasters ranked · #1: ${spec.topCoaster}`
-    : `${spec.rankedCount} coasters ranked`
-  ctx.fillText(
-    fitText(stats, 640, (s) => ctx.measureText(s).width),
-    textX,
-    textY + 108,
-  )
 
   ctx.fillStyle = CANVAS
   ctx.font = `40px ${DISPLAY_FONT}`

@@ -7,15 +7,10 @@ import type { User } from '@supabase/supabase-js'
 import ProfilePage from './ProfilePage'
 import { useAuth } from '../lib/auth-context'
 import { refreshOgCard } from '../lib/og-card'
-import { useMyRides } from '../lib/rides'
 import { supabase } from '../lib/supabase'
 
 vi.mock('../lib/auth-context', () => ({
   useAuth: vi.fn(),
-}))
-
-vi.mock('../lib/rides', () => ({
-  useMyRides: vi.fn(),
 }))
 
 vi.mock('../lib/og-card', () => ({
@@ -70,36 +65,6 @@ describe('ProfilePage', () => {
       signOut: vi.fn(),
     })
     selectSingle.mockResolvedValue({ data: fakeProfile, error: null })
-    vi.mocked(useMyRides).mockReturnValue({
-      data: [
-        {
-          coaster_id: 'c1',
-          rank: 1,
-          coaster: {
-            id: 'c1',
-            name: 'Steel Vengeance',
-            slug: 'steel-vengeance',
-            status: 'operating',
-            material: 'steel',
-            park_id: 'p1',
-          },
-        },
-        {
-          coaster_id: 'c2',
-          rank: 2,
-          coaster: {
-            id: 'c2',
-            name: 'Fury 325',
-            slug: 'fury-325',
-            status: 'operating',
-            material: 'steel',
-            park_id: 'p1',
-          },
-        },
-      ],
-      isPending: false,
-      isError: false,
-    } as never)
   })
 
   it('loads the profile into the form', async () => {
@@ -170,7 +135,7 @@ describe('ProfilePage', () => {
     )
   })
 
-  it('refreshes the share card after saving while sharing is on', async () => {
+  it('refreshes the share card after enabling sharing with no card yet', async () => {
     updateEq.mockResolvedValue({ error: null })
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
@@ -185,9 +150,42 @@ describe('ProfilePage', () => {
           username: 'coaster_fan',
           name: 'Coaster Fan',
           avatarSrc: 'https://img.test/avatar.jpg',
-          topCoaster: 'Steel Vengeance',
-          rankedCount: 2,
         }),
+      )
+    })
+  })
+
+  it('skips the share-card refresh when nothing baked into the card changed', async () => {
+    updateEq.mockResolvedValue({ error: null })
+    selectSingle.mockResolvedValue({
+      data: { ...fakeProfile, public_list: true, og_image_url: 'https://img.test/og-card.png' },
+      error: null,
+    })
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await screen.findByText('Saved.')
+    expect(refreshOgCard).not.toHaveBeenCalled()
+  })
+
+  it('refreshes the share card when the display name changes while sharing', async () => {
+    updateEq.mockResolvedValue({ error: null })
+    selectSingle.mockResolvedValue({
+      data: { ...fakeProfile, public_list: true, og_image_url: 'https://img.test/og-card.png' },
+      error: null,
+    })
+    renderProfile()
+    const displayName = await screen.findByDisplayValue('Coaster Fan')
+
+    await userEvent.clear(displayName)
+    await userEvent.type(displayName, 'New Name')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await waitFor(() => {
+      expect(refreshOgCard).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1', name: 'New Name', username: 'coaster_fan' }),
       )
     })
   })
