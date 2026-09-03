@@ -188,6 +188,56 @@ export default function AdminPage() {
     onError: (err: Error) => notify(err.message, 'error'),
   })
 
+  // ── Testride manage (seed / cleanup) — lives on the impersonate tab ──
+  const [seedUsersCount, setSeedUsersCount] = useState('5')
+  const [seedRidesMin, setSeedRidesMin] = useState('10')
+  const [seedRidesMax, setSeedRidesMax] = useState('20')
+  const [seedUnranked, setSeedUnranked] = useState('0')
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
+
+  const seedTestUsers = useMutation({
+    mutationFn: async () => {
+      const users = Number.parseInt(seedUsersCount, 10)
+      const ridesMin = Number.parseInt(seedRidesMin, 10)
+      const ridesMax = Number.parseInt(seedRidesMax, 10)
+      const unranked = Number.parseInt(seedUnranked, 10)
+      const { data, error } = await supabase.functions.invoke('manage-test-data', {
+        body: { action: 'seed', users, ridesMin, ridesMax, unranked, seed: 42 },
+      })
+      if (error) throw new Error(error.message)
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
+      return data as { created: number; ridesInserted: number; errors?: string[] }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['synthetic-users'] })
+      const errSuffix = data.errors?.length ? ` (${data.errors.length} error(s) — see console)` : ''
+      if (data.errors?.length) console.error('seed errors', data.errors)
+      notify(`Created ${data.created} synthetic user(s), ${data.ridesInserted} rides${errSuffix}`)
+    },
+    onError: (e: Error) => notify(e.message, 'error'),
+  })
+
+  const cleanupTestUsers = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('manage-test-data', {
+        body: { action: 'cleanup' },
+      })
+      if (error) throw new Error(error.message)
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
+      return data as { deleted: number; storageDeleted: number }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['synthetic-users'] })
+      // Board ratings are derived — refresh after cleanup so stale scores drop.
+      void refreshBoardData(queryClient).catch(() => {})
+      queryClient.invalidateQueries({ queryKey: ['cron-execution-logs'] })
+      notify(
+        `Deleted ${data.deleted} synthetic user(s)${data.storageDeleted ? ` + ${data.storageDeleted} storage file(s)` : ''}`,
+      )
+    },
+    onError: (e: Error) => notify(e.message, 'error'),
+  })
+
   const appSettings = useQuery({
     queryKey: ['app-settings'],
     queryFn: async () => {
@@ -1308,60 +1358,175 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'impersonate' && (
-            <Panel className="p-6">
-              <h2 className="mb-1 text-lg font-semibold text-ink">Assume identity</h2>
-              <p className="mb-4 text-sm text-muted">
-                Log in as a synthetic test user (seeded via{' '}
-                <code className="rounded bg-surface px-1 text-xs">testride:seed</code>, or signed up
-                on the{' '}
-                <code className="rounded bg-surface px-1 text-xs">@test.coasterrank.dev</code>{' '}
-                domain) to exercise the app from their perspective. Your admin session is preserved
-                — use &quot;Return to admin&quot; in the banner below to switch back. Real users can
-                never be impersonated.
-              </p>
-              {syntheticUsers.isLoading ? (
-                <MessageState>Loading synthetic users…</MessageState>
-              ) : syntheticUsers.isError ? (
-                <MessageState tone="danger">
-                  Couldn&apos;t load synthetic users — is the assume-identity Edge Function
-                  deployed?
-                </MessageState>
-              ) : (syntheticUsers.data?.length ?? 0) === 0 ? (
-                <MessageState>
-                  No synthetic users found. Create some with{' '}
-                  <code className="rounded bg-surface px-1 text-xs">
-                    npm run testride:seed -- --users 5 --rides 10-20 --apply
-                  </code>
-                  .
-                </MessageState>
-              ) : (
-                <div className="space-y-2">
-                  {syntheticUsers.data?.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3"
+            <div className="space-y-6">
+              <Panel className="p-6">
+                <h2 className="mb-1 text-lg font-semibold text-ink">Test data</h2>
+                <p className="mb-4 text-sm text-muted">
+                  Create and remove synthetic users without leaving the app. Same markers and
+                  lifecycle as the <code className="rounded bg-surface px-1 text-xs">testride</code>{' '}
+                  CLI — users land on{' '}
+                  <code className="rounded bg-surface px-1 text-xs">@test.coasterrank.dev</code>{' '}
+                  with password{' '}
+                  <code className="rounded bg-surface px-1 text-xs">testride-password</code>,
+                  already confirmed. Cleanup deletes only synthetic users (never real ones) and
+                  cascades their rides, submissions, and avatar files; run a recompute afterwards to
+                  refresh the board.
+                </p>
+
+                <div className="rounded-xl border border-line bg-surface p-4">
+                  <h3 className="text-sm font-semibold text-ink">Seed synthetic users</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted">Users (1–50)</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={seedUsersCount}
+                        onChange={(e) => setSeedUsersCount(e.target.value)}
+                        className={fieldClassName}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted">Rides min</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={seedRidesMin}
+                        onChange={(e) => setSeedRidesMin(e.target.value)}
+                        className={fieldClassName}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted">Rides max</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={seedRidesMax}
+                        onChange={(e) => setSeedRidesMax(e.target.value)}
+                        className={fieldClassName}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted">Unranked</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={seedUnranked}
+                        onChange={(e) => setSeedUnranked(e.target.value)}
+                        className={fieldClassName}
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="coral"
+                      onClick={() => seedTestUsers.mutate()}
+                      disabled={seedTestUsers.isPending || cleanupTestUsers.isPending}
                     >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-ink">{u.email}</div>
-                        <div className="text-xs text-muted">
-                          {u.username ? `@${u.username}` : 'no username'} ·{' '}
-                          {u.confirmed ? 'confirmed' : 'unconfirmed'}
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => assume.mutate(u.id)}
-                        disabled={assume.isPending}
-                        className="shrink-0"
-                      >
-                        <LogIn size={16} />
-                        Assume
-                      </Button>
-                    </div>
-                  ))}
+                      <Plus size={14} />
+                      {seedTestUsers.isPending ? 'Seeding…' : 'Seed users'}
+                    </Button>
+                    <span className="text-xs text-muted">
+                      {syntheticUsers.data
+                        ? `${syntheticUsers.data.length} synthetic user(s) now`
+                        : ''}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted">
+                    CLI equivalent:{' '}
+                    <code className="rounded bg-surface-bright px-1">
+                      npm run testride:seed -- --users {seedUsersCount || 5} --rides{' '}
+                      {seedRidesMin || 0}-{seedRidesMax || 0} --apply
+                    </code>
+                  </p>
                 </div>
-              )}
-            </Panel>
+
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <h3 className="text-sm font-semibold text-amber-900">Cleanup</h3>
+                  <p className="mt-1 text-xs text-amber-800">
+                    Deletes <strong>all</strong> synthetic users and everything they own (rides,
+                    submissions, avatars). Real users are never matched. After cleanup, trigger a
+                    recompute or wait for the next cron run to clear derived ratings.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setShowCleanupConfirm(true)}
+                    disabled={
+                      cleanupTestUsers.isPending ||
+                      seedTestUsers.isPending ||
+                      syntheticUsers.isLoading ||
+                      (syntheticUsers.data?.length ?? 0) === 0
+                    }
+                  >
+                    <Trash2 size={14} />
+                    {cleanupTestUsers.isPending ? 'Cleaning…' : 'Delete all synthetic users'}
+                  </Button>
+                </div>
+              </Panel>
+
+              <Panel className="p-6">
+                <h2 className="mb-1 text-lg font-semibold text-ink">Assume identity</h2>
+                <p className="mb-4 text-sm text-muted">
+                  Log in as a synthetic test user (seeded via the controls above, the{' '}
+                  <code className="rounded bg-surface px-1 text-xs">testride:seed</code> CLI, or
+                  signed up on the{' '}
+                  <code className="rounded bg-surface px-1 text-xs">@test.coasterrank.dev</code>{' '}
+                  domain) to exercise the app from their perspective. Your admin session is
+                  preserved — use &quot;Return to admin&quot; in the banner below to switch back.
+                  Real users can never be impersonated.
+                </p>
+                {syntheticUsers.isLoading ? (
+                  <MessageState>Loading synthetic users…</MessageState>
+                ) : syntheticUsers.isError ? (
+                  <MessageState tone="danger">
+                    Couldn&apos;t load synthetic users — is the assume-identity Edge Function
+                    deployed?
+                  </MessageState>
+                ) : (syntheticUsers.data?.length ?? 0) === 0 ? (
+                  <MessageState>
+                    No synthetic users found. Use the seed controls above or{' '}
+                    <code className="rounded bg-surface px-1 text-xs">
+                      npm run testride:seed -- --users 5 --rides 10-20 --apply
+                    </code>
+                    .
+                  </MessageState>
+                ) : (
+                  <div className="space-y-2">
+                    {syntheticUsers.data?.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-ink">{u.email}</div>
+                          <div className="text-xs text-muted">
+                            {u.username ? `@${u.username}` : 'no username'} ·{' '}
+                            {u.confirmed ? 'confirmed' : 'unconfirmed'}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => assume.mutate(u.id)}
+                          disabled={assume.isPending}
+                          className="shrink-0"
+                        >
+                          <LogIn size={16} />
+                          Assume
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            </div>
           )}
 
           {activeTab === 'control-panel' && (
@@ -1487,6 +1652,16 @@ export default function AdminPage() {
         }}
         title="Delete Coaster"
         message={`Are you sure you want to delete "${coasterToDelete?.name}"? This will also remove all user rides and rankings for this coaster. This action cannot be undone.`}
+      />
+      <ConfirmDialog
+        isOpen={showCleanupConfirm}
+        onClose={() => setShowCleanupConfirm(false)}
+        onConfirm={() => {
+          setShowCleanupConfirm(false)
+          cleanupTestUsers.mutate()
+        }}
+        title="Delete all synthetic users?"
+        message={`This will permanently delete ${syntheticUsers.data?.length ?? 0} synthetic user(s) and all their rides, submissions, and avatar files. Real users are never touched. This cannot be undone.`}
       />
     </div>
   )

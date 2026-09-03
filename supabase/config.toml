@@ -15,3 +15,16 @@ major_version = 17
 # before the function code runs.
 [functions.recompute-rankings]
 verify_jwt = false
+
+# manage-test-data does its own admin JWT / service-role check (same pattern as
+# assume-identity) so platform JWT verification must stay off — the function
+# validates the caller's admin status itself and gates all operations to synthetic
+# users only. See supabase/functions/manage-test-data/index.ts.
+[functions.manage-test-data]
+verify_jwt = false
+
+# assume-identity also does custom admin + synthetic-target checks; keep platform
+# verification off so service-role callers can reach it and the function can
+# return 403 (admin required) instead of a generic 401 from the gateway.
+[functions.assume-identity]
+verify_jwt = false
