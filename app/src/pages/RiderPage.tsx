@@ -102,7 +102,7 @@ export default function RiderPage() {
         {rides.length === 0 ? (
           <MessageState>No coasters ranked yet.</MessageState>
         ) : (
-          <Panel className="overflow-hidden py-2">
+          <Panel className="overflow-hidden">
             <RiderRideList rides={rides} />
           </Panel>
         )}
