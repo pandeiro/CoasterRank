@@ -38,6 +38,9 @@ type Props = {
   pendingAdd?: PendingAdd | null
   /** Coarse pointers: selecting a coaster inserts it at the end immediately. */
   instantAdd?: boolean
+  /** One-shot desktop shortcut: insert the pendingAdd at 'top'/'bottom'
+   *  without scrolling to a divider. Cleared via onPendingClear. */
+  quickInsert?: 'top' | 'bottom' | null
   onPendingClear?: () => void
   onInserted?: (coasterId: string, coasterName: string, rank: number) => void
   /** A row entered the undo window; `undo()` cancels the pending removal. */
@@ -141,6 +144,7 @@ export default function RankedCoasterList({
   highlightId,
   pendingAdd,
   instantAdd = false,
+  quickInsert = null,
   onPendingClear,
   onInserted,
   onRemoved,
@@ -269,6 +273,15 @@ export default function RankedCoasterList({
     insertAt(pendingAdd.id, pendingAdd.name, items.length)
     onPendingClear?.()
   }, [instantAdd, pendingAdd, insertAt, onPendingClear, items.length])
+
+  // Desktop quick-add pills ("Add to top" / "Add to bottom" in the banner):
+  // same instant-commit as touch, at the requested end of the list. One-shot —
+  // the page resets the request when onPendingClear fires.
+  useLayoutEffect(() => {
+    if (!quickInsert || !pendingAdd) return
+    insertAt(pendingAdd.id, pendingAdd.name, quickInsert === 'top' ? 0 : items.length)
+    onPendingClear?.()
+  }, [quickInsert, pendingAdd, insertAt, onPendingClear, items.length])
 
   // Put a removed row back, exactly where it was, with zero server calls.
   const restoreRemoval = useCallback((coasterId: string) => {

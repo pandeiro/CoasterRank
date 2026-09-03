@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -38,27 +38,42 @@ vi.mock('../components/CoasterSearchBar', () => ({
   ),
 }))
 
-vi.mock('../components/RankedCoasterList', () => ({
-  default: ({
-    rides,
-    onInserted,
-    onError,
-  }: {
-    rides: unknown[]
-    onInserted?: (id: string, name: string, rank: number) => void
-    onError?: (message: string) => void
-  }) => (
-    <div data-testid="ranked-list">
-      {rides.length} items
-      <button type="button" onClick={() => onInserted?.('c9', 'New Coaster', 3)}>
-        fire-inserted
-      </button>
-      <button type="button" onClick={() => onError?.('Something failed')}>
-        fire-error
-      </button>
-    </div>
-  ),
-}))
+type MockListProps = {
+  rides: unknown[]
+  quickInsert?: 'top' | 'bottom' | null
+  onPendingClear?: () => void
+  onInserted?: (id: string, name: string, rank: number) => void
+  onError?: (message: string) => void
+}
+
+// Value of quickInsert the mock list last consumed — the transient prop is
+// reset as soon as the request is handled, so tests assert on this instead.
+let consumedQuickInsert: 'top' | 'bottom' | null = null
+
+vi.mock('../components/RankedCoasterList', async () => {
+  const { useEffect } = await import('react')
+  function MockRankedCoasterList(props: MockListProps) {
+    // Simulate the real list consuming a one-shot quickInsert request.
+    useEffect(() => {
+      if (props.quickInsert) {
+        consumedQuickInsert = props.quickInsert
+        props.onPendingClear?.()
+      }
+    }, [props])
+    return (
+      <div data-testid="ranked-list">
+        {props.rides.length} items
+        <button type="button" onClick={() => props.onInserted?.('c9', 'New Coaster', 3)}>
+          fire-inserted
+        </button>
+        <button type="button" onClick={() => props.onError?.('Something failed')}>
+          fire-error
+        </button>
+      </div>
+    )
+  }
+  return { default: MockRankedCoasterList }
+})
 
 vi.mock('../components/ConfirmEmailGate', () => ({
   default: ({ email }: { email?: string }) => <div data-testid="confirm-gate">{email}</div>,
@@ -114,6 +129,7 @@ function ridesWithRanks(count: number) {
 describe('MyCoastersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    consumedQuickInsert = null
     window.localStorage.clear()
   })
 
@@ -204,6 +220,28 @@ describe('MyCoastersPage', () => {
     expect(screen.getByText(/choose a position below/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /cancel/i }))
     expect(screen.queryByText(/choose a position below/i)).not.toBeInTheDocument()
+  })
+
+  it('offers add-to-top/bottom pills in pending-add mode', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+    await user.click(screen.getByTestId('search-bar'))
+    expect(screen.getByRole('button', { name: 'Add to top' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add to bottom' })).toBeInTheDocument()
+  })
+
+  it('routes a quickInsert request through the list and leaves pending mode', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+    await user.click(screen.getByTestId('search-bar'))
+    await user.click(screen.getByRole('button', { name: 'Add to bottom' }))
+    await waitFor(() => expect(consumedQuickInsert).toBe('bottom'))
+    // The list consumed the request, so pending-add mode is over.
+    await waitFor(() =>
+      expect(screen.queryByText(/choose a position below/i)).not.toBeInTheDocument(),
+    )
   })
 
   it('shows a success toast with rank when a coaster is inserted', async () => {

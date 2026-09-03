@@ -292,6 +292,57 @@ describe('RankedCoasterList', () => {
     expect(screen.queryByRole('button', { name: /insert at #/i })).not.toBeInTheDocument()
   })
 
+  it('consumes a quickInsert request at the top', () => {
+    // Desktop banner pill: insert without scrolling to a divider.
+    const { saveMutate } = mockMutations()
+    const onInserted = vi.fn()
+    const onPendingClear = vi.fn()
+    renderList({
+      pendingAdd: { id: 'c9', name: 'New One' },
+      quickInsert: 'top',
+      onInserted,
+      onPendingClear,
+    })
+    expect(saveMutate).toHaveBeenCalledWith(
+      [
+        { coaster_id: 'c9', rank: 1 },
+        { coaster_id: 'c1', rank: 2 },
+        { coaster_id: 'c2', rank: 3 },
+      ],
+      expect.anything(),
+    )
+    expect(onInserted).toHaveBeenCalledWith('c9', 'New One', 1)
+    expect(onPendingClear).toHaveBeenCalled()
+  })
+
+  it('consumes a quickInsert request at the bottom', () => {
+    const { saveMutate } = mockMutations()
+    const onInserted = vi.fn()
+    const onPendingClear = vi.fn()
+    renderList({
+      pendingAdd: { id: 'c9', name: 'New One' },
+      quickInsert: 'bottom',
+      onInserted,
+      onPendingClear,
+    })
+    expect(saveMutate).toHaveBeenCalledWith(
+      [
+        { coaster_id: 'c1', rank: 1 },
+        { coaster_id: 'c2', rank: 2 },
+        { coaster_id: 'c9', rank: 3 },
+      ],
+      expect.anything(),
+    )
+    expect(onInserted).toHaveBeenCalledWith('c9', 'New One', 3)
+    expect(onPendingClear).toHaveBeenCalled()
+  })
+
+  it('ignores a quickInsert request with no pending add', () => {
+    const { saveMutate } = mockMutations()
+    renderList({ quickInsert: 'top' })
+    expect(saveMutate).not.toHaveBeenCalled()
+  })
+
   it('renders an optimistically inserted coaster in full instead of "Saving…"', () => {
     mockMutations()
     vi.mocked(useAllCoasters).mockReturnValue({
