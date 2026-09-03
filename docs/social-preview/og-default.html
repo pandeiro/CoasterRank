@@ -1,0 +1,115 @@
+<!doctype html>
+<!--
+  Site social share card (og:image fallback) source for CoasterRank.
+
+  Rendered at 1200x630 (standard OG size) and committed as app/public/og-default.png.
+  Used as og:image for the base URL (worker home unfurl) and as the per-rider
+  card fallback (worker.ts riderMeta). Sibling of github-og.html (the repo's
+  GitHub social preview, 1280x640) — same Variant C artwork at a different size.
+
+  Board rows reflect the live ranking at export time (top 4 from
+  https://coasterrank.app/api/ranking); coaster/park counts from docs/PLAN.md
+  Phase 2.5. Regenerate with the Playwright snippet in github-og.html's header
+  (screenshot the .frame element), then overwrite app/public/og-default.png.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Racing+Sans+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.frame{width:1200px;height:630px;background:#1A1A2E;position:relative;overflow:hidden;display:flex;align-items:center;padding:0 48px 0 64px;gap:40px}
+.bars-deco{position:absolute;right:-22px;bottom:-22px;opacity:0.08;z-index:0}
+.left{flex:1;position:relative;z-index:1;max-width:600px}
+.eyebrow{font-family:Inter,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#48CAE4;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:11px}
+.eyebrow::before{content:"";width:28px;height:2px;background:#E85D75;border-radius:1px}
+.wordmark{font-family:'Racing Sans One',Arial,sans-serif;font-size:88px;line-height:0.9;letter-spacing:0.01em;color:#FEFCF3}
+.wordmark span{color:#E85D75}
+.desc{font-family:Inter,sans-serif;font-size:17.5px;color:rgba(254,252,243,0.68);margin-top:18px;line-height:1.5;max-width:530px}
+.desc strong{color:rgba(254,252,243,0.85);font-weight:600}
+.meta{margin-top:24px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.pill{font-family:Inter,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;border:1px solid}
+.pill.coral{background:rgba(232,93,117,0.15);color:#E85D75;border-color:rgba(232,93,117,0.32)}
+.pill.accent{background:rgba(72,202,228,0.14);color:#48CAE4;border-color:rgba(72,202,228,0.30)}
+.pill.ghost{background:transparent;color:rgba(254,252,243,0.5);border-color:rgba(254,252,243,0.16)}
+.url{margin-top:22px;font-family:Inter,sans-serif;font-size:12.5px;color:rgba(254,252,243,0.40);letter-spacing:0.02em}
+.card{width:440px;flex-shrink:0;background:#FEFCF3;border-radius:18px;overflow:hidden;position:relative;z-index:1;box-shadow:0 22px 60px rgba(0,0,0,0.45);display:flex;flex-direction:column}
+.card-top{height:50px;background:#1A1A2E;display:flex;align-items:center;padding:0 20px;gap:10px;border-bottom:3px solid #48CAE4}
+.dot{width:8px;height:8px;border-radius:50%;background:#E85D75}
+.card-title{font-family:Inter,sans-serif;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(254,252,243,0.72);font-weight:700}
+.card-title span{color:#48CAE4}
+.rows{padding:5px 20px 3px}
+.row{display:flex;align-items:center;gap:13px;padding:11.5px 0;border-bottom:1px solid #ECE6DA}
+.row:last-child{border-bottom:none}
+.rank{font-family:'Racing Sans One',Arial,sans-serif;font-size:23px;width:32px;line-height:1;color:rgba(26,26,46,0.32)}
+.rank.top{color:#E85D75}
+.main{flex:1;min-width:0}
+.name{font-family:Inter,sans-serif;font-size:13.5px;font-weight:600;color:#1A1A2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.park{font-family:Inter,sans-serif;font-size:11.5px;color:#74748A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.badge{font-family:Inter,sans-serif;font-size:9.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:#F1ECE2;color:#5A5A6E;border:1px solid #E3DDCF;white-space:nowrap}
+.badge.votes{background:rgba(232,93,117,0.12);color:#C24156;border-color:rgba(232,93,117,0.22)}
+.card-foot{padding:11px 20px 14px;display:flex;gap:8px;border-top:1px solid #ECE6DA;margin-top:2px;background:#FAF7EC}
+.tag{font-family:Inter,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:5px 9px;border-radius:999px}
+.tag.accent{background:rgba(72,202,228,0.20);color:#127F99}
+.tag.plain{background:#fff;color:#5A5A6E;border:1px solid #E3DDCF}
+</style>
+</head>
+<body>
+<div class="frame" id="shot">
+  <svg class="bars-deco" width="600" height="450" viewBox="0 0 600 450">
+    <rect x="0" y="310" width="66" height="140" rx="4" fill="#48CAE4"/>
+    <rect x="82" y="270" width="66" height="180" rx="4" fill="#48CAE4"/>
+    <rect x="164" y="222" width="66" height="228" rx="4" fill="#48CAE4"/>
+    <rect x="246" y="166" width="66" height="284" rx="4" fill="#48CAE4"/>
+    <rect x="328" y="100" width="66" height="350" rx="4" fill="#48CAE4"/>
+    <rect x="410" y="32" width="66" height="418" rx="4" fill="#48CAE4"/>
+    <rect x="492" y="0" width="66" height="450" rx="4" fill="#E85D75"/>
+  </svg>
+  <div class="left">
+    <div class="eyebrow">Open source · Live community ranking</div>
+    <div class="wordmark">Coaster<span>Rank</span></div>
+    <div class="desc">Rank the coasters you’ve ridden — <strong>drag-sort your list</strong> and the community board updates, scored by a <strong>Bradley–Terry model</strong>.</div>
+    <div class="meta">
+      <span class="pill coral">1,236 coasters</span>
+      <span class="pill accent">310 parks</span>
+      <span class="pill ghost">No login to browse</span>
+    </div>
+    <div class="url">coasterrank.app</div>
+  </div>
+  <div class="card">
+    <div class="card-top">
+      <div class="dot"></div>
+      <span class="card-title">Live board · <span>Top 4</span></span>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <span class="rank top">#1</span>
+        <div class="main"><div class="name">Steel Vengeance</div><div class="park">Cedar Point</div></div>
+        <span class="badge votes">24 comparisons</span>
+        <span class="badge">Steel</span>
+      </div>
+      <div class="row">
+        <span class="rank">#2</span>
+        <div class="main"><div class="name">Pantherian</div><div class="park">Kings Dominion</div></div>
+        <span class="badge">Steel</span>
+      </div>
+      <div class="row">
+        <span class="rank">#3</span>
+        <div class="main"><div class="name">VelociCoaster</div><div class="park">Universal’s Islands of Adventure</div></div>
+        <span class="badge">Steel</span>
+      </div>
+      <div class="row">
+        <span class="rank">#4</span>
+        <div class="main"><div class="name">Fury 325</div><div class="park">Carowinds</div></div>
+        <span class="badge">Steel</span>
+      </div>
+    </div>
+    <div class="card-foot">
+      <span class="tag accent">Bradley–Terry</span>
+      <span class="tag plain">Recomputed every 15 min</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

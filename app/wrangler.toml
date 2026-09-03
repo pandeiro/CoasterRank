@@ -1,7 +1,12 @@
 name = "coasterrank"
 compatibility_date = "2026-08-28"
 main = "src/worker.ts"
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/api/*", "/riders/*"] }
+# run_worker_first must list "/" so social-crawler requests to the base URL
+# reach the worker's OG-prerender branch (crawlers don't run JS; the bare SPA
+# shell unfurls without a preview image). Humans on "/" also invoke the
+# worker but fall through to the same static assets — one extra hop, no
+# behavior change. All other static paths still serve directly from the edge.
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/api/*", "/riders/*"] }
 
 # Workers Logs: ships console.* from the worker to the Cloudflare dashboard
 # (Workers → coasterrank → Logs) — this is how /api/ranking cache fills are
