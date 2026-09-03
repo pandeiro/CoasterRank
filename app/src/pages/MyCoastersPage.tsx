@@ -47,6 +47,10 @@ export default function MyCoastersPage() {
   const toastSeq = useRef(0)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null)
+  // Desktop shortcut from the pending-add banner: one-shot insertion request
+  // at either end of the list, so a long list doesn't force a scroll to reach
+  // the top/bottom dividers. The list consumes it and clears pendingAdd.
+  const [quickInsert, setQuickInsert] = useState<'top' | 'bottom' | null>(null)
   const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
   const searchSentinelRef = useRef<HTMLDivElement>(null)
   const [searchStuck, setSearchStuck] = useState(false)
@@ -111,7 +115,10 @@ export default function MyCoastersPage() {
     setPendingAdd({ id: coasterId, name: coasterName })
   }, [])
 
-  const clearPendingAdd = useCallback(() => setPendingAdd(null), [])
+  const clearPendingAdd = useCallback(() => {
+    setPendingAdd(null)
+    setQuickInsert(null)
+  }, [])
 
   const handleInserted = useCallback(
     (coasterId: string, coasterName: string, rank: number) => {
@@ -179,10 +186,22 @@ export default function MyCoastersPage() {
       >
         <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
         {pendingAdd && !isTouch && (
-          <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
-            <span>
-              Adding <span className="font-medium">{pendingAdd.name}</span> — choose a position
-              below.
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <span>
+                Adding <span className="font-medium">{pendingAdd.name}</span> — choose a position
+                below or
+              </span>
+              {(['top', 'bottom'] as const).map((where) => (
+                <button
+                  key={where}
+                  type="button"
+                  onClick={() => setQuickInsert(where)}
+                  className="rounded-full border border-accent/50 bg-surface px-2 py-0.5 text-xs font-medium text-ink transition-colors hover:bg-accent/20 hover:text-accent-strong"
+                >
+                  Add to {where}
+                </button>
+              ))}
             </span>
             <button
               type="button"
@@ -205,6 +224,7 @@ export default function MyCoastersPage() {
             rides={rides}
             highlightId={highlightId}
             pendingAdd={pendingAdd}
+            quickInsert={quickInsert}
             instantAdd={isTouch}
             onPendingClear={clearPendingAdd}
             onInserted={handleInserted}
