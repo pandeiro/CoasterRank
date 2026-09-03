@@ -15,8 +15,6 @@ const spec: OgCardSpec = {
   name: 'Coaster Fan',
   username: 'coaster_fan',
   avatarSrc: null,
-  topCoaster: 'Steel Vengeance',
-  rankedCount: 12,
 }
 
 describe('fitText', () => {
@@ -73,14 +71,19 @@ describe('refreshOgCard', () => {
     getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://img.test/og-card.png' } })
   })
 
-  /** Fake canvas whose toBlob yields a tiny PNG blob. */
-  function stubCanvas() {
+  /**
+   * Fake canvas whose toBlob yields a tiny PNG blob. Returns the texts passed
+   * to fillText so tests can assert on the drawn content.
+   */
+  function stubCanvas(): string[] {
+    const fillTexts: string[] = []
     const ctx = new Proxy(
       {},
       {
         get: (_target, prop) => {
           if (prop === 'measureText') return () => ({ width: 10 })
           if (prop === 'canvas') return undefined
+          if (prop === 'fillText') return (text: string) => fillTexts.push(text)
           return () => undefined
         },
       },
@@ -93,6 +96,7 @@ describe('refreshOgCard', () => {
     } as unknown as HTMLCanvasElement
     vi.spyOn(document, 'createElement').mockImplementation(((tag: string) =>
       tag === 'canvas' ? fakeCanvas : originalCreateElement(tag)) as typeof document.createElement)
+    return fillTexts
   }
 
   it('uploads the card, persists the URL, and returns it', async () => {
@@ -109,6 +113,17 @@ describe('refreshOgCard', () => {
     )
     expect(supabase.from).toHaveBeenCalledWith('profiles')
     expect(update).toHaveBeenCalledWith({ og_image_url: 'https://img.test/og-card.png' })
+  })
+
+  it('draws only static identity text — no ride stats', async () => {
+    const fillTexts = stubCanvas()
+    upload.mockResolvedValue({ error: null })
+
+    await refreshOgCard({ ...spec, userId: 'u1' })
+
+    expect(fillTexts).toContain('Coaster Fan')
+    expect(fillTexts).toContain('@coaster_fan')
+    expect(fillTexts.some((text) => text.includes('ranked'))).toBe(false)
   })
 
   it('resolves to null (never throws) when the upload fails', async () => {
