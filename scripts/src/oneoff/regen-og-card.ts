@@ -103,7 +103,9 @@ const CARD_JS = `
     ctx.fillRect(0, 0, 1200, 630)
     const bars = 7, barW = 62, gap = 22
     const x0 = 1200 - 70 - (bars * barW + (bars - 1) * gap)
-    const baseline = 520
+    // Bars share the lockup's baseline (566: mark bottom = wordmark flow
+    // baseline) so the whole bottom row rests on one line.
+    const baseline = 566
     const heights = [110, 145, 185, 230, 285, 345, 410]
     for (let i = 0; i < bars; i++) {
       ctx.fillStyle = i === bars - 1 ? CORAL : ACCENT
@@ -134,7 +136,9 @@ const CARD_JS = `
       ctx.drawImage(brandMark, brandX, 566 - markH, markW, markH)
       brandX += markW + gapX
     }
-    const wordBaseline = 566 - wordSize * 0.12 // -translate-y-[0.12em]
+    // Wordmark rides the mark's mid-slope, hand-tuned +2px down from the
+    // exact 0.12em rise after visual review (cards read heavier than DOM).
+    const wordBaseline = 566 - wordSize * 0.12 + 2 // -translate-y-[0.12em]
     ctx.fillStyle = CANVAS
     ctx.fillText('Coaster', brandX, wordBaseline)
     const w = ctx.measureText('Coaster').width
