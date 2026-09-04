@@ -173,7 +173,13 @@ function buildModel(rows: RawRow[]): {
   let skipped = 0
 
   const slugGroups = new Map<string, Set<string>>()
-  const pickCoasterSlug = (parkSlug: string, base: string, year: string): string => {
+  const globalSlugs = new Set<string>()
+  const pickCoasterSlug = (
+    parkSlug: string,
+    base: string,
+    year: string,
+    manufacturerSlug: string | null,
+  ): string => {
     let slug = base
     const key = `${parkSlug}__${base}`
     let used = slugGroups.get(key)
@@ -187,7 +193,23 @@ function buildModel(rows: RawRow[]): {
         slug = `${base}-${year || 'x'}-${used.size}`
       }
     }
+    // Global uniqueness (coasters_slug_key) – disambiguate clashing names
+    // across parks with park slug, then manufacturer token, then numeric.
+    if (globalSlugs.has(slug)) {
+      const parkCandidate = parkSlug !== 'other' ? `${base}-${parkSlug}` : null
+      if (parkCandidate && !globalSlugs.has(parkCandidate)) {
+        slug = parkCandidate
+      } else if (manufacturerSlug && !globalSlugs.has(`${base}-${manufacturerSlug}`)) {
+        slug = `${base}-${manufacturerSlug}`
+      } else {
+        const stem = parkCandidate ?? (manufacturerSlug ? `${base}-${manufacturerSlug}` : base)
+        let n = 2
+        while (globalSlugs.has(`${stem}-${n}`)) n++
+        slug = `${stem}-${n}`
+      }
+    }
     used.add(slug)
+    globalSlugs.add(slug)
     return slug
   }
 
@@ -201,9 +223,9 @@ function buildModel(rows: RawRow[]): {
     const parkSlug = slugify(locationName, 'other') || 'other'
     const baseSlag = slugify(name) || 'unnamed'
     const year = col(r, 'year_introduced')
-    const coasterSlug = pickCoasterSlug(parkSlug, baseSlag, year)
     const manufRaw = col(r, 'Manufacturer')
     const manufSlug = manufRaw ? slugify(manufRaw) : null
+    const coasterSlug = pickCoasterSlug(parkSlug, baseSlag, year, manufSlug)
 
     if (manufSlug && !manufacturers.has(manufSlug)) {
       manufacturers.set(manufSlug, { slug: manufSlug, name: normalizeSpace(manufRaw) })
@@ -245,6 +267,7 @@ function buildModel(rows: RawRow[]): {
   }
 
   const seenKeys = new Set<string>()
+  const seenSlugs = new Set<string>()
   for (const c of coasters) {
     const key = `${c.parkSlug}__${c.slug}`
     if (seenKeys.has(key)) {
@@ -254,6 +277,13 @@ function buildModel(rows: RawRow[]): {
       )
     }
     seenKeys.add(key)
+    if (seenSlugs.has(c.slug)) {
+      throw new Error(
+        `Global slug collision: ${c.slug} (park=${c.parkSlug} name=${c.name}). ` +
+          'Disambiguation logic needs adjustment for global uniqueness.',
+      )
+    }
+    seenSlugs.add(c.slug)
   }
 
   return { manufacturers, parks, coasters, otherParkCount, skipped }
