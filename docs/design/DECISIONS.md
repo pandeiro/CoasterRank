@@ -60,11 +60,13 @@ holds.
 - The public board remains a semantic HTML table.
 - Desktop and mobile both use a dense spreadsheet-like presentation; mobile
   may horizontally scroll rather than converting rows into cards.
-- The board leads with a visible page header — compact brand block (logo,
-  wordmark, tagline pulled close), a display-font H1, and a status line
-  (`N coasters · N countries · Live` with a teal pulse dot). This amends the
-  original "no page header; the nav logo brands the page" stance: both
-  reviewers independently flagged the missing statement of purpose.
+- The board leads with a single masthead heading — logo, wordmark, and the
+  page statement ("World's Best Roller Coasters") on one shared baseline, the
+  descriptor quieted so the wordmark stays dominant — plus a status line
+  (`N coasters · N countries · Live` with a teal pulse dot). There is no
+  tagline: the status line carries the live claim. (First shipped as brand
+  block + separate H1 + tagline, then merged after review; see PLAN Phase
+  3.1.)
 - Rank is the primary visual signal, now rendered as display-font editorial
   numerals at a larger, low-contrast size (the original typography intent,
   which had not fully shipped). The podium rows carry a neutral surface tint

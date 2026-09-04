@@ -88,21 +88,27 @@ export default function BoardPage() {
     <>
       <header data-board-hero className="relative pb-3 sm:pb-4">
         <TrackLine />
-        <div className="relative flex items-baseline gap-2.5 sm:gap-3">
-          <img src="/logo.svg" alt="" className="h-9 w-auto sm:h-12" />
-          <span className="display-heading text-[1.65rem] leading-none tracking-wide sm:text-4xl">
-            Coaster<span className="text-coral">Rank</span>
-          </span>
-          <span className="ml-1 hidden text-sm italic text-muted/70 lg:inline">
-            A live ranking of the world&apos;s roller coasters
-          </span>
-        </div>
-        <div className="relative mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 sm:mt-5">
-          <h1 className="display-heading text-[1.9rem] leading-none tracking-wide sm:text-[2.6rem]">
-            World&apos;s Best Roller Coasters
+        {/* One masthead heading: brand + page statement on a shared baseline,
+            descriptor quieted so the wordmark stays dominant. The status line
+            carries the live claim (no tagline). */}
+        <div className="relative flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <h1 className="flex flex-wrap items-baseline gap-x-2.5 sm:gap-x-3.5">
+            <img src="/logo.svg" alt="" className="h-10 w-auto sm:h-12" />
+            <span className="display-heading text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
+              Coaster<span className="text-coral">Rank</span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="hidden text-[1.4rem] leading-none text-muted/50 sm:inline"
+            >
+              —
+            </span>
+            <span className="display-heading text-[1.35rem] leading-none tracking-wide text-muted sm:text-[1.75rem]">
+              World&apos;s Best Roller Coasters
+            </span>
           </h1>
           {rows && (
-            <p className="flex items-center gap-2 pb-0.5 text-sm text-muted sm:pb-1">
+            <p className="flex items-center gap-2 text-sm text-muted">
               <span className="tabular-nums">
                 {coasterCount.toLocaleString()} coaster{coasterCount === 1 ? '' : 's'}
               </span>

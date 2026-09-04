@@ -186,20 +186,23 @@ export function DesignBoard() {
           <Panel className="space-y-6 p-6 sm:p-8">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                Hero lockup · BoardPage
+                Masthead heading · BoardPage
               </p>
-              <div className="flex flex-wrap items-baseline gap-3">
-                <img src="/logo.svg" alt="" className="h-9 w-auto" />
-                <span className="display-heading text-3xl tracking-wide text-ink">
-                  Coaster<span className="text-coral">Rank</span>
-                </span>
-                <span className="text-sm italic text-muted">
-                  A live ranking of the world&apos;s roller coasters
-                </span>
-              </div>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-                <p className="display-heading text-2xl leading-none tracking-wide text-ink sm:text-3xl">
-                  World&apos;s Best Roller Coasters
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+                <p className="flex flex-wrap items-baseline gap-x-3">
+                  <img src="/logo.svg" alt="" className="h-10 w-auto sm:h-12" />
+                  <span className="display-heading text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
+                    Coaster<span className="text-coral">Rank</span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="hidden text-[1.4rem] leading-none text-muted/50 sm:inline"
+                  >
+                    —
+                  </span>
+                  <span className="display-heading text-[1.35rem] leading-none tracking-wide text-muted sm:text-[1.75rem]">
+                    World&apos;s Best Roller Coasters
+                  </span>
                 </p>
                 <p className="flex items-center gap-2 text-sm text-muted">
                   <span className="tabular-nums">1,235 coasters · 34 countries</span>
@@ -211,8 +214,9 @@ export function DesignBoard() {
                 </p>
               </div>
               <p className="mt-3 text-sm leading-6 text-muted">
-                The board leads with the compact brand lockup, a display-font H1, and a status line
-                giving the accent a visible job. Brand rows use{' '}
+                One masthead heading: brand + page statement on a shared baseline, descriptor
+                quieted so the wordmark stays dominant. No tagline — the status line carries the
+                live claim. Brand rows use{' '}
                 <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                   items-baseline
                 </code>{' '}
