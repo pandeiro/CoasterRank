@@ -68,16 +68,18 @@ const prodUrl = (arg('--url') ?? process.env.HEALTH_CHECK_URL ?? DEFAULT_PROD_UR
   '',
 )
 const skipBrowser = hasFlag('--skip-browser')
-const supabaseUrl =
-  process.env.SUPABASE_URL ??
-  process.env.VITE_SUPABASE_URL ??
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+const supabaseUrl = (
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
   ''
-const supabaseAnonKey =
-  process.env.SUPABASE_ANON_KEY ??
-  process.env.VITE_SUPABASE_ANON_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+).trim()
+const supabaseAnonKey = (
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   ''
+).trim()
 
 async function fetchWithTimeout(
   url: string,
