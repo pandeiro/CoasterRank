@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy, LogIn } from 'lucide-react'
+import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { assumeIdentity, listSyntheticUsers } from '../lib/impersonation'
 import Toast from '../components/Toast'
+import UsersPanel from '../components/admin/UsersPanel'
 import {
   Badge,
   Button,
@@ -60,15 +60,11 @@ type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
 
-const ADMIN_TABS = [
-  'coasters',
-  'parks',
-  'rehome',
-  'submissions',
-  'impersonate',
-  'control-panel',
-] as const
+const ADMIN_TABS = ['coasters', 'parks', 'rehome', 'submissions', 'users', 'control-panel'] as const
 type AdminTab = (typeof ADMIN_TABS)[number]
+
+// Old deep links keep working: the Impersonate tab became the Users tab.
+const LEGACY_TAB_REDIRECT: Partial<Record<string, AdminTab>> = { impersonate: 'users' }
 
 type AppSetting = { key: string; enabled: boolean; label?: string | null; updated_at: string }
 
@@ -177,17 +173,6 @@ export default function AdminPage() {
     queryKey: ['other-park-id'],
     queryFn: getOtherParkId,
     enabled: activeTab === 'rehome',
-  })
-
-  const syntheticUsers = useQuery({
-    queryKey: ['synthetic-users'],
-    queryFn: listSyntheticUsers,
-    enabled: activeTab === 'impersonate',
-  })
-
-  const assume = useMutation({
-    mutationFn: assumeIdentity,
-    onError: (err: Error) => notify(err.message, 'error'),
   })
 
   const appSettings = useQuery({
@@ -554,7 +539,10 @@ export default function AdminPage() {
     savePark.mutate(data)
   }
 
-  if (!isValidTab) return <Navigate to="/admin/coasters" replace />
+  if (!isValidTab) {
+    const legacy = tab ? LEGACY_TAB_REDIRECT[tab] : undefined
+    return <Navigate to={`/admin/${legacy ?? 'coasters'}`} replace />
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -1347,62 +1335,7 @@ export default function AdminPage() {
             </Panel>
           )}
 
-          {activeTab === 'impersonate' && (
-            <Panel className="p-6">
-              <h2 className="mb-1 text-lg font-semibold text-ink">Assume identity</h2>
-              <p className="mb-4 text-sm text-muted">
-                Log in as a synthetic test user (seeded via{' '}
-                <code className="rounded bg-surface px-1 text-xs">testride:seed</code>, or signed up
-                on the{' '}
-                <code className="rounded bg-surface px-1 text-xs">@test.coasterrank.dev</code>{' '}
-                domain) to exercise the app from their perspective. Your admin session is preserved
-                — use &quot;Return to admin&quot; in the banner below to switch back. Real users can
-                never be impersonated.
-              </p>
-              {syntheticUsers.isLoading ? (
-                <MessageState>Loading synthetic users…</MessageState>
-              ) : syntheticUsers.isError ? (
-                <MessageState tone="danger">
-                  Couldn&apos;t load synthetic users — is the assume-identity Edge Function
-                  deployed?
-                </MessageState>
-              ) : (syntheticUsers.data?.length ?? 0) === 0 ? (
-                <MessageState>
-                  No synthetic users found. Create some with{' '}
-                  <code className="rounded bg-surface px-1 text-xs">
-                    npm run testride:seed -- --users 5 --rides 10-20 --apply
-                  </code>
-                  .
-                </MessageState>
-              ) : (
-                <div className="space-y-2">
-                  {syntheticUsers.data?.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-ink">{u.email}</div>
-                        <div className="text-xs text-muted">
-                          {u.username ? `@${u.username}` : 'no username'} ·{' '}
-                          {u.confirmed ? 'confirmed' : 'unconfirmed'}
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => assume.mutate(u.id)}
-                        disabled={assume.isPending}
-                        className="shrink-0"
-                      >
-                        <LogIn size={16} />
-                        Assume
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Panel>
-          )}
+          {activeTab === 'users' && <UsersPanel notify={notify} />}
 
           {activeTab === 'control-panel' && (
             <Panel className="p-6">
