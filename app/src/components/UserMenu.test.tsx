@@ -21,9 +21,9 @@ const profile: Profile = {
 
 const onSignOut = vi.fn()
 
-function renderMenu() {
+function renderMenu(path = '/') {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[path]}>
       <UserMenu profile={profile} userId="u1" onSignOut={onSignOut} />
       <Link to="/elsewhere">go elsewhere</Link>
     </MemoryRouter>,
@@ -112,6 +112,18 @@ describe('UserMenu', () => {
     await user.click(screen.getByRole('link', { name: 'go elsewhere' }))
     expect(trigger()).toHaveAttribute('aria-expanded', 'false')
     expect(trigger()).not.toHaveFocus()
+  })
+
+  it('dismisses when clicking the item for the page we are already on', async () => {
+    // Same-path navigation leaves location.pathname untouched, so the
+    // route-change close effect never fires — only the item's own onClick
+    // can dismiss the menu here. Regression guard: the menu used to linger.
+    const user = userEvent.setup()
+    renderMenu('/me')
+    await openMenu(user)
+    await user.click(screen.getAllByRole('menuitem', { name: 'My Coasters' })[0])
+    expect(trigger()).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger()).toHaveFocus()
   })
 
   it('invokes onSignOut from the open menu', async () => {

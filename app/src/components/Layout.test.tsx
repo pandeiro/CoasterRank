@@ -45,15 +45,19 @@ function renderLayout(path: string) {
 }
 
 describe('Layout', () => {
-  it('hides the Ranking nav link on the board (the hero anchors home)', () => {
+  it('hides the brand logo on the board until the hero is scrolled past', () => {
     renderLayout('/')
     expect(screen.getByText('board')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Ranking' })).not.toBeInTheDocument()
+    // The board hero anchors home; the sticky logo only fades in past it
+    // (jsdom observer never fires, so we pin the top-of-page state).
+    expect(screen.queryByRole('link', { name: /coasterrank/i })).not.toBeInTheDocument()
   })
 
-  it('links back to the global ranking from sub-pages', () => {
+  it('renders the brand header linking back to the global ranking on sub-pages', () => {
     renderLayout('/me')
     expect(screen.getByText('my coasters')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ranking' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /coasterrank/i })).toHaveAttribute('href', '/')
+    // Sub-pages get the solid scrolled-board chrome, not the transparent hero state.
+    expect(screen.getByRole('banner')).toHaveClass('bg-canvas/95', 'border-line/80')
   })
 })

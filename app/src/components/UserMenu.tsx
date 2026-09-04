@@ -96,7 +96,10 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
 
   function renderItems(rowClass: string, iconSize: number) {
     return itemDefs.map(({ to, label, Icon }) => (
-      <NavLink key={to} to={to} role="menuitem" className={rowClass}>
+      // Close on click, not just on route change: navigating to the page we
+      // are already on leaves pathname untouched, so the pathname effect
+      // never fires and the menu would otherwise stay open.
+      <NavLink key={to} to={to} role="menuitem" className={rowClass} onClick={closeAndReturnFocus}>
         <Icon size={iconSize} className="shrink-0 text-muted" />
         {label}
       </NavLink>

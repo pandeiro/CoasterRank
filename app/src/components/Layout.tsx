@@ -17,6 +17,9 @@ export default function Layout() {
   const location = useLocation()
   const isBoard = location.pathname === '/'
   const [scrolledPastHero, setScrolledPastHero] = useState(false)
+  // The board leads with its own hero; everywhere else the sticky header is
+  // the permanent chrome (logo links home to the global ranking).
+  const showBrand = !isBoard || scrolledPastHero
 
   useEffect(() => {
     if (!isBoard) {
@@ -72,15 +75,15 @@ export default function Layout() {
     <div className="min-h-screen bg-canvas">
       <header
         className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
-          scrolledPastHero ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
+          showBrand ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
         }`}
       >
         <div className="page-container flex min-h-16 items-center justify-between gap-6">
           <Link
             to="/"
-            aria-hidden={!scrolledPastHero}
+            aria-hidden={!showBrand}
             className={`flex shrink-0 items-center gap-2 text-ink transition-all duration-300 ease-out ${
-              scrolledPastHero
+              showBrand
                 ? 'translate-y-0 opacity-100'
                 : 'pointer-events-none -translate-y-1 opacity-0'
             }`}
@@ -91,13 +94,6 @@ export default function Layout() {
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm sm:gap-5">
-            {/* The board's hero anchors home; every other page needs an
-                explicit path back to the global ranking. */}
-            {!isBoard && (
-              <NavLink to="/" end className={navLinkClass}>
-                Ranking
-              </NavLink>
-            )}
             {isLoading ? null : user ? (
               <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
             ) : (
