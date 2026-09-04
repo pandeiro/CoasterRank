@@ -17,18 +17,20 @@ import {
   type RankingFilters,
 } from '../lib/coasters'
 
-// Decorative coaster-track gesture (hill, dip, loop) behind the hero — the
-// page's one restrained visual layer. Pure vector; no imagery data exists.
+// Decorative coaster-track gesture (hill, dip, loop) floating above the
+// status line at the masthead's right edge — the page's one restrained visual
+// layer. Pure vector; no imagery data exists. ViewBox is cropped to the
+// path's own baseline so the ink sits where the box says it does.
 function TrackLine() {
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 520 150"
+      viewBox="0 0 520 122"
       fill="none"
       stroke="currentColor"
       strokeWidth="3"
       strokeLinecap="round"
-      className="pointer-events-none absolute top-0 right-0 hidden h-28 w-auto text-ink/10 lg:block"
+      className="pointer-events-none hidden h-24 w-auto shrink-0 text-ink/10 lg:block"
     >
       <path d="M6 118 C 84 118, 122 40, 198 40 C 252 40, 272 96, 330 96 C 366 96, 386 88, 418 88 a 22 22 0 1 1 0 -44 a 22 22 0 1 1 0 44 C 446 88, 468 106, 514 106" />
     </svg>
@@ -87,12 +89,12 @@ export default function BoardPage() {
   return (
     <>
       <header data-board-hero className="relative pb-3 sm:pb-4">
-        <TrackLine />
         {/* Masthead heading: mark + wordmark only. The descriptor copy is gone;
-            the status line carries the live claim. The wordmark takes a small
-            optical rise (-0.06em) off the shared baseline so it nestles into
-            the mark's right slope instead of hanging at its bottom edge. */}
-        <div className="relative flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            the status line carries the live claim, right-aligned at the margin
+            with the track gesture floating above it (desktop only). The
+            wordmark takes a small optical rise (-0.06em) off the baseline so
+            it nestles into the mark's right slope. */}
+        <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <h1 className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
             <img src="/logo.svg" alt="" className="h-11 w-auto sm:h-[3.3rem]" />
             <span className="display-heading -translate-y-[0.06em] text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
@@ -100,27 +102,30 @@ export default function BoardPage() {
             </span>
           </h1>
           {rows && (
-            <p className="flex items-center gap-2 text-sm text-muted">
-              <span className="tabular-nums">
-                {coasterCount.toLocaleString()} coaster{coasterCount === 1 ? '' : 's'}
-              </span>
-              {countryCount > 0 && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span className="tabular-nums">
-                    {countryCount} countr{countryCount === 1 ? 'y' : 'ies'}
-                  </span>
-                </>
-              )}
-              <span aria-hidden="true">·</span>
-              <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+            <div className="flex flex-col items-end gap-1.5">
+              <TrackLine />
+              <p className="flex items-center gap-2 text-sm text-muted">
+                <span className="tabular-nums">
+                  {coasterCount.toLocaleString()} coaster{coasterCount === 1 ? '' : 's'}
                 </span>
-                Live
-              </span>
-            </p>
+                {countryCount > 0 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">
+                      {countryCount} countr{countryCount === 1 ? 'y' : 'ies'}
+                    </span>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                  </span>
+                  Live
+                </span>
+              </p>
+            </div>
           )}
         </div>
       </header>

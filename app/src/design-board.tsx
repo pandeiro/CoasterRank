@@ -68,6 +68,239 @@ function SwatchCard({ swatch }: { swatch: Swatch }) {
   )
 }
 
+type LockupSpec = {
+  label: string
+  markPx: number
+  textPx: number
+  gapPx: number
+  riseEm: number
+  note: string
+  align?: 'baseline' | 'center'
+}
+
+function LockupVariant({ label, markPx, textPx, gapPx, riseEm, note, align }: LockupSpec) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line/60 py-6 last:border-b-0">
+      <div className="w-64 shrink-0">
+        <p className="font-mono text-xs font-semibold text-ink">{label}</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted">{note}</p>
+      </div>
+      <div
+        className={align === 'center' ? 'flex items-center' : 'flex items-baseline'}
+        style={{ gap: gapPx }}
+      >
+        <img src="/logo.svg" alt="" style={{ height: markPx }} className="w-auto" />
+        <span
+          className="display-heading leading-none tracking-wide text-ink"
+          style={{ fontSize: textPx, transform: `translateY(${riseEm}em)` }}
+        >
+          Coaster<span className="text-coral">Rank</span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// TEMP (pick-a-lockup review): labeled variants exploring mark size vs
+// wordmark size, proximity, and baseline rise. Delete once a winner ships.
+const lockupVariants: LockupSpec[] = [
+  {
+    label: '0 · shipped today',
+    markPx: 52.8,
+    textPx: 41.6,
+    gapPx: 10,
+    riseEm: -0.06,
+    note: 'Reference — mark 1.76× cap height, gap 10px, rise −0.06em',
+  },
+  {
+    label: '1 · same, closer',
+    markPx: 52.8,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: -0.06,
+    note: 'Gap 4px',
+  },
+  {
+    label: '2 · flush',
+    markPx: 52.8,
+    textPx: 41.6,
+    gapPx: 0,
+    riseEm: -0.06,
+    note: 'Gap 0 — heart chain meets the C',
+  },
+  {
+    label: '3 · mark 64',
+    markPx: 64,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: -0.06,
+    note: 'Mark ≈ 2.1× caps, gap 4px',
+  },
+  {
+    label: '4 · mark 72',
+    markPx: 72,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: -0.06,
+    note: 'Mark ≈ 2.4× caps, gap 4px',
+  },
+  {
+    label: '5 · mark 80',
+    markPx: 80,
+    textPx: 41.6,
+    gapPx: 6,
+    riseEm: -0.06,
+    note: 'Towers — mark ≈ 2.7× caps, gap 6px',
+  },
+  {
+    label: '6 · mark 64 / text 37',
+    markPx: 64,
+    textPx: 37,
+    gapPx: 4,
+    riseEm: -0.06,
+    note: 'Wordmark stepped down to 37px — mark ≈ 2.4× caps',
+  },
+  {
+    label: '7 · mark 72 / text 37',
+    markPx: 72,
+    textPx: 37,
+    gapPx: 4,
+    riseEm: -0.06,
+    note: 'Mark ≈ 2.7× caps',
+  },
+  {
+    label: '8 · mark 64, no rise',
+    markPx: 64,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: 0,
+    note: 'Rise 0 — text hangs at the mark’s bottom edge (compare with 3)',
+  },
+  {
+    label: '9 · mark 64, deep rise',
+    markPx: 64,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: -0.12,
+    note: 'Rise −0.12em — text rides the mark’s mid-slope',
+  },
+  {
+    label: '10 · vertically centered',
+    markPx: 64,
+    textPx: 41.6,
+    gapPx: 4,
+    riseEm: 0,
+    align: 'center',
+    note: 'items-center instead of baseline',
+  },
+]
+
+type TabSpec = {
+  label: string
+  scale: number
+  shiftY: number
+  note: string
+}
+
+// TEMP (favicon-in-tab review): the shipped favicon pads the landscape mini
+// mark to 92% of the square, so ink spans ~71% of box height, centered — it
+// reads low next to tab-title text. Each variant simulates a viewBox change
+// (scale = ink size, translateY = upward shift) applied to the shipped SVG;
+// the winner gets baked into export.py's pad math. Delete once shipped.
+const tabVariants: TabSpec[] = [
+  {
+    label: '0 · shipped',
+    scale: 1,
+    shiftY: 0,
+    note: 'Current favicon.svg — ink 92% of square width (~71% height), centered',
+  },
+  {
+    label: '1 · ink full-width',
+    scale: 1.09,
+    shiftY: 0,
+    note: '92% pad cancelled (viewBox shrunk to ink), still vertically centered',
+  },
+  {
+    label: '2 · up 5%',
+    scale: 1.09,
+    shiftY: -5,
+    note: 'Full-width ink, shifted up 5% of box height',
+  },
+  {
+    label: '3 · up 9%',
+    scale: 1.09,
+    shiftY: -9,
+    note: 'Full-width ink, shifted up 9% — bottom pad ≈ 2× top pad',
+  },
+  {
+    label: '4 · bigger, up 5%',
+    scale: 1.18,
+    shiftY: -5,
+    note: 'Ink grown past full-width (side edges clipped), up 5%',
+  },
+  {
+    label: '5 · bigger, up 9%',
+    scale: 1.18,
+    shiftY: -9,
+    note: 'Ink grown past full-width, up 9%',
+  },
+]
+
+function FaviconBox({ boxPx, scale, shiftY }: { boxPx: number; scale: number; shiftY: number }) {
+  return (
+    <span
+      className="inline-block shrink-0 overflow-hidden rounded-[2px] bg-surface-bright ring-1 ring-line"
+      style={{ width: boxPx, height: boxPx }}
+    >
+      <img
+        src="/favicon.svg"
+        alt=""
+        style={{
+          width: '100%',
+          height: '100%',
+          transform: `translateY(${shiftY}%) scale(${scale})`,
+        }}
+      />
+    </span>
+  )
+}
+
+function TabVariantRow({ label, scale, shiftY, note }: TabSpec) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-10 gap-y-4 border-b border-line/60 py-6 last:border-b-0">
+      <div className="w-64 shrink-0">
+        <p className="font-mono text-xs font-semibold text-ink">{label}</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted">{note}</p>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-end gap-1.5 bg-surface px-2 pt-2">
+          <div className="flex items-center gap-2 rounded-t-lg border border-b-0 border-line bg-surface-bright px-3 pt-1.5 pb-1">
+            <FaviconBox boxPx={16} scale={scale} shiftY={shiftY} />
+            <span className="text-xs whitespace-nowrap text-ink">
+              CoasterRank — A live ranking of the world&apos;s roller coasters
+            </span>
+          </div>
+          <div className="rounded-t-lg border border-b-0 border-line/50 bg-surface-bright/40 px-3 pt-1.5 pb-1 text-xs text-muted">
+            Park detail
+          </div>
+          <div className="rounded-t-lg border border-b-0 border-line/50 bg-surface-bright/40 px-3 pt-1.5 pb-1 text-xs text-muted">
+            My coasters
+          </div>
+        </div>
+        <div className="h-px bg-line" />
+      </div>
+      <div className="flex items-center gap-3">
+        <FaviconBox boxPx={64} scale={scale} shiftY={shiftY} />
+        <span className="font-mono text-[10px] leading-4 text-muted">
+          scale {scale}×
+          <br />
+          shift {shiftY}%
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export function DesignBoard() {
   return (
     <div className="min-h-screen bg-canvas">
@@ -99,6 +332,35 @@ export function DesignBoard() {
             in the product. It has no data connection and is intentionally unlinked from the app.
           </p>
         </div>
+
+        <Section title="Lockup variants — TEMP">
+          <Panel className="px-6 py-2 sm:px-8">
+            <p className="py-4 text-sm leading-6 text-muted">
+              Pick-a-lockup review sheet: proximity of the wordmark to the mark, relative sizes, and
+              baseline rise. Racing Sans One cap height ≈ 0.72em (the 41.6px wordmark here has ~30px
+              caps); “towers” = mark ≈ 2×+ cap height. Delete this section once a winner ships.
+            </p>
+            {lockupVariants.map((spec) => (
+              <LockupVariant key={spec.label} {...spec} />
+            ))}
+          </Panel>
+        </Section>
+
+        <Section title="Favicon in tab — TEMP">
+          <Panel className="px-6 py-2 sm:px-8">
+            <p className="py-4 text-sm leading-6 text-muted">
+              The shipped favicon pads the landscape mini mark to 92% of the square, so ink spans
+              only ~71% of the box height (centered) and reads low next to tab-title text. Each
+              variant simulates the viewBox change (scale = ink size, translateY = upward shift) on
+              the shipped SVG at real tab size and at 64px; the winner gets baked into{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">export.py</code>{' '}
+              pad math. Delete this section once shipped.
+            </p>
+            {tabVariants.map((spec) => (
+              <TabVariantRow key={spec.label} {...spec} />
+            ))}
+          </Panel>
+        </Section>
 
         <Section title="Mark">
           <Panel className="p-6 sm:p-8">

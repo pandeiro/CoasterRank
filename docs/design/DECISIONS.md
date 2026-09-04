@@ -93,9 +93,12 @@ holds.
   to narrow it was declined after measuring (the cap is 72rem, not
   edge-to-edge).
 - The page's one decorative visual layer is a subtle vector track-line
-  (hill–dip–loop) behind the hero. Coaster photography would need a licensed
-  image source (none exists in the schema; RCDB photos are copyrighted) and
-  stays out of scope.
+  (hill–dip–loop) floating above the status line at the masthead's right edge
+  (it originally draped over the status text; it now lives in flow above the
+  line, which sits flush-right at the margin — trailing the text inline was
+  tried and rejected). Coaster photography would need a licensed image source
+  (none exists in the schema; RCDB photos are copyrighted) and stays out of
+  scope.
 
 ## Component strategy
 
