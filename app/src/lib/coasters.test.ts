@@ -380,17 +380,55 @@ describe('approveSubmission', () => {
     reviewed_at: null,
   } satisfies CoasterSubmission
 
+  // helpers for the new global-unique slug path
+  const makeCoasterSelectMock = (existingSlugs: string[] = []) =>
+    ({
+      like: () => ({
+        range: vi
+          .fn()
+          .mockResolvedValue({ data: existingSlugs.map((s) => ({ slug: s })), error: null }),
+      }),
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        single: vi.fn(),
+      }),
+    }) as unknown
+
+  const makeParkSelectMock = (slug: string | null = 'test-park') =>
+    ({
+      eq: () => ({
+        maybeSingle: vi.fn().mockResolvedValue({ data: slug ? { slug } : null, error: null }),
+      }),
+    }) as unknown
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'u1' } } } as never)
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
-        return { insert: () => ({ select: () => ({ single: insertSingle }) }) }
+        const insertMock = { insert: () => ({ select: () => ({ single: insertSingle }) }) }
+        // select used by resolveUniqueCoasterSlug
+        return Object.assign(() => insertMock, {
+          insert: insertMock.insert,
+          select: vi.fn().mockReturnValue(makeParkSelectMock()),
+        }) as unknown as ReturnType<typeof supabase.from>
       }
       if (table === 'coasters') {
-        return { insert: coasterInsert }
+        return {
+          insert: coasterInsert,
+          select: vi.fn().mockReturnValue(makeCoasterSelectMock()),
+        } as unknown as ReturnType<typeof supabase.from>
       }
-      return { update: () => ({ eq: submissionUpdateEq }) }
+      if (table === 'manufacturers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }),
+          }),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
     }) as never)
     insertSingle.mockResolvedValue({ data: { id: 'p9' }, error: null })
     coasterInsert.mockResolvedValue({ error: null })
@@ -418,11 +456,49 @@ describe('approveSubmission', () => {
     expect(coasterInsert).not.toHaveBeenCalled()
   })
 
-  it('maps a coaster slug collision to a friendly error', async () => {
-    coasterInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
-    await expect(approveSubmission('s1', submission)).rejects.toThrow(
-      'A coaster named "Test Coaster" already exists in that park.',
+  it('retries with park-suffixed slug on global coaster collision then succeeds', async () => {
+    // first insert claims slug, second succeeds with park suffix
+    coasterInsert
+      .mockResolvedValueOnce({ error: { code: '23505', message: 'duplicate key' } })
+      .mockResolvedValueOnce({ error: null })
+    // make the global slug check see existing base slug
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'parks') {
+        const sel = vi.fn().mockReturnValue(makeParkSelectMock('test-park'))
+        return {
+          insert: () => ({ select: () => ({ single: insertSingle }) }),
+          select: sel,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coasters') {
+        return {
+          insert: coasterInsert,
+          select: vi.fn().mockReturnValue(makeCoasterSelectMock(['test-coaster'])),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'manufacturers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }),
+          }),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
+    }) as never)
+    insertSingle.mockResolvedValue({ data: { id: 'p9' }, error: null })
+    submissionUpdateEq.mockResolvedValue({ error: null })
+    await approveSubmission('s1', submission)
+    expect(coasterInsert).toHaveBeenCalledTimes(2)
+    expect(coasterInsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({ slug: 'test-coaster-test-park' }),
     )
+  })
+
+  it('maps a persistent coaster slug collision to a friendly error after retries', async () => {
+    coasterInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
+    await expect(approveSubmission('s1', submission)).rejects.toThrow(/already exists \(slug/)
     expect(submissionUpdateEq).not.toHaveBeenCalled()
   })
 

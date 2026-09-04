@@ -288,6 +288,68 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+// Coaster slugs are now globally unique (migration coasters_slug_key).
+// Historical `UNIQUE(park_id,slug)` allowed e.g. `pteranodon-flyers` at two
+// parks; detail page `/coasters/:slug` uses maybeSingle() so those broke.
+// New helpers disambiguate with park slug, then manufacturer token, then
+// numeric suffix – mirrors the 2026-09-04 ad-hoc fix (see
+// docs/audit/2026-09-04-slug-dedup.md).
+async function fetchExistingCoasterSlugs(base: string): Promise<Set<string>> {
+  const existing = new Set<string>()
+  // slugs are `base` or `base-%`; like `base%` is a tight prefix filter,
+  // JS then checks exact / dash-prefix so `baseFoo` doesn't count.
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('slug')
+    .like('slug', `${base}%`)
+    .range(0, 9999)
+  if (error) throw error
+  for (const row of data as { slug: string }[]) {
+    if (row.slug === base || row.slug.startsWith(`${base}-`)) existing.add(row.slug)
+  }
+  return existing
+}
+
+function pickUniqueSlug(
+  base: string,
+  parkSlug: string | null,
+  manufacturerSlug: string | null,
+  existing: Set<string>,
+): string {
+  if (!existing.has(base)) return base
+  const parkCandidate = parkSlug && parkSlug !== 'other' ? `${base}-${parkSlug}` : null
+  if (parkCandidate && !existing.has(parkCandidate)) return parkCandidate
+  const manuCandidate = manufacturerSlug ? `${base}-${manufacturerSlug}` : null
+  if (manuCandidate && !existing.has(manuCandidate)) return manuCandidate
+  // If park candidate existed but manu was different, try park+manu
+  if (parkCandidate && manuCandidate) {
+    const combined = `${parkCandidate}-${manufacturerSlug}`
+    if (!existing.has(combined)) return combined
+  }
+  // Numeric suffix fallback (base-2, parkCandidate-2, etc.)
+  const stem = parkCandidate ?? manuCandidate ?? base
+  let n = 2
+  while (existing.has(`${stem}-${n}`)) n++
+  return `${stem}-${n}`
+}
+
+async function resolveUniqueCoasterSlug(
+  base: string,
+  parkId: string,
+  manufacturerId: string | null = null,
+): Promise<string> {
+  const [{ data: park }, manuResult, existing] = await Promise.all([
+    supabase.from('parks').select('slug').eq('id', parkId).maybeSingle(),
+    manufacturerId
+      ? supabase.from('manufacturers').select('slug').eq('id', manufacturerId).maybeSingle()
+      : Promise.resolve({ data: null } as never),
+    fetchExistingCoasterSlugs(base),
+  ])
+  const parkSlug = (park as { slug?: string } | null)?.slug ?? null
+  const manuSlug = (manuResult.data as { slug?: string } | null)?.slug ?? null
+  return pickUniqueSlug(base, parkSlug, manuSlug, existing)
+}
+
 export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 }
@@ -426,19 +488,47 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
     parkId = park.id
   }
 
-  // 2. Create Coaster
-  const { error: coasterError } = await supabase.from('coasters').insert({
-    park_id: parkId,
-    name: submission.coaster_name,
-    slug: slugify(submission.coaster_name),
-    source: 'community',
-    ...submission.suggested_fields,
-  })
+  // 2. Create Coaster — globally unique slug (park suffix fallback)
+  const baseSlug = slugify(submission.coaster_name)
+  if (!parkId) throw new Error('Missing park')
+  let coasterSlug = await resolveUniqueCoasterSlug(baseSlug, parkId, null)
+  let coasterError: { code?: string; message: string } | null = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.from('coasters').insert({
+      park_id: parkId,
+      name: submission.coaster_name,
+      slug: coasterSlug,
+      source: 'community',
+      ...submission.suggested_fields,
+    })
+    if (!error) {
+      coasterError = null
+      break
+    }
+    if (error.code !== '23505') {
+      coasterError = error
+      break
+    }
+    // Race: another insert claimed the slug between our check and insert.
+    // Re-resolve with fresh DB state and retry (numeric suffix path).
+    const existing = await fetchExistingCoasterSlugs(baseSlug)
+    const parkRes = await supabase.from('parks').select('slug').eq('id', parkId).maybeSingle()
+    const parkSlug = (parkRes.data as { slug?: string } | null)?.slug ?? null
+    coasterSlug = pickUniqueSlug(baseSlug, parkSlug, null, existing)
+    // force numeric on second retry if still taken
+    if (attempt === 1 && existing.has(coasterSlug)) {
+      let n = 2
+      while (existing.has(`${coasterSlug}-${n}`)) n++
+      coasterSlug = `${coasterSlug}-${n}`
+    }
+    coasterError = error
+  }
 
   if (coasterError) {
-    // coasters UNIQUE(park_id, slug) — same name already in that park.
     throw coasterError.code === '23505'
-      ? new Error(`A coaster named "${submission.coaster_name}" already exists in that park.`)
+      ? new Error(
+          `A coaster named "${submission.coaster_name}" already exists (slug ${coasterSlug} is taken).`,
+        )
       : coasterError
   }
 
@@ -495,14 +585,66 @@ export async function getAllCoastersAdmin() {
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {
+  // If slug is being set explicitly ensure global uniqueness (e.g. admin rename)
+  if (updates.slug) {
+    const existing = await fetchExistingCoasterSlugs(
+      updates.slug.replace(/-\d+$/, '').replace(/-[a-z0-9-]+$/, updates.slug)
+        ? updates.slug
+        : updates.slug,
+    )
+    // simpler: just check exact slug exists for another coaster
+    const { data } = await supabase
+      .from('coasters')
+      .select('id')
+      .eq('slug', updates.slug)
+      .neq('id', id)
+      .maybeSingle()
+    if (data) {
+      // auto-disambiguate: keep caller's slug as base and add numeric suffix
+      let n = 2
+      let candidate = `${updates.slug}-${n}`
+      while (true) {
+        const { data: clash } = await supabase
+          .from('coasters')
+          .select('id')
+          .eq('slug', candidate)
+          .maybeSingle()
+        if (!clash) break
+        n++
+        candidate = `${updates.slug}-${n}`
+      }
+      updates = { ...updates, slug: candidate }
+    }
+    void existing // keep helper reachable for future use
+  }
   const { error } = await supabase.from('coasters').update(updates).eq('id', id)
   if (error) throw error
 }
 
 export async function createCoaster(data: Partial<Coaster>) {
-  const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
-  if (error) throw error
-  return result
+  if (data.name && data.park_id) {
+    const base = data.slug ? data.slug : slugify(data.name)
+    const unique = await resolveUniqueCoasterSlug(
+      base,
+      data.park_id,
+      (data.manufacturer_id as string | null) ?? null,
+    )
+    data = { ...data, slug: unique }
+  }
+  let lastError: { code?: string } | null = null
+  let attemptSlug = data.slug as string | undefined
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
+    if (!error) return result
+    if (error.code !== '23505' || !attemptSlug || !data.park_id) throw error
+    lastError = error
+    const existing = await fetchExistingCoasterSlugs(attemptSlug.replace(/-\d+$/, ''))
+    let n = 2
+    while (existing.has(`${attemptSlug}-${n}`)) n++
+    attemptSlug = `${attemptSlug}-${n}`
+    data = { ...data, slug: attemptSlug }
+  }
+  throw lastError ?? new Error('Failed to create coaster')
 }
 
 export async function deleteCoaster(id: string) {
