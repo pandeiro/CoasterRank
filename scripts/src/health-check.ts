@@ -15,6 +15,26 @@
  * Exit code: 0 = healthy, 1 = any check failed (GH job fails → Telegram alert).
  * Flags: --skip-browser skips Playwright (for runners without chromium deps).
  *        --url <https://host> overrides prod URL (default https://coasterrank.app).
+ *
+ * Alert template (Telegram — CoasterRankAlerts, on failure only):
+ *   🚨 Health check FAILED
+ *   🩺 Target: https://coasterrank.app
+ *   ⏰ Time: 2026-09-04T22:52:00Z
+ *   🔗 Run: https://github.com/pandeiro/CoasterRank/actions/runs/123456789
+ *   Drill: check cron_execution_logs + /api/ranking (see run log).
+ *
+ * Console + GITHUB_STEP_SUMMARY (failed run) + drill snippet:
+ *   Health check: FAILED (1/8)
+ *     target: https://coasterrank.app
+ *   ✅ homepage:status+marker: GET / → 200 contains CoasterRank (157ms)
+ *   ✅ homepage:latency: latency 157ms (budget 5000ms)
+ *   ✅ api:status: GET /api/ranking → 200 (242ms)
+ *   ❌ api:freshness: stale 52m ago (generated_at=2026-09-04T22:00:00Z) (budget 45m)
+ *   ✅ supabase:v_coaster_rankings: anon read ok
+ *   ✅ browser:board_render: board rendered: rows~250, heading=true, table=true (1014ms)
+ *   Drill:
+ *     source .env && psql "$SUPABASE_DB_URL" -c "SELECT status, retries_used, error_message, created_at FROM cron_execution_logs ORDER BY created_at DESC LIMIT 5;"
+ *     curl -s https://coasterrank.app/api/ranking | head -c 400
  */
 
 import { config } from 'dotenv'

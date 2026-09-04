@@ -61,6 +61,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      # Telegram template (rendered on failure) — keep in sync with scripts/src/health-check.ts header:
+      #   🚨 Health check FAILED
+      #   🩺 Target: https://coasterrank.app
+      #   ⏰ Time: 2026-09-04T22:52:00Z
+      #   🔗 Run: https://github.com/pandeiro/CoasterRank/actions/runs/123456789
+      #   Drill: check cron_execution_logs + /api/ranking (see run log).
+      # Full per-check detail lives in the job log + $GITHUB_STEP_SUMMARY.
       - name: Notify failure (CoasterRankAlerts)
         if: failure() && env.ALERTS_BOT_TOKEN != '' && env.TELEGRAM_USER_ID != ''
         run: |
