@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   capitalize,
   firstPlaceLabel,
@@ -19,6 +19,29 @@ function statusPill(status: CoasterStatus): { label: string; tone: 'accent' | 'n
     : { label: 'Historic', tone: 'neutral' }
 }
 
+// Enthusiast-standard abbreviations, applied only when the full name would
+// otherwise truncate; the full name stays available via the title attribute.
+const MANUFACTURER_ABBREVIATIONS: Record<string, string> = {
+  'Bolliger & Mabillard': 'B&M',
+  'Rocky Mountain Construction': 'RMC',
+}
+
+// Quiet hierarchy for the podium: a slightly stronger tint for #1, a fainter
+// one for #2–3. Neutral surface color only — accents are never assigned to
+// rank positions.
+function rankTint(position: number | null): string {
+  if (position === 1) return 'bg-surface/70'
+  if (position === 2 || position === 3) return 'bg-surface/35'
+  return ''
+}
+
+// Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
+// so they are displayed on an index scale — 100 = community average. One
+// decimal is enough to separate adjacent ranks without implying precision.
+function formatScore(score: number): string {
+  return (score * 100).toFixed(1)
+}
+
 type Props = {
   rows: RankingRow[]
   showPark?: boolean
@@ -35,10 +58,15 @@ export default function CoasterTable({
   variant = 'default',
 }: Props) {
   const isDesktop = useMediaQuery('(min-width: 640px)')
+  const navigate = useNavigate()
 
   if (rows.length === 0) {
     return <MessageState>No coasters match those filters.</MessageState>
   }
+
+  // Whole rows navigate to the coaster detail page; the inline coaster and
+  // park links keep their own targets by stopping propagation.
+  const keepLinkTarget = (e: React.MouseEvent) => e.stopPropagation()
 
   // Gapless display numbering over the rows as given (already ordered by the
   // caller): rated rows count up 1, 2, 3…; unrated rows show a dash. Unlike
@@ -51,7 +79,7 @@ export default function CoasterTable({
   function parkCell(row: RankingRow) {
     if (!showPark) return null
     return row.park_name && row.park_slug ? (
-      <Link to={`/parks/${row.park_slug}`} className="hover:underline">
+      <Link to={`/parks/${row.park_slug}`} onClick={keepLinkTarget} className="hover:underline">
         {row.park_name}
       </Link>
     ) : (
@@ -93,25 +121,38 @@ export default function CoasterTable({
         <ul className="divide-y divide-line/70">
           {rows.map((row, index) => {
             const position = positions[index]
-            const rankLabel = position === null ? '—' : position
             const firstPlace = firstPlaceIds.has(row.id)
               ? firstPlaceLabel(row.first_place_votes, row.participants)
               : null
 
             return (
-              <li key={row.id} className="flex gap-3 px-4 py-3">
-                <span className="w-8 shrink-0 self-center text-right text-base text-muted tabular-nums">
-                  {rankLabel}
+              <li
+                key={row.id}
+                onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
+                className={`flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-canvas ${rankTint(position)}`}
+              >
+                <span className="w-9 shrink-0 self-center text-right">
+                  {position === null ? (
+                    <span className="text-base text-muted">—</span>
+                  ) : (
+                    <span className="display-heading text-lg text-muted/75">{position}</span>
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1">
                     <Link
                       to={`/coasters/${row.slug}`}
+                      onClick={keepLinkTarget}
                       className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
                     >
                       {row.name}
                     </Link>
                     {badges(row, firstPlace)}
+                    {row.score !== null && (
+                      <span className="ml-auto shrink-0 pl-2 text-sm text-muted tabular-nums">
+                        {formatScore(row.score)}
+                      </span>
+                    )}
                   </div>
                   {showPark && row.park_name && row.park_slug && (
                     <div className="mt-0.5 min-w-0 truncate text-sm text-muted">
@@ -136,15 +177,23 @@ export default function CoasterTable({
         <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-              <th className="w-14 px-4 py-3">
+              <th className="w-[4.5rem] px-4 py-3">
                 <span className="sr-only">Rank</span>
               </th>
               <th className="px-4 py-3">Coaster</th>
               {showPark && <th className="w-[30%] px-4 py-3">Park</th>}
               {variant === 'board' ? (
                 <>
-                  <th className="hidden w-44 px-4 py-3 lg:table-cell">Manufacturer</th>
+                  <th className="hidden w-56 px-4 py-3 lg:table-cell">Manufacturer</th>
                   <th className="w-36 px-4 py-3">Country</th>
+                  <th className="w-20 px-4 py-3 text-right">
+                    <span
+                      title="Bradley–Terry strength index from head-to-head rider comparisons; 100 is the community average"
+                      className="cursor-help"
+                    >
+                      Score
+                    </span>
+                  </th>
                 </>
               ) : (
                 <th className="w-28 px-4 py-3">Material</th>
@@ -154,18 +203,30 @@ export default function CoasterTable({
           <tbody className="divide-y divide-line/70">
             {rows.map((row, index) => {
               const position = positions[index]
-              const rankLabel = position === null ? '—' : position
               const firstPlace = firstPlaceIds.has(row.id)
                 ? firstPlaceLabel(row.first_place_votes, row.participants)
                 : null
 
               return (
-                <tr key={row.id} className="group transition-colors hover:bg-canvas">
-                  <td className="px-4 py-3 text-muted tabular-nums">{rankLabel}</td>
+                <tr
+                  key={row.id}
+                  onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
+                  className={`group cursor-pointer transition-colors hover:bg-canvas ${rankTint(position)}`}
+                >
+                  <td className="px-4 py-3">
+                    {position === null ? (
+                      <span className="text-sm text-muted">—</span>
+                    ) : (
+                      <span className="display-heading text-xl leading-none text-muted/75">
+                        {position}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex min-h-6 items-center gap-2">
                       <Link
                         to={`/coasters/${row.slug}`}
+                        onClick={keepLinkTarget}
                         className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
                       >
                         {row.name}
@@ -181,10 +242,20 @@ export default function CoasterTable({
                   {variant === 'board' ? (
                     <>
                       <td className="hidden px-4 py-3 text-muted lg:table-cell">
-                        <div className="truncate">{row.manufacturer_name ?? '—'}</div>
+                        {row.manufacturer_name ? (
+                          <div className="truncate" title={row.manufacturer_name}>
+                            {MANUFACTURER_ABBREVIATIONS[row.manufacturer_name] ??
+                              row.manufacturer_name}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted">
                         <div className="truncate">{row.park_country ?? '—'}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted tabular-nums">
+                        {row.score === null ? '—' : formatScore(row.score)}
                       </td>
                     </>
                   ) : (

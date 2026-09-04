@@ -65,7 +65,7 @@ function statusRadio(name: string) {
 }
 
 function materialRadio(name: string) {
-  return within(screen.getByRole('radiogroup', { name: 'Material' })).getByRole('radio', { name })
+  return within(screen.getByRole('radiogroup', { name: 'Track' })).getByRole('radio', { name })
 }
 
 describe('BoardPage', () => {
@@ -82,7 +82,19 @@ describe('BoardPage', () => {
 
   it('renders the board heading', () => {
     renderBoard()
-    expect(screen.getByRole('heading', { name: /community board/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /roller coasters/i })).toBeInTheDocument()
+  })
+
+  it('shows the catalog size, country count, and live indicator', () => {
+    mockAllCoasters([
+      { name: 'A', park_country: 'United States' },
+      { name: 'B', park_country: 'United States' },
+      { name: 'C', park_country: null },
+    ])
+    renderBoard()
+    expect(screen.getByText('3 coasters')).toBeInTheDocument()
+    expect(screen.getByText('1 country')).toBeInTheDocument()
+    expect(screen.getByText('Live')).toBeInTheDocument()
   })
 
   it('shows a loading state while pending', () => {
@@ -122,7 +134,7 @@ describe('BoardPage', () => {
   it('writes status=all to the URL when non-operational coasters are included', async () => {
     const user = userEvent.setup()
     renderBoard()
-    await user.click(statusRadio('Any'))
+    await user.click(statusRadio('All'))
     await waitFor(() => {
       expect(screen.getByTestId('location').textContent).toBe('status=all')
     })
@@ -130,25 +142,25 @@ describe('BoardPage', () => {
 
   it('reads filters from the URL', () => {
     renderBoard(['/?status=all&material=wood'])
-    expect(statusRadio('Any')).toBeChecked()
+    expect(statusRadio('All')).toBeChecked()
     expect(materialRadio('Wood')).toBeChecked()
   })
 
-  it('shows only operating coasters by default and all when the status is set to Any', async () => {
+  it('shows only operating coasters by default and all when the status is set to All', async () => {
     mockAllCoasters([
-      { name: 'Live', status: 'operating' },
+      { name: 'Open', status: 'operating' },
       { name: 'Gone', status: 'defunct' },
     ])
     renderBoard()
-    expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.getByText('Open')).toBeInTheDocument()
     expect(screen.queryByText('Gone')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
-    await user.click(statusRadio('Any'))
+    await user.click(statusRadio('All'))
     await waitFor(() => {
       expect(screen.getByText('Gone')).toBeInTheDocument()
     })
-    expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.getByText('Open')).toBeInTheDocument()
   })
 
   it('offers country and manufacturer filters in the Filters popover', async () => {
