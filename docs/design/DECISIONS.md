@@ -53,15 +53,44 @@ use semantic aliases rather than raw hex values.
 
 ## Layout and board behavior
 
+Amended September 2026 after an external design review of the live board
+(see PLAN.md Phase 3.1); the original v1 stance is retained where it still
+holds.
+
 - The public board remains a semantic HTML table.
 - Desktop and mobile both use a dense spreadsheet-like presentation; mobile
   may horizontally scroll rather than converting rows into cards.
-- Rank is the primary visual signal. Score, comparisons, and participants are
-  supporting metrics.
-- Search and filters remain directly available on the board. Filters use a
-  compact responsive grid and retain their URL-backed behavior.
+- The board leads with a visible page header — compact brand block (logo,
+  wordmark, tagline pulled close), a display-font H1, and a status line
+  (`N coasters · N countries · Live` with a teal pulse dot). This amends the
+  original "no page header; the nav logo brands the page" stance: both
+  reviewers independently flagged the missing statement of purpose.
+- Rank is the primary visual signal, now rendered as display-font editorial
+  numerals at a larger, low-contrast size (the original typography intent,
+  which had not fully shipped). The podium rows carry a neutral surface tint
+  (#1 slightly stronger than #2–3); accents are still never assigned to rank
+  positions, and medal colors were explicitly rejected.
+- A quiet **Score** column returns (amending the Phase 3.0 removal) to answer
+  the cold-visitor question "ranked by what?". Raw BT strengths compress into
+  a ±3% band around the 1.0 anchor, so scores are displayed on an index
+  scale — `score × 100`, one decimal, 100 = community average — with the
+  basis explained in the header tooltip. Comparisons and participants remain
+  off the table (few-votes badge and first-place pill carry them).
+- Whole rows navigate to the coaster detail page; the inline coaster and park
+  links keep their own targets.
+- Search and filters remain directly available on the board, as one control
+  system: labeled groups (Track: All/Wood/Steel, Status: Running/All —
+  "Any" renamed to "All"), quiet outlined toggles whose selected state uses
+  the teal accent instead of filled ink, and URL-backed behavior unchanged.
+  On mobile the toggles still fold into the Filters popover.
 - The shared page container is intentionally wider than the original shell so
-  the board can show useful data without feeling cramped.
+  the board can show useful data without feeling cramped; reviewers' request
+  to narrow it was declined after measuring (the cap is 72rem, not
+  edge-to-edge).
+- The page's one decorative visual layer is a subtle vector track-line
+  (hill–dip–loop) behind the hero. Coaster photography would need a licensed
+  image source (none exists in the schema; RCDB photos are copyrighted) and
+  stays out of scope.
 
 ## Component strategy
 

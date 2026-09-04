@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import CoasterTable from './CoasterTable'
 import { FEW_VOTES_THRESHOLD, type RankingRow } from '../lib/coasters'
 import { makeRankingRow } from '../test/fixtures'
@@ -25,6 +25,22 @@ function renderTable(
         showPark={showPark}
         variant={variant}
       />
+    </MemoryRouter>,
+  )
+}
+
+function RouteProbe() {
+  const location = useLocation()
+  return <div data-testid="route-probe">{location.pathname}</div>
+}
+
+function renderWithRoutes(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={ui} />
+        <Route path="*" element={<RouteProbe />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -161,6 +177,77 @@ describe('CoasterTable', () => {
       'board',
     )
     expect(screen.getAllByText('—')).toHaveLength(2)
+  })
+
+  it('board variant shows a quiet score column on the index scale, dashing unrated rows', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'Rated', score: 1.876, manufacturer_name: 'Intamin' },
+        {
+          name: 'Unrated',
+          rank: null,
+          score: null,
+          comparisons: null,
+          participants: null,
+          manufacturer_name: 'Intamin',
+        },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(screen.getByText('Score')).toBeInTheDocument()
+    // Index scale: 100 = community average (1.876 × 100 → 187.6).
+    expect(screen.getByText('187.6')).toBeInTheDocument()
+    // The unrated row dashes in both the rank and score columns.
+    expect(screen.getAllByText('—')).toHaveLength(2)
+  })
+
+  it('default variant does not render a score column', () => {
+    renderTable(rowsFrom())
+    expect(screen.queryByText('Score')).not.toBeInTheDocument()
+  })
+
+  it('board variant abbreviates the long manufacturer names with the full name on title', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'A', manufacturer_name: 'Rocky Mountain Construction' },
+        { name: 'B', manufacturer_name: 'Bolliger & Mabillard' },
+        { name: 'C', manufacturer_name: 'Intamin' },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(screen.getByText('RMC')).toHaveAttribute('title', 'Rocky Mountain Construction')
+    expect(screen.getByText('B&M')).toHaveAttribute('title', 'Bolliger & Mabillard')
+    expect(screen.getByText('Intamin')).toHaveAttribute('title', 'Intamin')
+  })
+
+  it('navigates to the coaster page when a row is clicked', () => {
+    renderWithRoutes(
+      <CoasterTable
+        rows={rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])}
+        firstPlaceIds={new Set()}
+        showPark
+        variant="board"
+      />,
+    )
+    fireEvent.click(screen.getByText('1'))
+    expect(screen.getByTestId('route-probe')).toHaveTextContent('/coasters/steel-vengeance')
+  })
+
+  it('keeps the park link on its own target instead of the row target', () => {
+    renderWithRoutes(
+      <CoasterTable
+        rows={rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])}
+        firstPlaceIds={new Set()}
+        showPark
+        variant="board"
+      />,
+    )
+    fireEvent.click(screen.getByRole('link', { name: 'Test Park' }))
+    expect(screen.getByTestId('route-probe')).toHaveTextContent('/parks/test-park')
   })
 
   it('renders an empty message for no rows', () => {

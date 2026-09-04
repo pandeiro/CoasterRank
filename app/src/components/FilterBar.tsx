@@ -12,14 +12,14 @@ type Props = {
 }
 
 const MATERIAL_VIEWS: { value: MaterialView; label: string }[] = [
-  { value: 'everything', label: 'Any' },
+  { value: 'everything', label: 'All' },
   { value: 'wood', label: 'Wood' },
   { value: 'steel', label: 'Steel' },
 ]
 
 const STATUS_VIEWS: { value: 'running' | 'any'; label: string }[] = [
   { value: 'running', label: 'Running' },
-  { value: 'any', label: 'Any' },
+  { value: 'any', label: 'All' },
 ]
 
 const groupLabel = 'flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted'
@@ -36,31 +36,39 @@ function Segmented<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex">
-      {options.map((o, i) => {
-        const active = value === o.value
-        // Each button owns its border + radius and joins the row via -ml-px
-        // (later siblings paint above), so resting and hover outlines render
-        // identically crisp at the corners — no parent clipping involved.
-        const shape =
-          i === 0 ? 'rounded-l-lg' : i === options.length - 1 ? '-ml-px rounded-r-lg' : '-ml-px'
-        return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(o.value)}
-            className={`relative border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color] hover:z-10 ${shape} ${
-              active
-                ? 'border-ink/70 bg-ink/70 text-canvas [text-shadow:0_0_5px_rgb(var(--color-coral)/0.5)]'
-                : 'border-line bg-surface-bright text-muted hover:border-accent-strong hover:bg-surface hover:text-ink'
-            }`}
-          >
-            {o.label}
-          </button>
-        )
-      })}
+    // One control system across the toolbar: quiet outlined buttons whose
+    // selected state is the teal accent (interactive emphasis), so toggles
+    // stop competing with the navy wordmark for visual weight.
+    <div role="radiogroup" aria-label={label} className="flex items-center gap-2">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+        {label}
+      </span>
+      <div className="flex">
+        {options.map((o, i) => {
+          const active = value === o.value
+          // Each button owns its border + radius and joins the row via -ml-px
+          // (later siblings paint above), so resting and hover outlines render
+          // identically crisp at the corners — no parent clipping involved.
+          const shape =
+            i === 0 ? 'rounded-l-lg' : i === options.length - 1 ? '-ml-px rounded-r-lg' : '-ml-px'
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onChange(o.value)}
+              className={`relative border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color] hover:z-10 ${shape} ${
+                active
+                  ? 'border-accent-strong bg-accent/10 text-accent-strong'
+                  : 'border-line bg-surface-bright text-muted hover:border-ink/40 hover:bg-surface hover:text-ink'
+              }`}
+            >
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -134,7 +142,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
 
   const materialGroup = (
     <Segmented
-      groupLabel="Material"
+      groupLabel="Track"
       value={filters.materialView}
       options={MATERIAL_VIEWS}
       onChange={(materialView) => update({ materialView })}
@@ -157,7 +165,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
     ))
 
   return (
-    <Panel className="p-3 sm:p-4">
+    <Panel className="p-2.5 sm:p-3">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1 sm:min-w-[15rem]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -179,7 +187,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             onClick={() => setMoreOpen((open) => !open)}
             aria-expanded={moreOpen}
             aria-haspopup="true"
-            className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-bright px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-accent-strong hover:bg-surface"
+            className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-bright px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface"
           >
             <SlidersHorizontal className="h-4 w-4 text-muted" />
             Filters
@@ -222,8 +230,8 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                 </div>
                 {!isDesktop && (
                   <>
-                    <div className={groupLabel}>Material{materialGroup}</div>
-                    <div className={groupLabel}>Status{statusGroup}</div>
+                    {materialGroup}
+                    {statusGroup}
                   </>
                 )}
                 <label className={groupLabel}>

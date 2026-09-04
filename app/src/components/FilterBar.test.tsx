@@ -25,7 +25,7 @@ function renderBar(filters: RankingFilters = DEFAULT_FILTERS, onChange = vi.fn()
 }
 
 function materialRadio(name: string) {
-  return within(screen.getByRole('radiogroup', { name: 'Material' })).getByRole('radio', { name })
+  return within(screen.getByRole('radiogroup', { name: 'Track' })).getByRole('radio', { name })
 }
 
 function statusRadio(name: string) {
@@ -44,7 +44,7 @@ describe('FilterBar', () => {
   it('renders the search input and segmenteds, with the popover closed', async () => {
     renderBar()
     expect(screen.getByLabelText(/filter coasters/i)).toBeInTheDocument()
-    expect(materialRadio('Any')).toBeInTheDocument()
+    expect(materialRadio('All')).toBeInTheDocument()
     expect(statusRadio('Running')).toBeInTheDocument()
     expect(screen.queryByLabelText('Country')).not.toBeInTheDocument()
 
@@ -93,7 +93,7 @@ describe('FilterBar', () => {
     fireEvent.change(screen.getByLabelText(/filter coasters/i), { target: { value: 'cobra' } })
 
     // An unrelated filter toggle lands immediately, mid-debounce…
-    fireEvent.click(statusRadio('Any'))
+    fireEvent.click(statusRadio('All'))
     expect(onChange).toHaveBeenNthCalledWith(1, { ...DEFAULT_FILTERS, allStatuses: true })
     // …and the parent re-renders with the new filters while the search is pending.
     rerender(
@@ -118,10 +118,10 @@ describe('FilterBar', () => {
     expect(onChange).toHaveBeenCalledTimes(2)
   })
 
-  it('calls onChange when the status is set to Any', async () => {
+  it('calls onChange when the status is set to All', async () => {
     const user = userEvent.setup()
     const { onChange } = renderBar()
-    await user.click(statusRadio('Any'))
+    await user.click(statusRadio('All'))
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_FILTERS, allStatuses: true })
   })
 
@@ -135,7 +135,7 @@ describe('FilterBar', () => {
   it('marks the active material view as checked', () => {
     renderBar({ ...DEFAULT_FILTERS, materialView: 'steel' })
     expect(materialRadio('Steel')).toBeChecked()
-    expect(materialRadio('Any')).not.toBeChecked()
+    expect(materialRadio('All')).not.toBeChecked()
   })
 
   it('lists pinned and rest countries with counts in the popover', async () => {
@@ -159,7 +159,7 @@ describe('FilterBar', () => {
   it('reflects the URL-provided filters and badges the active popover count', async () => {
     const user = userEvent.setup()
     renderBar({ ...DEFAULT_FILTERS, allStatuses: true, country: 'Canada', manufacturer: 'Intamin' })
-    expect(statusRadio('Any')).toBeChecked()
+    expect(statusRadio('All')).toBeChecked()
     expect(screen.getByRole('button', { name: /filters/i })).toHaveTextContent('2')
 
     await openMore(user)
@@ -195,11 +195,11 @@ describe('FilterBar', () => {
     try {
       const user = userEvent.setup()
       renderBar()
-      expect(screen.queryByRole('radiogroup', { name: 'Material' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('radiogroup', { name: 'Track' })).not.toBeInTheDocument()
       expect(screen.queryByRole('radiogroup', { name: 'Status' })).not.toBeInTheDocument()
 
       await openMore(user)
-      expect(screen.getByRole('radiogroup', { name: 'Material' })).toBeInTheDocument()
+      expect(screen.getByRole('radiogroup', { name: 'Track' })).toBeInTheDocument()
       expect(screen.getByRole('radiogroup', { name: 'Status' })).toBeInTheDocument()
       expect(screen.getByRole('combobox', { name: 'Country' })).toBeInTheDocument()
       expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
