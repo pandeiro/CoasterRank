@@ -69,7 +69,7 @@ export function DesignBoard() {
       <header className="border-b border-line bg-ink text-canvas">
         <div className="page-container flex items-center justify-between gap-6 py-5">
           <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="" className="h-10 w-10" />
+            <img src="/logo-reversed.svg" alt="" className="h-10 w-10" />
             <div>
               <p className="display-heading text-2xl tracking-wide">
                 Coaster<span className="text-coral">Rank</span>
@@ -100,7 +100,7 @@ export function DesignBoard() {
             <div className="flex flex-wrap items-end gap-4 sm:gap-6">
               <img
                 src="/logo.svg"
-                alt="CoasterRank mark — hill, heart, loop"
+                alt="CoasterRank mark — hill, heart, wave"
                 className="h-16 w-auto sm:h-24"
               />
               <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
@@ -113,11 +113,11 @@ export function DesignBoard() {
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Hill · Ink #1A1A2E
+                  Hill · Ink #202030
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  The lift & drop. Anchors the mark on the left; rendered in ink on canvas, reversed
-                  to canvas on the app icon tile.
+                  The lift &amp; drop. Anchors the mark on the left; rendered in its own ink on
+                  canvas, reversed to canvas on dark surfaces and the app icon tile.
                 </p>
               </div>
               <div>
@@ -125,35 +125,41 @@ export function DesignBoard() {
                   Heart · Coral #E85D75
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  The ride’s pulse — centered, small, and unmistakable at 16 px.
+                  The ride’s pulse, carrying the ranking trend line — unmistakable at 16 px.
                 </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Loop · Accent #48CAE4
+                  Wave · Accent #48CAE4
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  The return. Accent on canvas in UI, white on the badge.
+                  The return. Accent on canvas in UI, reversed to canvas on the badge.
                 </p>
               </div>
             </div>
             <p className="mt-4 text-sm leading-6 text-muted">
               Single vector{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                viewBox 49.7 199 1068 679
+                viewBox 0 0 1024 941
               </code>{' '}
-              (quantized + potrace). Shipped as{' '}
+              (v3, quantized + potrace). Shipped as{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/logo.svg</code>{' '}
               (mark),{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/favicon.svg</code>{' '}
-              (same, for the tab), and{' '}
+              (square-padded, for the tab),{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                /logo-reversed.svg
+              </code>{' '}
+              (dark surfaces), and{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                 apple-touch-icon.png
               </code>{' '}
-              (180 × 180, ink tile via{' '}
-              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">badge.svg</code>).
-              The homepage hero reuses the same lockup: mark + wordmark + tagline, bottom-aligned.
-              Workshop explorations are archived in{' '}
+              (180 × 180, ink tile). The homepage hero reuses the same lockup: mark + wordmark +
+              tagline, bottom-aligned. Sources and raster exports live in{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                docs/design/mark
+              </code>
+              ; earlier explorations are archived in{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                 docs/logo-archive
               </code>

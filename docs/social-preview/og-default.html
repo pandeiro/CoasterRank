@@ -9,8 +9,7 @@
 
   Board rows reflect the live ranking at export time (top 4 from
   https://coasterrank.app/api/ranking); coaster/park counts from docs/PLAN.md
-  Phase 2.5. Regenerate with the Playwright snippet in github-og.html's header
-  (screenshot the .frame element), then overwrite app/public/og-default.png.
+  Phase 2.5. Regenerate all mark assets + cards with: python3 docs/design/mark/export.py
 -->
 <html>
 <head>
@@ -22,6 +21,7 @@ body{margin:0;background:#111;display:flex;align-items:center;justify-content:ce
 .frame{width:1200px;height:630px;background:#1A1A2E;position:relative;overflow:hidden;display:flex;align-items:center;padding:0 48px 0 64px;gap:40px}
 .bars-deco{position:absolute;right:-22px;bottom:-22px;opacity:0.08;z-index:0}
 .left{flex:1;position:relative;z-index:1;max-width:600px}
+.mark{display:block;margin-bottom:20px}
 .eyebrow{font-family:Inter,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#48CAE4;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:11px}
 .eyebrow::before{content:"";width:28px;height:2px;background:#E85D75;border-radius:1px}
 .wordmark{font-family:'Racing Sans One',Arial,sans-serif;font-size:88px;line-height:0.9;letter-spacing:0.01em;color:#FEFCF3}
@@ -67,6 +67,59 @@ body{margin:0;background:#111;display:flex;align-items:center;justify-content:ce
     <rect x="492" y="0" width="66" height="450" rx="4" fill="#E85D75"/>
   </svg>
   <div class="left">
+  <svg class="mark" width="96" viewBox="0 0 1024 941" aria-hidden="true"><g transform="translate(0.000000,941.000000) scale(0.100000,-0.100000)" stroke="none">
+
+<path d="M4965 7540 c-301 -65 -545 -306 -809 -800 -36 -68 -89 -173 -116
+-232 -28 -59 -72 -156 -100 -215 -27 -60 -73 -166 -103 -238 -30 -71 -79 -191
+-110 -265 -31 -74 -106 -261 -167 -415 -191 -478 -439 -1040 -554 -1250 -18
+-33 -57 -105 -86 -160 -117 -221 -322 -534 -475 -725 -316 -397 -653 -679
+-1090 -912 -124 -66 -117 -67 101 -7 492 135 974 381 1350 691 138 113 381
+360 495 503 224 279 441 620 670 1052 29 54 55 103 59 108 4 6 49 89 100 185
+268 507 459 791 671 1001 162 161 361 283 537 331 155 41 353 23 487 -45 107
+-54 262 -183 320 -267 15 -22 30 -38 33 -36 16 16 -194 620 -295 851 -206 468
+-408 716 -665 815 -84 32 -187 45 -253 30z" fill="#FEFCF3"/>
+<path d="M5414 5921 c-218 -59 -479 -250 -689 -505 -174 -212 -297 -402 -557
+-861 -433 -762 -652 -1078 -961 -1389 -500 -502 -1091 -827 -1852 -1021 -181
+-46 -499 -100 -655 -111 -208 -15 -128 -27 279 -45 321 -13 672 0 961 37 518
+65 1163 218 1735 409 237 79 574 172 747 204 198 38 356 52 568 53 215 0 336
+-13 489 -52 43 -11 83 -20 87 -20 5 0 -12 21 -37 48 -70 73 -144 164 -234 283
+-201 268 -300 526 -312 811 -7 161 5 249 52 394 43 132 81 205 153 295 139
+176 315 286 535 334 60 13 109 16 210 13 113 -4 145 -9 227 -36 108 -36 201
+-87 271 -150 27 -24 49 -38 49 -30 0 22 -98 482 -130 608 -96 383 -267 602
+-561 721 -79 31 -276 37 -375 10z" fill="#FEFCF3"/>
+<path d="M9025 5095 c-227 -50 -460 -225 -647 -486 -69 -96 -185 -330 -222
+-444 -14 -44 -32 -116 -41 -160 -17 -84 -35 -279 -24 -267 3 4 16 34 29 67 13
+33 56 127 96 208 141 286 294 476 481 598 221 144 436 137 589 -20 134 -136
+201 -386 175 -645 -24 -224 -63 -358 -168 -566 -243 -484 -705 -839 -1238
+-951 -92 -19 -140 -23 -295 -23 -190 0 -298 15 -419 58 -43 16 -43 16 -152
+-86 -60 -56 -108 -105 -107 -110 8 -22 136 -105 243 -158 239 -118 448 -144
+715 -88 543 114 1131 640 1468 1314 188 377 283 801 252 1120 -21 208 -59 320
+-151 444 -102 139 -251 211 -432 209 -51 0 -119 -7 -152 -14z" fill="#48CAE4"/>
+<path d="M5820 4673 c-193 -25 -391 -131 -508 -272 -138 -165 -202 -353 -202
+-589 0 -236 60 -432 203 -657 55 -87 156 -223 179 -242 11 -10 33 13 120 125
+244 314 279 357 288 360 6 2 63 -46 127 -107 65 -61 120 -107 123 -103 4 4 96
+121 205 260 l199 253 127 -128 c71 -70 132 -128 138 -128 5 0 40 38 78 85 38
+47 137 169 220 271 241 298 317 389 323 389 3 0 29 -24 58 -53 l53 -53 -173
+-210 c-95 -116 -205 -251 -245 -300 -222 -275 -297 -364 -304 -362 -4 2 -57
+50 -116 108 -60 58 -118 113 -129 123 -21 17 -22 16 -105 -90 -167 -216 -311
+-393 -318 -393 -4 0 -58 47 -120 105 -62 58 -116 105 -120 105 -5 0 -77 -88
+-160 -195 -152 -195 -152 -195 -123 -233 52 -64 283 -280 482 -448 127 -108
+379 -304 390 -304 5 0 33 19 62 43 29 23 105 83 168 132 265 207 627 552 786
+750 282 350 402 664 374 975 -15 165 -36 243 -96 360 -108 208 -287 356 -492
+407 -92 23 -276 23 -362 0 -161 -43 -334 -158 -424 -282 -14 -19 -17 -17 -74
+46 -149 162 -318 245 -516 254 -44 2 -97 1 -116 -2z" fill="#E85D75"/>
+<path d="M8930 4579 c-25 -5 -83 -27 -130 -50 -67 -34 -102 -59 -166 -125 -76
+-76 -152 -186 -169 -244 -7 -20 2 -15 48 29 192 185 347 212 432 76 27 -44 30
+-56 30 -129 -1 -178 -105 -376 -291 -556 -113 -109 -202 -172 -336 -235 -115
+-54 -210 -81 -344 -97 -104 -12 -104 -12 -146 -82 -24 -39 -45 -75 -47 -80 -2
+-5 59 -6 140 -4 212 8 330 40 554 148 375 183 656 507 730 843 21 97 17 257
+-10 334 -44 128 -164 198 -295 172z" fill="#48CAE4"/>
+<path d="M9315 3923 c-89 -236 -305 -503 -546 -676 -88 -62 -294 -168 -400
+-205 -173 -61 -428 -100 -569 -88 -76 7 -76 7 -162 -101 -47 -59 -121 -145
+-163 -191 -43 -46 -76 -84 -74 -85 19 -13 133 -39 214 -48 250 -28 526 22 783
+141 261 122 519 337 676 564 149 213 229 424 270 714 5 38 -10 24 -29 -25z" fill="#48CAE4"/>
+  </g></svg>
+
     <div class="eyebrow">Open source · Live community ranking</div>
     <div class="wordmark">Coaster<span>Rank</span></div>
     <div class="desc">Rank the coasters you’ve ridden — <strong>drag-sort your list</strong> and the community board updates, scored by a <strong>Bradley–Terry model</strong>.</div>

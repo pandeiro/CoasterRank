@@ -1,11 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <title>CoasterRank mark</title>
-  <!-- CoasterRank v3 Heartline mark (2026-09): coaster hill, ranked heart, wave.
-     Generated from docs/design/mark/v3-color.svg — edit there, then run
-     `python3 docs/design/mark/export.py` to regenerate all variants/rasters. -->
-<g transform="translate(41 79.1) scale(0.92)">
-  <g transform="translate(0.000000,941.000000) scale(0.100000,-0.100000)" stroke="none">
-
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="1024.000000pt" height="941.000000pt" viewBox="0 0 1024.000000 941.000000"
+ preserveAspectRatio="xMidYMid meet">
+<metadata>
+Created by potrace 1.16, recolored to match v3-color.jpg using v1-logo-base.svg palette
+</metadata>
+<g transform="translate(0.000000,941.000000) scale(0.100000,-0.100000)" stroke="none">
 <path d="M4965 7540 c-301 -65 -545 -306 -809 -800 -36 -68 -89 -173 -116
 -232 -28 -59 -72 -156 -100 -215 -27 -60 -73 -166 -103 -238 -30 -71 -79 -191
 -110 -265 -31 -74 -106 -261 -167 -415 -191 -478 -439 -1040 -554 -1250 -18
@@ -55,6 +57,5 @@
 -205 -173 -61 -428 -100 -569 -88 -76 7 -76 7 -162 -101 -47 -59 -121 -145
 -163 -191 -43 -46 -76 -84 -74 -85 19 -13 133 -39 214 -48 250 -28 526 22 783
 141 261 122 519 337 676 564 149 213 229 424 270 714 5 38 -10 24 -29 -25z" fill="#48CAE4"/>
-  </g>
 </g>
 </svg>
