@@ -22,7 +22,7 @@
  */
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { supabaseAdmin } from './db/client'
@@ -69,7 +69,7 @@ const CARD_JS = `
     ctx.strokeStyle = ACCENT; ctx.lineWidth = 5; ctx.stroke()
   }
 
-  async function render({ name, username, avatarSrc, brandMarkSrc }) {
+  async function render({ name, username, avatarSrc, brandMarkSrc, brandMarkAspect }) {
     const canvas = document.getElementById('card')
     const ctx = canvas.getContext('2d')
     // A canvas-only page never triggers @font-face loads on its own, so
@@ -118,31 +118,39 @@ const CARD_JS = `
     ctx.fillText(fitText(name, 620, (s) => ctx.measureText(s).width), textX, textY)
     ctx.fillStyle = ACCENT; ctx.font = '30px ' + BODY
     ctx.fillText('@' + username, textX, textY + 52)
-    // Bottom-left brand lockup — mirrors the app header (Layout.tsx):
-    // h-7 mark box + sm:text-xl wordmark with gap-2, items-center.
-    // This card renders the wordmark at 40px (2x the header's 20px), so the
-    // mark box and gap scale to 56px / 16px.
-    ctx.font = '40px ' + DISPLAY
-    const mm = ctx.measureText('Coaster')
-    const ascent = mm.actualBoundingBoxAscent || 29
-    const lineCenter = 566 - ascent / 2
-    const markSize = 56
-    const brandGap = 16
+    // Bottom-left brand lockup — the canonical #124 workshop-winner spec
+    // (BoardPage.tsx masthead): mark at natural aspect, 4rem tall (64px),
+    // baseline-aligned (mark bottom on the wordmark baseline), tight gap-x-1
+    // (4px), wordmark 2.6rem leading-none tracking-wide raised -0.12em to
+    // ride the mark's mid-slope.
+    const wordSize = 41.6 // 2.6rem
+    const markH = 64
+    const gapX = 4
+    ctx.letterSpacing = (wordSize * 0.025).toFixed(2) + 'px' // tracking-wide
+    ctx.font = wordSize + 'px ' + DISPLAY
     let brandX = 96
-    if (brandMark) {
-      ctx.drawImage(brandMark, brandX, lineCenter - markSize / 2, markSize, markSize)
-      brandX += markSize + brandGap
+    if (brandMark && brandMarkAspect) {
+      const markW = markH * brandMarkAspect // items-baseline + w-auto: natural aspect
+      ctx.drawImage(brandMark, brandX, 566 - markH, markW, markH)
+      brandX += markW + gapX
     }
+    const wordBaseline = 566 - wordSize * 0.12 // -translate-y-[0.12em]
     ctx.fillStyle = CANVAS
-    ctx.fillText('Coaster', brandX, 566)
+    ctx.fillText('Coaster', brandX, wordBaseline)
     const w = ctx.measureText('Coaster').width
     ctx.fillStyle = CORAL
-    ctx.fillText('Rank', brandX + w, 566)
+    ctx.fillText('Rank', brandX + w, wordBaseline)
     return canvas.toDataURL('image/png')
   }
 `
 
-const cardHtml = (profile: { name: string; username: string; avatarUrl: string | null; brandMarkSrc: string | null }) => `
+const cardHtml = (profile: {
+  name: string
+  username: string
+  avatarUrl: string | null
+  brandMarkSrc: string | null
+  brandMarkAspect: number | null
+}) => `
 <!doctype html><html><head>
 <meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Racing+Sans+One&display=swap" rel="stylesheet">
@@ -155,6 +163,7 @@ const cardHtml = (profile: { name: string; username: string; avatarUrl: string |
     username: profile.username,
     avatarSrc: profile.avatarUrl,
     brandMarkSrc: profile.brandMarkSrc,
+    brandMarkAspect: profile.brandMarkAspect,
   })})
 </script>
 </body></html>`
@@ -178,9 +187,16 @@ async function main(usernameArg: string) {
   // Inline the mark as a data URL: relative paths don't resolve under
   // page.setContent, and this avoids CORS entirely for the canvas draw.
   let brandMarkSrc: string | null = null
-  try {
-    brandMarkSrc = `data:image/svg+xml;base64,${readFileSync(BRAND_MARK_PATH).toString('base64')}`
-  } catch {
+  let brandMarkAspect: number | null = null
+  if (existsSync(BRAND_MARK_PATH)) {
+    const svg = readFileSync(BRAND_MARK_PATH, 'utf8')
+    // Parse the viewBox for the natural aspect ratio (page-side `naturalWidth`
+    // is unreliable for width/height-less SVGs rendered headlessly).
+    const viewBox = /viewBox="[\d.+-]+ [\d.+-]+ ([\d.+-]+) ([\d.+-]+)"/.exec(svg)
+    if (viewBox && Number(viewBox[2]) > 0) brandMarkAspect = Number(viewBox[1]) / Number(viewBox[2])
+    brandMarkSrc = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  }
+  if (!brandMarkSrc) {
     console.warn('Brand mark not found — card falls back to wordmark-only:', BRAND_MARK_PATH)
   }
   await page.setContent(
@@ -189,6 +205,7 @@ async function main(usernameArg: string) {
       username: profile.username || '',
       avatarUrl: profile.avatar_url,
       brandMarkSrc,
+      brandMarkAspect,
     }),
     { waitUntil: 'networkidle' },
   )
