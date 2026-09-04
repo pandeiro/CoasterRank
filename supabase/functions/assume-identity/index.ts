@@ -1,10 +1,9 @@
 // Admin-gated "assume identity" for synthetic/test users (testride ecosystem).
 //
-// GET  → list synthetic users (email on the testride domain, or the
-//        synthetic metadata flag). Paginates GoTrue's admin list.
 // POST → { userId, redirectTo } → GoTrue magiclink generateLink for that
 //        user. The SPA navigates to the returned action link, which logs the
 //        admin's browser in AS the synthetic user (no password, no email).
+//        (User listing moved to the admin-users Edge Function.)
 //
 // Security:
 //   - Caller must be an admin (user JWT validated against GoTrue +
@@ -33,8 +32,6 @@ function json(body: unknown, status: number): Response {
 }
 
 const SYNTHETIC_EMAIL_DOMAIN = 'test.coasterrank.dev'
-const LIST_PAGES_CAP = 50
-const USERS_CAP = 500
 
 function isSyntheticUser(email: string | null, metadata: Record<string, unknown>): boolean {
   const flag = metadata['synthetic'] === true
@@ -44,7 +41,7 @@ function isSyntheticUser(email: string | null, metadata: Record<string, unknown>
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'GET' && req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -72,35 +69,7 @@ Deno.serve(async (req) => {
     if (!profile?.is_admin) return json({ error: 'admin access required' }, 403)
   }
 
-  if (req.method === 'GET') {
-    const users: Array<{
-      id: string
-      email: string
-      username: string | null
-      createdAt: string | null
-      confirmed: boolean
-    }> = []
-    for (let page = 1; page <= LIST_PAGES_CAP && users.length < USERS_CAP; page++) {
-      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
-      if (error) return json({ error: error.message }, 500)
-      const pageUsers = data?.users ?? []
-      if (pageUsers.length === 0) break
-      for (const u of pageUsers) {
-        const metadata = (u.user_metadata ?? {}) as Record<string, unknown>
-        if (!isSyntheticUser(u.email ?? null, metadata)) continue
-        users.push({
-          id: u.id,
-          email: u.email ?? '',
-          username: typeof metadata['username'] === 'string' ? (metadata['username'] as string) : null,
-          createdAt: u.created_at ?? null,
-          confirmed: !!u.email_confirmed_at,
-        })
-      }
-    }
-    return json({ users }, 200)
-  }
-
-  // POST — generate a magiclink for a synthetic user.
+  // Generate a magiclink for a synthetic user.
   const body = (await req.json().catch(() => null)) as
     | { userId?: string; redirectTo?: string }
     | null

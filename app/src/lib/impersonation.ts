@@ -5,17 +5,11 @@
 // the browser then holds the synthetic user's session. A fixed banner
 // (ImpersonationBanner) appears; "Return to admin" restores the backed-up
 // admin session. Impersonation never locks the admin out of their account.
+// (User listing lives in ./adminUsers; the Edge Function still refuses to
+// mint links for real users.)
 import { supabase } from './supabase'
 
 const BACKUP_KEY = 'testride-impersonation-backup'
-
-export interface SyntheticUser {
-  id: string
-  email: string
-  username: string | null
-  createdAt: string | null
-  confirmed: boolean
-}
 
 export function isImpersonating(): boolean {
   return localStorage.getItem(BACKUP_KEY) !== null
@@ -47,15 +41,6 @@ function parseBackup(raw: string): unknown {
   } catch {
     return null
   }
-}
-
-export async function listSyntheticUsers(): Promise<SyntheticUser[]> {
-  const { data, error } = await supabase.functions.invoke<{ users: SyntheticUser[] }>(
-    'assume-identity',
-    { method: 'GET' },
-  )
-  if (error) throw new Error(error.message)
-  return data?.users ?? []
 }
 
 export async function assumeIdentity(userId: string): Promise<void> {
@@ -98,5 +83,5 @@ export async function returnToAdmin(): Promise<void> {
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
   })
-  window.location.assign('/admin/impersonate')
+  window.location.assign('/admin/users')
 }
