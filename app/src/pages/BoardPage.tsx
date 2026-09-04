@@ -88,7 +88,7 @@ export default function BoardPage() {
     <>
       <header data-board-hero className="relative pb-3 sm:pb-4">
         <TrackLine />
-        <div className="relative flex items-center gap-2.5 sm:gap-3">
+        <div className="relative flex items-baseline gap-2.5 sm:gap-3">
           <img src="/logo.svg" alt="" className="h-9 w-auto sm:h-12" />
           <span className="display-heading text-[1.65rem] leading-none tracking-wide sm:text-4xl">
             Coaster<span className="text-coral">Rank</span>

@@ -134,30 +134,39 @@ save and rollback.
 
 ## Logo
 
-The mark (v3 "Heartline", September 2026) combines a coaster hill, a coral
-heart carrying the ranking trend line, and an accent wave — the ride, the
-love, the return. It replaces the busier v1 mark (archived in
-`docs/logo-archive/`) with bolder shapes that hold up at favicon sizes and at
-hero scale.
+The mark (v6, September 2026) combines a coaster hill, an accent track with
+its support columns — lift, drop, and loop — and a coral heart threaded by the
+loop's stitching: the drop, the ride, the love. It replaces the v3 "Heartline"
+mark (archived in `docs/logo-archive/v3/`) after the September 2026 design
+review: one clear coaster gesture instead of a heartbeat metaphor, holding up
+at both favicon and hero scale.
 
-Mark palette: hill ink `#202030` (the v1 potrace dark), heart `#E85D75`, wave
-`#48CAE4`.
+Two approved sources, both potrace vectorizations recolored to the
+design-token palette (ink `#202030`, coral `#E85D75`, accent `#48CAE4`) with
+viewBoxes tightened to the ink bounds:
 
-Production files:
+- `v6-color-full.svg` — detailed mark for the header, hero, and social cards.
+- `v6-color-mini.svg` — simplified mark for the favicon and app tile.
+- `v6-bw.svg` — single-color variant (derived from the full mark).
+
+Production files (generated, never hand-edited):
 
 - [`app/public/logo.svg`](../../app/public/logo.svg) — color mark on
-  transparent, used for the header mark, board hero, and favicon source.
+  transparent, used for the header mark and board hero.
 - [`app/public/favicon.svg`](../../app/public/favicon.svg) — square-padded
-  variant for the browser tab.
+  mini variant for the browser tab.
 - [`app/public/logo-reversed.svg`](../../app/public/logo-reversed.svg) — hill
   rendered in canvas for dark surfaces (design-board header, social cards).
 - [`app/public/apple-touch-icon.png`](../../app/public/apple-touch-icon.png) —
-  180×180 ink tile with the reversed mark.
+  180×180 ink tile with the reversed mini mark.
 - [`docs/design/mark/`](../design/mark/README.md) — source SVGs, transparent
   raster exports for external use, and `export.py`, which regenerates every
   derived asset (production SVGs, rasters, social cards).
 
-Wordmark and small-size variants can evolve independently from the mark.
+Brand lockups (navbar, hero) align the mark and the wordmark with
+`items-baseline`: an image's flex baseline is its bottom edge, and
+"CoasterRank" has no descenders, so baseline = visual bottom edge — the mark's
+bottom edge sits exactly on the wordmark's.
 
 ## Explicitly out of scope
 

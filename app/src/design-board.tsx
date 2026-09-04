@@ -23,7 +23,12 @@ const swatches: Swatch[] = [
   },
   { name: 'Line', value: '#E0DBD1', utility: 'bg-line', detail: 'Borders and dividers' },
   { name: 'Muted', value: '#4A4A5A', utility: 'bg-muted', detail: 'Metadata and secondary text' },
-  { name: 'Accent', value: '#48CAE4', utility: 'bg-accent', detail: 'Interactive emphasis' },
+  {
+    name: 'Accent',
+    value: '#48CAE4',
+    utility: 'bg-accent',
+    detail: 'Interactive emphasis, active filters, live states',
+  },
   { name: 'Accent strong', value: '#159AB8', utility: 'bg-accent-strong', detail: 'Accent text' },
   { name: 'Coral', value: '#E85D75', utility: 'bg-coral', detail: 'Brand emphasis' },
   { name: 'Success', value: '#2E8B73', utility: 'bg-success', detail: 'Successful operations' },
@@ -68,13 +73,13 @@ export function DesignBoard() {
     <div className="min-h-screen bg-canvas">
       <header className="border-b border-line bg-ink text-canvas">
         <div className="page-container flex items-center justify-between gap-6 py-5">
-          <div className="flex items-center gap-3">
-            <img src="/logo-reversed.svg" alt="" className="h-10 w-10" />
+          <div className="flex items-baseline gap-3">
+            <img src="/logo-reversed.svg" alt="" className="h-10 w-auto" />
             <div>
               <p className="display-heading text-2xl tracking-wide">
                 Coaster<span className="text-coral">Rank</span>
               </p>
-              <p className="text-xs text-canvas/65">Design board · v1</p>
+              <p className="text-xs text-canvas/65">Design board · v6 mark</p>
             </div>
           </div>
           <Badge tone="accent" className="bg-accent/25 text-canvas">
@@ -100,8 +105,13 @@ export function DesignBoard() {
             <div className="flex flex-wrap items-end gap-4 sm:gap-6">
               <img
                 src="/logo.svg"
-                alt="CoasterRank mark — hill, heart, wave"
+                alt="CoasterRank mark — hill, track, heart"
                 className="h-16 w-auto sm:h-24"
+              />
+              <img
+                src="/favicon.svg"
+                alt="CoasterRank mini mark, square-padded (favicon source)"
+                className="h-16 w-16 sm:h-24 sm:w-24"
               />
               <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
                 Coaster<span className="text-coral">Rank</span>
@@ -116,8 +126,17 @@ export function DesignBoard() {
                   Hill · Ink #202030
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  The lift &amp; drop. Anchors the mark on the left; rendered in its own ink on
-                  canvas, reversed to canvas on dark surfaces and the app icon tile.
+                  The first drop. The ink silhouette anchors the mark; reversed to canvas on dark
+                  surfaces and the app icon tile.
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Track · Accent #48CAE4
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  The ride — lift, drop, and loop, drawn as the mark&apos;s spine with its support
+                  columns.
                 </p>
               </div>
               <div>
@@ -125,28 +144,24 @@ export function DesignBoard() {
                   Heart · Coral #E85D75
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  The ride’s pulse, carrying the ranking trend line — unmistakable at 16 px.
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Wave · Accent #48CAE4
-                </p>
-                <p className="mt-1 text-sm leading-6 text-muted">
-                  The return. Accent on canvas in UI, reversed to canvas on the badge.
+                  Why we ride — the loop&apos;s stitching threads the heart.
                 </p>
               </div>
             </div>
             <p className="mt-4 text-sm leading-6 text-muted">
-              Single vector{' '}
+              Two approved sources, both recolored to the design tokens with ink-tight viewboxes:{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                viewBox 0 0 1024 941
+                v6-color-full.svg
               </code>{' '}
-              (v3, quantized + potrace). Shipped as{' '}
+              (viewBox 1443.9 × 1113.2 — header, hero, social cards) and{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                v6-color-mini.svg
+              </code>{' '}
+              (viewBox 1916.3 × 1471.4 — simplified for small sizes). Shipped as{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/logo.svg</code>{' '}
-              (mark),{' '}
+              (full mark),{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/favicon.svg</code>{' '}
-              (square-padded, for the tab),{' '}
+              (square-padded mini, for the tab),{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                 /logo-reversed.svg
               </code>{' '}
@@ -154,12 +169,11 @@ export function DesignBoard() {
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                 apple-touch-icon.png
               </code>{' '}
-              (180 × 180, ink tile). The homepage hero reuses the same lockup: mark + wordmark +
-              tagline, bottom-aligned. Sources and raster exports live in{' '}
+              (180 × 180 ink tile with the reversed mini). Regenerate everything with{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                docs/design/mark
+                python3 docs/design/mark/export.py
               </code>
-              ; earlier explorations are archived in{' '}
+              . Earlier marks are archived in{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                 docs/logo-archive
               </code>
@@ -174,20 +188,36 @@ export function DesignBoard() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Hero lockup · BoardPage
               </p>
-              <div className="flex flex-wrap items-end gap-3">
-                <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
+              <div className="flex flex-wrap items-baseline gap-3">
+                <img src="/logo.svg" alt="" className="h-9 w-auto" />
+                <span className="display-heading text-3xl tracking-wide text-ink">
                   Coaster<span className="text-coral">Rank</span>
                 </span>
-                <span className="pb-1 text-sm italic text-muted sm:pb-2">
+                <span className="text-sm italic text-muted">
                   A live ranking of the world&apos;s roller coasters
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                BoardPage is the home page now — tagline sits to the right of the wordmark, not
-                below it, with{' '}
-                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">items-end</code>{' '}
-                so bottom edges line up. The top navbar is intentionally empty of branding; auth
-                actions live there alone.
+              <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+                <p className="display-heading text-2xl leading-none tracking-wide text-ink sm:text-3xl">
+                  World&apos;s Best Roller Coasters
+                </p>
+                <p className="flex items-center gap-2 text-sm text-muted">
+                  <span className="tabular-nums">1,235 coasters · 34 countries</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-accent" />
+                    Live
+                  </span>
+                </p>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted">
+                The board leads with the compact brand lockup, a display-font H1, and a status line
+                giving the accent a visible job. Brand rows use{' '}
+                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                  items-baseline
+                </code>{' '}
+                so the mark&apos;s bottom edge sits on the wordmark baseline —
+                &quot;CoasterRank&quot; has no descenders, so baseline = visual bottom edge.
               </p>
             </div>
             <div>
@@ -225,10 +255,13 @@ export function DesignBoard() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Body · Inter
               </p>
-              <p className="text-xl font-semibold text-ink">The community board</p>
+              <p className="text-xl font-semibold tabular-nums text-ink">
+                1,235 coasters · 34 countries
+              </p>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                Supporting copy should stay readable and calm around the ranking data. Metadata,
-                form labels, and controls use the same body family.
+                Supporting copy should stay readable and calm around the ranking data. Numerals are
+                tabular so counts and scores align; metadata, form labels, and controls use the same
+                body family.
               </p>
             </div>
           </Panel>
@@ -288,23 +321,27 @@ export function DesignBoard() {
 
         <Section title="Ranking row">
           <Panel className="overflow-hidden">
-            <div className="flex items-center gap-4 border-b border-line px-4 py-4 sm:px-5">
-              <span className="display-heading w-10 text-3xl text-coral">#1</span>
+            <div className="flex items-center gap-4 border-b border-line bg-surface/70 px-4 py-4 sm:px-5">
+              <span className="display-heading text-xl text-muted/75">1</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-ink">Steel Vengeance</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold text-ink">Steel Vengeance</p>
+                  <Badge tone="coral">12 (30%)</Badge>
+                </div>
                 <p className="truncate text-sm text-muted">Cedar Point</p>
               </div>
-              <Badge tone="warning">few votes</Badge>
-              <Badge>Hybrid</Badge>
+              <span className="text-sm tabular-nums text-muted">102.9</span>
             </div>
             <div className="flex items-center gap-4 px-4 py-4 sm:px-5">
-              <span className="display-heading w-10 text-3xl text-muted">#2</span>
+              <span className="display-heading text-xl text-muted/75">2</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-ink">Fury 325</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold text-ink">Fury 325</p>
+                  <Badge tone="warning">few votes</Badge>
+                </div>
                 <p className="truncate text-sm text-muted">Carowinds</p>
               </div>
-              <Badge tone="accent">42 comparisons</Badge>
-              <Badge>Steel</Badge>
+              <span className="text-sm tabular-nums text-muted">102.6</span>
             </div>
           </Panel>
         </Section>
