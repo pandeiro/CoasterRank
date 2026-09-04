@@ -1,10 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="50.9 260.2 1443.9 1113.2">
-  <title>CoasterRank mark</title>
-  <!-- CoasterRank v6 mark (2026-09): coaster hill, ranked heart, wave.
-     Generated from docs/design/mark/v6-color-{full,mini}.svg — edit there, then run
-     `python3 docs/design/mark/export.py` to regenerate all variants/rasters. -->
-<g transform="translate(0,1550) scale(0.1,-0.1)" stroke="none">
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50.9 260.2 1443.9 1113.2" width="1444" height="1113">
+  <!-- CoasterRank logo v6 - vectorized from v6-bw.png (potrace); single-color variant derived from
+       v6-color-full.svg with every region flattened to ink #202030 (viewBox tightened to ink bounds) -->
+  <g transform="translate(0,1550) scale(0.1,-0.1)" stroke="none">
   <g id="hill" fill="#202030">
     <path d="M8920 12851 c-498 -174 -798 -449 -1250 -1144 -38 -59 -70 -112 -70
 -118 0 -6 -8 -23 -19 -37 -10 -15 -48 -85 -85 -157 -36 -71 -89 -168 -116
@@ -44,7 +41,7 @@
 -104 75 -361 204 -442 223 -19 4 -55 13 -80 20 -25 7 -108 13 -185 15 -140 2
 -140 2 -275 -45z"/>  <!-- bbox x 1027-11471, y 2071-12898 -->
   </g>
-  <g id="wave" fill="#48CAE4">
+  <g id="wave" fill="#202030">
     <path d="M10090 9679 c-98 -12 -161 -24 -205 -42 -22 -8 -59 -22 -83 -31 -332
 -124 -839 -502 -1093 -816 l-69 -85 0 -2741 c0 -2367 2 -2743 14 -2753 10 -9
 46 -11 123 -6 309 17 753 -2 998 -44 33 -6 87 -15 120 -20 33 -5 80 -15 105
@@ -87,7 +84,7 @@
 75 18 188 40 28 5 76 15 105 21 28 5 70 13 92 16 80 11 75 -23 75 519 0 588 4
 569 -115 497z"/>  <!-- bbox x 509-4385, y 1808-3204 -->
   </g>
-  <g id="heart" fill="#E85D75">
+  <g id="heart" fill="#202030">
     <path d="M10740 7150 c-8 -5 -37 -10 -64 -10 -27 0 -63 -4 -80 -9 -267 -81
 -404 -143 -566 -259 -244 -173 -517 -526 -578 -747 -6 -22 -18 -65 -27 -95
 -18 -56 -28 -97 -47 -185 -16 -71 -15 -409 1 -465 7 -25 16 -65 20 -90 7 -40
@@ -176,5 +173,5 @@
     <path d="M10933 3668 c-9 -11 -18 -50 -26 -113 -4 -38 67 -57 271 -71 95 -7
 102 -1 102 86 0 84 -4 87 -110 94 -47 3 -117 8 -156 12 -52 4 -73 2 -81 -8z"/>  <!-- bbox x 10903-11280, y 3477-3680 -->
   </g>
-    </g>
+  </g>
 </svg>

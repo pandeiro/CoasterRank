@@ -1,10 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="50.9 260.2 1443.9 1113.2">
-  <title>CoasterRank mark</title>
-  <!-- CoasterRank v6 mark (2026-09): coaster hill, ranked heart, wave.
-     Generated from docs/design/mark/v6-color-{full,mini}.svg — edit there, then run
-     `python3 docs/design/mark/export.py` to regenerate all variants/rasters. -->
-<g transform="translate(0,1550) scale(0.1,-0.1)" stroke="none">
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50.9 260.2 1443.9 1113.2" width="1444" height="1113">
+  <!-- CoasterRank logo v6 - vectorized from v6-bw.png (potrace) with regions colored per v6-color.png;
+       recolored to the design-token palette (ink #202030 / coral #E85D75 / accent #48CAE4) and the
+       viewBox tightened to the ink bounds, 2026-09 -->
+  <g transform="translate(0,1550) scale(0.1,-0.1)" stroke="none">
   <g id="hill" fill="#202030">
     <path d="M8920 12851 c-498 -174 -798 -449 -1250 -1144 -38 -59 -70 -112 -70
 -118 0 -6 -8 -23 -19 -37 -10 -15 -48 -85 -85 -157 -36 -71 -89 -168 -116
@@ -176,5 +174,5 @@
     <path d="M10933 3668 c-9 -11 -18 -50 -26 -113 -4 -38 67 -57 271 -71 95 -7
 102 -1 102 86 0 84 -4 87 -110 94 -47 3 -117 8 -156 12 -52 4 -73 2 -81 -8z"/>  <!-- bbox x 10903-11280, y 3477-3680 -->
   </g>
-    </g>
+  </g>
 </svg>

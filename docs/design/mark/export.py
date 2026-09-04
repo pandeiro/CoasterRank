@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """Regenerate every CoasterRank mark asset from the source SVGs in this directory.
 
-Covers the v3 Heartline mark (2026-09): coaster hill (ink #202030), ranked heart
-(coral #E85D75), wave (accent #48CAE4).
+Covers the v6 mark (2026-09): coaster hill (ink #202030), ranked heart
+(coral #E85D75), wave (accent #48CAE4). Two approved sources, both landscape:
+
+  v6-color-full.svg — detailed mark: app header, board hero, social cards
+  v6-color-mini.svg — simplified mark: favicon, app tile
+  v6-bw.svg         — single-color full variant (external use)
 
 Outputs:
-  app/public/logo.svg             color mark, transparent (light surfaces)
-  app/public/favicon.svg          square 1024x1024, padded (browser tab)
-  app/public/logo-reversed.svg    hill in canvas #FEFCF3 (dark surfaces)
-  app/public/apple-touch-icon.png 180x180 ink tile + reversed mark
+  app/public/logo.svg             full color mark, transparent (light surfaces)
+  app/public/favicon.svg          square 1024x1024, mini mark oversized + shifted up/left (browser tab)
+  app/public/logo-reversed.svg    full mark, hill in canvas #FEFCF3 (dark surfaces)
+  app/public/apple-touch-icon.png 180x180 ink tile + reversed mini mark
   app/public/og-default.png       screenshot of docs/social-preview/og-default.html
   docs/social-preview/coasterrank-social-preview.png
                                   screenshot of docs/social-preview/github-og.html
-  mark-color-{1024,512,192,64,32}.png   transparent rasters (external use)
+  mark-color-{1024,512,192,64,32}.png   transparent rasters of the full mark
   mark-reversed-1024.png / mark-bw-1024.png
 
 Usage:
@@ -29,58 +33,89 @@ ROOT = MARK_DIR.parent.parent.parent
 APP_PUBLIC = ROOT / "app" / "public"
 SOCIAL_DIR = ROOT / "docs" / "social-preview"
 
-COLOR = MARK_DIR / "v3-color.svg"
-BW = MARK_DIR / "v3-bw.svg"
+FULL = MARK_DIR / "v6-color-full.svg"
+MINI = MARK_DIR / "v6-color-mini.svg"
+BW = MARK_DIR / "v6-bw.svg"
 
-INK = "#202030"  # hill ink in the v3 mark (v1 potrace palette)
+INK = "#202030"  # hill ink in the v6 mark (v1 potrace palette)
 CANVAS = "#FEFCF3"  # paper canvas — reversed-mark hill color
 TILE_INK = "#1A1A2E"  # apple-touch tile background (design-system Ink)
+FAVICON_PAD = 0.92  # legacy centered fit — kept so FAVICON_SCALE stays meaningful
+# Favicon window (#124 favicon workshop): the mini mark grown past full-width
+# and shifted up/left inside the square. Tab icons render optically low next
+# to tab-title text; the heart keeps right-edge clearance while the hill tail
+# clips off the left edge. Simulated live, then baked in 2026-09.
+FAVICON_SCALE = 1.18  # ink size vs the legacy 92%-pad fit
+FAVICON_SHIFT_X = -0.08  # fraction of the square canvas
+FAVICON_SHIFT_Y = -0.09
 
-VIEWBOX = "0 0 1024 941"  # mark aspect ~1.088 (nearly square)
 HEADER = (
-    "<!-- CoasterRank v3 Heartline mark (2026-09): coaster hill, ranked heart, wave.\n"
-    "     Generated from docs/design/mark/v3-color.svg — edit there, then run\n"
+    "<!-- CoasterRank v6 mark (2026-09): coaster hill, ranked heart, wave.\n"
+    "     Generated from docs/design/mark/v6-color-{full,mini}.svg — edit there, then run\n"
     "     `python3 docs/design/mark/export.py` to regenerate all variants/rasters. -->"
 )
 
 
-def load_inner(svg: Path) -> tuple[str, str]:
-    """Return (open <g> tag, inner body) of the source's single top-level group."""
+def load_source(svg: Path) -> tuple[tuple[float, float, float, float], str, str]:
+    """Return (viewbox, open <g> tag, inner body) of the source's outer group."""
     src = svg.read_text()
+    vb = re.search(r'viewBox="([^"]+)"', src).group(1)
+    x, y, w, h = (float(v) for v in vb.split())
     open_tag = re.search(r"<g\b[^>]*>", src).group(0)
     body = re.search(r"<g\b[^>]*>(.*)</g>", src, re.S).group(1)
-    return open_tag, body
+    return (x, y, w, h), open_tag, body
 
 
-def svg_doc(viewbox: str, wrapped_body: str) -> str:
+def svg_doc(viewbox: tuple[float, float, float, float], wrapped_body: str) -> str:
+    x, y, w, h = viewbox
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '
-        f'viewBox="{viewbox}">\n  <title>CoasterRank mark</title>\n  {HEADER}\n'
+        f'viewBox="{x:g} {y:g} {w:g} {h:g}">\n  <title>CoasterRank mark</title>\n  {HEADER}\n'
         f"{wrapped_body}\n</svg>\n"
     )
 
 
+def inline_mark_svg(viewbox: tuple[float, float, float, float], wrapped_body: str, width: int) -> str:
+    x, y, w, h = viewbox
+    return (
+        f'<svg width="{width}" viewBox="{x:g} {y:g} {w:g} {h:g}" aria-hidden="true">\n'
+        f"{wrapped_body}\n</svg>"
+    )
+
+
 def build_svgs() -> None:
-    open_tag, body = load_inner(COLOR)
-    rev_body = body.replace(f'fill="{INK}"', f'fill="{CANVAS}"')
+    full_vb, full_open, full_body = load_source(FULL)
+    mini_vb, mini_open, mini_body = load_source(MINI)
 
-    color_g = f"{open_tag}\n{body}  </g>"
-    rev_g = f"{open_tag}\n{rev_body}  </g>"
+    full_rev_body = full_body.replace(f'fill="{INK}"', f'fill="{CANVAS}"')
+    mini_rev_body = mini_body.replace(f'fill="{INK}"', f'fill="{CANVAS}"')
 
-    # Plain mark: source viewBox verbatim.
-    (APP_PUBLIC / "logo.svg").write_text(svg_doc(VIEWBOX, color_g))
+    full_color_g = f"{full_open}\n{full_body}  </g>"
+    full_rev_g = f"{full_open}\n{full_rev_body}  </g>"
+    mini_rev_g = f"{mini_open}\n{mini_rev_body}  </g>"
 
-    # Reversed (dark surfaces): hill ink -> canvas.
-    (APP_PUBLIC / "logo-reversed.svg").write_text(svg_doc(VIEWBOX, rev_g))
+    # Full mark: source viewBox verbatim (light + dark surfaces).
+    (APP_PUBLIC / "logo.svg").write_text(svg_doc(full_vb, full_color_g))
+    (APP_PUBLIC / "logo-reversed.svg").write_text(svg_doc(full_vb, full_rev_g))
 
-    # Favicon: square canvas, mark padded to 92% and centered
-    # (x: (1024-1024*.92)/2 = 41; y: (1024-941*.92)/2 = 79.1).
+    # Favicon: square 1024 canvas. Ink = FAVICON_SCALE x the legacy centered
+    # fit, offset by FAVICON_SHIFT (fractions of the canvas, x then y):
+    # heart clears the right edge, hill tail clips the left edge, bottom pad
+    # breathes. The unshifted mini source stays untouched in this directory.
+    mx, my, mw, mh = mini_vb
+    s = FAVICON_SCALE * FAVICON_PAD * 1024 / max(mw, mh)
+    tx = FAVICON_SHIFT_X * 1024 + (1024 - mw * s) / 2
+    ty = FAVICON_SHIFT_Y * 1024 + (1024 - mh * s) / 2
+    mini_color_g = f"{mini_open}\n{mini_body}  </g>"
     padded = (
-        '<g transform="translate(41 79.1) scale(0.92)">\n'
-        f"  {color_g}\n"
+        f'<g transform="translate({tx:.1f} {ty:.1f}) scale({s:.5f})">\n'
+        f"  {mini_color_g}\n"
         "</g>"
     )
-    (APP_PUBLIC / "favicon.svg").write_text(svg_doc("0 0 1024 1024", padded))
+    (APP_PUBLIC / "favicon.svg").write_text(svg_doc((0, 0, 1024, 1024), padded))
+
+    # Apple-touch tile embeds the reversed mini mark inline.
+    (MARK_DIR / ".tile-mark.html").write_text(inline_mark_svg(mini_vb, mini_rev_g, 128))
 
     print("wrote logo.svg, favicon.svg, logo-reversed.svg")
 
@@ -109,29 +144,38 @@ def shoot(page, html: str, out: Path, omit_background: bool) -> None:
 def export_rasters() -> None:
     from playwright.sync_api import sync_playwright
 
+    fx, fy, fw, fh = load_source(FULL)[0]
+    aspect = fh / fw  # raster height = width * aspect
+
     color = APP_PUBLIC / "logo.svg"
     reversed_svg = APP_PUBLIC / "logo-reversed.svg"
-    bw = MARK_DIR / "v3-bw.svg"
+    bw = BW
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1400, "height": 1200})
+        page = browser.new_page(viewport={"width": 1600, "height": 1400})
 
-        # Transparent mark rasters (color / reversed / bw).
+        # Transparent mark rasters (color / reversed / bw), full-mark aspect.
         for size in (1024, 512, 192, 64, 32):
-            h = round(size * 941 / 1024)
-            shoot(page, img_html(color, size, h), MARK_DIR / f"mark-color-{size}.png", True)
-        shoot(page, img_html(reversed_svg, 1024, 941), MARK_DIR / "mark-reversed-1024.png", True)
-        shoot(page, img_html(bw, 1024, 941), MARK_DIR / "mark-bw-1024.png", True)
+            shoot(
+                page,
+                img_html(color, size, round(size * aspect)),
+                MARK_DIR / f"mark-color-{size}.png",
+                True,
+            )
+        shoot(page, img_html(reversed_svg, 1024, round(1024 * aspect)), MARK_DIR / "mark-reversed-1024.png", True)
+        shoot(page, img_html(bw, 1024, round(1024 * aspect)), MARK_DIR / "mark-bw-1024.png", True)
 
-        # Apple touch icon: full-bleed ink tile, reversed mark at ~71% width.
+        # Apple touch icon: full-bleed ink tile with the reversed mini mark
+        # (inline SVG generated by build_svgs).
+        tile_mark = (MARK_DIR / ".tile-mark.html").read_text()
         tile = (
             "<!doctype html><html><head><style>"
             "html,body{margin:0;padding:0}"
             "</style></head><body>"
             '<div id="shot" style="width:180px;height:180px;background:'
             f"{TILE_INK};display:flex;align-items:center;justify-content:center\">"
-            f'<img src="file://{reversed_svg}" style="width:128px;height:auto;display:block">'
+            f"{tile_mark}"
             "</div></body></html>"
         )
         shoot(page, tile, APP_PUBLIC / "apple-touch-icon.png", False)
@@ -149,6 +193,7 @@ def export_rasters() -> None:
 
         browser.close()
     (MARK_DIR / ".shot.html").unlink(missing_ok=True)
+    (MARK_DIR / ".tile-mark.html").unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

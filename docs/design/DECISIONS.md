@@ -60,11 +60,19 @@ holds.
 - The public board remains a semantic HTML table.
 - Desktop and mobile both use a dense spreadsheet-like presentation; mobile
   may horizontally scroll rather than converting rows into cards.
-- The board leads with a visible page header — compact brand block (logo,
-  wordmark, tagline pulled close), a display-font H1, and a status line
-  (`N coasters · N countries · Live` with a teal pulse dot). This amends the
-  original "no page header; the nav logo brands the page" stance: both
-  reviewers independently flagged the missing statement of purpose.
+- The board leads with a single masthead heading — mark + "CoasterRank"
+  wordmark, nothing else. The "World's Best Roller Coasters" descriptor was
+  dropped entirely after it kept competing with the wordmark for weight; the
+  status line (`N coasters · N countries · Live` with a teal pulse dot) carries
+  the live claim on its own, right-aligned at the margin with the track-line
+  flourish floating above it. The lockup spec (picked from an 11-variant
+  review sheet on the design board): the mark renders ~2.1× the wordmark's cap
+  height (64px at sm+, 52.8px mobile) at a tight 4px gap, and the wordmark
+  takes a deep optical rise (`-0.12em`) off the shared baseline so it rides
+  the mark's mid-slope — the mark visibly towers instead of sitting level.
+  (First shipped as brand block + separate H1 + tagline, then merged into one
+  h1, then the descriptor dropped, then the lockup rebalanced; see PLAN
+  Phase 3.1.)
 - Rank is the primary visual signal, now rendered as display-font editorial
   numerals at a larger, low-contrast size (the original typography intent,
   which had not fully shipped). The podium rows carry a neutral surface tint
@@ -88,9 +96,12 @@ holds.
   to narrow it was declined after measuring (the cap is 72rem, not
   edge-to-edge).
 - The page's one decorative visual layer is a subtle vector track-line
-  (hill–dip–loop) behind the hero. Coaster photography would need a licensed
-  image source (none exists in the schema; RCDB photos are copyrighted) and
-  stays out of scope.
+  (hill–dip–loop) floating above the status line at the masthead's right edge
+  (it originally draped over the status text; it now lives in flow above the
+  line, which sits flush-right at the margin — trailing the text inline was
+  tried and rejected). Coaster photography would need a licensed image source
+  (none exists in the schema; RCDB photos are copyrighted) and stays out of
+  scope.
 
 ## Component strategy
 
@@ -134,30 +145,44 @@ save and rollback.
 
 ## Logo
 
-The mark (v3 "Heartline", September 2026) combines a coaster hill, a coral
-heart carrying the ranking trend line, and an accent wave — the ride, the
-love, the return. It replaces the busier v1 mark (archived in
-`docs/logo-archive/`) with bolder shapes that hold up at favicon sizes and at
-hero scale.
+The mark (v6, September 2026) combines a coaster hill, an accent track with
+its support columns — lift, drop, and loop — and a coral heart threaded by the
+loop's stitching: the drop, the ride, the love. It replaces the v3 "Heartline"
+mark (archived in `docs/logo-archive/v3/`) after the September 2026 design
+review: one clear coaster gesture instead of a heartbeat metaphor, holding up
+at both favicon and hero scale.
 
-Mark palette: hill ink `#202030` (the v1 potrace dark), heart `#E85D75`, wave
-`#48CAE4`.
+Two approved sources, both potrace vectorizations recolored to the
+design-token palette (ink `#202030`, coral `#E85D75`, accent `#48CAE4`) with
+viewBoxes tightened to the ink bounds:
 
-Production files:
+- `v6-color-full.svg` — detailed mark for the header, hero, and social cards.
+- `v6-color-mini.svg` — simplified mark for the favicon and app tile.
+- `v6-bw.svg` — single-color variant (derived from the full mark).
+
+Production files (generated, never hand-edited):
 
 - [`app/public/logo.svg`](../../app/public/logo.svg) — color mark on
-  transparent, used for the header mark, board hero, and favicon source.
-- [`app/public/favicon.svg`](../../app/public/favicon.svg) — square-padded
-  variant for the browser tab.
+  transparent, used for the header mark and board hero.
+- [`app/public/favicon.svg`](../../app/public/favicon.svg) — mini variant in a
+  square window, deliberately off-center: ink grown past full-width (1.18× the
+  legacy 92% centered fit) and shifted up 9% / left 8% of the canvas, so the
+  mark rides high next to tab-title text with the heart clear of the right
+  edge and the hill tail bleeding off the left (spec lives in
+  `export.py` `FAVICON_SCALE`/`FAVICON_SHIFT_X|Y`; the unshifted mini source
+  stays untouched in this directory).
 - [`app/public/logo-reversed.svg`](../../app/public/logo-reversed.svg) — hill
   rendered in canvas for dark surfaces (design-board header, social cards).
 - [`app/public/apple-touch-icon.png`](../../app/public/apple-touch-icon.png) —
-  180×180 ink tile with the reversed mark.
+  180×180 ink tile with the reversed mini mark.
 - [`docs/design/mark/`](../design/mark/README.md) — source SVGs, transparent
   raster exports for external use, and `export.py`, which regenerates every
   derived asset (production SVGs, rasters, social cards).
 
-Wordmark and small-size variants can evolve independently from the mark.
+Brand lockups (navbar, hero) align the mark and the wordmark with
+`items-baseline`: an image's flex baseline is its bottom edge, and
+"CoasterRank" has no descenders, so baseline = visual bottom edge — the mark's
+bottom edge sits exactly on the wordmark's.
 
 ## Explicitly out of scope
 

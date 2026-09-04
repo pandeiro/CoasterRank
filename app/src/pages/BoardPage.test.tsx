@@ -82,7 +82,7 @@ describe('BoardPage', () => {
 
   it('renders the board heading', () => {
     renderBoard()
-    expect(screen.getByRole('heading', { name: /roller coasters/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /coasterrank/i })).toBeInTheDocument()
   })
 
   it('shows the catalog size, country count, and live indicator', () => {
