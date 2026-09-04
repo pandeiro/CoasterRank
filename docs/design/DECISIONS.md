@@ -64,12 +64,15 @@ holds.
   wordmark, nothing else. The "World's Best Roller Coasters" descriptor was
   dropped entirely after it kept competing with the wordmark for weight; the
   status line (`N coasters · N countries · Live` with a teal pulse dot) carries
-  the live claim on its own. The mark renders ~10% larger than the wordmark's
-  cap height with a tightened gap, and the wordmark takes a small optical rise
-  (`-0.06em`) off the shared baseline so it nestles into the mark's right
-  slope instead of hanging at its bottom edge. (First shipped as brand block +
-  separate H1 + tagline, then merged into one h1, then the descriptor dropped;
-  see PLAN Phase 3.1.)
+  the live claim on its own, right-aligned at the margin with the track-line
+  flourish floating above it. The lockup spec (picked from an 11-variant
+  review sheet on the design board): the mark renders ~2.1× the wordmark's cap
+  height (64px at sm+, 52.8px mobile) at a tight 4px gap, and the wordmark
+  takes a deep optical rise (`-0.12em`) off the shared baseline so it rides
+  the mark's mid-slope — the mark visibly towers instead of sitting level.
+  (First shipped as brand block + separate H1 + tagline, then merged into one
+  h1, then the descriptor dropped, then the lockup rebalanced; see PLAN
+  Phase 3.1.)
 - Rank is the primary visual signal, now rendered as display-font editorial
   numerals at a larger, low-contrast size (the original typography intent,
   which had not fully shipped). The podium rows carry a neutral surface tint
@@ -161,8 +164,13 @@ Production files (generated, never hand-edited):
 
 - [`app/public/logo.svg`](../../app/public/logo.svg) — color mark on
   transparent, used for the header mark and board hero.
-- [`app/public/favicon.svg`](../../app/public/favicon.svg) — square-padded
-  mini variant for the browser tab.
+- [`app/public/favicon.svg`](../../app/public/favicon.svg) — mini variant in a
+  square window, deliberately off-center: ink grown past full-width (1.18× the
+  legacy 92% centered fit) and shifted up 9% / left 8% of the canvas, so the
+  mark rides high next to tab-title text with the heart clear of the right
+  edge and the hill tail bleeding off the left (spec lives in
+  `export.py` `FAVICON_SCALE`/`FAVICON_SHIFT_X|Y`; the unshifted mini source
+  stays untouched in this directory).
 - [`app/public/logo-reversed.svg`](../../app/public/logo-reversed.svg) — hill
   rendered in canvas for dark surfaces (design-board header, social cards).
 - [`app/public/apple-touch-icon.png`](../../app/public/apple-touch-icon.png) —

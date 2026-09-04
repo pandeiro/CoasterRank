@@ -91,13 +91,14 @@ export default function BoardPage() {
       <header data-board-hero className="relative pb-3 sm:pb-4">
         {/* Masthead heading: mark + wordmark only. The descriptor copy is gone;
             the status line carries the live claim, right-aligned at the margin
-            with the track gesture floating above it (desktop only). The
-            wordmark takes a small optical rise (-0.06em) off the baseline so
-            it nestles into the mark's right slope. */}
+            with the track gesture floating above it (desktop only). Lockup
+            spec (#124 workshop winner): mark 64px (mobile 52.8px), tight 4px
+            gap, wordmark on a deep optical rise (-0.12em) so it rides the
+            mark's mid-slope. */}
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <h1 className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
-            <img src="/logo.svg" alt="" className="h-11 w-auto sm:h-[3.3rem]" />
-            <span className="display-heading -translate-y-[0.06em] text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
+          <h1 className="flex flex-wrap items-baseline gap-x-1">
+            <img src="/logo.svg" alt="" className="h-[3.3rem] w-auto sm:h-[4rem]" />
+            <span className="display-heading -translate-y-[0.12em] text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
               Coaster<span className="text-coral">Rank</span>
             </span>
           </h1>

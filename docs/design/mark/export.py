@@ -10,7 +10,7 @@ Covers the v6 mark (2026-09): coaster hill (ink #202030), ranked heart
 
 Outputs:
   app/public/logo.svg             full color mark, transparent (light surfaces)
-  app/public/favicon.svg          square 1024x1024, mini mark padded (browser tab)
+  app/public/favicon.svg          square 1024x1024, mini mark oversized + shifted up/left (browser tab)
   app/public/logo-reversed.svg    full mark, hill in canvas #FEFCF3 (dark surfaces)
   app/public/apple-touch-icon.png 180x180 ink tile + reversed mini mark
   app/public/og-default.png       screenshot of docs/social-preview/og-default.html
@@ -40,7 +40,14 @@ BW = MARK_DIR / "v6-bw.svg"
 INK = "#202030"  # hill ink in the v6 mark (v1 potrace palette)
 CANVAS = "#FEFCF3"  # paper canvas — reversed-mark hill color
 TILE_INK = "#1A1A2E"  # apple-touch tile background (design-system Ink)
-FAVICON_PAD = 0.92  # mini mark fills 92% of the square favicon canvas
+FAVICON_PAD = 0.92  # legacy centered fit — kept so FAVICON_SCALE stays meaningful
+# Favicon window (#124 favicon workshop): the mini mark grown past full-width
+# and shifted up/left inside the square. Tab icons render optically low next
+# to tab-title text; the heart keeps right-edge clearance while the hill tail
+# clips off the left edge. Simulated live, then baked in 2026-09.
+FAVICON_SCALE = 1.18  # ink size vs the legacy 92%-pad fit
+FAVICON_SHIFT_X = -0.08  # fraction of the square canvas
+FAVICON_SHIFT_Y = -0.09
 
 HEADER = (
     "<!-- CoasterRank v6 mark (2026-09): coaster hill, ranked heart, wave.\n"
@@ -91,12 +98,14 @@ def build_svgs() -> None:
     (APP_PUBLIC / "logo.svg").write_text(svg_doc(full_vb, full_color_g))
     (APP_PUBLIC / "logo-reversed.svg").write_text(svg_doc(full_vb, full_rev_g))
 
-    # Favicon: square 1024 canvas, mini mark scaled to 92% of the canvas and
-    # centered (larger dimension fills 92%).
+    # Favicon: square 1024 canvas. Ink = FAVICON_SCALE x the legacy centered
+    # fit, offset by FAVICON_SHIFT (fractions of the canvas, x then y):
+    # heart clears the right edge, hill tail clips the left edge, bottom pad
+    # breathes. The unshifted mini source stays untouched in this directory.
     mx, my, mw, mh = mini_vb
-    s = FAVICON_PAD * 1024 / max(mw, mh)
-    tx = (1024 - mw * s) / 2
-    ty = (1024 - mh * s) / 2
+    s = FAVICON_SCALE * FAVICON_PAD * 1024 / max(mw, mh)
+    tx = FAVICON_SHIFT_X * 1024 + (1024 - mw * s) / 2
+    ty = FAVICON_SHIFT_Y * 1024 + (1024 - mh * s) / 2
     mini_color_g = f"{mini_open}\n{mini_body}  </g>"
     padded = (
         f'<g transform="translate({tx:.1f} {ty:.1f}) scale({s:.5f})">\n'

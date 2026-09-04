@@ -68,133 +68,6 @@ function SwatchCard({ swatch }: { swatch: Swatch }) {
   )
 }
 
-type LockupSpec = {
-  label: string
-  markPx: number
-  textPx: number
-  gapPx: number
-  riseEm: number
-  note: string
-  align?: 'baseline' | 'center'
-}
-
-function LockupVariant({ label, markPx, textPx, gapPx, riseEm, note, align }: LockupSpec) {
-  return (
-    <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line/60 py-6 last:border-b-0">
-      <div className="w-64 shrink-0">
-        <p className="font-mono text-xs font-semibold text-ink">{label}</p>
-        <p className="mt-0.5 text-xs leading-5 text-muted">{note}</p>
-      </div>
-      <div
-        className={align === 'center' ? 'flex items-center' : 'flex items-baseline'}
-        style={{ gap: gapPx }}
-      >
-        <img src="/logo.svg" alt="" style={{ height: markPx }} className="w-auto" />
-        <span
-          className="display-heading leading-none tracking-wide text-ink"
-          style={{ fontSize: textPx, transform: `translateY(${riseEm}em)` }}
-        >
-          Coaster<span className="text-coral">Rank</span>
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// TEMP (pick-a-lockup review): labeled variants exploring mark size vs
-// wordmark size, proximity, and baseline rise. Delete once a winner ships.
-const lockupVariants: LockupSpec[] = [
-  {
-    label: '0 · shipped today',
-    markPx: 52.8,
-    textPx: 41.6,
-    gapPx: 10,
-    riseEm: -0.06,
-    note: 'Reference — mark 1.76× cap height, gap 10px, rise −0.06em',
-  },
-  {
-    label: '1 · same, closer',
-    markPx: 52.8,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: -0.06,
-    note: 'Gap 4px',
-  },
-  {
-    label: '2 · flush',
-    markPx: 52.8,
-    textPx: 41.6,
-    gapPx: 0,
-    riseEm: -0.06,
-    note: 'Gap 0 — heart chain meets the C',
-  },
-  {
-    label: '3 · mark 64',
-    markPx: 64,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: -0.06,
-    note: 'Mark ≈ 2.1× caps, gap 4px',
-  },
-  {
-    label: '4 · mark 72',
-    markPx: 72,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: -0.06,
-    note: 'Mark ≈ 2.4× caps, gap 4px',
-  },
-  {
-    label: '5 · mark 80',
-    markPx: 80,
-    textPx: 41.6,
-    gapPx: 6,
-    riseEm: -0.06,
-    note: 'Towers — mark ≈ 2.7× caps, gap 6px',
-  },
-  {
-    label: '6 · mark 64 / text 37',
-    markPx: 64,
-    textPx: 37,
-    gapPx: 4,
-    riseEm: -0.06,
-    note: 'Wordmark stepped down to 37px — mark ≈ 2.4× caps',
-  },
-  {
-    label: '7 · mark 72 / text 37',
-    markPx: 72,
-    textPx: 37,
-    gapPx: 4,
-    riseEm: -0.06,
-    note: 'Mark ≈ 2.7× caps',
-  },
-  {
-    label: '8 · mark 64, no rise',
-    markPx: 64,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: 0,
-    note: 'Rise 0 — text hangs at the mark’s bottom edge (compare with 3)',
-  },
-  {
-    label: '9 · mark 64, deep rise',
-    markPx: 64,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: -0.12,
-    note: 'Rise −0.12em — text rides the mark’s mid-slope',
-  },
-  {
-    label: '10 · vertically centered',
-    markPx: 64,
-    textPx: 41.6,
-    gapPx: 4,
-    riseEm: 0,
-    align: 'center',
-    note: 'items-center instead of baseline',
-  },
-]
-
 type TabSpec = {
   label: string
   scale: number
@@ -209,40 +82,10 @@ type TabSpec = {
 // the winner gets baked into export.py's pad math. Delete once shipped.
 const tabVariants: TabSpec[] = [
   {
-    label: '0 · shipped',
+    label: 'shipped',
     scale: 1,
     shiftY: 0,
-    note: 'Current favicon.svg — ink 92% of square width (~71% height), centered',
-  },
-  {
-    label: '1 · ink full-width',
-    scale: 1.09,
-    shiftY: 0,
-    note: '92% pad cancelled (viewBox shrunk to ink), still vertically centered',
-  },
-  {
-    label: '2 · up 5%',
-    scale: 1.09,
-    shiftY: -5,
-    note: 'Full-width ink, shifted up 5% of box height',
-  },
-  {
-    label: '3 · up 9%',
-    scale: 1.09,
-    shiftY: -9,
-    note: 'Full-width ink, shifted up 9% — bottom pad ≈ 2× top pad',
-  },
-  {
-    label: '4 · bigger, up 5%',
-    scale: 1.18,
-    shiftY: -5,
-    note: 'Ink grown past full-width (side edges clipped), up 5%',
-  },
-  {
-    label: '5 · bigger, up 9%',
-    scale: 1.18,
-    shiftY: -9,
-    note: 'Ink grown past full-width, up 9%',
+    note: 'favicon.svg as generated — off-center window baked in at export time',
   },
 ]
 
@@ -292,9 +135,9 @@ function TabVariantRow({ label, scale, shiftY, note }: TabSpec) {
       <div className="flex items-center gap-3">
         <FaviconBox boxPx={64} scale={scale} shiftY={shiftY} />
         <span className="font-mono text-[10px] leading-4 text-muted">
-          scale {scale}×
+          16px tab
           <br />
-          shift {shiftY}%
+          64px lens
         </span>
       </div>
     </div>
@@ -333,28 +176,21 @@ export function DesignBoard() {
           </p>
         </div>
 
-        <Section title="Lockup variants — TEMP">
+        <Section title="Favicon in tab">
           <Panel className="px-6 py-2 sm:px-8">
             <p className="py-4 text-sm leading-6 text-muted">
-              Pick-a-lockup review sheet: proximity of the wordmark to the mark, relative sizes, and
-              baseline rise. Racing Sans One cap height ≈ 0.72em (the 41.6px wordmark here has ~30px
-              caps); “towers” = mark ≈ 2×+ cap height. Delete this section once a winner ships.
-            </p>
-            {lockupVariants.map((spec) => (
-              <LockupVariant key={spec.label} {...spec} />
-            ))}
-          </Panel>
-        </Section>
-
-        <Section title="Favicon in tab — TEMP">
-          <Panel className="px-6 py-2 sm:px-8">
-            <p className="py-4 text-sm leading-6 text-muted">
-              The shipped favicon pads the landscape mini mark to 92% of the square, so ink spans
-              only ~71% of the box height (centered) and reads low next to tab-title text. Each
-              variant simulates the viewBox change (scale = ink size, translateY = upward shift) on
-              the shipped SVG at real tab size and at 64px; the winner gets baked into{' '}
-              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">export.py</code>{' '}
-              pad math. Delete this section once shipped.
+              Shipped favicon window: the mini mark grown past full-width (1.18× the legacy 92% fit)
+              and shifted up 9% / left 8% of the square — heart keeps right clearance, hill tail
+              clips off the left edge, bottom pad breathes. Baked into{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">export.py</code> (
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                FAVICON_SCALE / FAVICON_SHIFT
+              </code>
+              ); the unshifted mini source stays at{' '}
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+                docs/design/mark/v6-color-mini.svg
+              </code>
+              .
             </p>
             {tabVariants.map((spec) => (
               <TabVariantRow key={spec.label} {...spec} />
@@ -448,9 +284,9 @@ export function DesignBoard() {
                 Masthead heading · BoardPage
               </p>
               <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-                <p className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
-                  <img src="/logo.svg" alt="" className="h-11 w-auto sm:h-[3.3rem]" />
-                  <span className="display-heading -translate-y-[0.06em] text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
+                <p className="flex flex-wrap items-baseline gap-x-1">
+                  <img src="/logo.svg" alt="" className="h-[3.3rem] w-auto sm:h-[4rem]" />
+                  <span className="display-heading -translate-y-[0.12em] text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
                     Coaster<span className="text-coral">Rank</span>
                   </span>
                 </p>
@@ -465,15 +301,15 @@ export function DesignBoard() {
               </div>
               <p className="mt-3 text-sm leading-6 text-muted">
                 Masthead heading is mark + wordmark only — the descriptor copy is gone; the status
-                line carries the live claim. Brand rows use{' '}
+                line carries the live claim (right-aligned, track flourish above). Brand rows use{' '}
                 <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                   items-baseline
                 </code>{' '}
-                so the mark&apos;s bottom edge sits on the wordmark baseline, with a small optical
+                so the mark&apos;s bottom edge sits on the wordmark baseline, with a deep optical
                 rise (
-                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">-0.06em</code> on
-                the wordmark) so it nestles into the mark&apos;s right slope instead of hanging at
-                its bottom edge.
+                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">-0.12em</code> on
+                the wordmark) so it rides the mark&apos;s mid-slope — the mark towers ~2.1× cap
+                height at a tight 4px gap.
               </p>
             </div>
             <div>
