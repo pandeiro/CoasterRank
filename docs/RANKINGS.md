@@ -167,6 +167,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 |-----|---------|---------|
 | CoasterRankAlerts | System failures | Edge Function catch block (immediate) |
 | CoasterRankAlerts | Stale detection | `check_stale_recompute` hourly (no success in 1h) |
+| CoasterRankAlerts | Health regression | `health-check.yml` 30m smoke (homepage / `/api/ranking` / Supabase / board render) |
 | CoasterRankEvents | Business milestones | Global #1 coaster changes |
 
 ### Alert coverage matrix
@@ -177,6 +178,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 | Edge Function returns error | `cron_execution_logs` error row | Telegram (immediate) |
 | Edge Function unreachable | `check_stale_recompute` (hourly) | Telegram (within 1h) |
 | pg_cron stopped firing | `check_stale_recompute` (hourly) | Telegram (within 1h) |
+| Homepage / API 5xx, stale board, empty catalog, board not rendering | `health-check.yml` (30m) — `scripts/src/health-check.ts` | Telegram (within 30m) |
 | Global #1 changes | Edge Function post-recompute check | Telegram (event) |
 
 ### Admin Dashboard
