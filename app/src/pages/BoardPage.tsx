@@ -88,23 +88,15 @@ export default function BoardPage() {
     <>
       <header data-board-hero className="relative pb-3 sm:pb-4">
         <TrackLine />
-        {/* One masthead heading: brand + page statement on a shared baseline,
-            descriptor quieted so the wordmark stays dominant. The status line
-            carries the live claim (no tagline). */}
+        {/* Masthead heading: mark + wordmark only. The descriptor copy is gone;
+            the status line carries the live claim. The wordmark takes a small
+            optical rise (-0.06em) off the shared baseline so it nestles into
+            the mark's right slope instead of hanging at its bottom edge. */}
         <div className="relative flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <h1 className="flex flex-wrap items-baseline gap-x-2.5 sm:gap-x-3.5">
-            <img src="/logo.svg" alt="" className="h-10 w-auto sm:h-12" />
-            <span className="display-heading text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
+          <h1 className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
+            <img src="/logo.svg" alt="" className="h-11 w-auto sm:h-[3.3rem]" />
+            <span className="display-heading -translate-y-[0.06em] text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
               Coaster<span className="text-coral">Rank</span>
-            </span>
-            <span
-              aria-hidden="true"
-              className="hidden text-[1.4rem] leading-none text-muted/50 sm:inline"
-            >
-              —
-            </span>
-            <span className="display-heading text-[1.35rem] leading-none tracking-wide text-muted sm:text-[1.75rem]">
-              World&apos;s Best Roller Coasters
             </span>
           </h1>
           {rows && (

@@ -82,14 +82,14 @@ export default function Layout() {
           <Link
             to="/"
             aria-hidden={!showBrand}
-            className={`flex shrink-0 items-baseline gap-2 text-ink transition-all duration-300 ease-out ${
+            className={`flex shrink-0 items-baseline gap-1.5 text-ink transition-all duration-300 ease-out ${
               showBrand
                 ? 'translate-y-0 opacity-100'
                 : 'pointer-events-none -translate-y-1 opacity-0'
             }`}
           >
-            <img src="/logo.svg" alt="" className="h-7 w-auto shrink-0" />
-            <span className="display-heading text-lg tracking-wide sm:text-xl">
+            <img src="/logo.svg" alt="" className="h-[1.9rem] w-auto shrink-0" />
+            <span className="display-heading -translate-y-[0.06em] text-lg tracking-wide sm:text-xl">
               Coaster<span className="text-coral">Rank</span>
             </span>
           </Link>

@@ -116,9 +116,6 @@ export function DesignBoard() {
               <span className="display-heading text-5xl tracking-wide text-ink sm:text-7xl">
                 Coaster<span className="text-coral">Rank</span>
               </span>
-              <span className="pb-1 text-sm italic text-muted sm:pb-2 sm:text-base">
-                A live ranking of the world&apos;s roller coasters
-              </span>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <div>
@@ -189,19 +186,10 @@ export function DesignBoard() {
                 Masthead heading · BoardPage
               </p>
               <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-                <p className="flex flex-wrap items-baseline gap-x-3">
-                  <img src="/logo.svg" alt="" className="h-10 w-auto sm:h-12" />
-                  <span className="display-heading text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
+                <p className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
+                  <img src="/logo.svg" alt="" className="h-11 w-auto sm:h-[3.3rem]" />
+                  <span className="display-heading -translate-y-[0.06em] text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
                     Coaster<span className="text-coral">Rank</span>
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="hidden text-[1.4rem] leading-none text-muted/50 sm:inline"
-                  >
-                    —
-                  </span>
-                  <span className="display-heading text-[1.35rem] leading-none tracking-wide text-muted sm:text-[1.75rem]">
-                    World&apos;s Best Roller Coasters
                   </span>
                 </p>
                 <p className="flex items-center gap-2 text-sm text-muted">
@@ -214,14 +202,16 @@ export function DesignBoard() {
                 </p>
               </div>
               <p className="mt-3 text-sm leading-6 text-muted">
-                One masthead heading: brand + page statement on a shared baseline, descriptor
-                quieted so the wordmark stays dominant. No tagline — the status line carries the
-                live claim. Brand rows use{' '}
+                Masthead heading is mark + wordmark only — the descriptor copy is gone; the status
+                line carries the live claim. Brand rows use{' '}
                 <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
                   items-baseline
                 </code>{' '}
-                so the mark&apos;s bottom edge sits on the wordmark baseline —
-                &quot;CoasterRank&quot; has no descenders, so baseline = visual bottom edge.
+                so the mark&apos;s bottom edge sits on the wordmark baseline, with a small optical
+                rise (
+                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">-0.06em</code> on
+                the wordmark) so it nestles into the mark&apos;s right slope instead of hanging at
+                its bottom edge.
               </p>
             </div>
             <div>
