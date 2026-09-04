@@ -105,10 +105,30 @@ save and rollback.
 
 ## Logo
 
-The logo combines a rising data/bar pattern with a simplified coaster track.
-The current implementation is [`app/public/logo.svg`](../../app/public/logo.svg)
-and is used for the header mark and favicon. Wordmark and small-size variants
-can evolve independently from the first icon.
+The mark (v3 "Heartline", September 2026) combines a coaster hill, a coral
+heart carrying the ranking trend line, and an accent wave — the ride, the
+love, the return. It replaces the busier v1 mark (archived in
+`docs/logo-archive/`) with bolder shapes that hold up at favicon sizes and at
+hero scale.
+
+Mark palette: hill ink `#202030` (the v1 potrace dark), heart `#E85D75`, wave
+`#48CAE4`.
+
+Production files:
+
+- [`app/public/logo.svg`](../../app/public/logo.svg) — color mark on
+  transparent, used for the header mark, board hero, and favicon source.
+- [`app/public/favicon.svg`](../../app/public/favicon.svg) — square-padded
+  variant for the browser tab.
+- [`app/public/logo-reversed.svg`](../../app/public/logo-reversed.svg) — hill
+  rendered in canvas for dark surfaces (design-board header, social cards).
+- [`app/public/apple-touch-icon.png`](../../app/public/apple-touch-icon.png) —
+  180×180 ink tile with the reversed mark.
+- [`docs/design/mark/`](../design/mark/README.md) — source SVGs, transparent
+  raster exports for external use, and `export.py`, which regenerates every
+  derived asset (production SVGs, rasters, social cards).
+
+Wordmark and small-size variants can evolve independently from the mark.
 
 ## Explicitly out of scope
 
