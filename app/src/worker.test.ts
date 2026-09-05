@@ -310,11 +310,15 @@ const parkRows = [
     city: 'Sandusky',
   },
 ]
-// What the worker assembles from the two upstream responses.
+// What public_board_meta() returns (the third upstream read).
+const boardMetaRow = { real_user_count: 61, last_recomputed_at: '2026-08-31T00:30:00.000Z' }
+// What the worker assembles from the upstream responses.
 const rankingPayload = {
   rankings: rankingRows,
   parks: parkRows,
   generated_at: '2026-08-31T00:00:00.000Z',
+  last_recomputed_at: boardMetaRow.last_recomputed_at,
+  real_user_count: boardMetaRow.real_user_count,
 }
 
 function rankingRequest(overrides: { method?: string; origin?: string | null } = {}) {
@@ -333,12 +337,16 @@ function makeCacheStub() {
   return cache
 }
 
-// The worker makes two upstream reads (rankings view + parks table); each
-// returns a bare PostgREST JSON array.
-function stubRankingUpstream(status = 200) {
+// The worker makes three upstream reads (rankings view + parks table + the
+// board-meta RPC); each returns a bare PostgREST JSON body.
+function stubRankingUpstream(status = 200, metaStatus = 200) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    const payload = String(input).includes('v_coaster_rankings') ? rankingRows : parkRows
-    return new Response(JSON.stringify(payload), { status })
+    const url = String(input)
+    if (url.includes('v_coaster_rankings'))
+      return new Response(JSON.stringify(rankingRows), { status })
+    if (url.includes('public_board_meta'))
+      return new Response(JSON.stringify(boardMetaRow), { status: metaStatus })
+    return new Response(JSON.stringify(parkRows), { status })
   })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -366,8 +374,10 @@ describe('worker: /api/ranking', () => {
     const [putKey, putResponse] = cache.put.mock.calls[0] as unknown as [Request, Response]
     expect(putKey.url).toBe('https://coasterrank.test/api/ranking')
     expect(putResponse.headers.get('Cache-Control')).toContain('max-age=900')
-    // Two upstream reads (rankings + parks), both with the anon key.
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    // Three upstream reads (rankings + parks + board meta), all anon-key.
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const metaUrl = String((fetchMock.mock.calls[2] as unknown as [string])[0])
+    expect(metaUrl).toBe('https://supabase.test/rest/v1/rpc/public_board_meta')
   })
 
   it('serves a cache hit without touching Supabase, with browser TTL and CORS intact', async () => {
@@ -404,7 +414,43 @@ describe('worker: /api/ranking', () => {
     const response = await worker.fetch(rankingRequest(), env)
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ ...rankingPayload, generated_at: expect.any(String) })
-    expect(fillMock).toHaveBeenCalledTimes(2)
+    expect(fillMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('degrades board meta to nulls (not 502) when the RPC is unavailable', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    // Deploy-order skew: the migration may not exist yet — PostgREST answers
+    // 404. The board itself must stay healthy, just without status extras.
+    stubRankingUpstream(200, 404)
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.last_recomputed_at).toBeNull()
+    expect(body.real_user_count).toBeNull()
+    expect(body.rankings).toEqual(rankingRows)
+    // The (null-meta) payload is still cached so HITs stay consistent.
+    expect(cache.put).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the board healthy when the meta fetch throws', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('v_coaster_rankings'))
+        return new Response(JSON.stringify(rankingRows), { status: 200 })
+      if (url.includes('public_board_meta')) throw new Error('meta socket reset')
+      return new Response(JSON.stringify(parkRows), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.last_recomputed_at).toBeNull()
+    expect(body.real_user_count).toBeNull()
   })
 
   it('normalizes the cache key so query strings cannot fragment the cache', async () => {

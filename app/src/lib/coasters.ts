@@ -732,13 +732,24 @@ export const BOARD_QUERY_KEY = ['board-data'] as const
 export const BOARD_STALE_TIME_MS = 15 * 60_000
 
 async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
-  const [rankings, parks] = await Promise.all([
+  const [rankings, parks, boardMeta] = await Promise.all([
     supabase
       .from('v_coaster_rankings')
       .select('*')
       .order('score', { ascending: false, nullsFirst: false })
       .range(0, 9999),
     supabase.from('parks').select('id, name, slug, country, region, city').order('name'),
+    // Best-effort (same RPC the worker reads): status-line extras must never
+    // block the board itself, so failure resolves to nulls.
+    (async () => {
+      const { data } = await supabase.rpc('public_board_meta')
+      const row = Array.isArray(data) ? data[0] : data
+      const count = row ? Number(row.real_user_count) : NaN
+      return {
+        last_recomputed_at: row?.last_recomputed_at ?? null,
+        real_user_count: row && Number.isFinite(count) ? count : null,
+      } as Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count'>
+    })(),
   ])
   if (rankings.error) throw rankings.error
   if (parks.error) throw parks.error
@@ -746,6 +757,8 @@ async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
     rankings: rankings.data as RankingRow[],
     parks: parks.data as Park[],
     generated_at: new Date().toISOString(),
+    last_recomputed_at: boardMeta.last_recomputed_at,
+    real_user_count: boardMeta.real_user_count,
   }
 }
 
@@ -848,6 +861,21 @@ export function useRankedUserCount() {
       if (error) throw error
       return Number(data ?? 0)
     },
+  })
+}
+
+// Status-line extras (real user count + last recompute time) from the same
+// ['board-data'] cache entry as useAllCoasters/useParks — one payload powers
+// every slice, so this adds no network fetch.
+export function useBoardMeta() {
+  return useQuery({
+    queryKey: BOARD_QUERY_KEY,
+    queryFn: fetchBoardData,
+    staleTime: BOARD_STALE_TIME_MS,
+    select: (data) => ({
+      last_recomputed_at: data.last_recomputed_at,
+      real_user_count: data.real_user_count,
+    }),
   })
 }
 

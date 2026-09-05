@@ -367,6 +367,39 @@ function rankingJsonResponse(
   })
 }
 
+// Board meta (user count + last recompute time) for the homepage status line.
+// Best-effort: an unavailable RPC (deploy-order skew) must never 502 the
+// board, so every failure path resolves to nulls instead of throwing.
+type BoardMeta = Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count'>
+
+const EMPTY_BOARD_META: BoardMeta = { last_recomputed_at: null, real_user_count: null }
+
+async function fetchBoardMeta(
+  supabaseUrl: string,
+  headers: Record<string, string>,
+): Promise<BoardMeta> {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/public_board_meta`, {
+      headers,
+      signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+    })
+    if (!res.ok) return EMPTY_BOARD_META
+    const payload = (await res.json()) as
+      | { real_user_count?: number | string; last_recomputed_at?: string | null }
+      | Array<{ real_user_count?: number | string; last_recomputed_at?: string | null }>
+    const row = Array.isArray(payload) ? payload[0] : payload
+    if (!row) return EMPTY_BOARD_META
+    const rawCount = row.real_user_count
+    const count = rawCount == null ? NaN : Number(rawCount)
+    return {
+      last_recomputed_at: row.last_recomputed_at ?? null,
+      real_user_count: Number.isFinite(count) ? count : null,
+    }
+  } catch {
+    return EMPTY_BOARD_META
+  }
+}
+
 async function fetchRankingBoardFromSupabase(env: Env): Promise<RankingBoardPayload | null> {
   const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
   const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
@@ -377,7 +410,7 @@ async function fetchRankingBoardFromSupabase(env: Env): Promise<RankingBoardPayl
     Authorization: `Bearer ${supabaseKey}`,
     Accept: 'application/json',
   }
-  const [rankingsRes, parksRes] = await Promise.all([
+  const [rankingsRes, parksRes, boardMeta] = await Promise.all([
     // limit=10000 mirrors the SPA's .range(0, 9999): the view is ~1.2k rows
     // today with headroom for full-RCDB adoption (~6.6k rows).
     fetch(
@@ -388,12 +421,18 @@ async function fetchRankingBoardFromSupabase(env: Env): Promise<RankingBoardPayl
       `${supabaseUrl}/rest/v1/parks?select=id,name,slug,country,region,city&order=name&limit=10000`,
       { headers, signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS) },
     ),
+    fetchBoardMeta(supabaseUrl, headers),
   ])
   if (!rankingsRes.ok || !parksRes.ok) return null
   const rankings = await rankingsRes.json()
   const parks = await parksRes.json()
   if (!Array.isArray(rankings) || !Array.isArray(parks)) return null
-  return { rankings, parks, generated_at: new Date().toISOString() } as RankingBoardPayload
+  return {
+    rankings,
+    parks,
+    generated_at: new Date().toISOString(),
+    ...boardMeta,
+  } as RankingBoardPayload
 }
 
 export async function handleRankingRequest(request: Request, env: Env): Promise<Response> {

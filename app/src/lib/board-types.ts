@@ -55,4 +55,12 @@ export type RankingBoardPayload = {
   rankings: RankingRow[]
   parks: Park[]
   generated_at: string
+  // When the ranking was last recomputed by the pg_cron job (latest successful
+  // cron_execution_logs entry) — the honest "Last ranked" timestamp. Null when
+  // the board_meta RPC is unavailable (deploy-order skew); the UI falls back
+  // to generated_at, which is the edge-cache fill time.
+  last_recomputed_at: string | null
+  // Real (non-admin, non-synthetic) user count for the status line. Null when
+  // the board_meta RPC is unavailable.
+  real_user_count: number | null
 }
