@@ -149,7 +149,9 @@ export default function BoardPage() {
                     and the count adds little (§2.2 gate still applies). */}
                 {showUserCount && (
                   <>
-                    <span aria-hidden="true" className="hidden sm:inline">·</span>
+                    <span aria-hidden="true" className="hidden sm:inline">
+                      ·
+                    </span>
                     <span className="hidden tabular-nums sm:inline">
                       {(userCount ?? 0).toLocaleString()} users
                     </span>

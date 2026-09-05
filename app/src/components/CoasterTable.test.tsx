@@ -369,7 +369,13 @@ describe('CoasterTable', () => {
   it('emphasizes the score with an accent-tinted rounded background (§7.1)', () => {
     renderTable(rowsFrom([{ name: 'Rated', score: 1.029 }]), new Set(), true, 'board')
     const score = within(desktopTable()).getByText('102.9')
-    expect(score).toHaveClass('bg-accent/5', 'rounded-md', 'font-semibold', 'tabular-nums', 'text-ink')
+    expect(score).toHaveClass(
+      'bg-accent/5',
+      'rounded-md',
+      'font-semibold',
+      'tabular-nums',
+      'text-ink',
+    )
   })
 
   it('centers the mobile score vertically inside the accent pill (§7.2)', () => {

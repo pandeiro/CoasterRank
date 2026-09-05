@@ -303,9 +303,19 @@ function PaletteTreatments() {
 }
 
 const DENSITIES: Array<{ label: string; note: string; row: string; minH: string }> = [
-  { label: '−5%', note: 'SHIPPED (mobile + desktop) — py-2.5 · min-h-52px', row: 'py-2.5', minH: 'min-h-[52px]' },
+  {
+    label: '−5%',
+    note: 'SHIPPED (mobile + desktop) — py-2.5 · min-h-52px',
+    row: 'py-2.5',
+    minH: 'min-h-[52px]',
+  },
   { label: 'Current', note: 'before — py-3 · min-h-56px', row: 'py-3', minH: 'min-h-[56px]' },
-  { label: 'Denser', note: 'alternative (not shipped) — py-2 · min-h-48px', row: 'py-2', minH: 'min-h-[48px]' },
+  {
+    label: 'Denser',
+    note: 'alternative (not shipped) — py-2 · min-h-48px',
+    row: 'py-2',
+    minH: 'min-h-[48px]',
+  },
 ]
 
 function DensityTreatments() {
@@ -340,11 +350,13 @@ function DensityTreatments() {
 const SCORE_TREATMENTS: Array<{ label: string; className: string }> = [
   {
     label: 'SHIPPED · accent-tint pill (600 ink)',
-    className:
-      'rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink',
+    className: 'rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink',
   },
   { label: 'alternative · 500 ink', className: 'text-sm font-medium tabular-nums text-ink' },
-  { label: 'alternative · 500 accent-strong', className: 'text-sm font-medium tabular-nums text-accent-strong' },
+  {
+    label: 'alternative · 500 accent-strong',
+    className: 'text-sm font-medium tabular-nums text-accent-strong',
+  },
   {
     label: 'alternative · 600 ink + accent underline',
     className:
