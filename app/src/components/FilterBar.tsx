@@ -62,7 +62,7 @@ function Segmented<T extends string>({
               onClick={() => onChange(o.value)}
               className={`relative border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color] hover:z-10 ${shape} ${
                 active
-                  ? 'border-accent-strong bg-accent/10 text-accent-strong'
+                  ? 'z-10 border-accent-strong bg-accent/10 text-accent-strong'
                   : 'border-line bg-surface-bright text-muted hover:border-ink/40 hover:bg-surface hover:text-ink'
               }`}
             >
