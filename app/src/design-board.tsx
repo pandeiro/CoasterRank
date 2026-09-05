@@ -1,6 +1,7 @@
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Badge, Button, Panel, fieldClassName, selectClassName } from './components/ui'
+import { HomepageMocks } from './design-homepage'
 import './index.css'
 
 type Swatch = {
@@ -165,6 +166,10 @@ export function DesignBoard() {
       </header>
 
       <main className="page-container py-10 sm:py-14">
+        <Section title="Homepage rework">
+          <HomepageMocks />
+        </Section>
+
         <div className="max-w-3xl">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
             CoasterRank design system

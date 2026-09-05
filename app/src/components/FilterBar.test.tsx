@@ -195,16 +195,29 @@ describe('FilterBar', () => {
     try {
       const user = userEvent.setup()
       renderBar()
-      expect(screen.queryByRole('radiogroup', { name: 'Track' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('radiogroup', { name: 'Status' })).not.toBeInTheDocument()
+      // §8.2: the toolbar segmenteds stay in the DOM but are CSS-hidden on
+      // mobile (jsdom can't compute CSS, so pin the classes).
+      expect(screen.getByRole('radiogroup', { name: 'Track' })).toHaveClass('hidden', 'sm:flex')
+      expect(screen.getByRole('radiogroup', { name: 'Status' })).toHaveClass('hidden', 'sm:flex')
 
       await openMore(user)
-      expect(screen.getByRole('radiogroup', { name: 'Track' })).toBeInTheDocument()
-      expect(screen.getByRole('radiogroup', { name: 'Status' })).toBeInTheDocument()
-      expect(screen.getByRole('combobox', { name: 'Country' })).toBeInTheDocument()
-      expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
+      const popover = screen.getByTestId('filter-popover')
+      expect(within(popover).getByRole('radiogroup', { name: 'Track' })).not.toHaveClass('hidden')
+      expect(within(popover).getByRole('radiogroup', { name: 'Status' })).not.toHaveClass('hidden')
+      expect(within(popover).getByRole('combobox', { name: 'Country' })).toBeInTheDocument()
+      expect(within(popover).getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     } finally {
       vi.unstubAllGlobals()
     }
+  })
+
+  it('reserves a stable toolbar height (§8.2) and gives selects a floor width (§3.1)', async () => {
+    const user = userEvent.setup()
+    renderBar()
+    const panel = screen.getByLabelText(/filter coasters/i).closest('[class*="min-h"]')
+    expect(panel).not.toBeNull()
+    expect(panel).toHaveClass('min-h-[3.25rem]')
+    await openMore(user)
+    expect(screen.getByRole('combobox', { name: 'Country' })).toHaveClass('min-w-[12rem]')
   })
 })

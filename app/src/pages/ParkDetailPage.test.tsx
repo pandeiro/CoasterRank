@@ -71,8 +71,9 @@ describe('ParkDetailPage', () => {
 
   it('lists only the park coasters', () => {
     renderPage()
-    expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
-    expect(screen.getByText('Millennium Force')).toBeInTheDocument()
+    // Both CSS-gated layouts render the park's rows.
+    expect(screen.getAllByText('Steel Vengeance')).toHaveLength(2)
+    expect(screen.getAllByText('Millennium Force')).toHaveLength(2)
     expect(screen.queryByText('Somewhere Else')).not.toBeInTheDocument()
   })
 
