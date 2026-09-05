@@ -739,16 +739,42 @@ async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
       .order('score', { ascending: false, nullsFirst: false })
       .range(0, 9999),
     supabase.from('parks').select('id, name, slug, country, region, city').order('name'),
-    // Best-effort (same RPC the worker reads): status-line extras must never
-    // block the board itself, so failure resolves to nulls.
+    // Best-effort (same RPC the worker reads): board-meta extras must never
+    // block the board itself, so failure resolves to nulls. During the
+    // ranked_user_count rollout the RPC may return 2 columns; treat missing as
+    // null (gate closed) for back-compat.
     (async () => {
-      const { data } = await supabase.rpc('public_board_meta')
-      const row = Array.isArray(data) ? data[0] : data
-      const count = row ? Number(row.real_user_count) : NaN
+      const { data, error } = await supabase.rpc('public_board_meta')
+      if (error) {
+        // Best-effort: don't block board on meta RPC failure; log for
+        // observability and degrade to nulls (gate closed / users hidden).
+        console.warn('[board] public_board_meta failed:', error.message)
+        return {
+          last_recomputed_at: null,
+          real_user_count: null,
+          ranked_user_count: null,
+        } as Pick<
+          RankingBoardPayload,
+          'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'
+        >
+      }
+      const row = Array.isArray(data) ? data[0] : (data as Record<string, unknown> | null)
+      // toCount is intentionally duplicated with worker.ts:400 — keep the
+      // two bundles independent (board-types is types-only, no shared runtime
+      // util) to avoid cross-contaminating the edge bundle.
+      const toCount = (raw: unknown) => {
+        if (raw == null) return null
+        const n = Number(raw as number | string)
+        return Number.isFinite(n) ? n : null
+      }
       return {
-        last_recomputed_at: row?.last_recomputed_at ?? null,
-        real_user_count: row && Number.isFinite(count) ? count : null,
-      } as Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count'>
+        last_recomputed_at:
+          (row as { last_recomputed_at?: string | null } | null)?.last_recomputed_at ?? null,
+        real_user_count: toCount((row as { real_user_count?: unknown } | null)?.real_user_count),
+        ranked_user_count: toCount(
+          (row as { ranked_user_count?: unknown } | null)?.ranked_user_count,
+        ),
+      } as Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'>
     })(),
   ])
   if (rankings.error) throw rankings.error
@@ -759,6 +785,7 @@ async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
     generated_at: new Date().toISOString(),
     last_recomputed_at: boardMeta.last_recomputed_at,
     real_user_count: boardMeta.real_user_count,
+    ranked_user_count: boardMeta.ranked_user_count,
   }
 }
 
@@ -850,23 +877,12 @@ export function useManufacturers() {
   })
 }
 
-// Total users with at least one ranked ride — drives the board's first-place
-// visibility gate (see FIRST_PLACE_MIN_USERS). A pure aggregate over
-// user_rides, exposed via the ranked_user_count() RPC.
-export function useRankedUserCount() {
-  return useQuery({
-    queryKey: ['ranked-user-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('ranked_user_count')
-      if (error) throw error
-      return Number(data ?? 0)
-    },
-  })
-}
-
-// Status-line extras (real user count + last recompute time) from the same
-// ['board-data'] cache entry as useAllCoasters/useParks — one payload powers
-// every slice, so this adds no network fetch.
+// Board meta (real/ranked user counts + last recompute time) from the same
+// ['board-data'] cache entry as useAllCoasters/useParks — one cached payload
+// powers every slice, so no extra RPC is needed. ranked_user_count drives
+// the first-place gate; real_user_count the status-line users pill.
+// Previously useRankedUserCount() called the dedicated ranked_user_count() RPC
+// per page load — now folded into public_board_meta() via /api/ranking.
 export function useBoardMeta() {
   return useQuery({
     queryKey: BOARD_QUERY_KEY,
@@ -875,8 +891,26 @@ export function useBoardMeta() {
     select: (data) => ({
       last_recomputed_at: data.last_recomputed_at,
       real_user_count: data.real_user_count,
+      ranked_user_count: data.ranked_user_count,
       generated_at: data.generated_at,
     }),
+  })
+}
+
+// Back-compat alias — prefers the cached payload's ranked_user_count so the
+// first-place gate shares the same staleness as the board itself (BOARD_STALE_TIME_MS
+// = 15m client + 15m edge TTL → worst-case ≤30m stale, intentional per PR;
+// previous standalone hook used default staleTime 0). Hard-removed the per-load
+// ranked_user_count() RPC (now served via public_board_meta + /api/ranking);
+// this shim keeps the call-site signature stable during the rollout.
+// Shares BOARD_QUERY_KEY with useBoardMeta — React Query dedups the fetch and
+// applies each observer's select independently.
+export function useRankedUserCount() {
+  return useQuery({
+    queryKey: BOARD_QUERY_KEY,
+    queryFn: fetchBoardData,
+    staleTime: BOARD_STALE_TIME_MS,
+    select: (data) => data.ranked_user_count ?? 0,
   })
 }
 
