@@ -38,4 +38,14 @@ describe('WeeklyDeltaBadge', () => {
     )
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('renders nothing when the field is MISSING (pre-migration payload skew)', () => {
+    // Regression guard: undefined must degrade to silence, never "↓NaN".
+    const { container } = render(
+      <WeeklyDeltaBadge
+        row={makeRankingRow({ rank: 3, rank_last_week: undefined as unknown as number | null })}
+      />,
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
 })

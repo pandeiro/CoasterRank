@@ -14,6 +14,13 @@ describe('ScorePill', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
+  it('renders nothing when the score is MISSING (payload skew, never "NaN")', () => {
+    const { container } = render(
+      <ScorePill row={makeRankingRow({ score: undefined as unknown as number | null })} />,
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
   it('settles on the new displayed value when the score changes', async () => {
     const { rerender } = render(<ScorePill row={makeRankingRow({ score: 1.029 })} />)
     rerender(<ScorePill row={makeRankingRow({ score: 1.035 })} />)

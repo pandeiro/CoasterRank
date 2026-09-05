@@ -18,9 +18,23 @@ import type { RankingRow } from './board-types'
 
 // Weekly delta: positive = climbed. NULL either side → no baseline (first
 // week of the feature, coaster newly ranked, or unrated now).
+//
+// Defensive against payload skew: during a deploy window the cached
+// /api/ranking payload can predate the view change, so `rank_last_week` is
+// MISSING (undefined), not null — `undefined === null` is false and
+// `undefined - rank` is NaN, which rendered as a "↓NaN" badge on every row
+// (the 2026-09-05 regression). Treat anything that isn't a finite number as
+// "no baseline"; a missing field must render nothing, never NaN.
 export function weekDelta(row: RankingRow): number | null {
-  if (row.rank === null || row.rank_last_week === null) return null
-  return row.rank_last_week - row.rank
+  const rank = asFiniteNumber(row.rank)
+  const lastWeek = asFiniteNumber(row.rank_last_week)
+  if (rank === null || lastWeek === null) return null
+  return lastWeek - rank
+}
+
+export function asFiniteNumber(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return value
 }
 
 // How long live movement chips stay on screen before "evaporating". Tunable
@@ -96,7 +110,8 @@ export function useRankTurnover(
 function currentRanks(rows: RankingRow[]): Map<string, number> {
   const ranks = new Map<string, number>()
   for (const row of rows) {
-    if (row.rank !== null) ranks.set(row.id, row.rank)
+    const rank = asFiniteNumber(row.rank)
+    if (rank !== null) ranks.set(row.id, rank)
   }
   return ranks
 }

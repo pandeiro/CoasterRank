@@ -60,6 +60,23 @@ describe('weekDelta', () => {
     expect(weekDelta({ ...row('a', null), rank_last_week: 5 })).toBeNull()
     expect(weekDelta({ ...row('a', 3), rank_last_week: null })).toBeNull()
   })
+
+  it('is null for MISSING (undefined) fields — payload skew must never read as NaN', () => {
+    // The 2026-09-05 regression: a pre-migration payload simply lacks the
+    // field; `undefined === null` is false and `undefined - rank` is NaN,
+    // which rendered "↓NaN" on every row.
+    expect(
+      weekDelta({ ...row('a', 3), rank_last_week: undefined as unknown as number | null }),
+    ).toBeNull()
+    expect(
+      weekDelta({ ...row('a', undefined as unknown as number | null), rank_last_week: 5 }),
+    ).toBeNull()
+  })
+
+  it('is null for non-finite numbers', () => {
+    expect(weekDelta({ ...row('a', 3), rank_last_week: Number.NaN })).toBeNull()
+    expect(weekDelta({ ...row('a', 3), rank_last_week: Number.POSITIVE_INFINITY })).toBeNull()
+  })
 })
 
 describe('useRankTurnover', () => {
