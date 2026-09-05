@@ -19,12 +19,13 @@ function statusPill(status: CoasterStatus): { label: string; tone: 'accent' | 'n
     : { label: 'Historic', tone: 'neutral' }
 }
 
-// Podium hierarchy (§6.1): rider-share coral tokens 1:1 — #1 strongest warm
-// tint, #2/#3 near-imperceptible, #4+ white. Muted alternatives live on the
-// design board for the final call.
+// Podium hierarchy (§6.1, decided): muted coral — three DISTINCT shades so
+// #1 > #2 > #3 reads as an intentional ramp (a merged 2/3 shade reads as a
+// bug); #4+ white. Alternative palettes live on the design board.
 function rowTint(position: number | null): string {
-  if (position === 1) return 'bg-coral/[0.08] hover:bg-coral/[0.08]'
-  if (position === 2 || position === 3) return 'bg-coral/[0.06] hover:bg-coral/[0.06]'
+  if (position === 1) return 'bg-coral/[0.05] hover:bg-coral/[0.05]'
+  if (position === 2) return 'bg-coral/[0.03] hover:bg-coral/[0.03]'
+  if (position === 3) return 'bg-coral/[0.015] hover:bg-coral/[0.015]'
   return 'hover:bg-canvas'
 }
 
@@ -38,23 +39,14 @@ export function rankFontClass(position: number): string {
   return 'text-base'
 }
 
-// §5.1–5.3: upright, slightly heavier tabular-nums (display font dropped) in
-// the rider-share circle treatment — white circle + accent numeral for the
-// podium, bare right-aligned number for everything else. The desktop column
-// right-aligns so circles and numbers share an edge (§5.1).
+// §5.1–5.3, decided: EVERY rank gets a white circle (slight dark ink drop
+// shadow) around an accent-blue number in the display font, centered —
+// across desktop and mobile. The fixed column right-aligns so circles share
+// an edge (§5.1); the podium ramp comes from the row tint, not the badge.
 function RankBadge({ position }: { position: number }) {
-  if (position <= 3) {
-    return (
-      <span
-        className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center font-semibold leading-none tabular-nums text-accent-strong shadow-sm ${rankFontClass(position)}`}
-      >
-        {position}
-      </span>
-    )
-  }
   return (
     <span
-      className={`font-semibold leading-none tabular-nums text-muted ${rankFontClass(position)}`}
+      className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
     >
       {position}
     </span>
@@ -177,7 +169,7 @@ export default function CoasterTable({
           </div>
           {/* §7.2: score centers vertically, matching the rank circle. */}
           {row.score !== null && (
-            <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-ink">
+            <span className="shrink-0 self-center rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink">
               {formatScore(row.score)}
             </span>
           )}
@@ -264,10 +256,16 @@ export default function CoasterTable({
                         '—'
                       )}
                     </td>
-                    {/* §7.1: heavier tabular score (600/ink start — weight and
-                        accent alternatives on the design board). */}
-                    <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums text-ink">
-                      {row.score === null ? '—' : formatScore(row.score)}
+                    {/* §7.1, decided: score emphasized by an accent-tinted
+                        rounded background (still heavier tabular numerals). */}
+                    <td className="px-4 py-2.5 text-right">
+                      {row.score === null ? (
+                        <span className="text-sm text-muted">—</span>
+                      ) : (
+                        <span className="inline-block rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink">
+                          {formatScore(row.score)}
+                        </span>
+                      )}
                     </td>
                   </>
                 ) : (

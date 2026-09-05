@@ -15,9 +15,9 @@ function MockLabel({ children, note }: { children: ReactNode; note?: string }) {
   )
 }
 
-// A quiet stand-in for the /about link ("How it works →").
+// The status-line link, per final copy: plain "About" (fits mobile).
 function HowItWorks() {
-  return <span className="text-sm font-medium text-ink hover:text-accent-dark">How it works →</span>
+  return <span className="text-sm font-medium text-ink hover:text-accent-dark">About</span>
 }
 
 function StatusCounts({ users }: { users?: number }) {
@@ -225,36 +225,32 @@ function RankTreatments() {
         </p>
       </div>
 
-      {/* Circle — rider-share 1:1 (§5.3 start). */}
+      {/* SHIPPED: white circles around display-font accent numerals for
+          EVERY rank, with a slight dark ink drop shadow — desktop + mobile. */}
       <div>
-        <MockLabel note="§5.3 start — rider-share tokens 1:1">Circle · rider-share</MockLabel>
+        <MockLabel note="SHIPPED — display font, accent numerals, ink shadow, all ranks">
+          Circle · every rank
+        </MockLabel>
         <Panel className="overflow-hidden">
-          {RANK_ROWS.map((row) => {
-            const top3 = row.rank <= 3
-            return (
-              <div
-                key={row.rank}
-                className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
+          {RANK_ROWS.map((row) => (
+            <div
+              key={row.rank}
+              className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
+            >
+              <span
+                className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
               >
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-center leading-none tabular-nums ${
-                    top3
-                      ? `bg-white text-accent-strong shadow-sm ${rankFont(row.rank)}`
-                      : `${rankFont(row.rank)} font-medium text-muted`
-                  }`}
-                >
-                  {row.rank}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
-                  <p className="truncate text-xs text-muted">{row.park}</p>
-                </div>
+                {row.rank}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
+                <p className="truncate text-xs text-muted">{row.park}</p>
               </div>
-            )
-          })}
+            </div>
+          ))}
         </Panel>
         <p className="mt-2 text-xs leading-5 text-muted">
-          White circles (top-3 accent) mirror the rider-share page; 100+ shrinks inside the circle.
+          One tier down at ≥100, another at ≥1000 so 4-digit ranks stay inside the circle.
         </p>
       </div>
     </div>
@@ -263,18 +259,18 @@ function RankTreatments() {
 
 const PALETTES: Array<{ label: string; note: string; tints: string[] }> = [
   {
-    label: 'Rider-share coral 1:1',
-    note: '§6.1 start — 0.08 / 0.06 / 0.04',
-    tints: ['bg-coral/[0.08]', 'bg-coral/[0.06]', 'bg-coral/[0.04]'],
-  },
-  {
     label: 'Muted coral',
-    note: 'quieter alternative — 0.05 / 0.03 / 0.015',
+    note: 'SHIPPED — 0.05 / 0.03 / 0.015, three distinct shades',
     tints: ['bg-coral/[0.05]', 'bg-coral/[0.03]', 'bg-coral/[0.015]'],
   },
   {
+    label: 'Rider-share coral 1:1',
+    note: 'alternative (not shipped) — 0.08 / 0.06 / 0.04',
+    tints: ['bg-coral/[0.08]', 'bg-coral/[0.06]', 'bg-coral/[0.04]'],
+  },
+  {
     label: 'Current surface',
-    note: 'today — surface/70, surface/35',
+    note: 'before — surface/70, surface/35',
     tints: ['bg-surface/70', 'bg-surface/35', 'bg-surface/35'],
   },
 ]
@@ -307,9 +303,9 @@ function PaletteTreatments() {
 }
 
 const DENSITIES: Array<{ label: string; note: string; row: string; minH: string }> = [
-  { label: 'Current', note: 'py-3 · min-h-56px', row: 'py-3', minH: 'min-h-[56px]' },
-  { label: '−5%', note: 'py-2.5 · min-h-52px (§6.2 start)', row: 'py-2.5', minH: 'min-h-[52px]' },
-  { label: 'Denser', note: 'py-2 · min-h-48px', row: 'py-2', minH: 'min-h-[48px]' },
+  { label: '−5%', note: 'SHIPPED (mobile + desktop) — py-2.5 · min-h-52px', row: 'py-2.5', minH: 'min-h-[52px]' },
+  { label: 'Current', note: 'before — py-3 · min-h-56px', row: 'py-3', minH: 'min-h-[56px]' },
+  { label: 'Denser', note: 'alternative (not shipped) — py-2 · min-h-48px', row: 'py-2', minH: 'min-h-[48px]' },
 ]
 
 function DensityTreatments() {
@@ -342,19 +338,19 @@ function DensityTreatments() {
 }
 
 const SCORE_TREATMENTS: Array<{ label: string; className: string }> = [
-  { label: 'current · muted', className: 'text-sm tabular-nums text-muted' },
-  { label: '500 ink', className: 'text-sm font-medium tabular-nums text-ink' },
-  { label: '600 ink', className: 'text-sm font-semibold tabular-nums text-ink' },
-  { label: '500 accent-strong', className: 'text-sm font-medium tabular-nums text-accent-strong' },
   {
-    label: '600 ink + accent underline',
+    label: 'SHIPPED · accent-tint pill (600 ink)',
+    className:
+      'rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink',
+  },
+  { label: 'alternative · 500 ink', className: 'text-sm font-medium tabular-nums text-ink' },
+  { label: 'alternative · 500 accent-strong', className: 'text-sm font-medium tabular-nums text-accent-strong' },
+  {
+    label: 'alternative · 600 ink + accent underline',
     className:
       'text-sm font-semibold tabular-nums text-ink underline decoration-accent decoration-2 underline-offset-4',
   },
-  {
-    label: '600 accent-strong',
-    className: 'text-sm font-semibold tabular-nums text-accent-strong',
-  },
+  { label: 'before · muted', className: 'text-sm tabular-nums text-muted' },
 ]
 
 function ScoreTreatments() {
@@ -448,8 +444,9 @@ export function HomepageMocks() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Badge tone="coral">Homepage rework — mocks</Badge>
         <span className="text-xs text-muted">
-          Punchlist §1–§8 · rider-share tokens are the decided starts; alternatives live here until
-          the final calls.
+          Punchlist §1–§8 · final calls baked in (marked SHIPPED): muted coral podium, all-rank
+          circles, −5% density, accent-tint score pill, plain "About" link. Hero variant A/B still
+          open.
         </span>
       </div>
       <Panel className="p-5 sm:p-6">

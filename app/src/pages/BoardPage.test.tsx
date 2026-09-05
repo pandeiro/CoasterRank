@@ -151,9 +151,9 @@ describe('BoardPage', () => {
     expect(screen.getByText("Couldn't load the board.")).toBeInTheDocument()
   })
 
-  it('links How it works to /about', () => {
+  it('links About to /about', () => {
     renderBoard()
-    expect(screen.getByRole('link', { name: 'How it works →' })).toHaveAttribute('href', '/about')
+    expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
   })
 
   it('shows the user count in the status line only past the gate', () => {

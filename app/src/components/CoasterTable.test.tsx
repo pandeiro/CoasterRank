@@ -291,9 +291,10 @@ describe('CoasterTable', () => {
     expect(screen.getByText('No coasters match those filters.')).toBeInTheDocument()
   })
 
-  // §5.1–5.3: rank treatment — upright heavier tabular numerals, podium in
-  // white circles with accent numerals, bare quiet numbers from 4 on.
-  it('treats the podium as white circles with accent numerals', () => {
+  // §5.1–5.3, decided: EVERY rank is a white circle (ink drop shadow) with
+  // an accent-blue display-font numeral, centered; the podium ramp comes
+  // from the row tint instead.
+  it('treats every rank as a white circle with a display-font accent numeral', () => {
     renderTable(
       rowsFrom([
         { name: 'First', rank: 1 },
@@ -306,14 +307,12 @@ describe('CoasterTable', () => {
       'board',
     )
     const table = within(desktopTable())
-    const circle = table.getByText('1').closest('span')
-    expect(circle).toHaveClass('rounded-full', 'bg-white', 'text-accent-strong', 'h-10', 'w-10')
-    // Not italic decoration — upright, heavier tabular numerals.
-    expect(circle).toHaveClass('font-semibold', 'tabular-nums')
-    // Rank 4+ stays a bare, quiet number — no circle.
-    const bare = table.getByText('4').closest('span')
-    expect(bare).toHaveClass('text-muted')
-    expect(bare).not.toHaveClass('bg-white')
+    for (const rank of ['1', '2', '4']) {
+      const circle = table.getByText(rank).closest('span')
+      expect(circle).toHaveClass('rounded-full', 'bg-white', 'text-accent-strong', 'h-10', 'w-10')
+      expect(circle).toHaveClass('display-heading', 'items-center', 'justify-center')
+      expect(circle).toHaveClass('shadow-[0_1px_2px_rgb(26_26_46_/_0.18)]')
+    }
   })
 
   it('shrinks wide ranks one tier at ≥100 and again at ≥1000 (§5.2)', () => {
@@ -335,7 +334,7 @@ describe('CoasterTable', () => {
     expect(coasterCell).toHaveClass('pl-3')
   })
 
-  it('applies the rider-share coral podium tints (§6.1)', () => {
+  it('applies the muted coral podium tints — three distinct shades (§6.1)', () => {
     renderTable(
       rowsFrom([
         { name: 'First', rank: 1 },
@@ -348,11 +347,11 @@ describe('CoasterTable', () => {
       'board',
     )
     const table = within(desktopTable())
-    expect(table.getByText('First').closest('tr')).toHaveClass('bg-coral/[0.08]')
-    expect(table.getByText('Second').closest('tr')).toHaveClass('bg-coral/[0.06]')
-    expect(table.getByText('Third').closest('tr')).toHaveClass('bg-coral/[0.06]')
+    expect(table.getByText('First').closest('tr')).toHaveClass('bg-coral/[0.05]')
+    expect(table.getByText('Second').closest('tr')).toHaveClass('bg-coral/[0.03]')
+    expect(table.getByText('Third').closest('tr')).toHaveClass('bg-coral/[0.015]')
     expect(table.getByText('Fourth').closest('tr')).toHaveClass('hover:bg-canvas')
-    expect(table.getByText('Fourth').closest('tr')).not.toHaveClass('bg-coral/[0.08]')
+    expect(table.getByText('Fourth').closest('tr')).not.toHaveClass('bg-coral/[0.05]')
   })
 
   it('densifies rows ~5% on both layouts (§6.2)', () => {
@@ -367,17 +366,17 @@ describe('CoasterTable', () => {
     expect(li).toHaveClass('py-2.5', 'min-h-[52px]', 'gap-2.5')
   })
 
-  it('emphasizes the score column with heavier tabular numerals (§7.1)', () => {
+  it('emphasizes the score with an accent-tinted rounded background (§7.1)', () => {
     renderTable(rowsFrom([{ name: 'Rated', score: 1.029 }]), new Set(), true, 'board')
     const score = within(desktopTable()).getByText('102.9')
-    expect(score).toHaveClass('font-semibold', 'tabular-nums', 'text-ink')
+    expect(score).toHaveClass('bg-accent/5', 'rounded-md', 'font-semibold', 'tabular-nums', 'text-ink')
   })
 
-  it('centers the mobile score vertically (§7.2)', () => {
+  it('centers the mobile score vertically inside the accent pill (§7.2)', () => {
     renderTable(rowsFrom([{ name: 'Rated', score: 1.029 }]))
     const li = within(mobileList()).getAllByRole('listitem')[0]
     expect(li).toHaveClass('items-center')
     const score = within(mobileList()).getByText('102.9')
-    expect(score).toHaveClass('self-center')
+    expect(score).toHaveClass('self-center', 'bg-accent/5', 'rounded-md')
   })
 })

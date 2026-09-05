@@ -114,7 +114,7 @@ export default function BoardPage() {
             line is w-full, so it wraps by itself); desktop keeps brand left
             / line right. The line always renders (§8.1) — while data loads
             it shows pulse bars sized to cover every segment, including the
-            gated users count and How it works, so nothing shifts on fill.
+            gated users count and the About link, so nothing shifts on fill.
             Lockup: mark + wordmark scaled ~12% over the #124 spec, wordmark
             still on the -0.12em optical rise. */}
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -131,7 +131,7 @@ export default function BoardPage() {
                   to="/about"
                   className="font-medium text-ink underline-offset-4 hover:text-accent-dark hover:underline"
                 >
-                  How it works →
+                  About
                 </Link>
                 <span aria-hidden="true">·</span>
                 <span className="tabular-nums">
