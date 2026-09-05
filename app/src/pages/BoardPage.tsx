@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
+import LiveStatusPopunder from '../components/LiveStatusPopunder'
 import ScrollSentinel from '../components/ScrollSentinel'
 import { MessageState } from '../components/ui'
 import {
@@ -13,27 +14,21 @@ import {
   manufacturerOptions,
   PAGE_SIZE,
   useAllCoasters,
+  useBoardMeta,
   useRankedUserCount,
   type RankingFilters,
 } from '../lib/coasters'
 
-// Decorative coaster-track gesture (hill, dip, loop) floating above the
-// status line at the masthead's right edge — the page's one restrained visual
-// layer. Pure vector; no imagery data exists. ViewBox is cropped to the
-// path's own baseline so the ink sits where the box says it does.
-function TrackLine() {
+// Real-user visibility gate for the status line (§2.2): below this the count
+// stays hidden so an early-stage launch doesn't advertise small numbers.
+const USER_COUNT_VISIBILITY_GATE = 50
+
+function StatusPulse({ className }: { className: string }) {
   return (
-    <svg
+    <span
       aria-hidden="true"
-      viewBox="0 0 520 122"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      className="pointer-events-none hidden h-24 w-auto shrink-0 text-ink/10 lg:block"
-    >
-      <path d="M6 118 C 84 118, 122 40, 198 40 C 252 40, 272 96, 330 96 C 366 96, 386 88, 418 88 a 22 22 0 1 1 0 -44 a 22 22 0 1 1 0 44 C 446 88, 468 106, 514 106" />
-    </svg>
+      className={`inline-block h-4 animate-pulse rounded bg-line/60 ${className}`}
+    />
   )
 }
 
@@ -45,6 +40,10 @@ export default function BoardPage() {
   // Auxiliary stat: a failure here degrades to a fully-dashed first-place
   // column (gate closed), never an error screen.
   const rankedUsers = useRankedUserCount()
+  // Status-line extras from the same cached payload (§2.2/§2.3): real user
+  // count and the honest "Last ranked" timestamp (pg_cron success, falling
+  // back to the edge-cache fill time).
+  const boardMeta = useBoardMeta()
 
   // Incremental rendering: start with one page, grow as the user scrolls.
   const [page, setPage] = useState(1)
@@ -74,6 +73,9 @@ export default function BoardPage() {
 
   const visibleRows = filteredRows.slice(0, page * PAGE_SIZE)
   const hasNextPage = visibleRows.length < filteredRows.length
+  const userCount = boardMeta.data?.real_user_count ?? null
+  const showUserCount = userCount !== null && userCount > USER_COUNT_VISIBILITY_GATE
+  const lastRankedAt = boardMeta.data?.last_recomputed_at ?? boardMeta.data?.generated_at ?? null
 
   const onFiltersChange = useCallback(
     (next: RankingFilters) => {
@@ -88,24 +90,32 @@ export default function BoardPage() {
 
   return (
     <>
-      <header data-board-hero className="relative pb-3 sm:pb-4">
-        {/* Masthead heading: mark + wordmark only. The descriptor copy is gone;
-            the status line carries the live claim, right-aligned at the margin
-            with the track gesture floating above it (desktop only). Lockup
-            spec (#124 workshop winner): mark 64px (mobile 52.8px), tight 4px
-            gap, wordmark on a deep optical rise (-0.12em) so it rides the
-            mark's mid-slope. */}
+      <header data-board-hero className="relative min-h-[5.5rem] pb-3 sm:pb-4">
+        {/* Masthead: lockup + status line. Mobile (§2.4) centers the lockup
+            and drops the status line onto its own right-aligned row (the
+            line is w-full, so it wraps by itself); desktop keeps brand left
+            / line right. The line always renders (§8.1) — while data loads
+            it shows pulse bars sized to cover every segment, including the
+            gated users count and How it works, so nothing shifts on fill.
+            Lockup: mark + wordmark scaled ~12% over the #124 spec, wordmark
+            still on the -0.12em optical rise. */}
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <h1 className="flex flex-wrap items-baseline gap-x-1">
-            <img src="/logo.svg" alt="" className="h-[3.3rem] w-auto sm:h-[4rem]" />
-            <span className="display-heading -translate-y-[0.12em] text-[2.1rem] leading-none tracking-wide sm:text-[2.6rem]">
+          <h1 className="mx-auto flex flex-wrap items-baseline justify-center gap-x-1 sm:mx-0 sm:justify-start">
+            <img src="/logo.svg" alt="" className="h-[3.7rem] w-auto sm:h-[4.5rem]" />
+            <span className="display-heading -translate-y-[0.12em] text-[2.4rem] leading-none tracking-wide sm:text-[2.9rem]">
               Coaster<span className="text-coral">Rank</span>
             </span>
           </h1>
-          {rows && (
-            <div className="flex flex-col items-end gap-1.5">
-              <TrackLine />
-              <p className="flex items-center gap-2 text-sm text-muted">
+          <p className="flex min-h-6 w-full flex-wrap items-center justify-end gap-2 text-sm text-muted sm:w-auto">
+            {rows ? (
+              <>
+                <Link
+                  to="/about"
+                  className="font-medium text-ink underline-offset-4 hover:text-accent-dark hover:underline"
+                >
+                  How it works →
+                </Link>
+                <span aria-hidden="true">·</span>
                 <span className="tabular-nums">
                   {coasterCount.toLocaleString()} coaster{coasterCount === 1 ? '' : 's'}
                 </span>
@@ -117,17 +127,25 @@ export default function BoardPage() {
                     </span>
                   </>
                 )}
+                {showUserCount && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{(userCount ?? 0).toLocaleString()} users</span>
+                  </>
+                )}
                 <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-                  </span>
-                  Live
-                </span>
-              </p>
-            </div>
-          )}
+                <LiveStatusPopunder lastRankedAt={lastRankedAt} />
+              </>
+            ) : (
+              <>
+                <StatusPulse className="w-[6.5rem]" />
+                <StatusPulse className="w-20" />
+                <StatusPulse className="w-16" />
+                <StatusPulse className="w-14" />
+                <StatusPulse className="w-12" />
+              </>
+            )}
+          </p>
         </div>
       </header>
       <FilterBar

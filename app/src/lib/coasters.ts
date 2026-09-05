@@ -875,6 +875,7 @@ export function useBoardMeta() {
     select: (data) => ({
       last_recomputed_at: data.last_recomputed_at,
       real_user_count: data.real_user_count,
+      generated_at: data.generated_at,
     }),
   })
 }

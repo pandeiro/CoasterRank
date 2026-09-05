@@ -4,7 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { PAGE_SIZE, useAllCoasters, useRankedUserCount } from '../lib/coasters'
+import {
+  PAGE_SIZE,
+  useAllCoasters,
+  useBoardMeta,
+  useRankedUserCount,
+  type RankingBoardPayload,
+} from '../lib/coasters'
 import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -13,6 +19,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     ...actual,
     useAllCoasters: vi.fn(),
     useRankedUserCount: vi.fn(),
+    useBoardMeta: vi.fn(),
   }
 })
 
@@ -60,6 +67,27 @@ function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
   } as never)
 }
 
+function mockBoardMeta(overrides: Partial<RankingBoardPayload> = {}) {
+  vi.mocked(useBoardMeta).mockReturnValue({
+    data: {
+      last_recomputed_at: '2026-08-31T00:30:00.000Z',
+      real_user_count: null,
+      generated_at: '2026-08-31T00:00:00.000Z',
+      ...overrides,
+    },
+    isPending: false,
+    isError: false,
+  } as never)
+}
+
+function mockBoardMetaPending() {
+  vi.mocked(useBoardMeta).mockReturnValue({
+    data: undefined,
+    isPending: true,
+    isError: false,
+  } as never)
+}
+
 function statusRadio(name: string) {
   return within(screen.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name })
 }
@@ -77,6 +105,7 @@ describe('BoardPage', () => {
       isPending: false,
       isError: false,
     } as never)
+    mockBoardMeta()
     mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
   })
 
@@ -97,14 +126,18 @@ describe('BoardPage', () => {
     expect(screen.getByText('Live')).toBeInTheDocument()
   })
 
-  it('shows a loading state while pending', () => {
+  it('shows a loading state with hero status pulses while pending', () => {
     vi.mocked(useAllCoasters).mockReturnValue({
       data: undefined,
       isPending: true,
       isError: false,
     } as never)
-    renderBoard()
+    mockBoardMetaPending()
+    const { container } = renderBoard()
     expect(screen.getByText('Loading…')).toBeInTheDocument()
+    // Hero reservation (§8.1): the status line always renders, pulsing until
+    // the payload lands.
+    expect(container.querySelector('[data-board-hero] .animate-pulse')).not.toBeNull()
   })
 
   it('shows an error state on failure', () => {
@@ -115,6 +148,56 @@ describe('BoardPage', () => {
     } as never)
     renderBoard()
     expect(screen.getByText("Couldn't load the board.")).toBeInTheDocument()
+  })
+
+  it('links How it works to /about', () => {
+    renderBoard()
+    expect(screen.getByRole('link', { name: 'How it works →' })).toHaveAttribute('href', '/about')
+  })
+
+  it('shows the user count in the status line only past the gate', () => {
+    mockBoardMeta({ real_user_count: 61 })
+    const { unmount } = renderBoard()
+    expect(screen.getByText('61 users')).toBeInTheDocument()
+    unmount()
+
+    mockBoardMeta({ real_user_count: 41 })
+    renderBoard()
+    expect(screen.queryByText('41 users')).not.toBeInTheDocument()
+  })
+
+  it('never shows the user count when the meta payload lacks it', () => {
+    mockBoardMeta({ real_user_count: null })
+    renderBoard()
+    expect(screen.queryByText(/users/)).not.toBeInTheDocument()
+  })
+
+  it('opens the Live popunder on click and shows the last-ranked age', async () => {
+    const user = userEvent.setup()
+    renderBoard()
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    // Escape dismisses.
+    await user.keyboard('{Escape}')
+    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+  })
+
+  it('dismisses the Live popunder on outside click', async () => {
+    const user = userEvent.setup()
+    renderBoard()
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    await user.click(screen.getByRole('heading', { name: /coasterrank/i }))
+    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+  })
+
+  it('shows a muted fallback in the popunder when no timestamp exists', async () => {
+    mockBoardMeta({ last_recomputed_at: null, generated_at: '2026-08-31T00:00:00.000Z' })
+    const user = userEvent.setup()
+    renderBoard()
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    // generated_at is the fallback, so a normal label still renders.
+    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
   })
 
   it('renders the ranked rows and links to the park', () => {
