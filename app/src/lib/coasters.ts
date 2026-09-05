@@ -744,8 +744,21 @@ async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
     // ranked_user_count rollout the RPC may return 2 columns; treat missing as
     // null (gate closed) for back-compat.
     (async () => {
-      const { data } = await supabase.rpc('public_board_meta')
+      const { data, error } = await supabase.rpc('public_board_meta')
+      if (error) {
+        // Best-effort: don't block board on meta RPC failure; log for
+        // observability and degrade to nulls (gate closed / users hidden).
+        console.warn('[board] public_board_meta failed:', error.message)
+        return {
+          last_recomputed_at: null,
+          real_user_count: null,
+          ranked_user_count: null,
+        } as Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'>
+      }
       const row = Array.isArray(data) ? data[0] : (data as Record<string, unknown> | null)
+      // toCount is intentionally duplicated with worker.ts:400 — keep the
+      // two bundles independent (board-types is types-only, no shared runtime
+      // util) to avoid cross-contaminating the edge bundle.
       const toCount = (raw: unknown) => {
         if (raw == null) return null
         const n = Number(raw as number | string)
@@ -882,10 +895,13 @@ export function useBoardMeta() {
 }
 
 // Back-compat alias — prefers the cached payload's ranked_user_count so the
-// first-place gate shares the same staleness as the board itself. Hard-removed
-// the per-load ranked_user_count() RPC (now served via public_board_meta +
-// /api/ranking); this shim keeps the call-site signature stable during the
-// rollout.
+// first-place gate shares the same staleness as the board itself (BOARD_STALE_TIME_MS
+// = 15m client + 15m edge TTL → worst-case ≤30m stale, intentional per PR;
+// previous standalone hook used default staleTime 0). Hard-removed the per-load
+// ranked_user_count() RPC (now served via public_board_meta + /api/ranking);
+// this shim keeps the call-site signature stable during the rollout.
+// Shares BOARD_QUERY_KEY with useBoardMeta — React Query dedups the fetch and
+// applies each observer's select independently.
 export function useRankedUserCount() {
   return useQuery({
     queryKey: BOARD_QUERY_KEY,

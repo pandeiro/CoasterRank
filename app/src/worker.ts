@@ -388,6 +388,10 @@ async function fetchBoardMeta(
   headers: Record<string, string>,
 ): Promise<BoardMeta> {
   try {
+    // GET is valid for STABLE RPCs via PostgREST (same as main already did for
+    // public_board_meta); Supabase-JS uses POST but this worker historically
+    // uses GET — keep GET to avoid churn. If args are ever added, switch to
+    // POST with JSON body.
     const res = await fetch(`${supabaseUrl}/rest/v1/rpc/public_board_meta`, {
       headers,
       signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
