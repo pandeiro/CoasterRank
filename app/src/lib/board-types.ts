@@ -51,6 +51,8 @@ export type Park = {
 // The `/api/ranking` response: the full board dataset in one payload —
 // rankings for the board/detail pages plus the parks list that powers the
 // search bar and the submit flow, so those pages skip Supabase entirely.
+// generated_at is the edge-cache fill time; last_recomputed_at the pg_cron
+// success time. ranked_user_count is the cached first-place gate count.
 export type RankingBoardPayload = {
   rankings: RankingRow[]
   parks: Park[]
@@ -63,4 +65,9 @@ export type RankingBoardPayload = {
   // Real (non-admin, non-synthetic) user count for the status line. Null when
   // the board_meta RPC is unavailable.
   real_user_count: number | null
+  // Real ranked users (distinct users with at least one ranked ride), same
+  // admin/synthetic exclusions as real_user_count. Drives the first-place
+  // visibility gate (>30). Served via the same edge-cached /api/ranking
+  // payload so the board needs no extra RPC. Null when the RPC is unavailable.
+  ranked_user_count: number | null
 }

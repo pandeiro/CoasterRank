@@ -367,12 +367,21 @@ function rankingJsonResponse(
   })
 }
 
-// Board meta (user count + last recompute time) for the homepage status line.
+// Board meta (user counts + last recompute time) for the homepage.
 // Best-effort: an unavailable RPC (deploy-order skew) must never 502 the
 // board, so every failure path resolves to nulls instead of throwing.
-type BoardMeta = Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count'>
+// ranked_user_count drives the first-place gate (>30); real_user_count the
+// status-line users pill (>50).
+type BoardMeta = Pick<
+  RankingBoardPayload,
+  'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'
+>
 
-const EMPTY_BOARD_META: BoardMeta = { last_recomputed_at: null, real_user_count: null }
+const EMPTY_BOARD_META: BoardMeta = {
+  last_recomputed_at: null,
+  real_user_count: null,
+  ranked_user_count: null,
+}
 
 async function fetchBoardMeta(
   supabaseUrl: string,
@@ -385,15 +394,31 @@ async function fetchBoardMeta(
     })
     if (!res.ok) return EMPTY_BOARD_META
     const payload = (await res.json()) as
-      | { real_user_count?: number | string; last_recomputed_at?: string | null }
-      | Array<{ real_user_count?: number | string; last_recomputed_at?: string | null }>
+      | {
+          real_user_count?: number | string
+          ranked_user_count?: number | string
+          last_recomputed_at?: string | null
+        }
+      | Array<{
+          real_user_count?: number | string
+          ranked_user_count?: number | string
+          last_recomputed_at?: string | null
+        }>
     const row = Array.isArray(payload) ? payload[0] : payload
     if (!row) return EMPTY_BOARD_META
-    const rawCount = row.real_user_count
-    const count = rawCount == null ? NaN : Number(rawCount)
+    const toCount = (raw: number | string | undefined | null) => {
+      if (raw == null) return null
+      const n = Number(raw)
+      return Number.isFinite(n) ? n : null
+    }
     return {
       last_recomputed_at: row.last_recomputed_at ?? null,
-      real_user_count: Number.isFinite(count) ? count : null,
+      real_user_count: toCount(row.real_user_count),
+      ranked_user_count: toCount(
+        // Back-compat while the migration rolls out: old RPC has no
+        // ranked_user_count column; treat missing as null (gate closed).
+        (row as { ranked_user_count?: number | string }).ranked_user_count,
+      ),
     }
   } catch {
     return EMPTY_BOARD_META

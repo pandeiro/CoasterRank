@@ -4,13 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  PAGE_SIZE,
-  useAllCoasters,
-  useBoardMeta,
-  useRankedUserCount,
-  type RankingBoardPayload,
-} from '../lib/coasters'
+import { PAGE_SIZE, useAllCoasters, useBoardMeta, type RankingBoardPayload } from '../lib/coasters'
 import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -18,7 +12,6 @@ vi.mock('../lib/coasters', async (importOriginal) => {
   return {
     ...actual,
     useAllCoasters: vi.fn(),
-    useRankedUserCount: vi.fn(),
     useBoardMeta: vi.fn(),
   }
 })
@@ -72,6 +65,7 @@ function mockBoardMeta(overrides: Partial<RankingBoardPayload> = {}) {
     data: {
       last_recomputed_at: '2026-08-31T00:30:00.000Z',
       real_user_count: null,
+      ranked_user_count: null,
       generated_at: '2026-08-31T00:00:00.000Z',
       ...overrides,
     },
@@ -100,11 +94,6 @@ describe('BoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     observeCallback = null
-    vi.mocked(useRankedUserCount).mockReturnValue({
-      data: 0,
-      isPending: false,
-      isError: false,
-    } as never)
     mockBoardMeta()
     mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
   })
@@ -260,11 +249,7 @@ describe('BoardPage', () => {
   })
 
   it('shows first-place data only past the user gate', async () => {
-    vi.mocked(useRankedUserCount).mockReturnValue({
-      data: 50,
-      isPending: false,
-      isError: false,
-    } as never)
+    mockBoardMeta({ ranked_user_count: 50 })
     mockAllCoasters([
       { name: 'Favorite', first_place_votes: 12, participants: 40, rank: 1 },
       { name: 'Loved', first_place_votes: 8, participants: 30, rank: 2 },
@@ -277,11 +262,7 @@ describe('BoardPage', () => {
     unmount()
 
     // Below the gate the first-place pill is hidden.
-    vi.mocked(useRankedUserCount).mockReturnValue({
-      data: 10,
-      isPending: false,
-      isError: false,
-    } as never)
+    mockBoardMeta({ ranked_user_count: 10 })
     renderBoard()
     expect(screen.queryByText('12 (30%)')).not.toBeInTheDocument()
   })

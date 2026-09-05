@@ -16,7 +16,6 @@ import {
   PAGE_SIZE,
   useAllCoasters,
   useBoardMeta,
-  useRankedUserCount,
   type RankingFilters,
 } from '../lib/coasters'
 
@@ -38,12 +37,9 @@ export default function BoardPage() {
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
 
   const coasters = useAllCoasters()
-  // Auxiliary stat: a failure here degrades to a fully-dashed first-place
-  // column (gate closed), never an error screen.
-  const rankedUsers = useRankedUserCount()
-  // Status-line extras from the same cached payload (§2.2/§2.3): real user
-  // count and the honest "Last ranked" timestamp (pg_cron success, falling
-  // back to the edge-cache fill time).
+  // Board meta (real/ranked counts + last recompute) comes from the same
+  // edge-cached /api/ranking payload as the rankings — no extra RPC.
+  // Missing ranked_user_count (deploy skew) degrades to gate-closed.
   const boardMeta = useBoardMeta()
 
   // Incremental rendering: start with one page, grow as the user scrolls.
@@ -57,9 +53,10 @@ export default function BoardPage() {
   const rows = coasters.data
   const countries = useMemo(() => countryOptions(rows ?? []), [rows])
   const manufacturers = useMemo(() => manufacturerOptions(rows ?? []), [rows])
+  const rankedUserCount = boardMeta.data?.ranked_user_count ?? 0
   const firstPlaceIds = useMemo(
-    () => firstPlaceVisibleIds(rows ?? [], rankedUsers.data ?? 0),
-    [rows, rankedUsers.data],
+    () => firstPlaceVisibleIds(rows ?? [], rankedUserCount),
+    [rows, rankedUserCount],
   )
 
   const filteredRows = useMemo(() => (rows ? filterCoasters(rows, filters) : []), [rows, filters])

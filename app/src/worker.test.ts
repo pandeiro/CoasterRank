@@ -311,7 +311,11 @@ const parkRows = [
   },
 ]
 // What public_board_meta() returns (the third upstream read).
-const boardMetaRow = { real_user_count: 61, last_recomputed_at: '2026-08-31T00:30:00.000Z' }
+const boardMetaRow = {
+  real_user_count: 61,
+  ranked_user_count: 47,
+  last_recomputed_at: '2026-08-31T00:30:00.000Z',
+}
 // What the worker assembles from the upstream responses.
 const rankingPayload = {
   rankings: rankingRows,
@@ -319,6 +323,7 @@ const rankingPayload = {
   generated_at: '2026-08-31T00:00:00.000Z',
   last_recomputed_at: boardMetaRow.last_recomputed_at,
   real_user_count: boardMetaRow.real_user_count,
+  ranked_user_count: boardMetaRow.ranked_user_count,
 }
 
 function rankingRequest(overrides: { method?: string; origin?: string | null } = {}) {
@@ -429,6 +434,7 @@ describe('worker: /api/ranking', () => {
     const body = await response.json()
     expect(body.last_recomputed_at).toBeNull()
     expect(body.real_user_count).toBeNull()
+    expect(body.ranked_user_count).toBeNull()
     expect(body.rankings).toEqual(rankingRows)
     // The (null-meta) payload is still cached so HITs stay consistent.
     expect(cache.put).toHaveBeenCalledTimes(1)
@@ -451,6 +457,37 @@ describe('worker: /api/ranking', () => {
     const body = await response.json()
     expect(body.last_recomputed_at).toBeNull()
     expect(body.real_user_count).toBeNull()
+    expect(body.ranked_user_count).toBeNull()
+  })
+
+  it('back-compat: old RPC without ranked_user_count degrades that field to null', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('v_coaster_rankings'))
+        return new Response(JSON.stringify(rankingRows), { status: 200 })
+      if (url.includes('public_board_meta'))
+        return new Response(
+          JSON.stringify({
+            real_user_count: 61,
+            last_recomputed_at: boardMetaRow.last_recomputed_at,
+          }),
+          {
+            status: 200,
+          },
+        )
+      return new Response(JSON.stringify(parkRows), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await worker.fetch(rankingRequest(), env)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.real_user_count).toBe(61)
+    expect(body.ranked_user_count).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(cache.put).toHaveBeenCalledTimes(1)
   })
 
   it('normalizes the cache key so query strings cannot fragment the cache', async () => {
