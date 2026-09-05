@@ -753,7 +753,10 @@ async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
           last_recomputed_at: null,
           real_user_count: null,
           ranked_user_count: null,
-        } as Pick<RankingBoardPayload, 'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'>
+        } as Pick<
+          RankingBoardPayload,
+          'last_recomputed_at' | 'real_user_count' | 'ranked_user_count'
+        >
       }
       const row = Array.isArray(data) ? data[0] : (data as Record<string, unknown> | null)
       // toCount is intentionally duplicated with worker.ts:400 — keep the
