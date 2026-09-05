@@ -40,7 +40,7 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    release: (window as any).__APP_VERSION__,
+    release: __APP_VERSION__,
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.reactRouterV7BrowserTracingIntegration({
