@@ -37,6 +37,11 @@ export type RankingRow = {
   participants: number | null
   first_place_votes: number | null
   rank: number | null
+  // The coaster's final rank in the PREVIOUS ISO week (UTC), from
+  // rank_weekly_snapshots (joined in the view). NULL when the coaster wasn't
+  // ranked at the end of last week — new to the board, or the feature's
+  // first week. Feeds the persistent "↑2 this week" badge.
+  rank_last_week: number | null
 }
 
 export type Park = {

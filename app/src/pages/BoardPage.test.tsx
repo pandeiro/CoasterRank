@@ -39,8 +39,8 @@ function LocationProbe() {
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
-function renderBoard(initialEntries = ['/']) {
-  return render(
+function boardTree(initialEntries = ['/']) {
+  return (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={initialEntries}>
         <Routes>
@@ -48,8 +48,12 @@ function renderBoard(initialEntries = ['/']) {
         </Routes>
         <LocationProbe />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
+}
+
+function renderBoard(initialEntries = ['/']) {
+  return render(boardTree(initialEntries))
 }
 
 function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
@@ -291,5 +295,46 @@ describe('BoardPage', () => {
     mockAllCoasters([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
     renderBoard()
     expect(screen.getByText('End of list')).toBeInTheDocument()
+  })
+
+  it('surfaces live rank movement after a board turnover', () => {
+    mockAllCoasters([
+      { id: 'a', name: 'Alpha', rank: 1 },
+      { id: 'b', name: 'Beta', rank: 2 },
+    ])
+    mockBoardMeta({ last_recomputed_at: '2026-09-01T00:00:00.000Z' })
+    const view = renderBoard()
+    // First load: baseline only — movement must be earned by a live turnover.
+    expect(within(screen.getByRole('table')).queryByText('↑1')).not.toBeInTheDocument()
+
+    // A recompute lands (last_recomputed_at moves) and the two swap.
+    mockAllCoasters([
+      { id: 'b', name: 'Beta', rank: 1 },
+      { id: 'a', name: 'Alpha', rank: 2 },
+    ])
+    mockBoardMeta({ last_recomputed_at: '2026-09-01T00:15:00.000Z' })
+    view.rerender(boardTree())
+    const table = within(screen.getByRole('table'))
+    expect(table.getByText('↑1')).toBeInTheDocument()
+    expect(table.getByText('↓1')).toBeInTheDocument()
+    view.unmount()
+  })
+
+  it('does not fake a turnover when only the payload object changes', () => {
+    mockAllCoasters([
+      { id: 'a', name: 'Alpha', rank: 1 },
+      { id: 'b', name: 'Beta', rank: 2 },
+    ])
+    mockBoardMeta({ last_recomputed_at: '2026-09-01T00:00:00.000Z' })
+    const view = renderBoard()
+
+    // Same recompute timestamp (e.g. an edge-cache refill): no chips.
+    mockAllCoasters([
+      { id: 'b', name: 'Beta', rank: 1 },
+      { id: 'a', name: 'Alpha', rank: 2 },
+    ])
+    view.rerender(boardTree())
+    expect(within(screen.getByRole('table')).queryByText('↑1')).not.toBeInTheDocument()
+    view.unmount()
   })
 })

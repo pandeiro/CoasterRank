@@ -25,7 +25,16 @@ function formatLastRanked(iso: string): string {
 // touch users get a stable toggle (a second tap closes). Absolutely
 // positioned so opening it never shifts the status line; dismisses on
 // outside click or Escape.
-export default function LiveStatusPopunder({ lastRankedAt }: { lastRankedAt: string | null }) {
+// turnoverId: when a board turnover lands (a recompute became visible) the
+// ping wave remounts, so the dot emits a fresh ripple — the status line
+// participates in the "living competition" beat without any new UI.
+export default function LiveStatusPopunder({
+  lastRankedAt,
+  turnoverId,
+}: {
+  lastRankedAt: string | null
+  turnoverId?: string | null
+}) {
   const [hovered, setHovered] = useState(false)
   const [pinnedOpen, setPinnedOpen] = useState(false)
   const [, setTick] = useState(0)
@@ -76,7 +85,10 @@ export default function LiveStatusPopunder({ lastRankedAt }: { lastRankedAt: str
         className="inline-flex cursor-pointer items-center gap-1.5 rounded font-medium text-accent-strong"
       >
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+          <span
+            key={turnoverId ?? 'idle'}
+            className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60"
+          />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
         </span>
         Live

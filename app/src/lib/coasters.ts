@@ -817,11 +817,18 @@ export async function refreshBoardData(queryClient: QueryClient): Promise<void> 
 
 // The whole rankings dataset, fetched once. Ordered by BT score so filtering
 // preserves the ranking. Filters and pagination happen client-side.
+// refetchInterval (aligned with the 15-min recompute cadence): a tab that
+// sits open still lands each recompute within ~30 min (edge TTL + interval),
+// which is what powers the board's turnover detection (useRankTurnover) —
+// without polling, the page would never show rank movement on its own.
+// refetchIntervalInBackground stays false: hidden tabs pick changes up on
+// focus instead.
 export function useAllCoasters() {
   return useQuery({
     queryKey: BOARD_QUERY_KEY,
     queryFn: fetchBoardData,
     staleTime: BOARD_STALE_TIME_MS,
+    refetchInterval: BOARD_STALE_TIME_MS,
     select: (data) => data.rankings,
   })
 }

@@ -48,6 +48,23 @@ export default {
           '0%': { opacity: '0.15', transform: 'translateY(3px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // Live movement chips (board turnover): fade/slide in ~0.7s, hold
+        // ~9.8s, then evaporate upward. Total 12s must stay in sync with
+        // MOVEMENT_LINGER_MS + MOVEMENT_EVAPORATION_MS in lib/rankMovement.ts
+        // (the chips unmount when the linger timer fires).
+        'movement-chip': {
+          '0%': { opacity: '0', transform: 'translateX(-8px)' },
+          '6%': { opacity: '1', transform: 'translateX(0)' },
+          '82%': { opacity: '1', transform: 'translateX(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-4px)' },
+        },
+        // Turnover crossfade (mobile list): the new rankings fade in from a
+        // low-opacity blink — the swap itself is a single commit, so this is
+        // the visible "fade back in" half of the beat.
+        'turnover-fade': {
+          '0%': { opacity: '0.2' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
         'rank-pop': 'rank-pop 240ms ease-out',

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import CoasterTable, { rankFontClass } from './CoasterTable'
 import { FEW_VOTES_THRESHOLD, type RankingRow } from '../lib/coasters'
+import type { RankTurnover } from '../lib/rankMovement'
 import { makeRankingRow } from '../test/fixtures'
 
 function rowsFrom(overrides: Parameters<typeof makeRankingRow>[0][] = []): RankingRow[] {
@@ -16,6 +17,7 @@ function renderTable(
   firstPlaceIds: Set<string> = new Set(),
   showPark = true,
   variant: 'default' | 'board' = 'default',
+  turnover?: RankTurnover,
 ) {
   return render(
     <MemoryRouter>
@@ -24,6 +26,7 @@ function renderTable(
         firstPlaceIds={firstPlaceIds}
         showPark={showPark}
         variant={variant}
+        turnover={turnover}
       />
     </MemoryRouter>,
   )
@@ -390,7 +393,134 @@ describe('CoasterTable', () => {
     renderTable(rowsFrom([{ name: 'Rated', score: 1.029 }]))
     const li = within(mobileList()).getAllByRole('listitem')[0]
     expect(li).toHaveClass('items-center')
-    const score = within(mobileList()).getByText('102.9')
-    expect(score).toHaveClass('self-center', 'bg-accent/5', 'rounded-md')
+    // Score renders through ScorePill inside a layout wrapper: the wrapper
+    // keeps the mobile self-centering, the pill keeps its tint.
+    const pill = within(mobileList()).getByText('102.9')
+    expect(pill).toHaveClass('bg-accent/5', 'rounded-md')
+    expect(pill.parentElement).toHaveClass('self-center', 'shrink-0')
+  })
+
+  it('shows the weekly delta badge on the score pill (both layouts)', () => {
+    renderTable(
+      rowsFrom([
+        { name: 'Climber', rank: 3, rank_last_week: 5, score: 1.029 },
+        { name: 'Slider', rank: 5, rank_last_week: 4, score: 1.02 },
+        { name: 'Still', rank: 6, rank_last_week: 6, score: 1.01 },
+        { name: 'NoBaseline', rank: 7, rank_last_week: null, score: 1.009 },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    const table = within(desktopTable())
+    expect(table.getByText('↑2')).toBeInTheDocument()
+    expect(table.getByText('↓1')).toBeInTheDocument()
+    expect(table.queryByText('↑0')).not.toBeInTheDocument()
+    // No baseline → no badge (first week of the feature / new coaster).
+    expect(within(desktopTable()).queryByText('↑1')).not.toBeInTheDocument()
+    // Screen readers get the words, not the glyphs.
+    expect(table.getByText('Up 2 places this week')).toHaveClass('sr-only')
+    // Mobile mirrors it.
+    expect(within(mobileList()).getByText('↑2')).toBeInTheDocument()
+  })
+
+  it('renders live movement chips in the board gutter after a turnover', () => {
+    const movement = new Map([
+      ['row-a', 2],
+      ['row-b', -1],
+    ])
+    renderTable(
+      rowsFrom([
+        { id: 'row-a', name: 'A', rank: 1 },
+        { id: 'row-b', name: 'B', rank: 2 },
+      ]),
+      new Set(),
+      true,
+      'board',
+      { movement, turnoverId: 't1' },
+    )
+    const table = within(desktopTable())
+    expect(table.getByText('↑2')).toBeInTheDocument()
+    expect(table.getByText('↓1')).toBeInTheDocument()
+    // Chips are decorative — screen readers don't hear them twice.
+    expect(table.getByText('↑2')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('keeps the gutter reserved but empty without turnover movement', () => {
+    renderTable(rowsFrom(), new Set(), true, 'board', { movement: new Map(), turnoverId: null })
+    // Reserved column exists (no layout shift when chips appear): gutter +
+    // rank + coaster + park + manufacturer + score.
+    const row = within(desktopTable()).getAllByRole('row')[1] as HTMLTableRowElement
+    expect(row.cells.length).toBe(6)
+    // …but no chips render on first load — movement must be earned.
+    expect(screen.queryByText('↑2')).not.toBeInTheDocument()
+  })
+
+  it('never renders the movement gutter outside the board variant', () => {
+    const movement = new Map([['row-a', 1]])
+    renderTable(rowsFrom([{ id: 'row-a', name: 'A', rank: 1 }]), new Set(), true, 'default', {
+      movement,
+      turnoverId: 't1',
+    })
+    // Park-detail table: rank + coaster + park + material, no gutter, no chips.
+    const row = within(desktopTable()).getAllByRole('row')[1] as HTMLTableRowElement
+    expect(row.cells.length).toBe(4)
+    expect(screen.queryByText('↑1')).not.toBeInTheDocument()
+  })
+
+  it('remounts the mobile list once per movement-bearing turnover', () => {
+    const rows = rowsFrom([
+      { id: 'row-a', name: 'A', rank: 1 },
+      { id: 'row-b', name: 'B', rank: 2 },
+    ])
+    const tree = (turnover: RankTurnover | undefined) => (
+      <MemoryRouter>
+        <CoasterTable rows={rows} showPark variant="board" turnover={turnover} />
+      </MemoryRouter>
+    )
+    const { rerender, container } = render(tree(undefined))
+    const listNode = () => container.querySelector('ul')!
+
+    // Movement turnover t1: remount + fade (key latches t1).
+    rerender(tree({ movement: new Map([['row-a', 1]]), turnoverId: 't1' }))
+    const afterTurnover = listNode()
+    expect(afterTurnover.className).toContain('animate-')
+
+    // Linger expiry (same turnover, map emptied): same DOM node — no second
+    // silent remount.
+    rerender(tree({ movement: new Map(), turnoverId: 't1' }))
+    expect(listNode()).toBe(afterTurnover)
+
+    // A later movement-LESS recompute (t2): still no remount — most
+    // recomputes move nobody.
+    rerender(tree({ movement: new Map(), turnoverId: 't2' }))
+    expect(listNode()).toBe(afterTurnover)
+
+    // The next movement-bearing turnover (t3): exactly one new remount.
+    rerender(tree({ movement: new Map([['row-b', 1]]), turnoverId: 't3' }))
+    expect(listNode()).not.toBe(afterTurnover)
+  })
+
+  it('never remounts the mobile list under prefers-reduced-motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true }), // any query → reduced here
+    )
+    try {
+      const rows = rowsFrom([{ id: 'row-a', name: 'A', rank: 1 }])
+      const tree = (turnover: RankTurnover | undefined) => (
+        <MemoryRouter>
+          <CoasterTable rows={rows} showPark variant="board" turnover={turnover} />
+        </MemoryRouter>
+      )
+      const { rerender, container } = render(tree(undefined))
+      const idleNode = container.querySelector('ul')!
+      rerender(tree({ movement: new Map([['row-a', 1]]), turnoverId: 't1' }))
+      // No latching under reduced motion → no remount, no fade class.
+      expect(container.querySelector('ul')).toBe(idleNode)
+      expect(idleNode.className).not.toContain('animate-')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
