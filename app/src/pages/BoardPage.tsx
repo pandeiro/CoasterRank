@@ -145,10 +145,14 @@ export default function BoardPage() {
                     </span>
                   </>
                 )}
+                {/* Users count is desktop-only: on mobile the line is tight
+                    and the count adds little (§2.2 gate still applies). */}
                 {showUserCount && (
                   <>
-                    <span aria-hidden="true">·</span>
-                    <span className="tabular-nums">{(userCount ?? 0).toLocaleString()} users</span>
+                    <span aria-hidden="true" className="hidden sm:inline">·</span>
+                    <span className="hidden tabular-nums sm:inline">
+                      {(userCount ?? 0).toLocaleString()} users
+                    </span>
                   </>
                 )}
                 <span aria-hidden="true">·</span>
@@ -159,7 +163,11 @@ export default function BoardPage() {
                 <StatusPulse className="w-[6.5rem]" />
                 <StatusPulse className="w-20" />
                 <StatusPulse className="w-16" />
-                <StatusPulse className="w-14" />
+                {/* Users is desktop-only (see above): its pulse hides with it. */}
+                <span
+                  aria-hidden="true"
+                  className="hidden h-4 w-14 animate-pulse rounded bg-line/60 sm:inline-block"
+                />
                 <StatusPulse className="w-12" />
               </>
             )}

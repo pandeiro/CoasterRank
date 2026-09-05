@@ -417,7 +417,7 @@ function SkeletonDemo() {
 function UsersGate() {
   return (
     <div>
-      <MockLabel note="§2.2 — count hidden at ≤50, shown above; skeleton reserves its width">
+      <MockLabel note="SHIPPED — hidden at ≤50 and always on mobile; skeleton reserves its width on desktop only">
         Users gate (&gt;50)
       </MockLabel>
       <Panel className="space-y-4 p-5 sm:p-6">

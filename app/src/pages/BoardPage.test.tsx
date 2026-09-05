@@ -156,10 +156,11 @@ describe('BoardPage', () => {
     expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
   })
 
-  it('shows the user count in the status line only past the gate', () => {
+  it('shows the user count only past the gate, desktop-only', () => {
     mockBoardMeta({ real_user_count: 61 })
     const { unmount } = renderBoard()
-    expect(screen.getByText('61 users')).toBeInTheDocument()
+    // Hidden on mobile via CSS (jsdom can't compute CSS — pin the classes).
+    expect(screen.getByText('61 users')).toHaveClass('hidden', 'sm:inline')
     unmount()
 
     mockBoardMeta({ real_user_count: 41 })
