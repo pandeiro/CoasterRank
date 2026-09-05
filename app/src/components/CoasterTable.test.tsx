@@ -57,7 +57,7 @@ function renderWithRoutes(ui: React.ReactElement) {
 
 describe('CoasterTable', () => {
   it('renders rank, name, park, and material in the desktop table', () => {
-    renderTable(rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }]))
+    renderTable(rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance', rank: 1 }]))
     const table = within(desktopTable())
     expect(table.getByText('Steel Vengeance')).toBeInTheDocument()
     expect(table.getByText('Test Park')).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('CoasterTable', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('numbers the visible list gaplessly, skipping unrated rows', () => {
+  it('shows global rank, skipping unrated rows', () => {
     renderTable(
       rowsFrom([
         { name: 'Fifth', rank: 5 },
@@ -113,15 +113,15 @@ describe('CoasterTable', () => {
       ]),
     )
     const table = within(desktopTable())
-    expect(table.getByText('1')).toBeInTheDocument()
-    expect(table.getByText('2')).toBeInTheDocument()
+    expect(table.getByText('5')).toBeInTheDocument()
+    expect(table.getByText('7')).toBeInTheDocument()
     expect(table.getByText('—')).toBeInTheDocument()
-    expect(table.queryByText('5')).not.toBeInTheDocument()
-    expect(table.queryByText('7')).not.toBeInTheDocument()
+    expect(table.queryByText('1')).not.toBeInTheDocument()
+    expect(table.queryByText('2')).not.toBeInTheDocument()
     // The mobile list mirrors the same numbering.
     const list = within(mobileList())
-    expect(list.getByText('1')).toBeInTheDocument()
-    expect(list.getByText('2')).toBeInTheDocument()
+    expect(list.getByText('5')).toBeInTheDocument()
+    expect(list.getByText('7')).toBeInTheDocument()
   })
 
   it('shows first-place votes for gated-in coasters', () => {
@@ -263,7 +263,7 @@ describe('CoasterTable', () => {
   it('navigates to the coaster page when a row is clicked', () => {
     renderWithRoutes(
       <CoasterTable
-        rows={rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])}
+        rows={rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance', rank: 1 }])}
         firstPlaceIds={new Set()}
         showPark
         variant="board"
@@ -326,7 +326,12 @@ describe('CoasterTable', () => {
   })
 
   it('right-aligns the rank column and keeps the gutter tight (§5.1/§5.2)', () => {
-    renderTable(rowsFrom(), new Set(), true, 'board')
+    renderTable(
+      rowsFrom([{ name: 'Steel Vengeance', slug: 'steel-vengeance', rank: 1 }]),
+      new Set(),
+      true,
+      'board',
+    )
     const table = within(desktopTable())
     const rankCell = table.getByText('1').closest('td')
     expect(rankCell).toHaveClass('text-right', 'px-3', 'py-2.5')

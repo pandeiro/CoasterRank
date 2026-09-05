@@ -216,22 +216,22 @@ describe('BoardPage', () => {
     expect(screen.getByTestId('location').textContent).toBe('')
   })
 
-  it('writes status=all to the URL when non-operational coasters are included', async () => {
+  it('writes status=running to the URL when filtered to operating only', async () => {
     const user = userEvent.setup()
     renderBoard()
-    await user.click(statusRadio('All'))
+    await user.click(statusRadio('Running'))
     await waitFor(() => {
-      expect(screen.getByTestId('location').textContent).toBe('status=all')
+      expect(screen.getByTestId('location').textContent).toBe('status=running')
     })
   })
 
   it('reads filters from the URL', () => {
-    renderBoard(['/?status=all&material=wood'])
-    expect(statusRadio('All')).toBeChecked()
+    renderBoard(['/?status=running&material=wood'])
+    expect(statusRadio('Running')).toBeChecked()
     expect(materialRadio('Wood')).toBeChecked()
   })
 
-  it('shows only operating coasters by default and all when the status is set to All', async () => {
+  it('shows all coasters by default and only operating when filtered to Running', async () => {
     const table = () => within(screen.getByRole('table'))
     mockAllCoasters([
       { name: 'Open', status: 'operating' },
@@ -239,12 +239,12 @@ describe('BoardPage', () => {
     ])
     renderBoard()
     expect(table().getByText('Open')).toBeInTheDocument()
-    expect(table().queryByText('Gone')).not.toBeInTheDocument()
+    expect(table().getByText('Gone')).toBeInTheDocument()
 
     const user = userEvent.setup()
-    await user.click(statusRadio('All'))
+    await user.click(statusRadio('Running'))
     await waitFor(() => {
-      expect(table().getByText('Gone')).toBeInTheDocument()
+      expect(table().queryByText('Gone')).not.toBeInTheDocument()
     })
     expect(table().getByText('Open')).toBeInTheDocument()
   })

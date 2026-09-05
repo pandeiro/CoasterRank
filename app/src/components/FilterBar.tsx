@@ -17,9 +17,9 @@ const MATERIAL_VIEWS: { value: MaterialView; label: string }[] = [
   { value: 'steel', label: 'Steel' },
 ]
 
-const STATUS_VIEWS: { value: 'running' | 'any'; label: string }[] = [
-  { value: 'running', label: 'Running' },
+const STATUS_VIEWS: { value: 'any' | 'running'; label: string }[] = [
   { value: 'any', label: 'All' },
+  { value: 'running', label: 'Running' },
 ]
 
 const groupLabel = 'flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted'
@@ -140,7 +140,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
     ? selectFilterCount
     : selectFilterCount +
       (filters.materialView !== 'everything' ? 1 : 0) +
-      (filters.allStatuses ? 1 : 0)
+      (!filters.allStatuses ? 1 : 0)
 
   // Toolbar segmenteds are CSS-gated (`hidden sm:flex`, §8.2) so the desktop
   // layout never flashes the mobile fold-in — the JS flag only decides the
@@ -246,7 +246,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                       onClick={() =>
                         update({
                           materialView: 'everything',
-                          allStatuses: false,
+                          allStatuses: true,
                           country: undefined,
                           manufacturer: undefined,
                         })

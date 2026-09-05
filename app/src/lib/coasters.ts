@@ -76,8 +76,8 @@ export type Manufacturer = {
 // as steel for filtering); 'everything' = all rows including material=other.
 export type MaterialView = 'everything' | 'wood' | 'steel'
 
-// allStatuses: false (the default) shows operating coasters only; true shows
-// every status. country/manufacturer hold display names straight off the row.
+// allStatuses: true (the default) shows every status; false shows operating
+// coasters only. country/manufacturer hold display names straight off the row.
 export type RankingFilters = {
   q?: string
   allStatuses: boolean
@@ -86,7 +86,7 @@ export type RankingFilters = {
   manufacturer?: string
 }
 
-export const DEFAULT_FILTERS: RankingFilters = { allStatuses: false, materialView: 'everything' }
+export const DEFAULT_FILTERS: RankingFilters = { allStatuses: true, materialView: 'everything' }
 
 export function isCoasterStatus(value: unknown): value is CoasterStatus {
   return typeof value === 'string' && (COASTER_STATUSES as readonly string[]).includes(value)
@@ -96,26 +96,30 @@ export function isCoasterMaterial(value: unknown): value is CoasterMaterial {
   return typeof value === 'string' && (COASTER_MATERIALS as readonly string[]).includes(value)
 }
 
-// Parse URL search params into filters. Default (no params) = operating-only,
-// all materials. Legacy links with a specific status (e.g. status=defunct)
-// fall back to the operating-only default; status=all includes everything.
+// Parse URL search params into filters. Default (no params) = all statuses,
+// all materials. status=running (or legacy operating) shows operating only;
+// status=all is explicit all (also the default); any other value (legacy
+// status=defunct, bogus, etc.) falls back to the default (all).
 export function filtersFromSearchParams(params: URLSearchParams): RankingFilters {
   const materialView = params.get('material')
+  const statusParam = params.get('status')
+  const allStatuses = statusParam === 'running' || statusParam === 'operating' ? false : true
   return {
     q: params.get('q') ?? undefined,
-    allStatuses: params.get('status') === 'all',
+    allStatuses,
     materialView: materialView === 'wood' || materialView === 'steel' ? materialView : 'everything',
     country: params.get('country') ?? undefined,
     manufacturer: params.get('manufacturer') ?? undefined,
   }
 }
 
-// Serialize filters to URL search params. The default view produces an empty
-// querystring so the canonical board URL stays clean.
+// Serialize filters to URL search params. The default view (all statuses)
+// produces an empty querystring so the canonical board URL stays clean;
+// filtering to operating-only writes status=running.
 export function filtersToSearchParams(filters: RankingFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
-  if (filters.allStatuses) params.set('status', 'all')
+  if (!filters.allStatuses) params.set('status', 'running')
   if (filters.materialView !== 'everything') params.set('material', filters.materialView)
   if (filters.country) params.set('country', filters.country)
   if (filters.manufacturer) params.set('manufacturer', filters.manufacturer)

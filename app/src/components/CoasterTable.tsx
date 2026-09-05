@@ -85,13 +85,10 @@ export default function CoasterTable({
   // park links keep their own targets by stopping propagation.
   const keepLinkTarget = (e: React.MouseEvent) => e.stopPropagation()
 
-  // Gapless display numbering over the rows as given (already ordered by the
-  // caller): rated rows count up 1, 2, 3…; unrated rows show a dash. Unlike
-  // the view's global rank, this stays sequential no matter which filters
-  // hide rows in between.
-  const positions: Array<number | null> = []
-  let rated = 0
-  for (const row of rows) positions.push(row.rank === null ? null : ++rated)
+  // Global rank directly from the view (row.rank); unrated rows show a dash.
+  // Filtering preserves BT score order, so visible gaps are intentional — the
+  // board always reflects true global position, not a re-numbered filtered slice.
+  const positions: Array<number | null> = rows.map((row) => row.rank)
 
   function parkCell(row: RankingRow) {
     if (!showPark) return null

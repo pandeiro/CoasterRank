@@ -93,12 +93,12 @@ describe('FilterBar', () => {
     fireEvent.change(screen.getByLabelText(/filter coasters/i), { target: { value: 'cobra' } })
 
     // An unrelated filter toggle lands immediately, mid-debounce…
-    fireEvent.click(statusRadio('All'))
-    expect(onChange).toHaveBeenNthCalledWith(1, { ...DEFAULT_FILTERS, allStatuses: true })
+    fireEvent.click(statusRadio('Running'))
+    expect(onChange).toHaveBeenNthCalledWith(1, { ...DEFAULT_FILTERS, allStatuses: false })
     // …and the parent re-renders with the new filters while the search is pending.
     rerender(
       <FilterBar
-        filters={{ ...DEFAULT_FILTERS, allStatuses: true }}
+        filters={{ ...DEFAULT_FILTERS, allStatuses: false }}
         onChange={onChange}
         countries={countries}
         manufacturers={manufacturers}
@@ -112,17 +112,17 @@ describe('FilterBar', () => {
     })
     expect(onChange).toHaveBeenNthCalledWith(2, {
       ...DEFAULT_FILTERS,
-      allStatuses: true,
+      allStatuses: false,
       q: 'cobra',
     })
     expect(onChange).toHaveBeenCalledTimes(2)
   })
 
-  it('calls onChange when the status is set to All', async () => {
+  it('calls onChange when the status is set to Running', async () => {
     const user = userEvent.setup()
     const { onChange } = renderBar()
-    await user.click(statusRadio('All'))
-    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_FILTERS, allStatuses: true })
+    await user.click(statusRadio('Running'))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_FILTERS, allStatuses: false })
   })
 
   it('calls onChange when a material view is selected', async () => {
@@ -158,9 +158,14 @@ describe('FilterBar', () => {
 
   it('reflects the URL-provided filters and badges the active popover count', async () => {
     const user = userEvent.setup()
-    renderBar({ ...DEFAULT_FILTERS, allStatuses: true, country: 'Canada', manufacturer: 'Intamin' })
-    expect(statusRadio('All')).toBeChecked()
-    expect(screen.getByRole('button', { name: /filters/i })).toHaveTextContent('2')
+    // All is now the default — filtering to Running is the non-default (badged on mobile only).
+    renderBar({
+      ...DEFAULT_FILTERS,
+      allStatuses: false,
+      country: 'Canada',
+      manufacturer: 'Intamin',
+    })
+    expect(statusRadio('Running')).toBeChecked()
 
     await openMore(user)
     expect(screen.getByLabelText('Country')).toHaveValue('Canada')
