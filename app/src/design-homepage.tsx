@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
 import { Badge, Panel } from './components/ui'
 
-// TEMP (homepage rework — punchlist §5.3/§6.1/§6.2/§7.1 + header placement):
-// side-by-side mocks so final calls are made here, not in app code. The
-// "Decided / start" defaults (rider-share tokens 1:1) are marked; alternatives
-// stay until the winner ships. Delete the section once decisions are baked in.
+// Shipped homepage reference — the treatments below shipped via the homepage
+// rework; alternatives were pruned once the calls were baked in. The hero
+// line placement A/B is the one remaining open call.
 
 function MockLabel({ children, note }: { children: ReactNode; note?: string }) {
   return (
@@ -66,9 +65,9 @@ function PhoneFrame({ children }: { children: ReactNode }) {
 function HeroVariants() {
   return (
     <div className="space-y-8">
-      {/* Variant B — spec reading: one line under the brand; How left, counts right. */}
+      {/* Variant B — How left, counts right. */}
       <div>
-        <MockLabel note="How-it-works at container left, counts right (spec §1.2 reading)">
+        <MockLabel note="How-it-works at container left, counts right">
           Variant B · line under brand
         </MockLabel>
         <Panel className="p-5 sm:p-6">
@@ -87,9 +86,7 @@ function HeroVariants() {
 
       {/* Variant A — status line stays beside the brand; How leads the line. */}
       <div>
-        <MockLabel note="brand left, [How + counts] right (current arrangement, How prepended)">
-          Variant A · line beside brand
-        </MockLabel>
+        <MockLabel note="brand left, [How + counts] right">Variant A · line beside brand</MockLabel>
         <Panel className="p-5 sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             <MastheadLockup />
@@ -106,14 +103,14 @@ function HeroVariants() {
         </p>
       </div>
 
-      {/* Mobile — §2.4: centered lockup, forced break, centered status line
+      {/* Mobile — centered lockup, forced break, centered status line
           with About leading (same separators, no extra gap). */}
       <div>
         <MockLabel note="mobile: centered lockup, centered status line">Mobile</MockLabel>
         <PhoneFrame>
-          <p className="flex justify-center">
+          <div className="flex justify-center">
             <MastheadLockup />
-          </p>
+          </div>
           <p className="mt-2 flex w-full items-center justify-center gap-2 text-center text-sm text-muted">
             <HowItWorks />
             <span aria-hidden="true">·</span>
@@ -129,7 +126,7 @@ function LivePopunder() {
   return (
     <div>
       <MockLabel note="hover/click/focus; outside click, Esc, blur dismiss">
-        Live ● popunder (§2.3)
+        Live ● popunder
       </MockLabel>
       <Panel className="p-5 sm:p-6">
         <p className="flex items-center gap-2 text-sm text-muted">
@@ -174,208 +171,94 @@ function rankFont(rank: number): string {
 
 function RankTreatments() {
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      {/* Current */}
-      <div>
-        <MockLabel>Current · display font</MockLabel>
-        <Panel className="overflow-hidden">
-          {RANK_ROWS.map((row) => (
-            <div
-              key={row.rank}
-              className="flex items-center gap-3 border-b border-line/70 px-4 py-3 last:border-b-0"
+    <div>
+      <MockLabel note="display font, accent numerals, ink shadow — every rank">Ranks</MockLabel>
+      <Panel className="overflow-hidden">
+        {RANK_ROWS.map((row) => (
+          <div
+            key={row.rank}
+            className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
+          >
+            <span
+              className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
             >
-              <span className="w-12 shrink-0 text-left text-muted/75">
-                <span className="display-heading text-xl leading-none">{row.rank}</span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
-                <p className="truncate text-xs text-muted">{row.park}</p>
-              </div>
+              {row.rank}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
+              <p className="truncate text-xs text-muted">{row.park}</p>
             </div>
-          ))}
-        </Panel>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          Racing Sans One reads decorative; no digit alignment (§5.1).
-        </p>
-      </div>
-
-      {/* Plain upright — §5.1/5.2 without the circle. */}
-      <div>
-        <MockLabel note="§5.1 + §5.2 only">Plain upright · right-aligned</MockLabel>
-        <Panel className="overflow-hidden">
-          {RANK_ROWS.map((row) => (
-            <div
-              key={row.rank}
-              className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
-            >
-              <span
-                className={`w-[3.25rem] shrink-0 text-right font-medium tabular-nums text-ink ${rankFont(row.rank)} leading-none`}
-              >
-                {row.rank}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
-                <p className="truncate text-xs text-muted">{row.park}</p>
-              </div>
-            </div>
-          ))}
-        </Panel>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          Fixed width, tight gutter; one font tier down at ≥100, another at ≥1000.
-        </p>
-      </div>
-
-      {/* SHIPPED: white circles around display-font accent numerals for
-          EVERY rank, with a slight dark ink drop shadow — desktop + mobile. */}
-      <div>
-        <MockLabel note="SHIPPED — display font, accent numerals, ink shadow, all ranks">
-          Circle · every rank
-        </MockLabel>
-        <Panel className="overflow-hidden">
-          {RANK_ROWS.map((row) => (
-            <div
-              key={row.rank}
-              className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
-            >
-              <span
-                className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
-              >
-                {row.rank}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
-                <p className="truncate text-xs text-muted">{row.park}</p>
-              </div>
-            </div>
-          ))}
-        </Panel>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          One tier down at ≥100, another at ≥1000 so 4-digit ranks stay inside the circle.
-        </p>
-      </div>
+          </div>
+        ))}
+      </Panel>
+      <p className="mt-2 text-xs leading-5 text-muted">
+        One tier down at ≥100, another at ≥1000 so 4-digit ranks stay inside the circle.
+      </p>
     </div>
   )
 }
 
-const PALETTES: Array<{ label: string; note: string; tints: string[] }> = [
-  {
-    label: 'Muted coral',
-    note: 'SHIPPED — 0.05 / 0.03 / 0.015, three distinct shades',
-    tints: ['bg-coral/[0.05]', 'bg-coral/[0.03]', 'bg-coral/[0.015]'],
-  },
-  {
-    label: 'Rider-share coral 1:1',
-    note: 'alternative (not shipped) — 0.08 / 0.06 / 0.04',
-    tints: ['bg-coral/[0.08]', 'bg-coral/[0.06]', 'bg-coral/[0.04]'],
-  },
-  {
-    label: 'Current surface',
-    note: 'before — surface/70, surface/35',
-    tints: ['bg-surface/70', 'bg-surface/35', 'bg-surface/35'],
-  },
-]
+const PODIUM_TINTS = ['bg-coral/[0.05]', 'bg-coral/[0.03]', 'bg-coral/[0.015]']
 
 function PaletteTreatments() {
   return (
-    <div className="grid gap-5 sm:grid-cols-3">
-      {PALETTES.map((palette) => (
-        <div key={palette.label}>
-          <MockLabel note={palette.note}>{palette.label}</MockLabel>
-          <Panel className="overflow-hidden">
-            {RANK_ROWS.slice(0, 5).map((row, index) => (
-              <div
-                key={row.rank}
-                className={`flex items-center gap-3 border-b border-line/70 px-4 py-2.5 last:border-b-0 ${
-                  index < 3 ? palette.tints[index] : 'bg-surface-bright'
-                }`}
-              >
-                <span className="w-6 shrink-0 text-right text-sm font-medium tabular-nums text-muted">
-                  {row.rank}
-                </span>
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{row.name}</p>
-              </div>
-            ))}
-          </Panel>
-        </div>
-      ))}
+    <div>
+      <MockLabel note="0.05 / 0.03 / 0.015 — three distinct shades">
+        Podium ramp · muted coral
+      </MockLabel>
+      <Panel className="overflow-hidden">
+        {RANK_ROWS.slice(0, 5).map((row, index) => (
+          <div
+            key={row.rank}
+            className={`flex items-center gap-3 border-b border-line/70 px-4 py-2.5 last:border-b-0 ${
+              index < 3 ? PODIUM_TINTS[index] : 'bg-surface-bright'
+            }`}
+          >
+            <span className="w-6 shrink-0 text-right text-sm font-medium tabular-nums text-muted">
+              {row.rank}
+            </span>
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{row.name}</p>
+          </div>
+        ))}
+      </Panel>
     </div>
   )
 }
-
-const DENSITIES: Array<{ label: string; note: string; row: string; minH: string }> = [
-  {
-    label: '−5%',
-    note: 'SHIPPED (mobile + desktop) — py-2.5 · min-h-52px',
-    row: 'py-2.5',
-    minH: 'min-h-[52px]',
-  },
-  { label: 'Current', note: 'before — py-3 · min-h-56px', row: 'py-3', minH: 'min-h-[56px]' },
-  {
-    label: 'Denser',
-    note: 'alternative (not shipped) — py-2 · min-h-48px',
-    row: 'py-2',
-    minH: 'min-h-[48px]',
-  },
-]
 
 function DensityTreatments() {
   return (
-    <div className="grid gap-5 sm:grid-cols-3">
-      {DENSITIES.map((density) => (
-        <div key={density.label}>
-          <MockLabel note={density.note}>{density.label}</MockLabel>
-          <Panel className="overflow-hidden">
-            {RANK_ROWS.slice(0, 4).map((row) => (
-              <div
-                key={row.rank}
-                className={`flex items-center gap-3 border-b border-line/70 px-4 last:border-b-0 ${density.row} ${density.minH}`}
-              >
-                <span className="w-6 shrink-0 text-right text-sm font-medium tabular-nums text-muted">
-                  {row.rank}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
-                  <p className="truncate text-xs text-muted">{row.park}</p>
-                </div>
-                <span className="text-sm tabular-nums text-muted">102.9</span>
-              </div>
-            ))}
-          </Panel>
-        </div>
-      ))}
+    <div>
+      <MockLabel note="py-2.5 · min-h-52px, mobile + desktop">Row density · −5%</MockLabel>
+      <Panel className="overflow-hidden">
+        {RANK_ROWS.slice(0, 4).map((row) => (
+          <div
+            key={row.rank}
+            className="flex min-h-[52px] items-center gap-3 border-b border-line/70 px-4 py-2.5 last:border-b-0"
+          >
+            <span className="w-6 shrink-0 text-right text-sm font-medium tabular-nums text-muted">
+              {row.rank}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-ink">{row.name}</p>
+              <p className="truncate text-xs text-muted">{row.park}</p>
+            </div>
+            <span className="text-sm tabular-nums text-muted">102.9</span>
+          </div>
+        ))}
+      </Panel>
     </div>
   )
 }
-
-const SCORE_TREATMENTS: Array<{ label: string; className: string }> = [
-  {
-    label: 'SHIPPED · accent-tint pill (600 ink)',
-    className: 'rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink',
-  },
-  { label: 'alternative · 500 ink', className: 'text-sm font-medium tabular-nums text-ink' },
-  {
-    label: 'alternative · 500 accent-strong',
-    className: 'text-sm font-medium tabular-nums text-accent-strong',
-  },
-  {
-    label: 'alternative · 600 ink + accent underline',
-    className:
-      'text-sm font-semibold tabular-nums text-ink underline decoration-accent decoration-2 underline-offset-4',
-  },
-  { label: 'before · muted', className: 'text-sm tabular-nums text-muted' },
-]
 
 function ScoreTreatments() {
   return (
     <div>
-      <MockLabel note="§7.1 — pick one; weight × accent matrix">Score emphasis</MockLabel>
-      <Panel className="grid gap-x-6 gap-y-4 p-5 sm:grid-cols-3 sm:p-6">
-        {SCORE_TREATMENTS.map((treatment) => (
-          <div key={treatment.label} className="flex items-center justify-between gap-4">
-            <span className="text-xs leading-5 text-muted">{treatment.label}</span>
-            <span className={treatment.className}>102.9</span>
-          </div>
-        ))}
+      <MockLabel note="accent-tint pill, 600 ink">Score emphasis</MockLabel>
+      <Panel className="flex items-center justify-between gap-4 p-5 sm:p-6">
+        <span className="text-xs leading-5 text-muted">shipped · rounded accent-tint pill</span>
+        <span className="rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink">
+          102.9
+        </span>
       </Panel>
     </div>
   )
@@ -384,7 +267,7 @@ function ScoreTreatments() {
 function SkeletonDemo() {
   return (
     <div>
-      <MockLabel note="§8.1/§8.3 — reserved slots with pulse bars, mirrored gutter/centering">
+      <MockLabel note="reserved slots with pulse bars, mirrored gutter/centering">
         Skeletons
       </MockLabel>
       <div className="grid gap-5 sm:grid-cols-2">
@@ -429,7 +312,7 @@ function SkeletonDemo() {
 function UsersGate() {
   return (
     <div>
-      <MockLabel note="SHIPPED — hidden at ≤50 and always on mobile; skeleton reserves its width on desktop only">
+      <MockLabel note="hidden at ≤50 and always on mobile; skeleton reserves its width on desktop only">
         Users gate (&gt;50)
       </MockLabel>
       <Panel className="space-y-4 p-5 sm:p-6">
@@ -454,11 +337,10 @@ export function HomepageMocks() {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge tone="coral">Homepage rework — mocks</Badge>
+        <Badge tone="coral">Homepage — shipped reference</Badge>
         <span className="text-xs text-muted">
-          Punchlist §1–§8 · final calls baked in (marked SHIPPED): muted coral podium, all-rank
-          circles, −5% density, accent-tint score pill, plain "About" link. Hero variant A/B still
-          open.
+          Muted coral podium, all-rank circles, −5% density, accent-tint score pill — alternatives
+          pruned once shipped. Hero line placement A/B is the remaining open call.
         </span>
       </div>
       <Panel className="p-5 sm:p-6">
