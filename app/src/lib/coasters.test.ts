@@ -30,23 +30,23 @@ vi.mock('./supabase', () => ({
 }))
 
 describe('filtersFromSearchParams', () => {
-  it('defaults to operating-only, everything material with no params (clean URL)', () => {
+  it('defaults to all statuses, everything material with no params (clean URL)', () => {
     expect(filtersFromSearchParams(new URLSearchParams(''))).toEqual({
-      allStatuses: false,
+      allStatuses: true,
       materialView: 'everything',
     })
   })
 
   it('parses all filter pairs', () => {
     const params = new URLSearchParams(
-      'q=cobra&country=United States&manufacturer=Intamin&material=steel&status=all',
+      'q=cobra&country=United States&manufacturer=Intamin&material=steel&status=running',
     )
     expect(filtersFromSearchParams(params)).toEqual({
       q: 'cobra',
       country: 'United States',
       manufacturer: 'Intamin',
       materialView: 'steel',
-      allStatuses: true,
+      allStatuses: false,
     })
   })
 
@@ -54,9 +54,14 @@ describe('filtersFromSearchParams', () => {
     expect(filtersFromSearchParams(new URLSearchParams('status=all')).allStatuses).toBe(true)
   })
 
-  it('falls back to the operating-only default for legacy specific statuses', () => {
-    expect(filtersFromSearchParams(new URLSearchParams('status=defunct')).allStatuses).toBe(false)
-    expect(filtersFromSearchParams(new URLSearchParams('status=bogus')).allStatuses).toBe(false)
+  it('treats status=running and status=operating as operating-only', () => {
+    expect(filtersFromSearchParams(new URLSearchParams('status=running')).allStatuses).toBe(false)
+    expect(filtersFromSearchParams(new URLSearchParams('status=operating')).allStatuses).toBe(false)
+  })
+
+  it('falls back to the all-status default for legacy specific statuses', () => {
+    expect(filtersFromSearchParams(new URLSearchParams('status=defunct')).allStatuses).toBe(true)
+    expect(filtersFromSearchParams(new URLSearchParams('status=bogus')).allStatuses).toBe(true)
   })
 
   it('falls back to everything for unknown material values', () => {
@@ -76,10 +81,10 @@ describe('filtersToSearchParams', () => {
       ...DEFAULT_FILTERS,
       q: 'cobra',
       country: 'United States',
-      allStatuses: true,
+      allStatuses: false,
       materialView: 'wood',
     })
-    expect(params.toString()).toBe('q=cobra&status=all&material=wood&country=United+States')
+    expect(params.toString()).toBe('q=cobra&status=running&material=wood&country=United+States')
   })
 
   it('round-trips through filtersFromSearchParams', () => {
@@ -87,9 +92,13 @@ describe('filtersToSearchParams', () => {
       ...DEFAULT_FILTERS,
       q: 'ghost',
       materialView: 'wood' as const,
-      allStatuses: true,
+      allStatuses: false,
     }
     expect(filtersFromSearchParams(filtersToSearchParams(filters))).toEqual(filters)
+  })
+
+  it('round-trips the default (all) through filtersFromSearchParams', () => {
+    expect(filtersFromSearchParams(filtersToSearchParams(DEFAULT_FILTERS))).toEqual(DEFAULT_FILTERS)
   })
 })
 
@@ -134,16 +143,19 @@ describe('filterCoasters', () => {
     }),
   ]
 
-  it('defaults to operating only', () => {
+  it('defaults to all statuses', () => {
     expect(filterCoasters(rows, DEFAULT_FILTERS).map((r) => r.slug)).toEqual([
       'steel-vengeance',
       'wicker-man',
+      'mean-streak',
       'iron-gwazi',
     ])
   })
 
-  it('keeps every status for allStatuses', () => {
-    expect(filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: true })).toHaveLength(4)
+  it('keeps operating only when filtered to running', () => {
+    expect(
+      filterCoasters(rows, { ...DEFAULT_FILTERS, allStatuses: false }).map((r) => r.slug),
+    ).toEqual(['steel-vengeance', 'wicker-man', 'iron-gwazi'])
   })
 
   it('shows wooden only for materialView=wood', () => {
