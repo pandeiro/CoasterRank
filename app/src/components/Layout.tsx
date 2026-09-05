@@ -72,7 +72,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="flex min-h-dvh flex-col bg-canvas">
       <header
         className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
           showBrand ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
@@ -112,7 +112,7 @@ export default function Layout() {
           </nav>
         </div>
       </header>
-      <main className="page-container pt-4 pb-8 sm:pt-6 sm:pb-10">
+      <main className="page-container w-full flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
         <Outlet />
       </main>
       <ImpersonationBanner />
