@@ -6,6 +6,12 @@ export default function Footer() {
       <div className="page-container flex flex-col items-center gap-3 py-6 text-xs text-muted sm:flex-row sm:justify-between">
         <span>&copy; {new Date().getFullYear()} CoasterRank Contributors</span>
         <nav className="flex items-center gap-4">
+          <Link to="/about" className="transition-colors hover:text-ink">
+            About
+          </Link>
+          <Link to="/faq" className="transition-colors hover:text-ink">
+            FAQ
+          </Link>
           <Link to="/terms" className="transition-colors hover:text-ink">
             Terms
           </Link>

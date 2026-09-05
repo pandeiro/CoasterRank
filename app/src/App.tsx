@@ -8,6 +8,7 @@ import RequireAuth from './components/RequireAuth'
 import { AuthProvider } from './lib/auth'
 import AdminPage from './pages/AdminPage'
 import AboutPage from './pages/AboutPage'
+import FaqPage from './pages/FaqPage'
 import BoardPage from './pages/BoardPage'
 import CoasterDetailPage from './pages/CoasterDetailPage'
 import LoginPage from './pages/LoginPage'
@@ -54,6 +55,7 @@ export default function App() {
               <Route element={<Layout />} errorElement={<RootErrorBoundary />}>
                 <Route path="/" element={<BoardPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/faq" element={<FaqPage />} />
                 <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
                 <Route path="/parks/:slug" element={<ParkDetailPage />} />
                 <Route path="/riders/:username" element={<RiderPage />} />
