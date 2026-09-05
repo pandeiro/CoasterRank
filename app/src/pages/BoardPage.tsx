@@ -124,7 +124,7 @@ export default function BoardPage() {
               Coaster<span className="text-coral">Rank</span>
             </span>
           </h1>
-          <p className="flex min-h-6 w-full flex-wrap items-center justify-end gap-2 text-sm text-muted sm:w-auto">
+          <p className="flex min-h-6 w-full flex-wrap items-center justify-center gap-2 text-sm text-muted sm:w-auto sm:justify-end">
             {rows ? (
               <>
                 <Link

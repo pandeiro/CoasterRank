@@ -106,15 +106,15 @@ function HeroVariants() {
         </p>
       </div>
 
-      {/* Mobile — §2.4: centered lockup, forced break, right-aligned status with
-          How-it-works as the leftmost item (same separators, no extra gap). */}
+      {/* Mobile — §2.4: centered lockup, forced break, centered status line
+          with About leading (same separators, no extra gap). */}
       <div>
-        <MockLabel note="mobile: centered lockup, right-aligned status line">Mobile</MockLabel>
+        <MockLabel note="mobile: centered lockup, centered status line">Mobile</MockLabel>
         <PhoneFrame>
           <p className="flex justify-center">
             <MastheadLockup />
           </p>
-          <p className="mt-2 flex w-full items-center justify-end gap-2 text-right text-sm text-muted">
+          <p className="mt-2 flex w-full items-center justify-center gap-2 text-center text-sm text-muted">
             <HowItWorks />
             <span aria-hidden="true">·</span>
             <StatusCounts />
