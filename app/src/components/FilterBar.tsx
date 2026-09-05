@@ -88,14 +88,34 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
   const filtersRef = useRef(filters)
   filtersRef.current = filters
 
+  // The input keeps its own instant copy of the query so typing never waits
+  // on the 300ms debounce; the URL catches up afterwards. The effect below
+  // syncs URL → input, but only for *external* changes (deep link, back/
+  // forward nav). A change that is just the echo of what this component's
+  // debounce sent upstream must be skipped: if a keystroke lands between the
+  // debounce firing and this effect running, adopting the echo would clobber
+  // the newer input with the older URL value (the "dropped last character"
+  // bug). Tracked in URL space — trimmed, empty for absent.
+  const lastSentRef = useRef(filters.q ?? '')
+
   useEffect(() => {
-    setSearch(filters.q ?? '')
+    const urlQ = filters.q ?? ''
+    if (urlQ === lastSentRef.current) return
+    lastSentRef.current = urlQ
+    setSearch(urlQ)
   }, [filters.q])
 
   useEffect(() => {
     const id = setTimeout(() => {
       const current = filtersRef.current
-      if (search !== (current.q ?? '')) onChange({ ...current, q: search.trim() || undefined })
+      if (search !== (current.q ?? '')) {
+        // The parent filters on the trimmed value, but the input keeps
+        // exactly what was typed — the echo guard above matches on the
+        // trimmed value, so a trailing space survives the round-trip.
+        const q = search.trim() || undefined
+        lastSentRef.current = q ?? ''
+        onChange({ ...current, q })
+      }
     }, 300)
     return () => clearTimeout(id)
   }, [search, onChange])
