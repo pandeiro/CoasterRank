@@ -124,7 +124,7 @@ export const fieldClassName =
   'w-full rounded-lg border border-line bg-surface-bright px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-accent-strong focus:outline-none'
 
 export const selectClassName =
-  'appearance-none rounded-lg border border-line bg-surface-bright bg-no-repeat bg-[length:12px_8px] bg-[position:right_0.7rem_center] bg-[url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2012%208%22%3E%3Cpath%20fill=%22none%22%20stroke=%22%234a4a5a%22%20stroke-width=%221.75%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%20d=%22m2%202%204%204%204-4%22/%3E%3C/svg%3E")] py-2 pl-3 pr-10 text-sm text-ink transition-colors focus:border-accent-strong focus:outline-none'
+  'appearance-none rounded-lg border border-line bg-surface-bright bg-no-repeat bg-[length:12px_8px] bg-[position:right_0.7rem_center] bg-[url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2012%208%22%3E%3Cpath%20fill=%22none%22%20stroke=%22%234a4a5a%22%20stroke-width=%221.75%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%20d=%22m2%202%204%204%204-4%22/%3E%3C/svg%3E")] py-2.5 pl-3 pr-10 text-sm text-ink transition-colors focus:border-accent-strong focus:outline-none'
 
 export function Modal({
   isOpen,

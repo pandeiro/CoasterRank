@@ -29,18 +29,20 @@ function Segmented<T extends string>({
   value,
   options,
   onChange,
+  className = '',
 }: {
   groupLabel: string
   value: T
   options: { value: T; label: string }[]
   onChange: (value: T) => void
+  className?: string
 }) {
   return (
     // One control system across the toolbar: quiet outlined buttons whose
     // selected state is the teal accent (interactive emphasis), so toggles
     // stop competing with the navy wordmark for visual weight.
-    <div role="radiogroup" aria-label={label} className="flex items-center gap-2">
-      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+    <div role="radiogroup" aria-label={label} className={`flex items-center gap-2 ${className}`}>
+      <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
         {label}
       </span>
       <div className="flex">
@@ -140,7 +142,29 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
       (filters.materialView !== 'everything' ? 1 : 0) +
       (filters.allStatuses ? 1 : 0)
 
+  // Toolbar segmenteds are CSS-gated (`hidden sm:flex`, §8.2) so the desktop
+  // layout never flashes the mobile fold-in — the JS flag only decides the
+  // active-count badge and what the popover contains.
   const materialGroup = (
+    <Segmented
+      groupLabel="Track"
+      value={filters.materialView}
+      options={MATERIAL_VIEWS}
+      onChange={(materialView) => update({ materialView })}
+      className="hidden sm:flex"
+    />
+  )
+  const statusGroup = (
+    <Segmented
+      groupLabel="Status"
+      value={filters.allStatuses ? 'any' : 'running'}
+      options={STATUS_VIEWS}
+      onChange={(status) => update({ allStatuses: status === 'any' })}
+      className="hidden sm:flex"
+    />
+  )
+  // Popover copies (mobile only): always visible inside the sheet.
+  const popoverMaterial = (
     <Segmented
       groupLabel="Track"
       value={filters.materialView}
@@ -148,7 +172,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
       onChange={(materialView) => update({ materialView })}
     />
   )
-  const statusGroup = (
+  const popoverStatus = (
     <Segmented
       groupLabel="Status"
       value={filters.allStatuses ? 'any' : 'running'}
@@ -165,7 +189,9 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
     ))
 
   return (
-    <Panel className="p-2.5 sm:p-3">
+    // min-h floor keeps the toolbar a fixed slot (§8.2); content height is
+    // defined by the (always-rendered) controls themselves.
+    <Panel className="min-h-[3.25rem] p-2.5 sm:p-3">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1 sm:min-w-[15rem]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -175,12 +201,13 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             placeholder="Filter by coaster or park name…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`${fieldClassName} py-2 pl-9 pr-3`}
+            className={fieldClassName + ' pl-9'}
           />
         </div>
-        {isDesktop && materialGroup}
-        {isDesktop && statusGroup}
+        {materialGroup}
+        {statusGroup}
         <div className="relative shrink-0" ref={moreRef}>
+          {' '}
           <button
             ref={moreButtonRef}
             type="button"
@@ -197,7 +224,6 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
               </span>
             )}
           </button>
-
           {moreOpen && (
             <>
               {/* Mobile backdrop */}
@@ -206,7 +232,10 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                 onClick={() => setMoreOpen(false)}
                 aria-hidden="true"
               />
-              <div className="fixed inset-x-0 top-16 z-50 space-y-4 border-b border-line bg-surface-bright px-4 py-4 shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:z-20 sm:mt-2 sm:w-72 sm:rounded-xl sm:border sm:border-line sm:p-4 sm:shadow-lift">
+              <div
+                data-testid="filter-popover"
+                className="fixed inset-x-0 top-16 z-50 space-y-4 border-b border-line bg-surface-bright px-4 py-4 shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:z-20 sm:mt-2 sm:w-72 sm:rounded-xl sm:border sm:border-line sm:p-4 sm:shadow-lift"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted">
                     {isDesktop ? 'More filters' : 'Filters'}
@@ -230,8 +259,8 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                 </div>
                 {!isDesktop && (
                   <>
-                    {materialGroup}
-                    {statusGroup}
+                    {popoverMaterial}
+                    {popoverStatus}
                   </>
                 )}
                 <label className={groupLabel}>
@@ -240,7 +269,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                     aria-label="Country"
                     value={filters.country ?? ''}
                     onChange={(e) => update({ country: e.target.value || undefined })}
-                    className={selectClassName}
+                    className={`${selectClassName} w-full min-w-[12rem]`}
                   >
                     <option value="">All countries</option>
                     {pinned.length > 0 ? (
@@ -259,7 +288,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                     aria-label="Manufacturer"
                     value={filters.manufacturer ?? ''}
                     onChange={(e) => update({ manufacturer: e.target.value || undefined })}
-                    className={selectClassName}
+                    className={`${selectClassName} w-full min-w-[12rem]`}
                   >
                     <option value="">All manufacturers</option>
                     {manufacturers.map((name) => (
