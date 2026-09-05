@@ -126,7 +126,7 @@ describe('BoardPage', () => {
     expect(screen.getByText('Live')).toBeInTheDocument()
   })
 
-  it('shows a loading state with hero status pulses while pending', () => {
+  it('shows a loading state with skeleton pulses while pending', () => {
     vi.mocked(useAllCoasters).mockReturnValue({
       data: undefined,
       isPending: true,
@@ -134,9 +134,10 @@ describe('BoardPage', () => {
     } as never)
     mockBoardMetaPending()
     const { container } = renderBoard()
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
-    // Hero reservation (§8.1): the status line always renders, pulsing until
-    // the payload lands.
+    // §8.3: no text state — the reserved slot holds skeleton bars, and the
+    // hero status line pulses too (§8.1).
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(8)
     expect(container.querySelector('[data-board-hero] .animate-pulse')).not.toBeNull()
   })
 
@@ -202,11 +203,11 @@ describe('BoardPage', () => {
 
   it('renders the ranked rows and links to the park', () => {
     renderBoard()
-    expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Test Park' })).toHaveAttribute(
-      'href',
-      '/parks/test-park',
-    )
+    // Both CSS-gated layouts render the row; scope to the desktop table.
+    expect(within(screen.getByRole('table')).getByText('Steel Vengeance')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('table')).getByRole('link', { name: 'Test Park' }),
+    ).toHaveAttribute('href', '/parks/test-park')
   })
 
   it('keeps the default URL clean (no querystring)', () => {
@@ -230,20 +231,21 @@ describe('BoardPage', () => {
   })
 
   it('shows only operating coasters by default and all when the status is set to All', async () => {
+    const table = () => within(screen.getByRole('table'))
     mockAllCoasters([
       { name: 'Open', status: 'operating' },
       { name: 'Gone', status: 'defunct' },
     ])
     renderBoard()
-    expect(screen.getByText('Open')).toBeInTheDocument()
-    expect(screen.queryByText('Gone')).not.toBeInTheDocument()
+    expect(table().getByText('Open')).toBeInTheDocument()
+    expect(table().queryByText('Gone')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
     await user.click(statusRadio('All'))
     await waitFor(() => {
-      expect(screen.getByText('Gone')).toBeInTheDocument()
+      expect(table().getByText('Gone')).toBeInTheDocument()
     })
-    expect(screen.getByText('Open')).toBeInTheDocument()
+    expect(table().getByText('Open')).toBeInTheDocument()
   })
 
   it('offers country and manufacturer filters in the Filters popover', async () => {
@@ -268,8 +270,8 @@ describe('BoardPage', () => {
       { name: 'Unvoted', first_place_votes: 0, participants: 10, rank: 3 },
     ])
     const { unmount } = renderBoard()
-    expect(screen.getByText('12 (30%)')).toBeInTheDocument()
-    expect(screen.getByText('8 (27%)')).toBeInTheDocument()
+    expect(screen.getAllByText('12 (30%)')).toHaveLength(2)
+    expect(screen.getAllByText('8 (27%)')).toHaveLength(2)
     expect(screen.queryByText('0 (0%)')).not.toBeInTheDocument()
     unmount()
 
@@ -290,14 +292,15 @@ describe('BoardPage', () => {
     }))
     mockAllCoasters(many)
     renderBoard()
+    const table = within(screen.getByRole('table'))
 
-    expect(screen.getByText('Coaster 0')).toBeInTheDocument()
-    expect(screen.queryByText(`Coaster ${PAGE_SIZE}`)).not.toBeInTheDocument()
+    expect(table.getByText('Coaster 0')).toBeInTheDocument()
+    expect(table.queryByText(`Coaster ${PAGE_SIZE}`)).not.toBeInTheDocument()
     expect(screen.queryByText('End of list')).not.toBeInTheDocument()
 
     observeCallback?.([{ isIntersecting: true }])
     await waitFor(() => {
-      expect(screen.getByText(`Coaster ${PAGE_SIZE}`)).toBeInTheDocument()
+      expect(table.getByText(`Coaster ${PAGE_SIZE}`)).toBeInTheDocument()
     })
     expect(screen.getByText('End of list')).toBeInTheDocument()
   })

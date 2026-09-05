@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import BoardSkeleton from '../components/BoardSkeleton'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
 import LiveStatusPopunder from '../components/LiveStatusPopunder'
@@ -76,6 +77,23 @@ export default function BoardPage() {
   const userCount = boardMeta.data?.real_user_count ?? null
   const showUserCount = userCount !== null && userCount > USER_COUNT_VISIBILITY_GATE
   const lastRankedAt = boardMeta.data?.last_recomputed_at ?? boardMeta.data?.generated_at ?? null
+
+  // §8.3: the table slot cross-fades from the skeleton instead of swapping —
+  // the table fades in over one paint, the skeleton fades out and unmounts.
+  // Only the initial load fades; filter changes never re-trigger it.
+  const [tableVisible, setTableVisible] = useState(false)
+  const [skeletonGone, setSkeletonGone] = useState(false)
+
+  useEffect(() => {
+    if (coasters.isPending) {
+      setTableVisible(false)
+      setSkeletonGone(false)
+      return
+    }
+    setTableVisible(true)
+    const timer = setTimeout(() => setSkeletonGone(true), 350)
+    return () => clearTimeout(timer)
+  }, [coasters.isPending])
 
   const onFiltersChange = useCallback(
     (next: RankingFilters) => {
@@ -154,19 +172,33 @@ export default function BoardPage() {
         countries={countries}
         manufacturers={manufacturers}
       />
-      <div className="mt-4 sm:mt-6">
+      <div className="relative mt-4 min-h-[60vh] sm:mt-6 sm:min-h-[65vh]">
         {coasters.isError ? (
           <MessageState tone="danger">Couldn&apos;t load the board.</MessageState>
-        ) : coasters.isPending ? (
-          <MessageState>Loading…</MessageState>
         ) : (
           <>
-            <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} variant="board" />
-            <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
-            {!hasNextPage && visibleRows.length > 0 && (
-              <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">
-                End of list
-              </p>
+            {!skeletonGone && (
+              <div
+                aria-hidden="true"
+                className={`absolute inset-x-0 top-0 transition-opacity duration-300 ${
+                  tableVisible ? 'pointer-events-none opacity-0' : 'opacity-100'
+                }`}
+              >
+                <BoardSkeleton />
+              </div>
+            )}
+            {!coasters.isPending && (
+              <div
+                className={`transition-opacity duration-300 ${tableVisible ? 'opacity-100' : 'opacity-0'}`}
+              >
+                <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} variant="board" />
+                <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
+                {!hasNextPage && visibleRows.length > 0 && (
+                  <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">
+                    End of list
+                  </p>
+                )}
+              </div>
             )}
           </>
         )}

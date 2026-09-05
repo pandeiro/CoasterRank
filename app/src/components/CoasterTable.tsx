@@ -6,7 +6,7 @@ import {
   type CoasterStatus,
   type RankingRow,
 } from '../lib/coasters'
-import { useMediaQuery } from '../lib/use-media-query'
+import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
 import FewVotesBadge from './FewVotesBadge'
 import { Badge, MessageState, Panel } from './ui'
 
@@ -19,20 +19,46 @@ function statusPill(status: CoasterStatus): { label: string; tone: 'accent' | 'n
     : { label: 'Historic', tone: 'neutral' }
 }
 
-// Enthusiast-standard abbreviations, applied only when the full name would
-// otherwise truncate; the full name stays available via the title attribute.
-const MANUFACTURER_ABBREVIATIONS: Record<string, string> = {
-  'Bolliger & Mabillard': 'B&M',
-  'Rocky Mountain Construction': 'RMC',
+// Podium hierarchy (§6.1): rider-share coral tokens 1:1 — #1 strongest warm
+// tint, #2/#3 near-imperceptible, #4+ white. Muted alternatives live on the
+// design board for the final call.
+function rowTint(position: number | null): string {
+  if (position === 1) return 'bg-coral/[0.08] hover:bg-coral/[0.08]'
+  if (position === 2 || position === 3) return 'bg-coral/[0.06] hover:bg-coral/[0.06]'
+  return 'hover:bg-canvas'
 }
 
-// Quiet hierarchy for the podium: a slightly stronger tint for #1, a fainter
-// one for #2–3. Neutral surface color only — accents are never assigned to
-// rank positions.
-function rankTint(position: number | null): string {
-  if (position === 1) return 'bg-surface/70'
-  if (position === 2 || position === 3) return 'bg-surface/35'
-  return ''
+// §5.2: one font tier down at ≥100, another at ≥1000, so 3–4 digit ranks
+// stay inside the fixed column (and the 40px circle) without clipping.
+// Exported for unit testing (the display numbering is gapless over the given
+// rows, so ≥100 positions only occur deep in a real board).
+export function rankFontClass(position: number): string {
+  if (position >= 1000) return 'text-xs'
+  if (position >= 100) return 'text-sm'
+  return 'text-base'
+}
+
+// §5.1–5.3: upright, slightly heavier tabular-nums (display font dropped) in
+// the rider-share circle treatment — white circle + accent numeral for the
+// podium, bare right-aligned number for everything else. The desktop column
+// right-aligns so circles and numbers share an edge (§5.1).
+function RankBadge({ position }: { position: number }) {
+  if (position <= 3) {
+    return (
+      <span
+        className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center font-semibold leading-none tabular-nums text-accent-strong shadow-sm ${rankFontClass(position)}`}
+      >
+        {position}
+      </span>
+    )
+  }
+  return (
+    <span
+      className={`font-semibold leading-none tabular-nums text-muted ${rankFontClass(position)}`}
+    >
+      {position}
+    </span>
+  )
 }
 
 // Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
@@ -47,7 +73,7 @@ type Props = {
   showPark?: boolean
   /** Ids whose row shows the first-place pill (see firstPlaceVisibleIds). */
   firstPlaceIds?: Set<string>
-  /** 'board' swaps Material for Manufacturer + Country (home page table). */
+  /** 'board' swaps Material for Manufacturer (home page table). */
   variant?: 'default' | 'board'
 }
 
@@ -57,7 +83,6 @@ export default function CoasterTable({
   firstPlaceIds = new Set(),
   variant = 'default',
 }: Props) {
-  const isDesktop = useMediaQuery('(min-width: 640px)')
   const navigate = useNavigate()
 
   if (rows.length === 0) {
@@ -115,10 +140,80 @@ export default function CoasterTable({
     )
   }
 
-  if (!isDesktop) {
+  function mobileItems() {
+    return rows.map((row, index) => {
+      const position = positions[index]
+      const firstPlace = firstPlaceIds.has(row.id)
+        ? firstPlaceLabel(row.first_place_votes, row.participants)
+        : null
+
+      return (
+        <li
+          key={row.id}
+          onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
+          className={`flex min-h-[52px] cursor-pointer items-center gap-2.5 px-4 py-2.5 transition-colors ${rowTint(position)}`}
+        >
+          <span className="w-10 shrink-0 self-center text-center">
+            {position === null ? (
+              <span className="text-base text-muted">—</span>
+            ) : (
+              <RankBadge position={position} />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-h-6 items-center gap-x-2">
+              <Link
+                to={`/coasters/${row.slug}`}
+                onClick={keepLinkTarget}
+                className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
+              >
+                {row.name}
+              </Link>
+              {badges(row, firstPlace)}
+            </div>
+            {showPark && row.park_name && row.park_slug && (
+              <div className="mt-0.5 min-w-0 truncate text-sm text-muted">{parkCell(row)}</div>
+            )}
+          </div>
+          {/* §7.2: score centers vertically, matching the rank circle. */}
+          {row.score !== null && (
+            <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-ink">
+              {formatScore(row.score)}
+            </span>
+          )}
+        </li>
+      )
+    })
+  }
+
+  function desktopTable() {
     return (
-      <Panel className="overflow-hidden">
-        <ul className="divide-y divide-line/70">
+      <table className="w-full table-fixed text-sm">
+        <thead>
+          <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            <th className="w-[4.5rem] px-3 py-2.5 text-right">
+              <span className="sr-only">Rank</span>
+            </th>
+            <th className="py-2.5 pl-3 pr-4">Coaster</th>
+            {showPark && <th className="w-[30%] px-4 py-2.5">Park</th>}
+            {variant === 'board' ? (
+              <>
+                <th className="hidden w-56 px-4 py-2.5 lg:table-cell">Manufacturer</th>
+                <th className="w-20 px-4 py-2.5 text-right">
+                  <span
+                    title="Bradley–Terry strength index from head-to-head rider comparisons; 100 is the community average"
+                    className="cursor-help"
+                  >
+                    Score
+                  </span>
+                </th>
+              </>
+            ) : (
+              <th className="w-28 px-4 py-2.5">Material</th>
+            )}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line/70">
           {rows.map((row, index) => {
             const position = positions[index]
             const firstPlace = firstPlaceIds.has(row.id)
@@ -126,20 +221,22 @@ export default function CoasterTable({
               : null
 
             return (
-              <li
+              <tr
                 key={row.id}
                 onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
-                className={`flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-canvas ${rankTint(position)}`}
+                className={`group cursor-pointer transition-colors ${rowTint(position)}`}
               >
-                <span className="w-9 shrink-0 self-center text-right">
+                <td className="px-3 py-2.5 text-right">
                   {position === null ? (
-                    <span className="text-base text-muted">—</span>
+                    <span className="text-sm text-muted">—</span>
                   ) : (
-                    <span className="display-heading text-lg text-muted/75">{position}</span>
+                    <RankBadge position={position} />
                   )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1">
+                </td>
+                {/* §4.3: fixed-width column + truncation — badges can never
+                    reflow Park/Manufacturer (table-fixed + nowrap). */}
+                <td className="py-2.5 pl-3 pr-4">
+                  <div className="flex min-h-6 items-center gap-2">
                     <Link
                       to={`/coasters/${row.slug}`}
                       onClick={keepLinkTarget}
@@ -148,125 +245,49 @@ export default function CoasterTable({
                       {row.name}
                     </Link>
                     {badges(row, firstPlace)}
-                    {row.score !== null && (
-                      <span className="ml-auto shrink-0 pl-2 text-sm text-muted tabular-nums">
-                        {formatScore(row.score)}
-                      </span>
-                    )}
                   </div>
-                  {showPark && row.park_name && row.park_slug && (
-                    <div className="mt-0.5 min-w-0 truncate text-sm text-muted">
-                      {parkCell(row)}
-                    </div>
-                  )}
-                </div>
-              </li>
+                </td>
+                {showPark && (
+                  <td className="px-4 py-2.5 text-muted">
+                    <div className="truncate">{parkCell(row)}</div>
+                  </td>
+                )}
+                {variant === 'board' ? (
+                  <>
+                    <td className="hidden px-4 py-2.5 text-muted lg:table-cell">
+                      {row.manufacturer_name ? (
+                        <div className="truncate" title={row.manufacturer_name}>
+                          {MANUFACTURER_ABBREVIATIONS[row.manufacturer_name] ??
+                            row.manufacturer_name}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    {/* §7.1: heavier tabular score (600/ink start — weight and
+                        accent alternatives on the design board). */}
+                    <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums text-ink">
+                      {row.score === null ? '—' : formatScore(row.score)}
+                    </td>
+                  </>
+                ) : (
+                  <td className="px-4 py-2.5 capitalize text-muted">{capitalize(row.material)}</td>
+                )}
+              </tr>
             )
           })}
-        </ul>
-      </Panel>
+        </tbody>
+      </table>
     )
   }
 
-  // Desktop table: fixed layout — column widths come from the header cells,
-  // so filtering can never resize columns and shift the layout. Long names
-  // truncate instead.
+  // §8.3: both layouts always render, gated by CSS (sm: breakpoints) instead
+  // of the JS media-query branch — no desktop/mobile flash, and the loading
+  // skeleton mirrors this exact anatomy.
   return (
     <Panel className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full table-fixed text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-              <th className="w-[4.5rem] px-4 py-3">
-                <span className="sr-only">Rank</span>
-              </th>
-              <th className="px-4 py-3">Coaster</th>
-              {showPark && <th className="w-[30%] px-4 py-3">Park</th>}
-              {variant === 'board' ? (
-                <>
-                  <th className="hidden w-56 px-4 py-3 lg:table-cell">Manufacturer</th>
-                  <th className="w-36 px-4 py-3">Country</th>
-                  <th className="w-20 px-4 py-3 text-right">
-                    <span
-                      title="Bradley–Terry strength index from head-to-head rider comparisons; 100 is the community average"
-                      className="cursor-help"
-                    >
-                      Score
-                    </span>
-                  </th>
-                </>
-              ) : (
-                <th className="w-28 px-4 py-3">Material</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line/70">
-            {rows.map((row, index) => {
-              const position = positions[index]
-              const firstPlace = firstPlaceIds.has(row.id)
-                ? firstPlaceLabel(row.first_place_votes, row.participants)
-                : null
-
-              return (
-                <tr
-                  key={row.id}
-                  onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
-                  className={`group cursor-pointer transition-colors hover:bg-canvas ${rankTint(position)}`}
-                >
-                  <td className="px-4 py-3">
-                    {position === null ? (
-                      <span className="text-sm text-muted">—</span>
-                    ) : (
-                      <span className="display-heading text-xl leading-none text-muted/75">
-                        {position}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex min-h-6 items-center gap-2">
-                      <Link
-                        to={`/coasters/${row.slug}`}
-                        onClick={keepLinkTarget}
-                        className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
-                      >
-                        {row.name}
-                      </Link>
-                      {badges(row, firstPlace)}
-                    </div>
-                  </td>
-                  {showPark && (
-                    <td className="px-4 py-3 text-muted">
-                      <div className="truncate">{parkCell(row)}</div>
-                    </td>
-                  )}
-                  {variant === 'board' ? (
-                    <>
-                      <td className="hidden px-4 py-3 text-muted lg:table-cell">
-                        {row.manufacturer_name ? (
-                          <div className="truncate" title={row.manufacturer_name}>
-                            {MANUFACTURER_ABBREVIATIONS[row.manufacturer_name] ??
-                              row.manufacturer_name}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-muted">
-                        <div className="truncate">{row.park_country ?? '—'}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted tabular-nums">
-                        {row.score === null ? '—' : formatScore(row.score)}
-                      </td>
-                    </>
-                  ) : (
-                    <td className="px-4 py-3 capitalize text-muted">{capitalize(row.material)}</td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ul className="divide-y divide-line/70 sm:hidden">{mobileItems()}</ul>
+      <div className="hidden overflow-x-auto sm:block">{desktopTable()}</div>
     </Panel>
   )
 }

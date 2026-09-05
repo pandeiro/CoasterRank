@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from './App'
-import { useAllCoasters, useRankedUserCount } from './lib/coasters'
+import { useAllCoasters, useBoardMeta, useRankedUserCount } from './lib/coasters'
 import { supabase } from './lib/supabase'
 import { makeRankingRow } from './test/fixtures'
 
@@ -11,6 +11,7 @@ vi.mock('./lib/coasters', async (importOriginal) => {
     ...actual,
     useAllCoasters: vi.fn(),
     useRankedUserCount: vi.fn(),
+    useBoardMeta: vi.fn(),
   }
 })
 
@@ -38,6 +39,11 @@ describe('App', () => {
       isPending: false,
       isError: false,
     } as never)
+    vi.mocked(useBoardMeta).mockReturnValue({
+      data: { last_recomputed_at: null, real_user_count: null, generated_at: '' },
+      isPending: false,
+      isError: false,
+    } as never)
     vi.mocked(useAllCoasters).mockReturnValue({
       data: [makeRankingRow({ name: 'Steel Vengeance', slug: 'steel-vengeance' })],
       isPending: false,
@@ -46,6 +52,7 @@ describe('App', () => {
 
     render(<App />)
     expect(await screen.findByRole('heading', { name: /coasterrank/i })).toBeInTheDocument()
-    expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
+    // Both CSS-gated layouts render the row.
+    expect(screen.getAllByText('Steel Vengeance')).toHaveLength(2)
   })
 })
