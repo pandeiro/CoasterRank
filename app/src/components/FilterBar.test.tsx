@@ -87,6 +87,59 @@ describe('FilterBar', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps what was typed when the debounced URL value echoes back (trailing space)', () => {
+    vi.useFakeTimers()
+    const { onChange, rerender } = renderBar()
+    const input = screen.getByLabelText(/filter coasters/i)
+
+    // Typing stops with a trailing space; the debounce filters on the
+    // trimmed value…
+    fireEvent.change(input, { target: { value: 'cobra ' } })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_FILTERS, q: 'cobra' })
+
+    // …and the parent re-renders with the URL's trimmed q. That echo must
+    // not rewrite the input: the user typed the space, and a keystroke
+    // landing during this flush would otherwise be clobbered too.
+    rerender(
+      <FilterBar
+        filters={{ ...DEFAULT_FILTERS, q: 'cobra' }}
+        onChange={onChange}
+        countries={countries}
+        manufacturers={manufacturers}
+      />,
+    )
+    expect(input).toHaveValue('cobra ')
+
+    // The next keystroke survives and debounces normally.
+    fireEvent.change(input, { target: { value: 'cobra r' } })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(onChange).toHaveBeenNthCalledWith(2, { ...DEFAULT_FILTERS, q: 'cobra r' })
+    expect(input).toHaveValue('cobra r')
+  })
+
+  it('adopts external URL changes into the input (back navigation)', () => {
+    vi.useFakeTimers()
+    const { onChange, rerender } = renderBar({ ...DEFAULT_FILTERS, q: 'cobra' })
+    const input = screen.getByLabelText(/filter coasters/i)
+    expect(input).toHaveValue('cobra')
+
+    // Back navigation drops q from the URL — the input follows the URL.
+    rerender(
+      <FilterBar
+        filters={DEFAULT_FILTERS}
+        onChange={onChange}
+        countries={countries}
+        manufacturers={manufacturers}
+      />,
+    )
+    expect(input).toHaveValue('')
+  })
+
   it('applies a pending search on top of filters changed mid-debounce', () => {
     vi.useFakeTimers()
     const { onChange, rerender } = renderBar()
