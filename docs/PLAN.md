@@ -248,13 +248,14 @@ A single `.env` at the repo root (gitignored) holds everything. Vite reads it vi
 | `VITE_SUPABASE_ANON_KEY` | **yes** | SPA client (public by design; protected by RLS) |
 | `RECOMPUTE_AUTH_SECRET` | no | shared secret authorizing the pg_cron → Edge Function call |
 | `APP_ENV` | no | Edge Function label on Telegram alerts/events (`prod` when unset); dispatch control for clones |
-| `VITE_SENTRY_DSN` | **yes** | Sentry frontend SDK (public DSN) |
-| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | no (never) | Vite build plugin — source-map upload during CI builds |
+| `VITE_SENTRY_DSN` | **yes** | Sentry frontend SDK (public DSN) — also a Cloudflare build var |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | no (never) | Vite build plugin — source-map upload during Cloudflare Workers builds (and local `npm run build`). MUST be set as Cloudflare build vars/secrets: `SENTRY_AUTH_TOKEN` as a secret, `SENTRY_ORG`/`SENTRY_PROJECT` as plain vars (see §9.4 and `docs/RUNBOOKS.md` "Connect Cloudflare"). Build warns loudly (`[sentry] Source-map upload DISABLED`) when missing — without them the build emits NO sourcemaps and Sentry shows minified traces. |
 
 **Exposure rule (critical):** only `VITE_`-prefixed variables reach the browser bundle. `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` must NEVER carry a `VITE_` prefix.
 
 GitHub repo secrets (for CI): `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, `RECOMPUTE_AUTH_SECRET`, `BACKUP_PAT`, `COASTER_RANK_EVENTS_BOT_TOKEN`, `COASTER_RANK_ALERTS_BOT_TOKEN`, `TELEGRAM_USER_ID`.
-Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injected at build time).
+Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets — available at build time *and* runtime):
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SENTRY_DSN` (build-time, client bundle) + `SENTRY_AUTH_TOKEN` (**as a secret**), `SENTRY_ORG`, `SENTRY_PROJECT` (build-time source-map upload; missing → build warns and emits no maps). Also runtime `SUPABASE_URL` / `SUPABASE_ANON_KEY` for the Worker's `/api/ranking` + OG prerender (falls back to `VITE_` names).
 
 ## 9. Deployment & CI/CD
 
@@ -271,7 +272,7 @@ Cloudflare site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (injecte
 ### 9.4 SPA deploy workflow (Cloudflare Workers auto-deploy)
 - **Trigger**: Cloudflare Workers auto-deploys on every push to `main` (no GitHub workflow). Free tier includes 500 builds/mo — no SHA-gate needed.
 - **Build**: Cloudflare runs `npm run build` with root directory `app/`; output directory `app/dist` is declared in `app/wrangler.toml` (`assets.directory = "./dist"`, `assets.not_found_handling = "single-page-application"` for SPA fallback).
-- **Env**: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard (Pages → Settings → Environment variables).
+- **Env**: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set in Cloudflare dashboard (Workers → Settings → Variables & Secrets). **Sentry** also requires `VITE_SENTRY_DSN` + `SENTRY_AUTH_TOKEN` (as a secret) + `SENTRY_ORG` + `SENTRY_PROJECT` as build vars — `app/vite.config.ts` generates `hidden` sourcemaps (`sourcemap: 'hidden'`, no `sourceMappingURL` in JS) and the `@sentry/vite-plugin` uploads them then deletes `**/*.map` before `app/dist` is published. Missing any of the three `SENTRY_*` vars disables both the sourcemap and the upload and the build logs `[sentry] Source-map upload DISABLED …` — Sentry will then show minified stacktraces (this was the prod bug). Set them via wrangler: `source .env && echo "$SENTRY_AUTH_TOKEN" | npx wrangler secret put SENTRY_AUTH_TOKEN --config app/wrangler.toml` (repeat for `SENTRY_ORG`, `SENTRY_PROJECT`, `VITE_SENTRY_DSN`).
 - **Note**: The `app/wrangler.toml` configures static asset serving with optional Worker routes (`run_worker_first` for `/`, `/api/*`, and `/riders/*`).
 
 ### 9.5 Database backup workflow (`.github/workflows/backup-database.yml`)

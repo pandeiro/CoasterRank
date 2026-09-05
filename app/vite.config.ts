@@ -36,16 +36,49 @@ function getBuildInfo() {
 const buildInfo = getBuildInfo()
 const versionString = `${buildInfo.version}-${buildInfo.sha}` + (buildInfo.dirty ? '-dirty' : '')
 
+const hasSentryAuth = !!process.env.SENTRY_AUTH_TOKEN
+const hasSentryOrg = !!process.env.SENTRY_ORG
+const hasSentryProject = !!process.env.SENTRY_PROJECT
+const sentryUploadEnabled = hasSentryAuth && hasSentryOrg && hasSentryProject
+
+// Make the skip loud: this runs at build time (Vite config evaluation) so the
+// warning is visible in Cloudflare Workers build logs. Silent skips were
+// the root cause of shipped Sentry events without matching source maps.
+// Vitest runs also evaluate this config, but there source maps are irrelevant
+// — suppress the warning there to keep CI logs clean.
+if (!process.env.VITEST) {
+  if (!sentryUploadEnabled) {
+    const missing = [
+      !hasSentryAuth ? 'SENTRY_AUTH_TOKEN' : null,
+      !hasSentryOrg ? 'SENTRY_ORG' : null,
+      !hasSentryProject ? 'SENTRY_PROJECT' : null,
+    ]
+      .filter(Boolean)
+      .join(', ')
+    // Cloudflare Workers auto-deploy (and any CI build that intends to upload
+    // source maps) must have these three vars set in the build environment.
+    // See docs/RUNBOOKS.md "Connect Cloudflare" and docs/PLAN.md §8 / §9.4.
+    console.warn(
+      `[sentry] Source-map upload DISABLED — missing build env: ${missing}. ` +
+        'Build will emit NO sourcemaps (sourcemap: false) and skip sentryVitePlugin. ' +
+        'To fix: set SENTRY_AUTH_TOKEN (as a Cloudflare secret), SENTRY_ORG, and SENTRY_PROJECT in the Cloudflare Workers dashboard ' +
+        '(Settings → Variables & Secrets → Build variables), plus VITE_SENTRY_DSN.',
+    )
+  } else {
+    console.log(`[sentry] Source-map upload enabled for release ${versionString}`)
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: '/',
   envDir: '..',
   plugins: [
     react(),
-    process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+    sentryUploadEnabled
       ? sentryVitePlugin({
-          org: process.env.SENTRY_ORG,
-          project: process.env.SENTRY_PROJECT,
+          org: process.env.SENTRY_ORG!,
+          project: process.env.SENTRY_PROJECT!,
           release: {
             name: versionString,
           },
@@ -62,7 +95,7 @@ export default defineConfig({
     __IS_DIRTY__: JSON.stringify(buildInfo.dirty),
   },
   build: {
-    sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
+    sourcemap: sentryUploadEnabled ? 'hidden' : false,
     rollupOptions: {
       input: {
         app: resolve('index.html'),

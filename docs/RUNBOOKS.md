@@ -15,7 +15,23 @@ see `AGENTS.md`; for architecture and decisions see `docs/PLAN.md`.
 
 1. Create a Cloudflare account and create a new Workers project by importing the CoasterRank GitHub repo.
 2. Build command: `npm run build`. Root directory: `app/`. (The `app/wrangler.toml` handles the output directory `dist`).
-3. Add env vars `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Cloudflare Workers settings.
+3. Add **build + runtime** vars/secrets in Cloudflare Workers → Settings → Variables & Secrets:
+   - **Supabase (required):** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (build — client bundle) plus `SUPABASE_URL` / `SUPABASE_ANON_KEY` as secrets for the Worker's runtime (`/api/ranking` + OG prerender; the Worker falls back to the `VITE_` names so just setting the `VITE_` pair also works, but setting all four is explicit).
+   - **Sentry (required for source-mapped errors):** `VITE_SENTRY_DSN` (build), `SENTRY_AUTH_TOKEN` **as a secret**, `SENTRY_ORG`, `SENTRY_PROJECT` (plain vars). `app/vite.config.ts` uses these to emit `hidden` sourcemaps and upload them via `@sentry/vite-plugin` (`sourcemaps.assets: ['./dist/**']`, `filesToDeleteAfterUpload: ['**/*.map']`); if any are missing the build logs `[sentry] Source-map upload DISABLED — missing build env: …` and emits **no maps**, so Sentry shows minified traces (this was the prod bug).
+   - From the repo root with `.env` populated, you can set them via wrangler instead of the dashboard:
+     ```bash
+     source .env
+     echo "$VITE_SUPABASE_URL"      | npx wrangler secret put VITE_SUPABASE_URL --config app/wrangler.toml
+     echo "$VITE_SUPABASE_ANON_KEY" | npx wrangler secret put VITE_SUPABASE_ANON_KEY --config app/wrangler.toml
+     echo "$VITE_SENTRY_DSN"        | npx wrangler secret put VITE_SENTRY_DSN --config app/wrangler.toml
+     echo "$SENTRY_ORG"             | npx wrangler secret put SENTRY_ORG --config app/wrangler.toml
+     echo "$SENTRY_PROJECT"         | npx wrangler secret put SENTRY_PROJECT --config app/wrangler.toml
+     echo "$SENTRY_AUTH_TOKEN"      | npx wrangler secret put SENTRY_AUTH_TOKEN --config app/wrangler.toml
+     echo "$SUPABASE_URL"           | npx wrangler secret put SUPABASE_URL --config app/wrangler.toml
+     echo "$SUPABASE_ANON_KEY"      | npx wrangler secret put SUPABASE_ANON_KEY --config app/wrangler.toml
+     # Verify: npx wrangler secret list --config app/wrangler.toml
+     ```
+     For plain vars (non-secrets) you can also use the dashboard UI — vars and secrets are both available to the Vite build and to the Worker runtime.
 4. Add the Cloudflare URL (`https://<site>.workers.dev`) plus `http://localhost:5173` to Supabase Auth
    → Redirect URLs.
 
