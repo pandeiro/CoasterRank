@@ -456,6 +456,25 @@ describe('CoasterTable', () => {
     expect(screen.queryByText('↑2')).not.toBeInTheDocument()
   })
 
+  it('renders the unrated dash when rank is MISSING (payload skew, never NaN)', () => {
+    // Regression guard: a pre-migration payload has no rank at all — the row
+    // must show the unrated dash, not an empty/broken badge.
+    renderTable(
+      rowsFrom([
+        { id: 'row-a', name: 'A', rank: undefined as unknown as number | null, score: 1.029 },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    const table = within(desktopTable())
+    const row = table.getAllByRole('row')[1] as HTMLTableRowElement
+    // cells: [gutter, rank, coaster, park, manufacturer, score] — the rank
+    // cell holds the dash; the score still renders.
+    expect(row.cells[1].textContent).toBe('—')
+    expect(table.getByText('102.9')).toBeInTheDocument()
+  })
+
   it('never renders the movement gutter outside the board variant', () => {
     const movement = new Map([['row-a', 1]])
     renderTable(rowsFrom([{ id: 'row-a', name: 'A', rank: 1 }]), new Set(), true, 'default', {

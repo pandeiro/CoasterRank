@@ -8,7 +8,7 @@ import {
   type RankingRow,
 } from '../lib/coasters'
 import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
-import { prefersReducedMotion, type RankTurnover } from '../lib/rankMovement'
+import { asFiniteNumber, prefersReducedMotion, type RankTurnover } from '../lib/rankMovement'
 import MovementChip from './MovementChip'
 import ScorePill from './ScorePill'
 import WeeklyDeltaBadge from './WeeklyDeltaBadge'
@@ -172,7 +172,9 @@ export default function CoasterTable({
   // Global rank directly from the view (row.rank); unrated rows show a dash.
   // Filtering preserves BT score order, so visible gaps are intentional — the
   // board always reflects true global position, not a re-numbered filtered slice.
-  const positions: Array<number | null> = rows.map((row) => row.rank)
+  // asFiniteNumber: a payload from before the view change has no rank at all
+  // (undefined) — render the dash, never an empty/broken badge.
+  const positions: Array<number | null> = rows.map((row) => asFiniteNumber(row.rank))
 
   function parkCell(row: RankingRow) {
     if (!showPark) return null

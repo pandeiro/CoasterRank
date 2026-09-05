@@ -112,7 +112,13 @@ export default function Layout() {
           </nav>
         </div>
       </header>
-      <main className="page-container w-full flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
+      {/* NO w-full here: it's a utilities-layer class and would override the
+          components-layer .page-container width (width: min(100% - 2rem,
+          72rem)), stretching main to the full viewport (the 2026-09-05
+          regression). In a column flex container the explicit width wins over
+          align-items:stretch, so flex-1 alone pins the footer to the bottom
+          on short pages without touching the width. */}
+      <main className="page-container flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
         <Outlet />
       </main>
       <ImpersonationBanner />

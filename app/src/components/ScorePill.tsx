@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RankingRow } from '../lib/board-types'
-import { prefersReducedMotion } from '../lib/rankMovement'
+import { asFiniteNumber, prefersReducedMotion } from '../lib/rankMovement'
 
 // Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
 // so they are displayed on an index scale — 100 = community average. One
@@ -15,8 +15,11 @@ const TICK_DURATION_MS = 600
 // actually moves the 1-dp index score (rare by construction — most recomputes
 // don't shift a compressed score past its rounding — so the tick reads as a
 // detail, not a strobe). Reduced motion / no rAF → snaps straight to the value.
+// asFiniteNumber: a stale payload with a missing score must render nothing,
+// never "NaN" (deploy-skew defense, like the weekly badge).
 export default function ScorePill({ row }: { row: RankingRow }) {
-  const target = row.score === null ? null : formatScore(row.score)
+  const score = asFiniteNumber(row.score)
+  const target = score === null ? null : formatScore(score)
   const [display, setDisplay] = useState<string | null>(target)
   const fromRef = useRef<number | null>(null)
 

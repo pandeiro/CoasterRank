@@ -10,6 +10,15 @@
 --   (rank is not null), same synthetic/admin exclusions as real_user_count.
 --   Gated (>30) for the coral first-place pill (FIRST_PLACE_MIN_USERS).
 -- Both are pure aggregates — no per-user rows leak via the anon-executable RPC.
+--
+-- NOTE: this migration initially deployed FAILED (both 2026-09-05 runs,
+-- PRs #132 and #137): Postgres refuses `create or replace function` when the
+-- return type changes (SQLSTATE 42P13) — the function existed from
+-- board_meta_rpc with the 2-column signature. DROP first; it is a pure
+-- aggregate RPC (no state), so the drop/recreate window is harmless, and the
+-- grants below re-apply immediately.
+
+drop function if exists public.public_board_meta();
 
 create or replace function public.public_board_meta()
 returns table (real_user_count bigint, ranked_user_count bigint, last_recomputed_at timestamptz)
