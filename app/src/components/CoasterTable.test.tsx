@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import CoasterTable, { rankFontClass } from './CoasterTable'
@@ -466,5 +466,61 @@ describe('CoasterTable', () => {
     const row = within(desktopTable()).getAllByRole('row')[1] as HTMLTableRowElement
     expect(row.cells.length).toBe(4)
     expect(screen.queryByText('↑1')).not.toBeInTheDocument()
+  })
+
+  it('remounts the mobile list once per movement-bearing turnover', () => {
+    const rows = rowsFrom([
+      { id: 'row-a', name: 'A', rank: 1 },
+      { id: 'row-b', name: 'B', rank: 2 },
+    ])
+    const tree = (turnover: RankTurnover | undefined) => (
+      <MemoryRouter>
+        <CoasterTable rows={rows} showPark variant="board" turnover={turnover} />
+      </MemoryRouter>
+    )
+    const { rerender, container } = render(tree(undefined))
+    const listNode = () => container.querySelector('ul')!
+
+    // Movement turnover t1: remount + fade (key latches t1).
+    rerender(tree({ movement: new Map([['row-a', 1]]), turnoverId: 't1' }))
+    const afterTurnover = listNode()
+    expect(afterTurnover.className).toContain('animate-')
+
+    // Linger expiry (same turnover, map emptied): same DOM node — no second
+    // silent remount.
+    rerender(tree({ movement: new Map(), turnoverId: 't1' }))
+    expect(listNode()).toBe(afterTurnover)
+
+    // A later movement-LESS recompute (t2): still no remount — most
+    // recomputes move nobody.
+    rerender(tree({ movement: new Map(), turnoverId: 't2' }))
+    expect(listNode()).toBe(afterTurnover)
+
+    // The next movement-bearing turnover (t3): exactly one new remount.
+    rerender(tree({ movement: new Map([['row-b', 1]]), turnoverId: 't3' }))
+    expect(listNode()).not.toBe(afterTurnover)
+  })
+
+  it('never remounts the mobile list under prefers-reduced-motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true }), // any query → reduced here
+    )
+    try {
+      const rows = rowsFrom([{ id: 'row-a', name: 'A', rank: 1 }])
+      const tree = (turnover: RankTurnover | undefined) => (
+        <MemoryRouter>
+          <CoasterTable rows={rows} showPark variant="board" turnover={turnover} />
+        </MemoryRouter>
+      )
+      const { rerender, container } = render(tree(undefined))
+      const idleNode = container.querySelector('ul')!
+      rerender(tree({ movement: new Map([['row-a', 1]]), turnoverId: 't1' }))
+      // No latching under reduced motion → no remount, no fade class.
+      expect(container.querySelector('ul')).toBe(idleNode)
+      expect(idleNode.className).not.toContain('animate-')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

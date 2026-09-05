@@ -360,7 +360,7 @@ All prod queries are read-only (source `.env` first). Compare against the scratc
 R="postgresql://postgres:restore-drill@localhost:5433/restore_drill"
 # 1. Row counts: all public tables + auth.users/refresh_tokens/sessions/identities + storage.buckets/objects/migrations
 for T in coasters parks manufacturers profiles coaster_ratings coaster_aliases coaster_submissions \
-         user_rides user_number_ones cron_execution_logs; do
+         user_rides user_number_ones cron_execution_logs rank_weekly_snapshots; do
   P=$(psql "$SUPABASE_DB_URL" -tAc "SELECT count(*) FROM public.$T")
   X=$(psql "$R" -tAc "SELECT count(*) FROM public.$T"); echo "$T prod=$P restored=$X"
 done

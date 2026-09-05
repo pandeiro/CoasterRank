@@ -109,9 +109,10 @@ Coasters that drop out of every pair (all their comparisons were un-ranked) get 
 
 The same run upserts each ranked coaster into `rank_weekly_snapshots` (PK `coaster_id, week_start`) with the **current ISO week (UTC Monday)** and the coaster's rank (mirroring the view's exact `score desc, id asc` rule):
 
-- Each 15-min run overwrites the current week's row, so a week's row converges to that week's final rank.
+- Each 15-min run overwrites the current week's row (including `computed_at`, which is "last computed", not first), so a week's row converges to that week's final rank.
 - When the week rolls over, the previous week's row freezes and becomes the "↑2 this week" baseline exposed as `rank_last_week` on `v_coaster_rankings`.
 - Rows for coasters that leave the board (or a full board wipe) are deleted, so a later return reads as a fresh ranking.
+- Retention: each run deletes weeks strictly older than the previous one — the board consumes only the previous week, so the table stays bounded (~2 rows per ranked coaster).
 
 ### Step 4: Display
 

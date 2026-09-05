@@ -295,8 +295,11 @@ Deno.serve(async (req) => {
     // run overwrites the current week's row (it converges to end-of-week rank;
     // the previous week's row freezes and feeds rank_last_week). Ranks mirror
     // the view's exact rule — score desc, id asc tiebreak — so the stored
-    // rank always equals the live row_number.
-    const weekStart = weekStartUtc()
+    // rank always equals the live row_number. computed_at rides the payload
+    // so the conflict-update refreshes it (the column default only fires on
+    // INSERT; it is "last computed", not "first computed this week").
+    const now = new Date()
+    const weekStart = weekStartUtc(now)
     const snapshotRows = [...rows]
       .sort((a, b) =>
         b.score !== a.score
@@ -312,6 +315,7 @@ Deno.serve(async (req) => {
         week_start: weekStart,
         rank: i + 1,
         score: r.score,
+        computed_at: now.toISOString(),
       }))
     for (let i = 0; i < snapshotRows.length; i += UPSERT_CHUNK) {
       const { error } = await supabase
@@ -321,6 +325,20 @@ Deno.serve(async (req) => {
         })
       if (error) throw new Error(error.message)
     }
+    // Retention: the board consumes only the previous week's row, so drop
+    // weeks older than that and keep the table bounded (~2 rows per ranked
+    // coaster). Strictly older than the previous week, so the frozen
+    // baseline survives a week-boundary roll.
+    const retentionCutoff = new Date(
+      Date.parse(`${weekStart}T00:00:00Z`) - 14 * 86_400_000,
+    )
+      .toISOString()
+      .slice(0, 10)
+    const { error: retentionError } = await supabase
+      .from('rank_weekly_snapshots')
+      .delete()
+      .lt('week_start', retentionCutoff)
+    if (retentionError) throw new Error(retentionError.message)
 
     // Remove ratings for coasters no longer in any pair (all their comparisons
     // were un-ranked) so the board demotes them back to "unrated".

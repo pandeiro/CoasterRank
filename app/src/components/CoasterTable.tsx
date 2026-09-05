@@ -103,6 +103,17 @@ export default function CoasterTable({
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>())
   const topsRef = useRef(new Map<string, number>())
   const flippedTurnoverRef = useRef<string | null>(null)
+  // Latches the last turnover that actually moved something, for the mobile
+  // list key (see the return block): it must NOT revert when the linger timer
+  // empties the movement map (~12s in — that would silently remount the whole
+  // list a second time: DOM churn plus focus loss), and must not move for
+  // movement-less recomputes (most recomputes move nobody — remounting every
+  // 15 min would be pure churn).
+  const animatedTurnoverRef = useRef<string | null>(null)
+  if (turnover?.turnoverId && turnover.movement.size > 0 && !prefersReducedMotion()) {
+    animatedTurnoverRef.current = turnover.turnoverId
+  }
+  const animatedTurnoverId = animatedTurnoverRef.current
 
   // Runs after every commit, before paint: capture this commit's positions,
   // then — when a fresh turnover landed in it — snap viewport rows back to
@@ -136,6 +147,16 @@ export default function CoasterTable({
       requestAnimationFrame(() => {
         el.style.transition = 'transform 450ms cubic-bezier(0.22, 1, 0.36, 1)'
         el.style.transform = ''
+        // The inline transition shorthand would otherwise stick forever and
+        // override the row's transition-colors class (hover bg would snap).
+        // Clear it when the ease lands; the timer is a fallback for a
+        // transitionend that never fires (row unmounted mid-flight). Both
+        // paths are idempotent string clears.
+        const clearTransition = () => {
+          el.style.transition = ''
+        }
+        el.addEventListener('transitionend', clearTransition, { once: true })
+        setTimeout(clearTransition, 480)
       })
     }
   })
@@ -356,14 +377,16 @@ export default function CoasterTable({
   // of the JS media-query branch — no desktop/mobile flash, and the loading
   // skeleton mirrors this exact anatomy.
   // Mobile turnover (§"living competition"): no FLIP mid-scroll — the list
-  // remounts under a new key so the new rankings fade in (a ~320ms blink);
-  // gated on actual movement + reduced-motion.
+  // remounts under the latched key (see the FLIP machinery above) so the new
+  // rankings fade in (~320ms blink). The fade class itself still requires
+  // live movement; the key just holds steady until the next
+  // movement-bearing turnover.
   const crossfade =
-    Boolean(turnover?.turnoverId) && (turnover?.movement.size ?? 0) > 0 && !prefersReducedMotion()
+    Boolean(animatedTurnoverId) && (turnover?.movement.size ?? 0) > 0 && !prefersReducedMotion()
   return (
     <Panel className="overflow-hidden">
       <ul
-        key={crossfade && turnover?.turnoverId ? turnover.turnoverId : 'board-list'}
+        key={animatedTurnoverId ?? 'board-list'}
         className={`divide-y divide-line/70 sm:hidden ${
           crossfade ? 'animate-[turnover-fade_320ms_ease-out]' : ''
         }`}
