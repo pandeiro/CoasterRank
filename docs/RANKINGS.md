@@ -105,15 +105,27 @@ Results are upserted into `coaster_ratings` in chunks of 500:
 
 Coasters that drop out of every pair (all their comparisons were un-ranked) get their rating rows deleted — they appear as "unrated" on the board.
 
+### Step 3b: Weekly rank snapshot
+
+The same run upserts each ranked coaster into `rank_weekly_snapshots` (PK `coaster_id, week_start`) with the **current ISO week (UTC Monday)** and the coaster's rank (mirroring the view's exact `score desc, id asc` rule):
+
+- Each 15-min run overwrites the current week's row, so a week's row converges to that week's final rank.
+- When the week rolls over, the previous week's row freezes and becomes the "↑2 this week" baseline exposed as `rank_last_week` on `v_coaster_rankings`.
+- Rows for coasters that leave the board (or a full board wipe) are deleted, so a later return reads as a fresh ranking.
+
 ### Step 4: Display
 
-The view `v_coaster_rankings` left-joins `coasters` with `coaster_ratings` and assigns a live rank:
+The view `v_coaster_rankings` left-joins `coasters` with `coaster_ratings` and assigns a live rank, plus the previous week's final rank from `rank_weekly_snapshots`:
 
 ```sql
 SELECT c.*, r.score, r.comparisons, r.participants,
-       row_number() OVER (ORDER BY r.score DESC NULLS LAST) AS rank
+       row_number() OVER (ORDER BY r.score DESC NULLS LAST) AS rank,
+       ws.rank AS rank_last_week
 FROM coasters c
-LEFT JOIN coaster_ratings r ON r.coaster_id = c.id;
+LEFT JOIN coaster_ratings r ON r.coaster_id = c.id
+LEFT JOIN rank_weekly_snapshots ws
+  ON ws.coaster_id = c.id
+ AND ws.week_start = (date_trunc('week', now() at time zone 'utc') - interval '7 days')::date;
 ```
 
 The SPA fetches this view, joins parks/manufacturers client-side (cached), and filters by status client-side (default: operating only).
@@ -129,6 +141,7 @@ flowchart TD
     D --> F
     F --> G[cron_execution_logs]
     F --> H[coaster_ratings]
+    F --> H2[rank_weekly_snapshots]
     F -->|on failure| I[Telegram: CoasterRankAlerts]
     F -->|on #1 change| J[Telegram: CoasterRankEvents]
     K[pg_cron: 0 * * * *] --> L[check_stale_recompute]
@@ -228,4 +241,7 @@ ORDER BY score DESC LIMIT 10;
 | `supabase/migrations/20260817170724_bt_recompute_pg_cron.sql` | RPCs, `recompute_rankings_cron()`, pg_cron schedule |
 | `supabase/migrations/20260829000422_cron_execution_logs.sql` | Execution logging table + RLS |
 | `supabase/migrations/20260829011512_stale_recompute_detection.sql` | Hourly stale alert via pg_cron + Vault |
+| `supabase/migrations/20260905195557_rank_weekly_snapshots.sql` | Weekly rank-snapshot table (rank-movement baseline) |
+| `supabase/migrations/20260905195558_rankings_view_weekly_delta.sql` | View gains `rank_last_week` (prev ISO week's final rank) |
+| `app/src/lib/rankMovement.ts` | Client turnover detection + weekly/live movement helpers |
 | `app/src/pages/AdminPage.tsx` | Admin Dashboard: Rankings panel with log-based widget |

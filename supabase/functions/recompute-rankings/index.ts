@@ -50,6 +50,19 @@ const RPC_RETRY_DELAY_MS = 300
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+// ISO week (UTC Monday) containing `d` — the weekly rank-movement baseline
+// key. Must match the view's
+// `(date_trunc('week', now() at time zone 'utc'))::date` boundary in the
+// rankings-view-weekly-delta migration (ISO weeks start Monday; UTC-pinned so
+// the session TimeZone can't skew the boundary).
+function weekStartUtc(d = new Date()): string {
+  const day = d.getUTCDay()
+  const monday = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((day + 6) % 7)),
+  )
+  return monday.toISOString().slice(0, 10)
+}
+
 function isPgrst303(err: unknown): boolean {
   if (typeof err !== 'object' || err === null) return false
   const e = err as Record<string, unknown>
@@ -219,6 +232,13 @@ Deno.serve(async (req) => {
         .delete()
         .neq('coaster_id', '00000000-0000-0000-0000-000000000000')
       if (error) throw new Error(error.message)
+      // Snapshots of a wiped board are dead history — clear them too, so a
+      // re-seeded board starts its weekly baseline fresh.
+      const { error: snapError } = await supabase
+        .from('rank_weekly_snapshots')
+        .delete()
+        .neq('coaster_id', '00000000-0000-0000-0000-000000000000')
+      if (snapError) throw new Error(snapError.message)
 
       const durationMs = Date.now() - started
       await logExecution(supabase, {
@@ -271,6 +291,37 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message)
     }
 
+    // Weekly rank snapshot (rank-movement baseline, PLAN §11): one upsert per
+    // run overwrites the current week's row (it converges to end-of-week rank;
+    // the previous week's row freezes and feeds rank_last_week). Ranks mirror
+    // the view's exact rule — score desc, id asc tiebreak — so the stored
+    // rank always equals the live row_number.
+    const weekStart = weekStartUtc()
+    const snapshotRows = [...rows]
+      .sort((a, b) =>
+        b.score !== a.score
+          ? b.score - a.score
+          : a.coasterId < b.coasterId
+            ? -1
+            : a.coasterId > b.coasterId
+              ? 1
+              : 0,
+      )
+      .map((r, i) => ({
+        coaster_id: r.coasterId,
+        week_start: weekStart,
+        rank: i + 1,
+        score: r.score,
+      }))
+    for (let i = 0; i < snapshotRows.length; i += UPSERT_CHUNK) {
+      const { error } = await supabase
+        .from('rank_weekly_snapshots')
+        .upsert(snapshotRows.slice(i, i + UPSERT_CHUNK), {
+          onConflict: 'coaster_id,week_start',
+        })
+      if (error) throw new Error(error.message)
+    }
+
     // Remove ratings for coasters no longer in any pair (all their comparisons
     // were un-ranked) so the board demotes them back to "unrated".
     const computedIds = new Set(rows.map((r) => r.coasterId))
@@ -282,11 +333,17 @@ Deno.serve(async (req) => {
       .map((r) => r.coaster_id)
       .filter((id) => !computedIds.has(id))
     for (let i = 0; i < stale.length; i += DELETE_CHUNK) {
-      const { error } = await supabase
-        .from('coaster_ratings')
-        .delete()
-        .in('coaster_id', stale.slice(i, i + DELETE_CHUNK))
+      const chunk = stale.slice(i, i + DELETE_CHUNK)
+      const { error } = await supabase.from('coaster_ratings').delete().in('coaster_id', chunk)
       if (error) throw new Error(error.message)
+      // Their weekly snapshots are meaningless once they leave the board —
+      // clear ALL weeks so a later return reads as a fresh ranking rather
+      // than a ghost delta against a rank they no longer have.
+      const { error: snapError } = await supabase
+        .from('rank_weekly_snapshots')
+        .delete()
+        .in('coaster_id', chunk)
+      if (snapError) throw new Error(snapError.message)
     }
 
     const durationMs = Date.now() - started

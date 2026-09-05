@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   capitalize,
@@ -7,6 +8,10 @@ import {
   type RankingRow,
 } from '../lib/coasters'
 import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
+import { prefersReducedMotion, type RankTurnover } from '../lib/rankMovement'
+import MovementChip from './MovementChip'
+import ScorePill from './ScorePill'
+import WeeklyDeltaBadge from './WeeklyDeltaBadge'
 import FewVotesBadge from './FewVotesBadge'
 import { Badge, MessageState, Panel } from './ui'
 
@@ -56,8 +61,18 @@ function RankBadge({ position }: { position: number }) {
 // Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
 // so they are displayed on an index scale — 100 = community average. One
 // decimal is enough to separate adjacent ranks without implying precision.
-function formatScore(score: number): string {
-  return (score * 100).toFixed(1)
+// Rendering (and the turnover tick) lives in ScorePill; the weekly delta badge
+// rides the pill's corner, so both layouts compose them through scoreCell.
+function scoreCell(row: RankingRow) {
+  if (row.score === null) return null
+  return (
+    // shrink-0/self-center keep the mobile row layout (§7.2); relative
+    // anchors the weekly delta badge to the pill's corner.
+    <span className="relative inline-block shrink-0 self-center">
+      <ScorePill row={row} />
+      <WeeklyDeltaBadge row={row} />
+    </span>
+  )
 }
 
 type Props = {
@@ -67,6 +82,9 @@ type Props = {
   firstPlaceIds?: Set<string>
   /** 'board' swaps Material for Manufacturer (home page table). */
   variant?: 'default' | 'board'
+  /** Live rank movement from the latest board turnover (board variant only).
+      Null/absent on first load — movement must be earned by a live turnover. */
+  turnover?: RankTurnover
 }
 
 export default function CoasterTable({
@@ -74,8 +92,53 @@ export default function CoasterTable({
   showPark = true,
   firstPlaceIds = new Set(),
   variant = 'default',
+  turnover,
 }: Props) {
   const navigate = useNavigate()
+
+  // FLIP machinery (desktop): rowRefs tracks rendered <tr>s; topsRef always
+  // holds each row's offsetTop as of the PREVIOUS commit — the "before"
+  // snapshot a turnover animates from. offsetTop (not rect.top) so an
+  // in-flight transform or a scroll between commits can't poison the baseline.
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>())
+  const topsRef = useRef(new Map<string, number>())
+  const flippedTurnoverRef = useRef<string | null>(null)
+
+  // Runs after every commit, before paint: capture this commit's positions,
+  // then — when a fresh turnover landed in it — snap viewport rows back to
+  // their old offsets and let the transform ease to identity (FLIP). Rows
+  // outside the viewport (±80px) just update silently.
+  useLayoutEffect(() => {
+    const before = topsRef.current
+    const after = new Map<string, number>()
+    for (const [id, el] of rowRefs.current) {
+      if (el.isConnected) after.set(id, el.offsetTop)
+    }
+    topsRef.current = after
+
+    const turnoverId = turnover?.turnoverId ?? null
+    if (!turnoverId || flippedTurnoverRef.current === turnoverId) return
+    flippedTurnoverRef.current = turnoverId
+    if (!turnover || turnover.movement.size === 0) return
+    if (prefersReducedMotion() || typeof requestAnimationFrame !== 'function') return
+    const viewportHeight = window.innerHeight
+    for (const [id, delta] of turnover.movement) {
+      const el = rowRefs.current.get(id)
+      const from = before.get(id)
+      if (!el || from === undefined || delta === 0) continue
+      const to = after.get(id)
+      if (to === undefined || to === from) continue
+      const rect = el.getBoundingClientRect()
+      if (rect.top < -80 || rect.top > viewportHeight + 80) continue
+      const dy = from - to
+      el.style.transition = 'none'
+      el.style.transform = `translateY(${dy}px)`
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 450ms cubic-bezier(0.22, 1, 0.36, 1)'
+        el.style.transform = ''
+      })
+    }
+  })
 
   if (rows.length === 0) {
     return <MessageState>No coasters match those filters.</MessageState>
@@ -164,22 +227,24 @@ export default function CoasterTable({
               <div className="mt-0.5 min-w-0 truncate text-sm text-muted">{parkCell(row)}</div>
             )}
           </div>
-          {/* §7.2: score centers vertically, matching the rank circle. */}
-          {row.score !== null && (
-            <span className="shrink-0 self-center rounded-md bg-accent/5 px-2 py-1 text-xs tabular-nums text-ink">
-              {formatScore(row.score)}
-            </span>
-          )}
+          {/* §7.2: score centers vertically, matching the rank circle.
+              The weekly delta badge rides the pill's corner (both layouts). */}
+          {row.score !== null && scoreCell(row)}
         </li>
       )
     })
   }
 
   function desktopTable() {
+    // The reserved movement gutter (board variant only): a fixed-width column
+    // left of the rank badge, normally empty, so turnover chips never shift
+    // the layout. BoardPage passes movement only after a live turnover.
+    const gutterActive = variant === 'board'
     return (
       <table className="w-full table-fixed text-sm">
         <thead>
           <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            {gutterActive && <th className="w-10 px-2" aria-hidden="true" />}
             <th className="w-[4.5rem] px-3 py-2.5 text-right">
               <span className="sr-only">Rank</span>
             </th>
@@ -208,13 +273,26 @@ export default function CoasterTable({
             const firstPlace = firstPlaceIds.has(row.id)
               ? firstPlaceLabel(row.first_place_votes, row.participants)
               : null
+            const liveDelta = gutterActive ? turnover?.movement.get(row.id) : undefined
 
             return (
               <tr
                 key={row.id}
+                ref={(el) => {
+                  // FLIP position tracking (desktop turnover animation).
+                  if (el) rowRefs.current.set(row.id, el)
+                  else rowRefs.current.delete(row.id)
+                }}
                 onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
                 className={`group cursor-pointer transition-colors ${rowTint(position)}`}
               >
+                {gutterActive && (
+                  <td className="w-10 px-2 py-2.5 text-right">
+                    {liveDelta !== undefined && turnover?.turnoverId && (
+                      <MovementChip key={turnover.turnoverId} delta={liveDelta} index={index} />
+                    )}
+                  </td>
+                )}
                 <td className="px-3 py-2.5 text-right">
                   {position === null ? (
                     <span className="text-sm text-muted">—</span>
@@ -259,9 +337,7 @@ export default function CoasterTable({
                       {row.score === null ? (
                         <span className="text-sm text-muted">—</span>
                       ) : (
-                        <span className="inline-block rounded-md bg-accent/5 px-2 py-1 text-xs tabular-nums text-ink">
-                          {formatScore(row.score)}
-                        </span>
+                        scoreCell(row)
                       )}
                     </td>
                   </>
@@ -279,9 +355,21 @@ export default function CoasterTable({
   // §8.3: both layouts always render, gated by CSS (sm: breakpoints) instead
   // of the JS media-query branch — no desktop/mobile flash, and the loading
   // skeleton mirrors this exact anatomy.
+  // Mobile turnover (§"living competition"): no FLIP mid-scroll — the list
+  // remounts under a new key so the new rankings fade in (a ~320ms blink);
+  // gated on actual movement + reduced-motion.
+  const crossfade =
+    Boolean(turnover?.turnoverId) && (turnover?.movement.size ?? 0) > 0 && !prefersReducedMotion()
   return (
     <Panel className="overflow-hidden">
-      <ul className="divide-y divide-line/70 sm:hidden">{mobileItems()}</ul>
+      <ul
+        key={crossfade && turnover?.turnoverId ? turnover.turnoverId : 'board-list'}
+        className={`divide-y divide-line/70 sm:hidden ${
+          crossfade ? 'animate-[turnover-fade_320ms_ease-out]' : ''
+        }`}
+      >
+        {mobileItems()}
+      </ul>
       <div className="hidden overflow-x-auto sm:block">{desktopTable()}</div>
     </Panel>
   )

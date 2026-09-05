@@ -32,6 +32,7 @@ export function makeRankingRow(overrides: Partial<RankingRow> = {}): RankingRow 
     participants: 12,
     first_place_votes: 0,
     rank: seq,
+    rank_last_week: null,
     ...overrides,
   }
 }

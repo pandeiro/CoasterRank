@@ -18,6 +18,7 @@ import {
   useBoardMeta,
   type RankingFilters,
 } from '../lib/coasters'
+import { useMovementLinger, useRankTurnover } from '../lib/rankMovement'
 
 // Real-user visibility gate for the status line (§2.2): below this the count
 // stays hidden so an early-stage launch doesn't advertise small numbers.
@@ -74,6 +75,15 @@ export default function BoardPage() {
   const userCount = boardMeta.data?.real_user_count ?? null
   const showUserCount = userCount !== null && userCount > USER_COUNT_VISIBILITY_GATE
   const lastRankedAt = boardMeta.data?.last_recomputed_at ?? boardMeta.data?.generated_at ?? null
+
+  // Rank movement (PLAN §11): a turnover is a changed `last_recomputed_at` —
+  // the raw pg_cron timestamp, NOT the generated_at fallback above (edge-cache
+  // fills change constantly and would fake turnovers). First load only sets
+  // the baseline; movement + animations appear only after a live turnover.
+  const lastRecomputedAt = boardMeta.data?.last_recomputed_at ?? null
+  const turnover = useRankTurnover(rows, lastRecomputedAt)
+  // Chips linger ~12s after a turnover, then unmount (see MOVEMENT_LINGER_MS).
+  const movement = useMovementLinger(turnover)
 
   // §8.3: the table slot cross-fades from the skeleton instead of swapping —
   // the table fades in over one paint, the skeleton fades out and unmounts.
@@ -155,7 +165,7 @@ export default function BoardPage() {
                   </>
                 )}
                 <span aria-hidden="true">·</span>
-                <LiveStatusPopunder lastRankedAt={lastRankedAt} />
+                <LiveStatusPopunder lastRankedAt={lastRankedAt} turnoverId={turnover.turnoverId} />
               </>
             ) : (
               <>
@@ -198,7 +208,12 @@ export default function BoardPage() {
               <div
                 className={`transition-opacity duration-300 ${tableVisible ? 'opacity-100' : 'opacity-0'}`}
               >
-                <CoasterTable rows={visibleRows} firstPlaceIds={firstPlaceIds} variant="board" />
+                <CoasterTable
+                  rows={visibleRows}
+                  firstPlaceIds={firstPlaceIds}
+                  variant="board"
+                  turnover={{ movement, turnoverId: turnover.turnoverId }}
+                />
                 <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
                 {!hasNextPage && visibleRows.length > 0 && (
                   <p className="py-8 text-center text-xs uppercase tracking-[0.12em] text-muted">
