@@ -377,10 +377,13 @@ describe('CoasterTable', () => {
     expect(score).toHaveClass(
       'bg-accent/5',
       'rounded-md',
-      'font-semibold',
+      'px-2',
+      'py-1',
+      'text-xs',
       'tabular-nums',
       'text-ink',
     )
+    expect(score).not.toHaveClass('font-semibold')
   })
 
   it('centers the mobile score vertically inside the accent pill (§7.2)', () => {

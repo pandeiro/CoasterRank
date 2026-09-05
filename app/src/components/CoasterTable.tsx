@@ -166,7 +166,7 @@ export default function CoasterTable({
           </div>
           {/* §7.2: score centers vertically, matching the rank circle. */}
           {row.score !== null && (
-            <span className="shrink-0 self-center rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink">
+            <span className="shrink-0 self-center rounded-md bg-accent/5 px-2 py-1 text-xs tabular-nums text-ink">
               {formatScore(row.score)}
             </span>
           )}
@@ -188,12 +188,12 @@ export default function CoasterTable({
             {variant === 'board' ? (
               <>
                 <th className="hidden w-56 px-4 py-2.5 lg:table-cell">Manufacturer</th>
-                <th className="w-20 px-4 py-2.5 text-right">
+                <th className="w-24 px-4 py-2.5 text-left">
                   <span
                     title="Bradley–Terry strength index from head-to-head rider comparisons; 100 is the community average"
-                    className="cursor-help"
+                    className="cursor-help whitespace-nowrap"
                   >
-                    Score
+                    Score <span className="ml-0.5 text-muted/60">ⓘ</span>
                   </span>
                 </th>
               </>
@@ -254,12 +254,12 @@ export default function CoasterTable({
                       )}
                     </td>
                     {/* §7.1, decided: score emphasized by an accent-tinted
-                        rounded background (still heavier tabular numerals). */}
-                    <td className="px-4 py-2.5 text-right">
+                        rounded background (tabular numerals, no bold). */}
+                    <td className="px-4 py-2.5 text-left">
                       {row.score === null ? (
                         <span className="text-sm text-muted">—</span>
                       ) : (
-                        <span className="inline-block rounded-md bg-accent/5 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-ink">
+                        <span className="inline-block rounded-md bg-accent/5 px-2 py-1 text-xs tabular-nums text-ink">
                           {formatScore(row.score)}
                         </span>
                       )}
