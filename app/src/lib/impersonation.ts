@@ -46,7 +46,11 @@ function parseBackup(raw: string): unknown {
 export async function assumeIdentity(userId: string): Promise<void> {
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession()
+  // A getSession failure must abort: without the admin session there is no
+  // backup to restore, and proceeding would strand the admin.
+  if (sessionError) throw sessionError
   // Never clobber an existing backup: it always holds the ADMIN session.
   const setBackup = !!session && !isImpersonating()
   if (setBackup && session) {
@@ -75,13 +79,25 @@ export async function returnToAdmin(): Promise<void> {
   localStorage.removeItem(BACKUP_KEY)
   const tokens = raw ? extractTokens(parseBackup(raw)) : null
   if (!tokens) {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) console.warn('[impersonation] sign-out during return failed:', error.message)
     window.location.assign('/')
     return
   }
-  await supabase.auth.setSession({
+  const { error } = await supabase.auth.setSession({
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
   })
+  if (error) {
+    // Restoring the admin session failed: degrade to a signed-out landing
+    // rather than sending an unauthenticated browser to /admin/users.
+    console.warn('[impersonation] admin session restore failed:', error.message)
+    const { error: signOutError } = await supabase.auth.signOut()
+    if (signOutError) {
+      console.warn('[impersonation] sign-out during return failed:', signOutError.message)
+    }
+    window.location.assign('/')
+    return
+  }
   window.location.assign('/admin/users')
 }

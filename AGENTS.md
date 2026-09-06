@@ -166,6 +166,7 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - No secrets in code. Secrets live in `.env` (local) or GitHub/Cloudflare secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
 - **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching rows — the row count may be unknown at query time.
+- Always read Supabase `error` from awaited calls — enforced by the `supabase/require-error-check` oxlint plugin (`npm run lint`).
 
 ## PR workflow
 
