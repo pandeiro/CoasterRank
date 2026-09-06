@@ -18,9 +18,10 @@
 //     profiles.is_admin) or the service-role key (ops debugging).
 //   - Impersonation is NOT handled here — assume-identity mints the magic
 //     link and enforces the synthetic-user restriction server-side.
-//   - Platform-level JWT verification stays ON (default config): only
-//     well-formed Supabase JWTs reach this code.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+//   - The gateway does not replace this boundary: requests carrying an
+//     apikey can reach this function, so bearer validation and the admin
+//     profile lookup below are authoritative.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,6 +78,7 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization') ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
   if (!token) return json({ error: 'missing bearer token' }, 401)
+  let callerId: string | null = null
 
   // service-role key (ops debugging) or an admin user JWT.
   if (token !== serviceKey) {
@@ -86,6 +88,7 @@ Deno.serve(async (req) => {
     if (!me.ok) return json({ error: 'invalid or expired token' }, 401)
     const user: { id?: string } = await me.json()
     if (!user.id) return json({ error: 'invalid token subject' }, 401)
+    callerId = user.id
     const { data: profile } = await admin
       .from('profiles')
       .select('is_admin')
@@ -170,6 +173,20 @@ Deno.serve(async (req) => {
     | null
   if (!body?.userId || (body.action !== 'confirm' && body.action !== 'delete')) {
     return json({ error: "expected { action: 'confirm' | 'delete', userId }" }, 400)
+  }
+
+  if (callerId === body.userId) {
+    return json({ error: 'administrators cannot manage their own account here' }, 403)
+  }
+
+  const { data: targetProfile, error: targetProfileError } = await admin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', body.userId)
+    .maybeSingle()
+  if (targetProfileError) return json({ error: targetProfileError.message }, 500)
+  if (targetProfile?.is_admin) {
+    return json({ error: 'administrator accounts cannot be managed here' }, 403)
   }
 
   if (body.action === 'confirm') {

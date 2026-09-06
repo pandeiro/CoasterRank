@@ -54,6 +54,30 @@ export interface Env {
   RANKING_ALLOWED_ORIGINS?: string
 }
 
+const SECURITY_HEADERS: Record<string, string> = {
+  // The SPA needs inline styles for its generated HTML and data URLs for the
+  // generated default avatar; scripts remain same-origin only.
+  'Content-Security-Policy':
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+}
+
+export function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers)
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value)
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 // Link-unfurling crawlers known to skip JS. iMessage/Apple Messages uses a
 // generic Safari WebKit UA with no bot marker — known limitation, documented
 // in the PR; those unfurls show the SPA's default title. `reddit/` matches
@@ -649,39 +673,43 @@ export default {
     const pathname = url.pathname.replace(/\/+$/, '') || '/'
 
     if (pathname === '/api/ranking') {
-      return handleRankingRequest(request, env)
+      return withSecurityHeaders(await handleRankingRequest(request, env))
     }
 
     // Dynamic share card — any user-agent (crawlers + in-app previews).
     const ogMatch = RIDER_OG_PATH_RE.exec(url.pathname)
     if (ogMatch) {
       // Path regex already restricts the charset; normalize case for the RPC.
-      return handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env)
+      return withSecurityHeaders(
+        await handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env),
+      )
     }
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {
-      return new Response(renderHomeHtml(url.origin), {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          // Static content — cached an hour, so copy tweaks after a deploy
-          // propagate without a manual cache purge.
-          'Cache-Control': 'public, max-age=3600',
-        },
-      })
+      return withSecurityHeaders(
+        new Response(renderHomeHtml(url.origin), {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            // Static content — cached an hour, so copy tweaks after a deploy
+            // propagate without a manual cache purge.
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }),
+      )
     }
 
     const match = RIDER_PATH_RE.exec(url.pathname)
 
     if (!match || !isSocialCrawler(request.headers.get('user-agent'))) {
-      return env.ASSETS.fetch(request)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
     const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
     const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
     if (!supabaseUrl || !supabaseKey) {
       // Env not configured: degrade to the SPA shell rather than erroring.
-      return env.ASSETS.fetch(request)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
     // Path regex already restricts the charset; normalize case for the RPC.
@@ -692,18 +720,20 @@ export default {
       const html = data
         ? renderRiderHtml(data, url.origin, url.pathname)
         : renderRiderNotFoundHtml(url.origin)
-      return new Response(html, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          // Short cache: rankings are live data; also softens RPC load if a
-          // link gets a traffic spike after being shared.
-          'Cache-Control': 'public, max-age=300',
-        },
-      })
+      return withSecurityHeaders(
+        new Response(html, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            // Short cache: rankings are live data; also softens RPC load if a
+            // link gets a traffic spike after being shared.
+            'Cache-Control': 'public, max-age=300',
+          },
+        }),
+      )
     } catch {
       // Supabase unreachable: serve the SPA shell rather than an error page.
-      return env.ASSETS.fetch(request)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
   },
 }

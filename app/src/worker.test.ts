@@ -225,6 +225,9 @@ describe('worker: fetch handler', () => {
     expect(response.status).toBe(200)
     expect(await response.text()).toBe('spa-shell')
     expect(env.ASSETS.fetch).toHaveBeenCalledTimes(1)
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY')
+    expect(response.headers.get('Strict-Transport-Security')).toContain('max-age=')
   })
 
   it('serves the SPA shell for non-rider paths even for bots', async () => {
@@ -247,6 +250,11 @@ describe('worker: fetch handler', () => {
 
     expect(response.headers.get('Content-Type')).toContain('text/html')
     expect(response.headers.get('Cache-Control')).toContain('max-age=300')
+    const csp = response.headers.get('Content-Security-Policy')
+    expect(csp).toContain("frame-ancestors 'none'")
+    expect(csp).toContain('style-src')
+    expect(csp).toContain('https://fonts.googleapis.com')
+    expect(csp).toContain("font-src 'self' https://fonts.gstatic.com")
     expect(html).toContain('Coaster Fan (@coaster_fan) — CoasterRank')
     expect(html).toContain('Steel Vengeance')
 
