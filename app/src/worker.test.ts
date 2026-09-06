@@ -250,7 +250,11 @@ describe('worker: fetch handler', () => {
 
     expect(response.headers.get('Content-Type')).toContain('text/html')
     expect(response.headers.get('Cache-Control')).toContain('max-age=300')
-    expect(response.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'")
+    const csp = response.headers.get('Content-Security-Policy')
+    expect(csp).toContain("frame-ancestors 'none'")
+    expect(csp).toContain('style-src')
+    expect(csp).toContain('https://fonts.googleapis.com')
+    expect(csp).toContain("font-src 'self' https://fonts.gstatic.com")
     expect(html).toContain('Coaster Fan (@coaster_fan) — CoasterRank')
     expect(html).toContain('Steel Vengeance')
 

@@ -56,6 +56,7 @@ $$;
 
 revoke execute on function public.suggested_fields_keys_valid(jsonb) from public, anon;
 grant execute on function public.suggested_fields_keys_valid(jsonb) to authenticated;
+grant execute on function public.suggested_fields_keys_valid(jsonb) to service_role;
 
 alter table public.coaster_submissions
   add constraint coaster_submissions_suggested_fields_keys_check
@@ -96,9 +97,12 @@ $$;
 
 revoke insert on public.user_number_ones from authenticated;
 
--- F-03 + P-05: a public bucket may still serve known object URLs, but list
--- and writes are scoped to the caller's single canonical avatar path. This
--- prevents UUID enumeration, arbitrary object creation, and unbounded counts.
+-- F-03 + P-05: the bucket remains public so its known public object URLs work
+-- for anonymous avatars and crawler previews. Public-bucket downloads do not
+-- require a public storage.objects SELECT policy; the policy below governs
+-- authenticated listing through the Storage API. List and writes are scoped
+-- to the caller's single canonical avatar path, preventing UUID enumeration,
+-- arbitrary object creation, and unbounded counts.
 drop policy if exists "Avatar public read" on storage.objects;
 create policy "Avatar owner list"
   on storage.objects for select
@@ -148,8 +152,8 @@ as $$
   with eligible_users as (
     select u.id
     from auth.users u
-    left join public.profiles p on p.id = u.id
-    where coalesce(p.is_admin, false) = false
+    join public.profiles p on p.id = u.id
+    where p.is_admin = false
       and coalesce(u.raw_user_meta_data->>'synthetic', 'false') <> 'true'
       and lower(coalesce(u.email, '')) not like '%@test.coasterrank.dev'
   ),
