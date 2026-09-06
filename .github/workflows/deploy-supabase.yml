@@ -40,8 +40,15 @@ jobs:
             exit 1
           fi
 
+      # The supabase npm package postinstall refuses global npm installs, so
+      # download the Linux binary directly from the GitHub release instead.
       - name: Install Supabase CLI
-        run: npm install -g supabase@2.39.2
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin supabase
+          supabase --version
 
       - name: Ensure PostgreSQL client is available
         run: |
