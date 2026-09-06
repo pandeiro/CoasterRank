@@ -262,12 +262,18 @@ export default function CoasterTable({
     // The reserved movement gutter (board variant only): a fixed-width column
     // left of the rank badge, normally empty, so turnover chips never shift
     // the layout. BoardPage passes movement only after a live turnover.
+    // Chips anchor at 27px: the geometric midpoint between the table's left
+    // edge and the rank badge (28px gutter + 20px badge offset → 24px) reads
+    // left-hugging next to the badge's 40px visual mass, so the anchor gets a
+    // +3px optical bias toward the badge — equal PERCEIVED whitespace on both
+    // sides at any chip width. The wrapper span owns the centering transform
+    // because the chip's own animation animates transform and would clobber it.
     const gutterActive = variant === 'board'
     return (
       <table className="w-full table-fixed text-sm">
         <thead>
           <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            {gutterActive && <th className="w-10 px-2" aria-hidden="true" />}
+            {gutterActive && <th className="w-7 px-1" aria-hidden="true" />}
             <th className="w-[4.5rem] px-3 py-2.5 text-right">
               <span className="sr-only">Rank</span>
             </th>
@@ -310,9 +316,11 @@ export default function CoasterTable({
                 className={`group cursor-pointer transition-colors ${rowTint(position)}`}
               >
                 {gutterActive && (
-                  <td className="w-10 px-2 py-2.5 text-right">
+                  <td className="relative w-7 px-1 py-2.5">
                     {liveDelta !== undefined && turnover?.turnoverId && (
-                      <MovementChip key={turnover.turnoverId} delta={liveDelta} index={index} />
+                      <span className="absolute left-[27px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <MovementChip key={turnover.turnoverId} delta={liveDelta} index={index} />
+                      </span>
                     )}
                   </td>
                 )}
