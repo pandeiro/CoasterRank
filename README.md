@@ -11,13 +11,13 @@ A multi-user webapp where roller-coaster enthusiasts rank the coasters they've r
 
 ## Features
 
-- **Live public board** — global ranking recomputed every 15 minutes by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required.
-- **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates.
-- **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params; operating-only by default.
-- **Seeded catalog** — 1,087 coasters / 279 parks / 101 manufacturers imported from a CC0 public-domain dataset.
-- **Submissions & moderation** — users propose missing coasters; admins review the queue, add or edit entries, and re-home orphaned rows.
-- **Coaster & park detail pages**.
-- **Admin dashboard** — manage coaster entries, moderate user submissions, re-home orphaned rows, and manually trigger rankings recompute.
+- **Live public board** — global ranking recomputed every 15 minutes by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required
+- **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates
+- **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params
+- **Seeded and community-curated catalog** — Initially 1,087 coasters/279 parks/101 manufacturers imported from a CC0 public-domain dataset, then cleaned, deduped, growing through user submissions
+- **Submissions & moderation** — users propose missing coasters; admins review the queue, add or edit entries, and re-home orphaned rows
+- **Coaster & park detail pages**
+- **Admin dashboard** — manage coaster entries, users and user submissions, orphaned rows, and manually trigger rankings recompute
 
 ## Status
 
@@ -26,9 +26,9 @@ All v1 phases complete (scaffold → live Bradley-Terry rankings → admin & mod
 ## Tech stack
 
 - **Frontend**: React 19 + Vite + TypeScript SPA (Tailwind CSS, TanStack Query, React Router)
-- **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security) — dedicated instance, develop against prod
+- **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security)
 - **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
-- **Hosting**: Cloudflare Workers (SPA, auto-deploy on push to `main` — 500 builds/mo free, unlimited bandwidth)
+- **Hosting**: Cloudflare Workers (SPA, auto-deploy on push to `main`)
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)
 
@@ -69,8 +69,6 @@ data/           # reference datasets (ext/ = CC0 coaster_db.csv + provenance HTM
 docs/           # PLAN.md (plan & decisions), RUNBOOKS.md (ops), TEST_DATA.md (testride)
 ```
 
-Note: `app/`, `scripts/`, and `packages/bt/` each have their **own** `package.json` (no root workspace).
-
 ## Getting started
 
 Prereqs: Node 22+, npm, the Supabase CLI (`npm i -g supabase`).
@@ -101,8 +99,8 @@ cd packages/bt && npm install  # Bradley-Terry algorithm work + tests
 
 ## Docs
 
-- [`docs/PLAN.md`](docs/PLAN.md) — authoritative project plan and decision log
 - [`AGENTS.md`](AGENTS.md) — command reference, environment rules, multi-account Supabase CLI auth
+- [`docs/PLAN.md`](docs/PLAN.md) — authoritative project plan and decision log
 - [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md) — operational runbooks (one-time setup, manual ops)
 
 ## License
