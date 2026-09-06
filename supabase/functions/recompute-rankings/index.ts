@@ -21,7 +21,7 @@
 // ('prod' when unset). On non-prod clones/staging, simply do NOT set the
 // Telegram token secrets — the sends below no-op silently when they're absent,
 // so a staging function can never ping the prod channels.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
 // Pure-TS MM implementation shared with the Vitest suite; bundled at deploy.
 import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
 

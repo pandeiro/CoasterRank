@@ -39,9 +39,8 @@ module.exports = {
         'color-contrast': ['warn', {}],
         'image-aspect-ratio': ['warn', {}],
         'unused-javascript': 'warn',
-        // Report-Only never satisfies this audit (it wants an enforced
-        // policy) — stays warn until CSP itself is enforced, and must not be
-        // promoted to error before that.
+        // CSP is enforced (see #145), so this audit is promotable to
+        // error once it holds green ~2 weeks per the ratchet rule below.
         'csp-xss': 'warn',
         'robots-txt': 'warn',
         'largest-contentful-paint': ['warn', { maxNumericValue: 2500 }],

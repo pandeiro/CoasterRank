@@ -375,8 +375,7 @@ export function yearFromDate(date: string | null): number | null {
 }
 
 // Optional stats a user suggests for a new coaster (stored as jsonb on
-// coaster_submissions.suggested_fields and spread into the coaster row on
-// approval).
+// coaster_submissions.suggested_fields).
 export type SuggestedFields = {
   height_m: number | null
   speed_kmh: number | null
@@ -385,8 +384,132 @@ export type SuggestedFields = {
   material: CoasterMaterial | null
 }
 
+export type SubmissionKind = 'new' | 'edit'
+
+// Audit C-01, Option B: the ONLY keys from a new-coaster payload that may
+// reach the coasters INSERT. The DB CHECK
+// (coaster_submissions_payload_check) is the load-bearing guard; this is
+// defense in depth so a hostile key can never silently override reviewed
+// columns (name/slug/park_id/source/…) via the spread below.
+const APPROVABLE_SUBMISSION_FIELDS = [
+  'height_m',
+  'speed_kmh',
+  'length_m',
+  'inversions',
+  'material',
+] as const
+
+function approvableSuggestedFields(fields: SuggestedFields): Partial<SuggestedFields> {
+  return Object.fromEntries(
+    APPROVABLE_SUBMISSION_FIELDS.map((key) => [key, fields[key]]),
+  ) as Partial<SuggestedFields>
+}
+
+// Scalar fields a user may propose changing on an EXISTING coaster
+// (kind='edit'). Stored as a DIFF — only changed keys are present. A park
+// move rides on the top-level park_id/park_name columns, never in here;
+// slug is never user-editable (detail URLs must stay stable).
+export const EDITABLE_SUBMISSION_FIELDS = [
+  ...APPROVABLE_SUBMISSION_FIELDS,
+  'status',
+  'model',
+  'type',
+  'opening_date',
+  'name',
+] as const
+
+export type EditSuggestedFields = {
+  height_m?: number | null
+  speed_kmh?: number | null
+  length_m?: number | null
+  inversions?: number | null
+  material?: CoasterMaterial | null
+  status?: CoasterStatus | null
+  model?: string | null
+  type?: string | null
+  opening_date?: string | null
+  name?: string | null
+}
+
+// The user-editable columns of a coaster, used as the "current" side of an
+// edit diff.
+export type EditableCoasterSnapshot = Pick<
+  Coaster,
+  | 'name'
+  | 'park_id'
+  | 'status'
+  | 'material'
+  | 'height_m'
+  | 'speed_kmh'
+  | 'length_m'
+  | 'inversions'
+  | 'model'
+  | 'type'
+  | 'opening_date'
+>
+
+// Raw edited values from the suggest-edit form (all strings, '' = cleared).
+export type EditProposalInput = {
+  name: string
+  park_id: string
+  status: string
+  material: string
+  height_m: string
+  speed_kmh: string
+  length_m: string
+  inversions: string
+  model: string
+  type: string
+  opening_date: string
+}
+
+function normalizeNullableNumber(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string' && value.trim() === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+// Pure diff builder (unit-tested): returns only the keys whose proposed value
+// differs from current. Empty text clears nullable columns; name requires a
+// non-empty value. Park moves are reported separately — the caller carries
+// the proposed park on the top-level columns.
+export function diffEditProposal(
+  current: EditableCoasterSnapshot,
+  proposal: EditProposalInput,
+): { diff: EditSuggestedFields; parkChanged: boolean } {
+  const diff: EditSuggestedFields = {}
+
+  for (const key of ['height_m', 'speed_kmh', 'length_m', 'inversions'] as const) {
+    const proposed = normalizeNullableNumber(proposal[key])
+    if (proposed !== normalizeNullableNumber(current[key])) diff[key] = proposed
+  }
+
+  if (proposal.material !== current.material && isCoasterMaterial(proposal.material)) {
+    diff.material = proposal.material
+  }
+  if (proposal.status !== current.status && isCoasterStatus(proposal.status)) {
+    diff.status = proposal.status
+  }
+
+  for (const key of ['model', 'type'] as const) {
+    const proposed = proposal[key].trim() || null
+    if (proposed !== (current[key] ?? null)) diff[key] = proposed
+  }
+
+  const proposedName = proposal.name.trim()
+  if (proposedName && proposedName !== current.name) diff.name = proposedName
+
+  const proposedDate = proposal.opening_date.trim() || null
+  if (proposedDate !== (current.opening_date ?? null)) diff.opening_date = proposedDate
+
+  return { diff, parkChanged: proposal.park_id !== current.park_id }
+}
+
 export type CoasterSubmission = {
   id: string
+  kind: SubmissionKind
+  coaster_id: string | null
   coaster_name: string
   park_name: string
   park_id: string | null
@@ -397,6 +520,7 @@ export type CoasterSubmission = {
   reviewed_by: string | null
   created_at: string
   reviewed_at: string | null
+  seen_by_submitter_at: string | null
   profiles?: { id: string; avatar_url: string | null; username: string | null } | null
 }
 
@@ -429,6 +553,42 @@ export async function submitCoaster(data: {
   return submission
 }
 
+// Suggest changes to an EXISTING coaster (kind='edit'). suggested_fields
+// carries only the changed scalar keys (see diffEditProposal); a park move
+// is expressed via park_id/park_name. The DB payload CHECK rejects anything
+// outside the edit allowlist.
+export async function submitEditSuggestion(data: {
+  coaster_id: string
+  coaster_name: string
+  park_name: string
+  park_id: string
+  suggested_fields: EditSuggestedFields
+}) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+  if (userError) throw userError
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: submission, error } = await supabase
+    .from('coaster_submissions')
+    .insert({
+      kind: 'edit',
+      coaster_id: data.coaster_id,
+      coaster_name: data.coaster_name,
+      park_name: data.park_name,
+      park_id: data.park_id,
+      suggested_fields: data.suggested_fields,
+      submitted_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return submission
+}
+
 export async function getPendingSubmissions() {
   const { data, error } = await supabase
     .from('coaster_submissions')
@@ -448,6 +608,69 @@ export async function getMySubmissions() {
     .order('created_at', { ascending: false })
   if (error) throw error
   return data as CoasterSubmission[]
+}
+
+// Full coaster rows by id (coasters has a public-read policy) — used by the
+// admin queue to render the current side of edit diffs.
+export async function getCoastersByIds(ids: string[]) {
+  if (ids.length === 0) return []
+  const { data, error } = await supabase.from('coasters').select('*').in('id', ids)
+  if (error) throw error
+  return data as Coaster[]
+}
+
+export type SubmitterTrust = {
+  submitted_by: string
+  approved: number
+  rejected: number
+  pending: number
+}
+
+// Per-submitter outcome tallies for the admin queue's trust chip. Admins can
+// select every submission row, so this is one query regardless of queue size.
+// (Non-admin callers only ever see their own rows via RLS.)
+export async function getSubmitterTrust(ids: string[]): Promise<Map<string, SubmitterTrust>> {
+  const trust = new Map<string, SubmitterTrust>()
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return trust
+  const { data, error } = await supabase
+    .from('coaster_submissions')
+    .select('submitted_by, status')
+    .in('submitted_by', unique)
+  if (error) throw error
+  for (const row of data as Array<{ submitted_by: string; status: string }>) {
+    const entry = trust.get(row.submitted_by) ?? {
+      submitted_by: row.submitted_by,
+      approved: 0,
+      rejected: 0,
+      pending: 0,
+    }
+    if (row.status === 'approved') entry.approved += 1
+    else if (row.status === 'rejected') entry.rejected += 1
+    else entry.pending += 1
+    trust.set(row.submitted_by, entry)
+  }
+  return trust
+}
+
+// Marks the caller's reviewed outcomes as seen (drives the "new result"
+// badge on /submit). The security-definer RPC only touches the caller's own
+// reviewed, unseen rows — submitters have no direct UPDATE grant.
+export async function markMySubmissionsSeen() {
+  const { error } = await supabase.rpc('mark_own_submissions_seen')
+  if (error) throw error
+}
+
+async function markSubmissionApproved(id: string, reviewerId: string) {
+  const { error } = await supabase
+    .from('coaster_submissions')
+    .update({
+      status: 'approved',
+      reviewed_by: reviewerId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function rejectSubmission(id: string, note: string) {
@@ -511,7 +734,9 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
       name: submission.coaster_name,
       slug: coasterSlug,
       source: 'community',
-      ...submission.suggested_fields,
+      // C-01: explicit allowlist — never spread the raw payload, so a hostile
+      // key (park_id/name/slug/source/…) cannot override reviewed columns.
+      ...approvableSuggestedFields(submission.suggested_fields),
     })
     if (!error) {
       coasterError = null
@@ -546,15 +771,66 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   }
 
   // 3. Update Submission Status
-  const { error: statusError } = await supabase
-    .from('coaster_submissions')
-    .update({
-      status: 'approved',
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-  if (statusError) throw statusError
+  await markSubmissionApproved(id, user.id)
+}
+
+// Approve an edit suggestion: apply the allowlisted diff onto the target
+// coaster row. Park moves come from the top-level park_id column (never the
+// payload — C-01); slug is deliberately untouched so detail URLs stay
+// stable. last_verified_at is bumped: a reviewed edit is a verification.
+export async function approveEditSubmission(id: string, submission: CoasterSubmission) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+  if (userError) throw userError
+  if (!user) throw new Error('Not authenticated')
+  if (!submission.coaster_id) throw new Error('Edit submission is missing its coaster.')
+  if (!submission.park_id) throw new Error('Edit submission is missing its park.')
+
+  // Defense in depth mirroring the DB CHECK: only allowlisted keys leave the
+  // payload, and enum/text values are re-validated before the UPDATE.
+  const fields = (submission.suggested_fields ?? {}) as Record<string, unknown>
+  const updates: Record<string, number | string | null> = {}
+
+  for (const key of ['height_m', 'speed_kmh', 'length_m', 'inversions'] as const) {
+    const raw = fields[key]
+    if (raw === undefined) continue
+    if (raw === null) {
+      updates[key] = null
+    } else if (typeof raw === 'number' && Number.isFinite(raw)) {
+      updates[key] = raw
+    }
+    // Anything else failed the DB CHECK already; skip rather than apply.
+  }
+
+  if (typeof fields.material === 'string' && isCoasterMaterial(fields.material)) {
+    updates.material = fields.material
+  }
+  if (typeof fields.status === 'string' && isCoasterStatus(fields.status)) {
+    updates.status = fields.status
+  }
+  for (const key of ['model', 'type'] as const) {
+    const raw = fields[key]
+    if (raw === null) updates[key] = null
+    else if (typeof raw === 'string' && raw.length <= 120) updates[key] = raw
+  }
+  if (typeof fields.name === 'string' && fields.name.length >= 1 && fields.name.length <= 120) {
+    updates.name = fields.name
+  }
+  if (typeof fields.opening_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fields.opening_date)) {
+    updates.opening_date = fields.opening_date
+  } else if (fields.opening_date === null) {
+    updates.opening_date = null
+  }
+
+  updates.park_id = submission.park_id
+  updates.last_verified_at = new Date().toISOString()
+
+  const { error } = await supabase.from('coasters').update(updates).eq('id', submission.coaster_id)
+  if (error) throw error
+
+  await markSubmissionApproved(id, user.id)
 }
 
 export type Coaster = {

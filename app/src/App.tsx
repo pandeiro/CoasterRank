@@ -25,6 +25,7 @@ const ParkDetailPage = lazy(() => import('./pages/ParkDetailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const RiderPage = lazy(() => import('./pages/RiderPage'))
 const SubmitPage = lazy(() => import('./pages/SubmitPage'))
+const SuggestEditPage = lazy(() => import('./pages/SuggestEditPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 import React from 'react'
@@ -82,6 +83,7 @@ export default function App() {
                   <Route path="/me" element={<MyCoastersPage />} />
                   <Route path="/me/profile" element={<ProfilePage />} />
                   <Route path="/submit" element={<SubmitPage />} />
+                  <Route path="/coasters/:slug/suggest-edit" element={<SuggestEditPage />} />
                 </Route>
                 <Route element={<RequireAdmin />}>
                   <Route path="/admin/:tab?" element={<AdminPage />} />

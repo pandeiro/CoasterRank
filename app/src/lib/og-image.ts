@@ -1,5 +1,4 @@
 import { buildRiderOgSvg, type OgSvgProfile, type OgSvgRide } from './og-svg'
-import { securityHeaders } from './security-headers'
 
 /**
  * Edge OG image pipeline for /riders/:username/og.png (see worker.ts).
@@ -202,7 +201,6 @@ function ogPngResponse(
     status: 200,
     headers: {
       'Content-Type': 'image/png',
-      ...securityHeaders(false),
       'Cache-Control': `public, max-age=${maxAge}`,
       'X-Og-Cache': cacheStatus,
     },
@@ -215,7 +213,7 @@ async function fallbackOgResponse(deps: OgServeDeps): Promise<Response> {
   } catch {
     return new Response('OG image unavailable', {
       status: 502,
-      headers: { ...securityHeaders(false), 'Cache-Control': 'no-store' },
+      headers: { 'Cache-Control': 'no-store' },
     })
   }
 }

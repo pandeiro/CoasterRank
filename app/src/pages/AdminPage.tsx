@@ -17,12 +17,17 @@ import {
 } from '../components/ui'
 import Avatar from '../components/ui/Avatar'
 import {
+  approveEditSubmission,
   getPendingSubmissions,
   rejectSubmission,
   approveSubmission,
+  getCoastersByIds,
+  getSubmitterTrust,
   isCoasterMaterial,
   isCoasterStatus,
+  capitalize,
   type CoasterSubmission,
+  type SubmitterTrust,
   getAllCoastersAdmin,
   updateCoaster,
   createCoaster,
@@ -68,6 +73,123 @@ const LEGACY_TAB_REDIRECT: Partial<Record<string, AdminTab>> = { impersonate: 'u
 
 type AppSetting = { key: string; enabled: boolean; label?: string | null; updated_at: string }
 
+type SubmissionKindFilter = 'all' | 'new' | 'edit'
+
+const SUBMISSION_FIELD_LABELS: Record<string, string> = {
+  height_m: 'Height (m)',
+  speed_kmh: 'Speed (km/h)',
+  length_m: 'Length (m)',
+  inversions: 'Inversions',
+  material: 'Material',
+  status: 'Status',
+  model: 'Model',
+  type: 'Type',
+  opening_date: 'Opening date',
+  name: 'Name',
+}
+
+function formatSubmissionValue(key: string, value: number | string | null | undefined): string {
+  if (value === null || value === undefined) return '—'
+  if (key === 'material' || key === 'status') return capitalize(String(value))
+  return String(value)
+}
+
+// Submitter history chip: approved/rejected tallies so a reviewer can weigh
+// the current suggestion against the track record at a glance.
+function TrustChip({ trust }: { trust: SubmitterTrust | undefined }) {
+  if (!trust) return null
+  const decided = trust.approved + trust.rejected
+  const rate = decided === 0 ? null : Math.round((trust.approved / decided) * 100)
+  return (
+    <span className="text-xs text-muted">
+      {decided === 0 ? (
+        'First-time submitter'
+      ) : (
+        <>
+          {trust.approved} approved · {trust.rejected} rejected
+          {rate !== null ? ` (${rate}%)` : ''}
+        </>
+      )}
+      {trust.pending > 1 ? ` · ${trust.pending} pending` : ''}
+    </span>
+  )
+}
+
+// Typed stat list for new-coaster submissions (replaces the raw JSON dump —
+// reviewers approve named fields, not a blob).
+function NewSubmissionStats({ submission }: { submission: CoasterSubmission }) {
+  const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
+  return (
+    <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs sm:grid-cols-3">
+      {['height_m', 'speed_kmh', 'length_m', 'inversions', 'material'].map((key) => (
+        <div key={key} className="flex justify-between gap-2">
+          <dt className="text-muted">{SUBMISSION_FIELD_LABELS[key]}</dt>
+          <dd className="font-medium text-ink">{formatSubmissionValue(key, fields[key])}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+// Before → after diff for edit suggestions. A park move is the highest
+// blast-radius change, so it gets the warning treatment when it differs.
+function EditSubmissionDiff({
+  submission,
+  target,
+  parkNameById,
+}: {
+  submission: CoasterSubmission
+  target: Coaster | undefined
+  parkNameById: Map<string, string>
+}) {
+  const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
+  const changedKeys = Object.keys(fields)
+  const parkMoved = target && submission.park_id !== target.park_id
+  return (
+    <div className="mt-2 space-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs">
+      {changedKeys.length === 0 && !parkMoved && (
+        <p className="text-muted">Park move only (no scalar changes).</p>
+      )}
+      {changedKeys.map((key) => (
+        <div key={key} className="flex items-baseline justify-between gap-2">
+          <span className="shrink-0 text-muted">{SUBMISSION_FIELD_LABELS[key] ?? key}</span>
+          <span className="truncate text-right">
+            <span className="text-muted line-through">
+              {formatSubmissionValue(key, target?.[key as keyof Coaster] as never)}
+            </span>{' '}
+            <span className="font-medium text-ink">
+              → {formatSubmissionValue(key, fields[key])}
+            </span>
+          </span>
+        </div>
+      ))}
+      {target && (
+        <div
+          className={`flex items-baseline justify-between gap-2 rounded px-1 py-0.5 ${
+            parkMoved ? 'bg-warning/10 font-medium text-warning' : ''
+          }`}
+        >
+          <span className="shrink-0 text-muted">Park</span>
+          <span className="truncate text-right">
+            {parkMoved ? (
+              <>
+                {parkNameById.get(target.park_id) ?? target.park_id} → {submission.park_name} ⚠
+              </>
+            ) : (
+              (parkNameById.get(target.park_id) ?? target.park_id)
+            )}
+          </span>
+        </div>
+      )}
+      {!target && (
+        <p className="text-danger">
+          The target coaster no longer exists — approving will fail; reject this suggestion.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
   const parsed = Number(value)
@@ -111,6 +233,7 @@ export default function AdminPage() {
   // Submissions state
   const [rejectNote, setRejectNote] = useState('')
   const [activeRejectId, setActiveRejectId] = useState<string | null>(null)
+  const [kindFilter, setKindFilter] = useState<SubmissionKindFilter>('all')
 
   // Coaster Management state
   const [searchQuery, setSearchQuery] = useState('')
@@ -148,6 +271,42 @@ export default function AdminPage() {
     queryFn: getPendingSubmissions,
     enabled: activeTab === 'submissions',
   })
+
+  const visibleSubmissions = useMemo(
+    () => (kindFilter === 'all' ? submissions : submissions.filter((s) => s.kind === kindFilter)),
+    [submissions, kindFilter],
+  )
+
+  // Current rows for edit targets (public read) — the "before" side of diffs.
+  const editTargetIds = useMemo(
+    () => [
+      ...new Set(
+        submissions
+          .filter((s) => s.kind === 'edit' && s.coaster_id)
+          .map((s) => s.coaster_id as string),
+      ),
+    ],
+    [submissions],
+  )
+  const { data: editTargets = [] } = useQuery({
+    queryKey: ['submission-edit-targets', editTargetIds],
+    queryFn: () => getCoastersByIds(editTargetIds),
+    enabled: activeTab === 'submissions' && editTargetIds.length > 0,
+  })
+  const editTargetMap = useMemo(() => new Map(editTargets.map((c) => [c.id, c])), [editTargets])
+
+  // Submitter track records for the trust chips (one query for the queue).
+  const submitterIds = useMemo(
+    () => [...new Set(submissions.map((s) => s.submitted_by))],
+    [submissions],
+  )
+  const { data: trustMap } = useQuery({
+    queryKey: ['submitter-trust', submitterIds],
+    queryFn: () => getSubmitterTrust(submitterIds),
+    enabled: activeTab === 'submissions' && submitterIds.length > 0,
+  })
+
+  const parkNameById = useMemo(() => new Map(allParks.map((p) => [p.id, p.name])), [allParks])
 
   const {
     data: allCoasters = [],
@@ -283,15 +442,25 @@ export default function AdminPage() {
 
   const approve = useMutation({
     mutationFn: async ({ id, submission }: { id: string; submission: CoasterSubmission }) => {
-      await approveSubmission(id, submission)
+      if (submission.kind === 'edit') {
+        await approveEditSubmission(id, submission)
+      } else {
+        await approveSubmission(id, submission)
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_, { submission }) => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['submitter-trust'] })
+      queryClient.invalidateQueries({ queryKey: ['submission-edit-targets'] })
       // New coaster must show up on the board immediately, edge cache aside.
       void refreshBoardData(queryClient).catch(() => {})
       queryClient.invalidateQueries({ queryKey: ['coasters-admin'] })
       queryClient.invalidateQueries({ queryKey: ['parks-admin'] })
-      notify('Submission approved and coaster created.')
+      notify(
+        submission.kind === 'edit'
+          ? 'Edit approved and coaster updated.'
+          : 'Submission approved and coaster created.',
+      )
     },
     onError: (error) => {
       notify(`Couldn't approve submission: ${error.message}`, 'error')
@@ -304,6 +473,7 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['submitter-trust'] })
       setActiveRejectId(null)
       setRejectNote('')
       notify('Submission rejected.')
@@ -580,22 +750,61 @@ export default function AdminPage() {
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'submissions' && (
             <Panel className="p-6">
-              <h2 className="mb-4 text-lg font-semibold text-ink">Submission Queue</h2>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-ink">Submission Queue</h2>
+                <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
+                  {(
+                    [
+                      ['all', `All (${submissions.length})`],
+                      ['new', `New (${submissions.filter((s) => s.kind === 'new').length})`],
+                      ['edit', `Edits (${submissions.filter((s) => s.kind === 'edit').length})`],
+                    ] as Array<[SubmissionKindFilter, string]>
+                  ).map(([kind, label]) => (
+                    <button
+                      key={kind}
+                      onClick={() => setKindFilter(kind)}
+                      className={`rounded-full px-2.5 py-1 transition-colors ${
+                        kindFilter === kind
+                          ? 'bg-surface-bright font-medium text-ink shadow-sm'
+                          : 'text-muted hover:text-ink'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {submissionsLoading ? (
                 <MessageState>Loading submissions...</MessageState>
               ) : submissionsError ? (
                 <MessageState tone="danger">Couldn&apos;t load submissions.</MessageState>
               ) : submissions.length === 0 ? (
                 <MessageState>No pending submissions.</MessageState>
+              ) : visibleSubmissions.length === 0 ? (
+                <MessageState>
+                  No pending {kindFilter === 'new' ? 'new-coaster submissions' : 'edit suggestions'}
+                  .
+                </MessageState>
               ) : (
                 <div className="space-y-4">
-                  {submissions.map((s) => (
+                  {visibleSubmissions.map((s) => (
                     <div key={s.id} className="rounded-xl border border-line bg-surface p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold">{s.coaster_name}</h3>
+                          <h3 className="font-semibold">
+                            {s.coaster_name}{' '}
+                            <span
+                              className={`ml-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                s.kind === 'edit'
+                                  ? 'bg-accent/15 text-accent-strong'
+                                  : 'bg-success/15 text-success'
+                              }`}
+                            >
+                              {s.kind === 'edit' ? 'Edit' : 'New'}
+                            </span>
+                          </h3>
                           <p className="text-sm text-muted">{s.park_name}</p>
-                          <div className="mt-2 flex items-center gap-2">
+                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                             <Avatar
                               src={s.profiles?.avatar_url ?? null}
                               userId={s.submitted_by}
@@ -604,17 +813,24 @@ export default function AdminPage() {
                             <span className="text-xs text-muted">
                               {s.profiles?.username ?? 'Unknown user'}
                             </span>
+                            <TrustChip trust={trustMap?.get(s.submitted_by)} />
                           </div>
-                          <div className="mt-2 max-h-24 overflow-auto rounded-lg border border-line bg-surface-bright p-2 font-mono text-xs">
-                            <pre>{JSON.stringify(s.suggested_fields, null, 2)}</pre>
-                          </div>
+                          {s.kind === 'edit' ? (
+                            <EditSubmissionDiff
+                              submission={s}
+                              target={s.coaster_id ? editTargetMap.get(s.coaster_id) : undefined}
+                              parkNameById={parkNameById}
+                            />
+                          ) : (
+                            <NewSubmissionStats submission={s} />
+                          )}
                         </div>
                         <div className="flex gap-2 ml-4">
                           <button
                             onClick={() => approve.mutate({ id: s.id, submission: s })}
                             disabled={approve.isPending}
                             className="rounded-full bg-success-text p-2 text-white hover:bg-success-text/90 disabled:opacity-50"
-                            title="Approve"
+                            title={s.kind === 'edit' ? 'Approve edit' : 'Approve'}
                           >
                             <Check size={16} />
                           </button>

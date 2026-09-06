@@ -169,9 +169,8 @@ describe('serveOgImage', () => {
       }),
     )
     expect(response.status).toBe(502)
-    // Even the error path carries the base security headers.
-    expect(response.headers.get('strict-transport-security')).toBeTruthy()
-    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    // Header coverage for this path lives at the worker level (the outer
+    // withSecurityHeaders wrap) — see 'worker: /riders/:username/og.png'.
   })
 })
 

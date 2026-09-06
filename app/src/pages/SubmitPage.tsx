@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import Toast from '../components/Toast'
@@ -6,6 +7,7 @@ import { Button, fieldClassName, MessageState, Panel, selectClassName } from '..
 import { useAuth } from '../lib/auth-context'
 import {
   getMySubmissions,
+  markMySubmissionsSeen,
   SUBMISSION_PENDING_CAP,
   submitCoaster,
   useParks,
@@ -24,10 +26,20 @@ export default function SubmitPage() {
   const { user, isConfirmed } = useAuth()
   const queryClient = useQueryClient()
   const { data: parks = [] } = useParks()
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
 
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
-  const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(() => {
+    const justSuggested = (location.state as { justSuggested?: string } | null)?.justSuggested
+    return justSuggested
+      ? { message: `Suggestion sent for ${justSuggested} — track its review below.`, tone: 'info' }
+      : null
+  })
+
+  // Deep link from the /me search empty state ("Suggest X") pre-fills the name.
+  const suggestedName = searchParams.get('name') ?? ''
 
   const {
     data: mySubmissions = [],
@@ -44,6 +56,20 @@ export default function SubmitPage() {
     [mySubmissions],
   )
   const atCap = pendingCount >= SUBMISSION_PENDING_CAP
+
+  // Once the submitter has seen their reviewed outcomes, mark them so the
+  // "new result" badge clears. Failures reset the guard for a later retry.
+  const seenMarked = useRef(false)
+  useEffect(() => {
+    if (!user || !isConfirmed || mySubmissions.length === 0 || seenMarked.current) return
+    if (!mySubmissions.some((s) => s.reviewed_at && !s.seen_by_submitter_at)) return
+    seenMarked.current = true
+    markMySubmissionsSeen()
+      .then(() => queryClient.invalidateQueries({ queryKey: ['my-submissions', user.id] }))
+      .catch(() => {
+        seenMarked.current = false
+      })
+  }, [user, isConfirmed, mySubmissions, queryClient])
 
   const filteredParks = parks
     .filter((p) => p.name.toLowerCase().includes(searchPark.toLowerCase()))
@@ -128,6 +154,7 @@ export default function SubmitPage() {
                 name="coaster_name"
                 required
                 maxLength={120}
+                defaultValue={suggestedName}
                 className={fieldClassName}
                 placeholder="e.g. Steel Vengeance"
               />
@@ -266,7 +293,17 @@ export default function SubmitPage() {
                 className="flex items-start justify-between gap-3 rounded-xl border border-line bg-surface-bright p-3 shadow-panel"
               >
                 <div>
-                  <p className="text-sm font-medium text-ink">{s.coaster_name}</p>
+                  <p className="text-sm font-medium text-ink">
+                    {s.coaster_name}{' '}
+                    <span className="font-normal text-muted">
+                      · {s.kind === 'edit' ? 'Edit suggestion' : 'New coaster'}
+                    </span>
+                    {s.reviewed_at && !s.seen_by_submitter_at && (
+                      <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-white">
+                        New result
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted">{s.park_name}</p>
                   {s.status === 'rejected' && s.reviewer_note && (
                     <p className="mt-1 text-xs text-danger">Reviewer: {s.reviewer_note}</p>

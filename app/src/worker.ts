@@ -43,7 +43,6 @@ import {
   type OgImageRider,
 } from './lib/og-image'
 import { truncate } from './lib/truncate'
-import { securityHeaders, withSecurityHeaders } from './lib/security-headers'
 
 export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
@@ -53,6 +52,31 @@ export interface Env {
   VITE_SUPABASE_ANON_KEY?: string
   /** Optional comma-separated CORS allowlist override (plain var, not secret). */
   RANKING_ALLOWED_ORIGINS?: string
+}
+
+const SECURITY_HEADERS: Record<string, string> = {
+  // The SPA needs inline styles for its generated HTML and data URLs for the
+  // generated default avatar; scripts remain same-origin only.
+  'Content-Security-Policy':
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+  'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+}
+
+export function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers)
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value)
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 // Link-unfurling crawlers known to skip JS. iMessage/Apple Messages uses a
@@ -392,15 +416,16 @@ function rankingJsonResponse(
   env: Env,
   extraHeaders: Record<string, string> = {},
 ): Response {
-  return new Response(body, {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...securityHeaders(false),
-      ...corsHeaders(request, env),
-      ...extraHeaders,
-    },
-  })
+  return withSecurityHeaders(
+    new Response(body, {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(request, env),
+        ...extraHeaders,
+      },
+    }),
+  )
 }
 
 // Board meta (user counts + last recompute time) for the homepage.
@@ -646,56 +671,49 @@ export async function handleOgImageRequest(
   })
 }
 
-// Static-asset passthrough with security headers. The SPA fallback serves
-// index.html for app routes, so the CSP Report-Only header rides along only
-// when the served bytes are actually HTML (JS/CSS/PNG responses get the base
-// headers without a meaningless CSP).
-async function serveStatic(request: Request, env: Env): Promise<Response> {
-  const response = await env.ASSETS.fetch(request)
-  const contentType = response.headers.get('content-type') ?? ''
-  return withSecurityHeaders(response, contentType.includes('text/html'))
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     const pathname = url.pathname.replace(/\/+$/, '') || '/'
 
     if (pathname === '/api/ranking') {
-      return handleRankingRequest(request, env)
+      return withSecurityHeaders(await handleRankingRequest(request, env))
     }
 
     // Dynamic share card — any user-agent (crawlers + in-app previews).
     const ogMatch = RIDER_OG_PATH_RE.exec(url.pathname)
     if (ogMatch) {
       // Path regex already restricts the charset; normalize case for the RPC.
-      return handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env)
+      return withSecurityHeaders(
+        await handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env),
+      )
     }
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {
-      return new Response(renderHomeHtml(url.origin), {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          ...securityHeaders(true),
-          // Static content — cached an hour, so copy tweaks after a deploy
-          // propagate without a manual cache purge.
-          'Cache-Control': 'public, max-age=3600',
-        },
-      })
+      return withSecurityHeaders(
+        new Response(renderHomeHtml(url.origin), {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            // Static content — cached an hour, so copy tweaks after a deploy
+            // propagate without a manual cache purge.
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }),
+      )
     }
 
     const match = RIDER_PATH_RE.exec(url.pathname)
 
     if (!match || !isSocialCrawler(request.headers.get('user-agent'))) {
-      return serveStatic(request, env)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
     const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
     const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
     if (!supabaseUrl || !supabaseKey) {
       // Env not configured: degrade to the SPA shell rather than erroring.
-      return serveStatic(request, env)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
     // Path regex already restricts the charset; normalize case for the RPC.
@@ -706,19 +724,20 @@ export default {
       const html = data
         ? renderRiderHtml(data, url.origin, url.pathname)
         : renderRiderNotFoundHtml(url.origin)
-      return new Response(html, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          ...securityHeaders(true),
-          // Short cache: rankings are live data; also softens RPC load if a
-          // link gets a traffic spike after being shared.
-          'Cache-Control': 'public, max-age=300',
-        },
-      })
+      return withSecurityHeaders(
+        new Response(html, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            // Short cache: rankings are live data; also softens RPC load if a
+            // link gets a traffic spike after being shared.
+            'Cache-Control': 'public, max-age=300',
+          },
+        }),
+      )
     } catch {
       // Supabase unreachable: serve the SPA shell rather than an error page.
-      return serveStatic(request, env)
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
   },
 }
