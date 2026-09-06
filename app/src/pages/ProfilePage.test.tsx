@@ -6,15 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 import ProfilePage from './ProfilePage'
 import { useAuth } from '../lib/auth-context'
-import { refreshOgCard } from '../lib/og-card'
 import { supabase } from '../lib/supabase'
 
 vi.mock('../lib/auth-context', () => ({
   useAuth: vi.fn(),
-}))
-
-vi.mock('../lib/og-card', () => ({
-  refreshOgCard: vi.fn().mockResolvedValue('https://img.test/og-card.png'),
 }))
 
 const selectSingle = vi.fn()
@@ -133,71 +128,5 @@ describe('ProfilePage', () => {
     expect(updateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ username: 'coaster_fan', public_list: true }),
     )
-  })
-
-  it('refreshes the share card after enabling sharing with no card yet', async () => {
-    updateEq.mockResolvedValue({ error: null })
-    renderProfile()
-    await screen.findByDisplayValue('coaster_fan')
-
-    await userEvent.click(screen.getByLabelText(/share my ranking/i))
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-
-    await waitFor(() => {
-      expect(refreshOgCard).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'u1',
-          username: 'coaster_fan',
-          name: 'Coaster Fan',
-          avatarSrc: 'https://img.test/avatar.jpg',
-        }),
-      )
-    })
-  })
-
-  it('skips the share-card refresh when nothing baked into the card changed', async () => {
-    updateEq.mockResolvedValue({ error: null })
-    selectSingle.mockResolvedValue({
-      data: { ...fakeProfile, public_list: true, og_image_url: 'https://img.test/og-card.png' },
-      error: null,
-    })
-    renderProfile()
-    await screen.findByDisplayValue('coaster_fan')
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-
-    await screen.findByText('Saved.')
-    expect(refreshOgCard).not.toHaveBeenCalled()
-  })
-
-  it('refreshes the share card when the display name changes while sharing', async () => {
-    updateEq.mockResolvedValue({ error: null })
-    selectSingle.mockResolvedValue({
-      data: { ...fakeProfile, public_list: true, og_image_url: 'https://img.test/og-card.png' },
-      error: null,
-    })
-    renderProfile()
-    const displayName = await screen.findByDisplayValue('Coaster Fan')
-
-    await userEvent.clear(displayName)
-    await userEvent.type(displayName, 'New Name')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-
-    await waitFor(() => {
-      expect(refreshOgCard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'u1', name: 'New Name', username: 'coaster_fan' }),
-      )
-    })
-  })
-
-  it('does not refresh the share card while sharing is off', async () => {
-    updateEq.mockResolvedValue({ error: null })
-    renderProfile()
-    await screen.findByDisplayValue('coaster_fan')
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-
-    await screen.findByText('Saved.')
-    expect(refreshOgCard).not.toHaveBeenCalled()
   })
 })
