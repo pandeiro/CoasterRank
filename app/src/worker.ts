@@ -14,6 +14,10 @@
  *    full OG/Twitter meta tags (most link-unfurling crawlers don't execute
  *    JS, so the SPA shell would otherwise unfurl as a bare "CoasterRank").
  *    Humans on the same URL fall through to static assets (the SPA).
+ *  - `/riders/:username/og.png` (any User-Agent) → the dynamic 1200×630
+ *    share card (rider's current top 5 + summary, SVG → PNG via resvg-wasm),
+ *    edge-cached for 5 minutes. This is the og:image the rider HTML points
+ *    at; unknown/private riders and all failures degrade to og-default.png.
  *  - `/` + social-crawler User-Agent → static prerendered OG HTML for the
  *    homepage unfurl: the shell only carries og:site_name, so shares of the
  *    base URL would otherwise unfurl with no preview image. Content is
@@ -31,6 +35,14 @@
  */
 
 import type { RankingBoardPayload } from './lib/board-types'
+import {
+  fetchAvatarDataUri,
+  ogImageUrl,
+  renderRiderOgPng,
+  serveOgImage,
+  type OgImageRider,
+} from './lib/og-image'
+import { truncate } from './lib/truncate'
 
 export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
@@ -52,11 +64,17 @@ const BOT_UA_RE =
 
 // Mirrors USERNAME_RE (client) + the DB's case-insensitive lookup.
 const RIDER_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/?$/
+// Dynamic OG image for a rider — served to ANY user-agent (crawlers fetch it
+// after reading the HTML meta; humans hit it via in-app previews). Checked
+// before the crawler gate below.
+const RIDER_OG_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/og\.png\/?$/
 
 export type WorkerRiderProfile = {
   username: string
   display_name: string | null
   avatar_url: string | null
+  /** Legacy client-uploaded card; no longer read — og:image is the dynamic
+   * /riders/:username/og.png route. Kept because the RPC still selects it. */
   og_image_url: string | null
   member_since: string | null
 }
@@ -112,26 +130,38 @@ const CSS = `
   footer{margin-top:2rem;text-align:center;color:#4A4A5A;font-size:.8rem}
 `
 
-export function riderMeta(data: WorkerRiderPage, origin: string, path: string) {
+export function riderMeta(
+  data: WorkerRiderPage,
+  origin: string,
+  path: string,
+  nowMs: number = Date.now(),
+) {
   const displayName = data.profile.display_name || data.profile.username
   const title = `${displayName} (@${data.profile.username}) — CoasterRank`
-  const top = data.rides[0]
+  const topNames = data.rides.slice(0, 3).map((ride) => truncate(ride.name, 40))
   const description =
     data.rides.length > 0
-      ? `${data.rides.length} coaster${data.rides.length === 1 ? '' : 's'} ranked · #1: ${top?.name ?? ''} · See ${displayName}'s full coaster ranking on CoasterRank.`
+      ? `${data.rides.length} coaster${data.rides.length === 1 ? '' : 's'} ranked · Top: ${topNames.join(' · ')} · See ${displayName}'s full coaster ranking on CoasterRank.`
       : `See ${displayName}'s coaster ranking on CoasterRank.`
   return {
     title,
     description,
     url: `${origin}${path}`,
-    // Per-rider card generated client-side when available, else the static
-    // brand card.
-    image: data.profile.og_image_url || `${origin}/og-default.png`,
+    // Dynamic edge-rendered card (top 5 + summary, ≤5 min stale — see the
+    // og.png route). The ?v= bucket defeats aggressive crawler image caches:
+    // each HTML generation points at a fresh image URL while the edge keeps
+    // one canonical entry per TTL window.
+    image: ogImageUrl(origin, data.profile.username, nowMs),
   }
 }
 
-export function renderRiderHtml(data: WorkerRiderPage, origin: string, path: string): string {
-  const { title, description, url, image } = riderMeta(data, origin, path)
+export function renderRiderHtml(
+  data: WorkerRiderPage,
+  origin: string,
+  path: string,
+  nowMs: number = Date.now(),
+): string {
+  const { title, description, url, image } = riderMeta(data, origin, path, nowMs)
   const displayName = data.profile.display_name || data.profile.username
   const memberYear = data.profile.member_since?.slice(0, 4)
 
@@ -161,6 +191,9 @@ export function renderRiderHtml(data: WorkerRiderPage, origin: string, path: str
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(url)}">
 <meta property="og:image" content="${escapeHtml(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${escapeHtml(`${displayName}'s top 5 coasters on CoasterRank`)}">
 <meta property="profile:username" content="${escapeHtml(data.profile.username)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(title)}">
@@ -554,6 +587,62 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
   })
 }
 
+// /riders/:username/og.png — dynamic share card --------------------------------
+// Rendered on demand from the public rider RPC (top 5 + summary) and cached
+// at the edge for 5 minutes. Any UA may fetch (crawlers after reading the
+// HTML meta, humans via in-app previews). Unknown/private riders and every
+// infra failure degrade to the static /og-default.png bytes — never an error
+// to crawlers, never a privacy leak.
+
+function memberSinceYear(iso: string | null): string | null {
+  if (!iso) return null
+  const year = iso.slice(0, 4)
+  return /^\d{4}$/.test(year) ? year : null
+}
+
+/** Maps the public RPC payload to the OG pipeline input (rides by rank). */
+function toOgImageRider(data: WorkerRiderPage, origin: string): OgImageRider {
+  return {
+    profile: {
+      username: data.profile.username,
+      displayName: data.profile.display_name || data.profile.username,
+      avatarUrl: data.profile.avatar_url,
+      memberSinceYear: memberSinceYear(data.profile.member_since),
+      pageUrl: `${origin}/riders/${data.profile.username}`,
+    },
+    rides: [...data.rides].sort((a, b) => a.rank - b.rank),
+  }
+}
+
+async function fetchStaticAsset(env: Env, requestUrl: string, path: string): Promise<ArrayBuffer> {
+  const response = await env.ASSETS.fetch(new Request(new URL(path, requestUrl)))
+  if (!response.ok) throw new Error(`static asset ${path} failed: ${response.status}`)
+  return response.arrayBuffer()
+}
+
+export async function handleOgImageRequest(
+  requestUrl: string,
+  username: string,
+  origin: string,
+  env: Env,
+): Promise<Response> {
+  const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+  const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
+  const fetchRider = async (name: string): Promise<OgImageRider | null> => {
+    if (!supabaseUrl || !supabaseKey) return null
+    const data = await fetchRiderPageFromSupabase(name, supabaseUrl, supabaseKey)
+    return data ? toOgImageRider(data, origin) : null
+  }
+  return serveOgImage(requestUrl, username, {
+    fetchRider,
+    fetchStatic: (path) => fetchStaticAsset(env, requestUrl, path),
+    fetchAvatar: fetchAvatarDataUri,
+    renderPng: renderRiderOgPng,
+    defaultPng: () => fetchStaticAsset(env, requestUrl, '/og-default.png'),
+    cache: getEdgeCache(),
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -561,6 +650,13 @@ export default {
 
     if (pathname === '/api/ranking') {
       return handleRankingRequest(request, env)
+    }
+
+    // Dynamic share card — any user-agent (crawlers + in-app previews).
+    const ogMatch = RIDER_OG_PATH_RE.exec(url.pathname)
+    if (ogMatch) {
+      // Path regex already restricts the charset; normalize case for the RPC.
+      return handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env)
     }
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {

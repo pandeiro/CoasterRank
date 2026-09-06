@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { readFile } from 'node:fs/promises'
 import worker, {
   isSocialCrawler,
   escapeHtml,
@@ -99,18 +100,27 @@ describe('worker: helpers', () => {
     expect(html).toContain('&lt;script&gt;evil()&lt;/script&gt;')
   })
 
-  it('includes OG/Twitter meta and brand image in the prerendered HTML', () => {
+  it('includes OG/Twitter meta and the dynamic card in the prerendered HTML', () => {
     const html = renderRiderHtml(riderData, 'https://coasterrank.test', '/riders/coaster_fan')
     expect(html).toContain('<title>Coaster Fan (@coaster_fan) — CoasterRank</title>')
     expect(html).toContain('property="og:type" content="profile"')
-    expect(html).toContain('property="og:image" content="https://coasterrank.test/og-default.png"')
+    expect(html).toContain(
+      'property="og:image" content="https://coasterrank.test/riders/coaster_fan/og.png?v=',
+    )
+    expect(html).toContain('property="og:image:width" content="1200"')
+    expect(html).toContain('property="og:image:height" content="630"')
     expect(html).toContain('name="twitter:card" content="summary_large_image"')
     expect(html).toContain('rel="canonical" href="https://coasterrank.test/riders/coaster_fan"')
     expect(html).toContain('Steel Vengeance')
     expect(html).not.toContain('and 0 more')
   })
 
-  it('uses the per-rider share card as og:image when one exists', () => {
+  it('describes the top 3 coasters in the meta description', () => {
+    const html = renderRiderHtml(riderData, 'https://coasterrank.test', '/riders/coaster_fan')
+    expect(html).toContain('Top: Steel Vengeance · Fury 325')
+  })
+
+  it('ignores the legacy uploaded card — og:image is always the dynamic route', () => {
     const html = renderRiderHtml(
       {
         ...riderData,
@@ -122,9 +132,22 @@ describe('worker: helpers', () => {
       'https://coasterrank.test',
       '/riders/coaster_fan',
     )
-    expect(html).toContain('property="og:image" content="https://img.test/og-card.png"')
-    expect(html).toContain('name="twitter:image" content="https://img.test/og-card.png"')
+    expect(html).toContain(
+      'property="og:image" content="https://coasterrank.test/riders/coaster_fan/og.png?v=',
+    )
+    expect(html).toContain(
+      'name="twitter:image" content="https://coasterrank.test/riders/coaster_fan/og.png?v=',
+    )
+    expect(html).not.toContain('og-card.png')
     expect(html).not.toContain('og-default.png')
+  })
+
+  it('buckets the image URL in 5-minute windows', () => {
+    const at = (ms: number) =>
+      renderRiderHtml(riderData, 'https://coasterrank.test', '/riders/coaster_fan', ms)
+    expect(at(0)).toContain('og.png?v=0')
+    expect(at(299_999)).toContain('og.png?v=0')
+    expect(at(300_000)).toContain('og.png?v=1')
   })
 })
 
@@ -286,6 +309,128 @@ describe('worker: not-found HTML', () => {
   it('never leaks whether a username exists', () => {
     const html = renderRiderNotFoundHtml('https://coasterrank.test')
     expect(html).toContain("doesn't exist or isn't shared")
+  })
+})
+
+describe('worker: /riders/:username/og.png', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function realAsset(path: string): Promise<ArrayBuffer> {
+    const buf = await readFile(new URL(`../public${path}`, import.meta.url))
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+  }
+
+  function stubAssets() {
+    return {
+      fetch: vi.fn(async (req: Request) => {
+        const path = new URL(req.url).pathname
+        if (path === '/og-default.png') {
+          return new Response(new Uint8Array([9, 9, 9]), {
+            headers: { 'Content-Type': 'image/png' },
+          })
+        }
+        if (path === '/resvg.wasm' || path.startsWith('/fonts/')) {
+          return new Response(await realAsset(path), {
+            headers: { 'Content-Type': 'application/octet-stream' },
+          })
+        }
+        // SPA shell passthrough for non-asset paths.
+        return new Response('spa-shell')
+      }),
+    }
+  }
+
+  /** RPC data for rider paths; 404 for everything else (avatar → placeholder). */
+  function stubOgUpstream() {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('public_rider_page')) {
+        return new Response(JSON.stringify(riderData), {
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      return new Response('missing', { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  function ogRequest(path = '/riders/coaster_fan/og.png', ua = 'Twitterbot/1.0') {
+    return new Request(`https://coasterrank.test${path}`, { headers: { 'user-agent': ua } })
+  }
+
+  function pngDimensions(bytes: Uint8Array): [number, number] {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    return [view.getUint32(16), view.getUint32(20)]
+  }
+
+  it('renders the live card for any user-agent (real raster, 1200x630 PNG)', async () => {
+    const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
+    const put = vi.fn(async () => {})
+    vi.stubGlobal('caches', { default: { match: vi.fn(async () => undefined), put } })
+    stubOgUpstream()
+    const response = await worker.fetch(
+      ogRequest('/riders/coaster_fan/og.png', 'Mozilla/5.0 Safari'),
+      env,
+    )
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toBe('image/png')
+    expect(response.headers.get('X-Og-Cache')).toBe('MISS')
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    expect([...bytes.slice(0, 4)]).toEqual([137, 80, 78, 71])
+    expect(pngDimensions(bytes)).toEqual([1200, 630])
+    expect(put).toHaveBeenCalledTimes(1)
+  }, 30_000)
+
+  it('serves edge hits without touching Supabase', async () => {
+    const cached = new Response(new Uint8Array([137, 80, 78, 71]), {
+      headers: { 'Content-Type': 'image/png' },
+    })
+    vi.stubGlobal('caches', {
+      default: { match: vi.fn(async () => cached), put: vi.fn(async () => {}) },
+    })
+    const fetchMock = stubOgUpstream()
+    const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
+    const response = await worker.fetch(ogRequest('/riders/coaster_fan/og.png?v=7'), env)
+    expect(response.headers.get('X-Og-Cache')).toBe('HIT')
+    expect(response.headers.get('Cache-Control')).toContain('max-age=300')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the default card for unknown or private riders', async () => {
+    const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('null')),
+    )
+    const response = await worker.fetch(ogRequest(), env)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-Og-Cache')).toBe('FALLBACK')
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([9, 9, 9]))
+  })
+
+  it('falls back to the default card when env vars are missing', async () => {
+    const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
+    env.SUPABASE_URL = undefined
+    env.SUPABASE_ANON_KEY = undefined
+    const fetchMock = stubOgUpstream()
+    const response = await worker.fetch(ogRequest(), env)
+    expect(response.headers.get('X-Og-Cache')).toBe('FALLBACK')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the SPA shell for path segments that cannot be usernames', async () => {
+    const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
+    const fetchMock = stubOgUpstream()
+    const response = await worker.fetch(ogRequest('/riders/AB/og.png'), env)
+    expect(env.ASSETS.fetch).toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(response).toBeDefined()
   })
 })
 

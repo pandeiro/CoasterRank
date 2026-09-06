@@ -6,6 +6,7 @@ import StatBlock from '../components/StatBlock'
 import { MessageState, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { riderPageUrl, useRiderPage } from '../lib/rider'
+import { truncate } from '../lib/truncate'
 
 function yearOf(iso: string | null): number | null {
   if (!iso) return null
@@ -47,13 +48,16 @@ export default function RiderPage() {
   const displayName = profile.display_name || profile.username
   const pageUrl = riderPageUrl(profile.username)
   const title = `${displayName} (${`@${profile.username}`}) — CoasterRank`
-  const ogImage = profile.og_image_url ?? `${window.location.origin}/og-default.png`
+  // Dynamic edge-rendered card (top 5 + summary, ≤5 min stale) — see the
+  // /riders/:username/og.png route in worker.ts.
+  const ogImage = `${window.location.origin}/riders/${profile.username}/og.png`
   const topPick = rides[0]
+  const topNames = rides.slice(0, 3).map((r) => truncate(r.name, 40))
   const parkCount = new Set(rides.map((r) => r.park_name).filter(Boolean)).size
   const memberSince = yearOf(profile.member_since)
   const metaDescription =
     rides.length > 0
-      ? `${rides.length} coaster${rides.length === 1 ? '' : 's'} ranked · #1: ${topPick?.name ?? ''} · See ${displayName}'s full coaster ranking on CoasterRank.`
+      ? `${rides.length} coaster${rides.length === 1 ? '' : 's'} ranked · Top: ${topNames.join(' · ')} · See ${displayName}'s full coaster ranking on CoasterRank.`
       : `See ${displayName}'s coaster ranking on CoasterRank.`
 
   return (
