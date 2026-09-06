@@ -186,6 +186,13 @@ jobs:
         working-directory: scripts
 
       - name: Open schema docs update PR if changed
+        # Non-blocking: creating the PR requires the repo setting
+        # "Allow GitHub Actions to create and approve pull requests", which
+        # is not API-manageable. If it's off, docs/SCHEMA.md still lands on
+        # bot/schema-docs (push above) and a human can open the PR manually.
+        # The deploy itself must never go red over the docs step.
+        continue-on-error: true
+        id: schema_pr
         run: |
           set -euo pipefail
           git diff --quiet docs/SCHEMA.md && echo "No changes" && exit 0
