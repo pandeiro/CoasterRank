@@ -13,6 +13,7 @@
   --color-accent: 72 202 228;
   --color-accent-strong: 21 154 184;
   --color-accent-dark: 18 131 156;
+  --color-accent-ink: 13 108 128;
   --color-coral: 232 93 117;
   --color-success: 46 139 115;
   --color-warning: 183 121 31;
@@ -60,5 +61,43 @@
   .display-heading {
     font-family: 'Racing Sans One', Arial, sans-serif;
     letter-spacing: 0.01em;
+  }
+
+  /* Editorial section heading: display voice, one tier under the page title.
+     No italic — Racing Sans One already leans forward on its own. */
+  .section-heading {
+    @apply text-lg text-ink;
+    font-family: 'Racing Sans One', Arial, sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  /* Branded inline link: cyan ink + coral underline (use sparingly). */
+  .link-brand {
+    @apply font-medium text-accent-ink underline decoration-coral/70 decoration-2 underline-offset-[3px] transition-colors hover:text-ink;
+  }
+
+  .animate-drop-in {
+    animation: drop-in 0.25s ease-out;
+  }
+
+  .formula-box {
+    @apply rounded-lg border border-line/70 bg-surface-bright px-4 py-2 text-ink;
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drop-in {
+    animation: none;
   }
 }

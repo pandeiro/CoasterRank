@@ -2,6 +2,7 @@ import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Badge, Button, Panel, fieldClassName, selectClassName } from './components/ui'
 import { HomepageMocks } from './design-homepage'
+import { StaticPageMocks } from './design-static'
 import './index.css'
 
 type Swatch = {
@@ -31,6 +32,12 @@ const swatches: Swatch[] = [
     detail: 'Interactive emphasis, active filters, live states',
   },
   { name: 'Accent strong', value: '#159AB8', utility: 'bg-accent-strong', detail: 'Accent text' },
+  {
+    name: 'Accent ink',
+    value: '#0D6C80',
+    utility: 'bg-accent-ink',
+    detail: 'Accent-colored link text on canvas (AA 5.9:1)',
+  },
   { name: 'Coral', value: '#E85D75', utility: 'bg-coral', detail: 'Brand emphasis' },
   { name: 'Success', value: '#2E8B73', utility: 'bg-success', detail: 'Successful operations' },
   { name: 'Warning', value: '#B7791F', utility: 'bg-warning', detail: 'Cautionary states' },
@@ -76,11 +83,10 @@ type TabSpec = {
   note: string
 }
 
-// TEMP (favicon-in-tab review): the shipped favicon pads the landscape mini
-// mark to 92% of the square, so ink spans ~71% of box height, centered — it
-// reads low next to tab-title text. Each variant simulates a viewBox change
-// (scale = ink size, translateY = upward shift) applied to the shipped SVG;
-// the winner gets baked into export.py's pad math. Delete once shipped.
+// Shipped favicon reference: the mini mark's window math (1.18× the legacy
+// 92% fit, shifted up 9% / left 8%) is baked into export.py's pad math
+// (FAVICON_SCALE / FAVICON_SHIFT); the unshifted mini source stays at
+// docs/design/mark/v6-color-mini.svg.
 const tabVariants: TabSpec[] = [
   {
     label: 'shipped',
@@ -362,6 +368,10 @@ export function DesignBoard() {
               </p>
             </div>
           </Panel>
+        </Section>
+
+        <Section title="Static pages">
+          <StaticPageMocks />
         </Section>
 
         <Section title="Spacing">
