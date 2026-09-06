@@ -62,7 +62,7 @@ function Segmented<T extends string>({
               onClick={() => onChange(o.value)}
               className={`relative border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color] hover:z-10 ${shape} ${
                 active
-                  ? 'z-10 border-accent-strong bg-accent/10 text-accent-strong'
+                  ? 'z-10 border-accent-text bg-accent/10 text-accent-text'
                   : 'border-line bg-surface-bright text-muted hover:border-ink/40 hover:bg-surface hover:text-ink'
               }`}
             >
@@ -239,7 +239,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             <SlidersHorizontal className="h-4 w-4 text-muted" />
             Filters
             {activeMore > 0 && (
-              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-ink/60 px-1.5 text-[11px] font-semibold leading-5 text-canvas tabular-nums">
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-[11px] font-semibold leading-5 text-canvas tabular-nums">
                 {activeMore}
               </span>
             )}
@@ -271,7 +271,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
                           manufacturer: undefined,
                         })
                       }
-                      className="text-xs font-medium text-accent-strong hover:underline"
+                      className="text-xs font-medium text-accent-text hover:underline"
                     >
                       Reset
                     </button>

@@ -5,11 +5,11 @@ type ButtonSize = 'sm' | 'md' | 'lg'
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: 'bg-ink text-canvas hover:bg-ink-soft',
-  coral: 'bg-coral text-white hover:bg-coral/90',
+  coral: 'bg-coral-text text-white hover:bg-coral-text/90',
   outline:
-    'border border-line bg-surface-bright text-ink hover:border-accent-strong hover:bg-surface',
+    'border border-line bg-surface-bright text-ink hover:border-accent-text hover:bg-surface',
   ghost: 'text-muted hover:bg-surface hover:text-ink',
-  danger: 'bg-danger text-white hover:bg-danger/90',
+  danger: 'bg-danger-text text-white hover:bg-danger-text/90',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -40,10 +40,10 @@ type BadgeTone = 'neutral' | 'accent' | 'coral' | 'success' | 'warning' | 'dange
 const badgeTones: Record<BadgeTone, string> = {
   neutral: 'bg-surface text-muted',
   accent: 'bg-accent/20 text-ink',
-  coral: 'bg-coral/15 text-coral',
-  success: 'bg-success/15 text-success',
-  warning: 'bg-warning/15 text-warning',
-  danger: 'bg-danger/15 text-danger',
+  coral: 'bg-coral/15 text-coral-text',
+  success: 'bg-success/15 text-success-text',
+  warning: 'bg-warning/15 text-warning-text',
+  danger: 'bg-danger/15 text-danger-text',
 }
 
 export function Badge({
@@ -86,7 +86,7 @@ export function PageHeader({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow && (
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
             {eyebrow}
           </p>
         )}
@@ -111,7 +111,7 @@ export function MessageState({
     <div
       className={`rounded-xl border px-5 py-12 text-center text-sm ${
         tone === 'danger'
-          ? 'border-danger/20 bg-danger/5 text-danger'
+          ? 'border-danger/20 bg-danger/5 text-danger-text'
           : 'border-line bg-surface text-muted'
       }`}
     >
@@ -121,10 +121,10 @@ export function MessageState({
 }
 
 export const fieldClassName =
-  'w-full rounded-lg border border-line bg-surface-bright px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-accent-strong focus:outline-none'
+  'w-full rounded-lg border border-line bg-surface-bright px-3 py-2.5 text-sm text-ink placeholder:text-muted transition-colors focus:border-accent-text focus:outline-none'
 
 export const selectClassName =
-  'appearance-none rounded-lg border border-line bg-surface-bright bg-no-repeat bg-[length:12px_8px] bg-[position:right_0.7rem_center] bg-[url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2012%208%22%3E%3Cpath%20fill=%22none%22%20stroke=%22%234a4a5a%22%20stroke-width=%221.75%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%20d=%22m2%202%204%204%204-4%22/%3E%3C/svg%3E")] py-2.5 pl-3 pr-10 text-sm text-ink transition-colors focus:border-accent-strong focus:outline-none'
+  'appearance-none rounded-lg border border-line bg-surface-bright bg-no-repeat bg-[length:12px_8px] bg-[position:right_0.7rem_center] bg-[url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2012%208%22%3E%3Cpath%20fill=%22none%22%20stroke=%22%234a4a5a%22%20stroke-width=%221.75%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%20d=%22m2%202%204%204%204-4%22/%3E%3C/svg%3E")] py-2.5 pl-3 pr-10 text-sm text-ink transition-colors focus:border-accent-text focus:outline-none'
 
 export function Modal({
   isOpen,
@@ -229,7 +229,7 @@ export function ConfirmDialog({
             onConfirm()
             onClose()
           }}
-          className="rounded-full bg-danger px-3 py-1.5 text-xs font-medium text-white hover:bg-danger/90"
+          className="rounded-full bg-danger-text px-3 py-1.5 text-xs font-medium text-white hover:bg-danger-text/90"
         >
           {confirmLabel}
         </button>

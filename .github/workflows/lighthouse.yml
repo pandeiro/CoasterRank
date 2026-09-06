@@ -1,0 +1,91 @@
+name: lighthouse
+
+# Advisory Lighthouse tracking — NEVER a required check, NEVER blocking.
+# All assertions in lighthouserc.js are `warn`, so this job stays green and
+# exists to produce an easily-referenced summary + full reports.
+#
+# Why schedule-only (no PR trigger): a PR run against prod would measure
+# prod, not the PR's code, and a static `vite preview` has no Supabase data
+# behind it — both would be theater. Authed routes are excluded for the same
+# reason (no seeded session in CI); authed surfaces get axe/component
+# coverage + occasional manual runs instead.
+on:
+  schedule:
+    # Weekly, Monday 09:00 UTC — frequent enough to catch drift, light
+    # enough to not spam temporary-public-storage.
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Override target URL (default https://coasterrank.app)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse
+  cancel-in-progress: false
+
+jobs:
+  lighthouse:
+    name: lighthouse/advisory
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LHCI_URL: ${{ inputs.url || 'https://coasterrank.app' }}
+      LHCI_RIDER: pandeiro
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Lighthouse CI (warn-only, never fails)
+        run: npx -y @lhci/cli@0.14 autorun
+        # Warn-only assertions exit 0; belt-and-braces so a future `error`
+        # promotion can't silently become a blocking gate without explicitly
+        # adding this job to branch protection.
+        continue-on-error: true
+
+      - name: Write summary table
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = '.lighthouseci/manifest.json';
+          if (!fs.existsSync(path)) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'No LHCI manifest found — collect step failed before assert.\n');
+            process.exit(0);
+          }
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const rows = manifest.map((entry) => {
+            const summary = entry.summary || {};
+            const url = (entry.url || '').replace(process.env.LHCI_URL, '') || '/';
+            const fmt = (v) => (v == null ? 'n/a' : Math.round(v * 100));
+            return '| ' + url + ' | ' + fmt(summary['categories:performance']) + ' | ' + fmt(summary['categories:accessibility']) + ' | ' + fmt(summary['categories:best-practices']) + ' | ' + fmt(summary['categories:seo']) + ' |';
+          });
+          const md = [
+            '## Lighthouse (advisory, ' + process.env.LHCI_URL + ')',
+            '',
+            'Warn-only — informational, never blocking. Full reports in the `lighthouse-reports` artifact and temporary-public-storage links in the log.',
+            '',
+            '| page | perf | a11y | best | seo |',
+            '| --- | --- | --- | --- | --- |',
+            ...rows,
+            '',
+            'Ratchet rule (lighthouserc.js): an audit holding green ~2 weeks gets promoted to `error` — and only then is this job considered for required checks.',
+          ].join('\n') + '\n';
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+          "
+
+      - name: Upload LHCI reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          if-no-files-found: warn
+          retention-days: 30

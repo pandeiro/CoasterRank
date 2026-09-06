@@ -154,7 +154,7 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
                         {parkLabel(park, 'Unknown park')}
                       </span>
                     </span>
-                    <Plus className="ml-2 h-4 w-4 shrink-0 text-accent-strong" />
+                    <Plus className="ml-2 h-4 w-4 shrink-0 text-accent-text" />
                   </li>
                 )
               })}

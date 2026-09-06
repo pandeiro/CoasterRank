@@ -44,11 +44,11 @@ export function MathDisclosure({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={contentId}
-        className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-bright py-1 pl-1.5 pr-3 text-xs font-semibold text-ink-soft shadow-panel transition-colors hover:border-accent-strong hover:text-ink"
+        className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-bright py-1 pl-1.5 pr-3 text-xs font-semibold text-ink-soft shadow-panel transition-colors hover:border-accent-text hover:text-ink"
       >
         <span
           aria-hidden="true"
-          className="display-heading flex h-6 w-6 items-center justify-center rounded-full bg-accent/15 text-[13px] leading-none text-accent-dark"
+          className="display-heading flex h-6 w-6 items-center justify-center rounded-full bg-accent/15 text-[13px] leading-none text-accent-text"
         >
           {'\u2211'}
         </span>

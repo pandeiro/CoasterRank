@@ -128,7 +128,7 @@ function InsertDivider({ label, onClick }: { label: string; onClick: () => void 
       <button
         type="button"
         onClick={onClick}
-        className="group flex min-h-11 w-full items-center gap-2 rounded-lg py-2 text-sm font-medium text-muted transition-colors hover:bg-accent/5 hover:text-accent-strong sm:min-h-0 sm:py-1 sm:text-xs"
+        className="group flex min-h-11 w-full items-center gap-2 rounded-lg py-2 text-sm font-medium text-muted transition-colors hover:bg-accent/5 hover:text-accent-text sm:min-h-0 sm:py-1 sm:text-xs"
       >
         <span className="h-px flex-1 rounded bg-line group-hover:bg-accent" />
         <Plus className="h-3 w-3" />

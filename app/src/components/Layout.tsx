@@ -97,7 +97,15 @@ export default function Layout() {
                 : 'pointer-events-none -translate-y-1 opacity-0'
             }`}
           >
-            <img src="/logo.svg" alt="" className="h-[2.3rem] w-auto shrink-0" />
+            <img
+              src="/logo.svg"
+              alt=""
+              width="1444"
+              height="1113"
+              fetchPriority="high"
+              decoding="async"
+              className="h-[2.3rem] w-auto shrink-0"
+            />
             <span className="display-heading -translate-y-[0.12em] text-2xl leading-none tracking-wide">
               Coaster<span className="text-coral">Rank</span>
             </span>

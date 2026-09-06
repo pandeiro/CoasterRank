@@ -157,7 +157,14 @@ export function DesignBoard() {
       <header className="border-b border-line bg-ink text-canvas">
         <div className="page-container flex items-center justify-between gap-6 py-5">
           <div className="flex items-baseline gap-3">
-            <img src="/logo-reversed.svg" alt="" className="h-10 w-auto" />
+            <img
+              src="/logo-reversed.svg"
+              alt=""
+              width="1444"
+              height="1113"
+              decoding="async"
+              className="h-10 w-auto"
+            />
             <div>
               <p className="display-heading text-2xl tracking-wide">
                 Coaster<span className="text-coral">Rank</span>
@@ -177,7 +184,7 @@ export function DesignBoard() {
         </Section>
 
         <div className="max-w-3xl">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
             CoasterRank design system
           </p>
           <h1 className="display-heading text-5xl text-ink sm:text-6xl">A rideable data system.</h1>
@@ -296,7 +303,14 @@ export function DesignBoard() {
               </p>
               <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
                 <p className="flex flex-wrap items-baseline gap-x-1">
-                  <img src="/logo.svg" alt="" className="h-[3.3rem] w-auto sm:h-[4rem]" />
+                  <img
+                    src="/logo.svg"
+                    alt=""
+                    width="1444"
+                    height="1113"
+                    decoding="async"
+                    className="h-[3.3rem] w-auto sm:h-[4rem]"
+                  />
                   <span className="display-heading -translate-y-[0.12em] text-[2.1rem] leading-none tracking-wide text-ink sm:text-[2.6rem]">
                     Coaster<span className="text-coral">Rank</span>
                   </span>
@@ -304,7 +318,7 @@ export function DesignBoard() {
                 <p className="flex items-center gap-2 text-sm text-muted">
                   <span className="tabular-nums">1,235 coasters · 34 countries</span>
                   <span aria-hidden="true">·</span>
-                  <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-accent-text">
                     <span className="inline-flex h-2 w-2 rounded-full bg-accent" />
                     Live
                   </span>

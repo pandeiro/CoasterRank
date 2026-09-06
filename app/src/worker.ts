@@ -43,6 +43,7 @@ import {
   type OgImageRider,
 } from './lib/og-image'
 import { truncate } from './lib/truncate'
+import { securityHeaders, withSecurityHeaders } from './lib/security-headers'
 
 export interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
@@ -184,6 +185,7 @@ export function renderRiderHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
+<meta name="robots" content="noindex">
 <link rel="canonical" href="${escapeHtml(url)}">
 <meta property="og:type" content="profile">
 <meta property="og:site_name" content="CoasterRank">
@@ -204,7 +206,7 @@ export function renderRiderHtml(
 <body>
 <div class="wrap">
   <div class="card">
-    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="">` : ''}
+    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="" width="72" height="72" loading="lazy" decoding="async">` : ''}
     <div>
       <p class="eyebrow">Rider ranking</p>
       <h1>${escapeHtml(displayName)}</h1>
@@ -394,6 +396,7 @@ function rankingJsonResponse(
     status,
     headers: {
       'Content-Type': 'application/json',
+      ...securityHeaders(false),
       ...corsHeaders(request, env),
       ...extraHeaders,
     },
@@ -643,6 +646,16 @@ export async function handleOgImageRequest(
   })
 }
 
+// Static-asset passthrough with security headers. The SPA fallback serves
+// index.html for app routes, so the CSP Report-Only header rides along only
+// when the served bytes are actually HTML (JS/CSS/PNG responses get the base
+// headers without a meaningless CSP).
+async function serveStatic(request: Request, env: Env): Promise<Response> {
+  const response = await env.ASSETS.fetch(request)
+  const contentType = response.headers.get('content-type') ?? ''
+  return withSecurityHeaders(response, contentType.includes('text/html'))
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -664,6 +677,7 @@ export default {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
+          ...securityHeaders(true),
           // Static content — cached an hour, so copy tweaks after a deploy
           // propagate without a manual cache purge.
           'Cache-Control': 'public, max-age=3600',
@@ -674,14 +688,14 @@ export default {
     const match = RIDER_PATH_RE.exec(url.pathname)
 
     if (!match || !isSocialCrawler(request.headers.get('user-agent'))) {
-      return env.ASSETS.fetch(request)
+      return serveStatic(request, env)
     }
 
     const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
     const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
     if (!supabaseUrl || !supabaseKey) {
       // Env not configured: degrade to the SPA shell rather than erroring.
-      return env.ASSETS.fetch(request)
+      return serveStatic(request, env)
     }
 
     // Path regex already restricts the charset; normalize case for the RPC.
@@ -696,6 +710,7 @@ export default {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
+          ...securityHeaders(true),
           // Short cache: rankings are live data; also softens RPC load if a
           // link gets a traffic spike after being shared.
           'Cache-Control': 'public, max-age=300',
@@ -703,7 +718,7 @@ export default {
       })
     } catch {
       // Supabase unreachable: serve the SPA shell rather than an error page.
-      return env.ASSETS.fetch(request)
+      return serveStatic(request, env)
     }
   },
 }

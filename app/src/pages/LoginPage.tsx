@@ -109,7 +109,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={resendConfirmation}
-                className="mt-1 underline underline-offset-4 hover:text-danger/80"
+                className="mt-1 underline underline-offset-4 hover:text-danger-text"
               >
                 Resend confirmation email
               </button>

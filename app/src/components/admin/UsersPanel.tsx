@@ -144,7 +144,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
         title={u.isAdmin ? 'Admins are removed via the SQL bootstrap runbook, not here' : undefined}
         onClick={() => setToDelete(u)}
       >
-        <Trash2 size={14} className={u.isAdmin ? 'text-muted/40' : 'text-danger'} />
+        <Trash2 size={14} className={u.isAdmin ? 'text-muted' : 'text-danger-text'} />
       </Button>
     </>
   )
@@ -319,7 +319,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
                 {detail.username && detail.publicList ? (
                   <a
                     href={`/riders/${detail.username}`}
-                    className="text-accent-strong hover:underline"
+                    className="text-accent-text hover:underline"
                   >
                     /riders/{detail.username}
                   </a>

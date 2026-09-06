@@ -552,7 +552,7 @@ export default function AdminPage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
             Track operations
           </p>
           <h1 className="display-heading text-4xl text-ink">Admin</h1>
@@ -621,7 +621,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => setActiveRejectId(s.id)}
                             disabled={reject.isPending}
-                            className="rounded-full bg-danger p-2 text-white hover:bg-danger/90 disabled:opacity-50"
+                            className="rounded-full bg-danger-text p-2 text-white hover:bg-danger-text/90 disabled:opacity-50"
                             title="Reject"
                           >
                             <X size={16} />
@@ -639,7 +639,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => reject.mutate({ id: s.id, note: rejectNote })}
                             disabled={!rejectNote}
-                            className="rounded-full bg-danger px-3 py-1.5 text-xs text-white hover:bg-danger/90 disabled:opacity-50"
+                            className="rounded-full bg-danger-text px-3 py-1.5 text-xs text-white hover:bg-danger-text/90 disabled:opacity-50"
                           >
                             Confirm Reject
                           </button>
@@ -727,7 +727,7 @@ export default function AdminPage() {
                               </button>
                               <button
                                 onClick={() => setCoasterToDelete(c)}
-                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger"
+                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger-text"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -765,7 +765,7 @@ export default function AdminPage() {
                         title="Copy ID"
                       >
                         {copiedField === 'id' ? (
-                          <Check size={12} className="text-success" />
+                          <Check size={12} className="text-success-text" />
                         ) : (
                           <Copy size={12} />
                         )}
@@ -786,7 +786,7 @@ export default function AdminPage() {
                         title="Copy Park ID"
                       >
                         {copiedField === 'parkId' ? (
-                          <Check size={12} className="text-success" />
+                          <Check size={12} className="text-success-text" />
                         ) : (
                           <Copy size={12} />
                         )}
@@ -977,7 +977,7 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => setCoasterToDelete(editingCoaster as AdminCoaster)}
-                        className="rounded-full px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+                        className="rounded-full px-3 py-1.5 text-xs text-danger-text hover:bg-danger/10"
                       >
                         Delete Coaster
                       </button>
@@ -993,7 +993,7 @@ export default function AdminPage() {
                       <button
                         type="submit"
                         disabled={saveCoaster.isPending}
-                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                        className="rounded-full bg-coral-text px-3 py-1.5 text-xs font-medium text-white hover:bg-coral-text/90 disabled:opacity-50"
                       >
                         {saveCoaster.isPending ? 'Saving...' : 'Save Coaster'}
                       </button>
@@ -1076,7 +1076,7 @@ export default function AdminPage() {
                               <button
                                 onClick={() => setParkToDelete(p)}
                                 title="Delete park"
-                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger"
+                                className="rounded-full p-2 text-muted hover:bg-danger/10 hover:text-danger-text"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1114,7 +1114,7 @@ export default function AdminPage() {
                         title="Copy ID"
                       >
                         {copiedField === 'park-id' ? (
-                          <Check size={12} className="text-success" />
+                          <Check size={12} className="text-success-text" />
                         ) : (
                           <Copy size={12} />
                         )}
@@ -1214,7 +1214,7 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => setParkToDelete(editingPark as AdminPark)}
-                        className="rounded-full px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+                        className="rounded-full px-3 py-1.5 text-xs text-danger-text hover:bg-danger/10"
                       >
                         Delete Park
                       </button>
@@ -1230,7 +1230,7 @@ export default function AdminPage() {
                       <button
                         type="submit"
                         disabled={savePark.isPending}
-                        className="rounded-full bg-coral px-3 py-1.5 text-xs font-medium text-white hover:bg-coral/90 disabled:opacity-50"
+                        className="rounded-full bg-coral-text px-3 py-1.5 text-xs font-medium text-white hover:bg-coral-text/90 disabled:opacity-50"
                       >
                         {savePark.isPending ? 'Saving...' : 'Save Park'}
                       </button>
@@ -1548,7 +1548,7 @@ function CoasterAliasesSection({ coasterId }: { coasterId: string }) {
                   <button
                     type="button"
                     onClick={() => handleUpdate(alias.id)}
-                    className="text-xs text-accent-strong hover:underline"
+                    className="text-xs text-accent-text hover:underline"
                   >
                     <Check className="h-3 w-3" />
                   </button>
@@ -1578,7 +1578,7 @@ function CoasterAliasesSection({ coasterId }: { coasterId: string }) {
                   <button
                     type="button"
                     onClick={() => handleDelete(alias.id)}
-                    className="text-muted hover:text-danger"
+                    className="text-muted hover:text-danger-text"
                   >
                     <X className="h-3 w-3" />
                   </button>

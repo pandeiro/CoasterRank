@@ -14,7 +14,9 @@ export default function MovementChip({ delta, index }: { delta: number; index: n
     <span
       aria-hidden="true"
       className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-semibold leading-none shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${
-        up ? 'bg-success/15 tabular-nums text-success' : 'bg-danger/10 tabular-nums text-danger'
+        up
+          ? 'bg-success/15 tabular-nums text-success-text'
+          : 'bg-danger/10 tabular-nums text-danger-text'
       } ${reduced ? '' : 'animate-[movement-chip_12s_ease-out_both]'}`}
       style={reduced ? undefined : { animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >

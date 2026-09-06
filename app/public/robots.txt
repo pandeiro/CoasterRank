@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /about
+Allow: /faq
+Allow: /coasters/
+Allow: /parks/
+Disallow: /me
+Disallow: /admin
+Disallow: /submit
+Disallow: /riders/
+Disallow: /api/

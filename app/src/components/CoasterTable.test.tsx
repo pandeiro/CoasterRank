@@ -312,7 +312,7 @@ describe('CoasterTable', () => {
     const table = within(desktopTable())
     for (const rank of ['1', '2', '4']) {
       const circle = table.getByText(rank).closest('span')
-      expect(circle).toHaveClass('rounded-full', 'bg-white', 'text-accent-strong', 'h-10', 'w-10')
+      expect(circle).toHaveClass('rounded-full', 'bg-white', 'text-accent-text', 'h-10', 'w-10')
       expect(circle).toHaveClass('display-heading', 'items-center', 'justify-center')
       expect(circle).toHaveClass('shadow-[0_1px_2px_rgb(26_26_46_/_0.18)]')
     }

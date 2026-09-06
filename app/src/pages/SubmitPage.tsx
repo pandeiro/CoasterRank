@@ -15,9 +15,9 @@ import {
 } from '../lib/coasters'
 
 const STATUS_STYLES: Record<CoasterSubmission['status'], string> = {
-  pending: 'bg-warning/15 text-warning',
-  approved: 'bg-success/15 text-success',
-  rejected: 'bg-danger/15 text-danger',
+  pending: 'bg-warning/15 text-warning-text',
+  approved: 'bg-success/15 text-success-text',
+  rejected: 'bg-danger/15 text-danger-text',
 }
 
 export default function SubmitPage() {
@@ -110,7 +110,7 @@ export default function SubmitPage() {
       <h1 className="display-heading text-4xl text-ink">Submit a Coaster</h1>
 
       {atCap && (
-        <p className="mb-4 rounded-xl border border-warning/25 bg-warning/5 p-3 text-sm text-warning">
+        <p className="mb-4 rounded-xl border border-warning/25 bg-warning/5 p-3 text-sm text-warning-text">
           You have {pendingCount} pending submission{pendingCount === 1 ? '' : 's'} — the maximum.
           Wait for an admin to review them before submitting more.
         </p>

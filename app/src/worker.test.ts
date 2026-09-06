@@ -720,3 +720,85 @@ describe('worker: /api/ranking', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+describe('worker: security headers', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const BASE = [
+    'strict-transport-security',
+    'x-content-type-options',
+    'referrer-policy',
+    'x-frame-options',
+    'cross-origin-opener-policy',
+  ] as const
+
+  function expectBaseHeaders(response: Response) {
+    for (const name of BASE) {
+      expect(response.headers.get(name), name).toBeTruthy()
+    }
+  }
+
+  it('sends base + CSP Report-Only headers on the prerendered home HTML', async () => {
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      makeEnv(),
+    )
+    expectBaseHeaders(response)
+    expect(response.headers.get('content-security-policy-report-only')).toContain(
+      "default-src 'self'",
+    )
+    expect(response.headers.get('content-security-policy-report-only')).toContain(
+      "frame-ancestors 'self'",
+    )
+  })
+
+  it('sends base + CSP Report-Only headers on the prerendered rider HTML', async () => {
+    stubRpc(
+      new Response(JSON.stringify(riderData), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const response = await worker.fetch(riderRequest(), makeEnv())
+    expectBaseHeaders(response)
+    expect(response.headers.get('content-security-policy-report-only')).toContain(
+      "default-src 'self'",
+    )
+  })
+
+  it('marks the prerendered rider HTML noindex (unfurl, not search)', async () => {
+    stubRpc(
+      new Response(JSON.stringify(riderData), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const html = await (await worker.fetch(riderRequest(), makeEnv())).text()
+    expect(html).toContain('name="robots" content="noindex"')
+  })
+
+  it('sends base headers (no CSP) on the static-asset passthrough', async () => {
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Mozilla/5.0 Safari' } }),
+      makeEnv(),
+    )
+    expectBaseHeaders(response)
+    expect(response.headers.get('content-security-policy-report-only')).toBeNull()
+  })
+
+  it('sends base headers (no CSP) on the /api/ranking JSON', async () => {
+    const { handleRankingRequest } = await import('./worker')
+    const response = await handleRankingRequest(
+      new Request('https://coasterrank.test/api/ranking'),
+      makeEnv(),
+    )
+    // Env has no edge cache in tests and no stubbed fetch here — 502 path.
+    expect(response.status).toBe(502)
+    expectBaseHeaders(response)
+    expect(response.headers.get('content-security-policy-report-only')).toBeNull()
+  })
+})

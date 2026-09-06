@@ -20,11 +20,24 @@ export default {
           strong: 'rgb(var(--color-accent-strong) / <alpha-value>)',
           dark: 'rgb(var(--color-accent-dark) / <alpha-value>)',
           ink: 'rgb(var(--color-accent-ink) / <alpha-value>)',
+          text: 'rgb(var(--color-accent-text) / <alpha-value>)',
         },
-        coral: 'rgb(var(--color-coral) / <alpha-value>)',
-        success: 'rgb(var(--color-success) / <alpha-value>)',
-        warning: 'rgb(var(--color-warning) / <alpha-value>)',
-        danger: 'rgb(var(--color-danger) / <alpha-value>)',
+        coral: {
+          DEFAULT: 'rgb(var(--color-coral) / <alpha-value>)',
+          text: 'rgb(var(--color-coral-text) / <alpha-value>)',
+        },
+        success: {
+          DEFAULT: 'rgb(var(--color-success) / <alpha-value>)',
+          text: 'rgb(var(--color-success-text) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'rgb(var(--color-warning) / <alpha-value>)',
+          text: 'rgb(var(--color-warning-text) / <alpha-value>)',
+        },
+        danger: {
+          DEFAULT: 'rgb(var(--color-danger) / <alpha-value>)',
+          text: 'rgb(var(--color-danger-text) / <alpha-value>)',
+        },
       },
       fontFamily: {
         display: ['Racing Sans One', 'Arial', 'sans-serif'],

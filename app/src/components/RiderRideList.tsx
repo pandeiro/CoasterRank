@@ -14,7 +14,7 @@ function rankRowClass(rank: number): string {
 }
 
 function rankNumberClass(rank: number): string {
-  if (rank <= 3) return 'bg-white text-accent-strong shadow-sm'
+  if (rank <= 3) return 'bg-white text-accent-text shadow-sm'
   return 'text-muted'
 }
 
