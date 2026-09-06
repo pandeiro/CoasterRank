@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import CoasterSearchBar from './CoasterSearchBar'
 import { useAllCoasters, useParks, OTHER_PARK_NAME, filterAndRankCoasters } from '../lib/coasters'
 import { makePark, makeRankingRow } from '../test/fixtures'
@@ -29,7 +30,11 @@ function mockCatalog(rows: ReturnType<typeof matchingRows>) {
 }
 
 function renderBar(existingCoasterIds: Set<string> = new Set()) {
-  return render(<CoasterSearchBar existingCoasterIds={existingCoasterIds} onAdd={vi.fn()} />)
+  return render(
+    <MemoryRouter>
+      <CoasterSearchBar existingCoasterIds={existingCoasterIds} onAdd={vi.fn()} />
+    </MemoryRouter>,
+  )
 }
 
 async function typeQuery(user: UserEvent, text: string) {
@@ -127,6 +132,15 @@ describe('CoasterSearchBar', () => {
     renderBar()
     await typeQuery(user, 'intimidator')
     expect(await screen.findByRole('option', { name: /pantherian/i })).toBeInTheDocument()
+  })
+
+  it('offers a /submit deep link when nothing matches', async () => {
+    // The missing-coaster moment is the highest-intent submission trigger.
+    const user = userEvent.setup()
+    renderBar()
+    await typeQuery(user, 'zzzz-missing')
+    const link = await screen.findByRole('link', { name: /suggest/i })
+    expect(link).toHaveAttribute('href', '/submit?name=zzzz-missing')
   })
 })
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import {
   useAllCoasters,
@@ -129,8 +130,15 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
               Type at least {MIN_QUERY_LENGTH} characters to search.
             </li>
           ) : results.rows.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-muted" role="presentation">
-              No coasters found.
+            <li className="px-4 py-3 text-sm" role="presentation">
+              <span className="text-muted">No coasters found. </span>
+              <Link
+                to={`/submit?name=${encodeURIComponent(debouncedQuery)}`}
+                className="font-medium text-accent-strong hover:underline"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                Suggest “{debouncedQuery}” →
+              </Link>
             </li>
           ) : (
             <>

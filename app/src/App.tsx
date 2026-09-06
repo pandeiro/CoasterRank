@@ -20,6 +20,7 @@ import PrivacyPage from './pages/PrivacyPage'
 import RiderPage from './pages/RiderPage'
 import SignupPage from './pages/SignupPage'
 import SubmitPage from './pages/SubmitPage'
+import SuggestEditPage from './pages/SuggestEditPage'
 import TermsPage from './pages/TermsPage'
 import React from 'react'
 import ErrorFallback from './components/ErrorFallback'
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="/me" element={<MyCoastersPage />} />
                   <Route path="/me/profile" element={<ProfilePage />} />
                   <Route path="/submit" element={<SubmitPage />} />
+                  <Route path="/coasters/:slug/suggest-edit" element={<SuggestEditPage />} />
                 </Route>
                 <Route element={<RequireAdmin />}>
                   <Route path="/admin/:tab?" element={<AdminPage />} />
