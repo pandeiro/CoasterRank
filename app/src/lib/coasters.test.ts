@@ -457,6 +457,25 @@ describe('approveSubmission', () => {
     expect(submissionUpdateEq).toHaveBeenCalledWith('id', 's1')
   })
 
+  it('does not let unreviewed submission keys override catalog fields', async () => {
+    const maliciousSubmission = {
+      ...submission,
+      suggested_fields: {
+        ...submission.suggested_fields,
+        park_id: 'attacker-park',
+        source: 'admin',
+        id: 'attacker-id',
+      },
+    } as unknown as CoasterSubmission
+
+    await approveSubmission('s1', maliciousSubmission)
+
+    expect(coasterInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ park_id: 'p9', source: 'community' }),
+    )
+    expect(coasterInsert.mock.calls[0][0]).not.toHaveProperty('id', 'attacker-id')
+  })
+
   it('maps a park slug collision to a friendly error', async () => {
     insertSingle.mockResolvedValue({
       data: null,

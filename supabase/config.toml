@@ -15,3 +15,12 @@ major_version = 17
 # before the function code runs.
 [functions.recompute-rankings]
 verify_jwt = false
+
+# These functions still perform their own admin authorization because requests
+# carrying an apikey can reach the handler. Keep gateway JWT verification
+# explicit for defense-in-depth and accurate configuration documentation.
+[functions.admin-users]
+verify_jwt = true
+
+[functions.assume-identity]
+verify_jwt = true

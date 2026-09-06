@@ -10,13 +10,14 @@
 //     profiles.is_admin) or the service-role key (ops debugging).
 //   - The TARGET must match the synthetic markers — enforced here, server
 //     side, so this function can never mint a login for a real user.
-//   - Platform-level JWT verification stays ON (default config): only
-//    well-formed Supabase JWTs reach this code.
+//   - The gateway does not replace this boundary: requests carrying an
+//     apikey can reach this function, so bearer validation and the admin
+//     profile lookup below are authoritative.
 //
 // Action links are single-use and short-lived (GoTrue magiclink defaults).
 // The SPA backs up the admin session before navigating and restores it on
 // "Return to admin" (app/src/lib/impersonation.ts).
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -385,6 +385,20 @@ export type SuggestedFields = {
   material: CoasterMaterial | null
 }
 
+const APPROVABLE_SUBMISSION_FIELDS = [
+  'height_m',
+  'speed_kmh',
+  'length_m',
+  'inversions',
+  'material',
+] as const
+
+function approvableSuggestedFields(fields: SuggestedFields): Partial<SuggestedFields> {
+  return Object.fromEntries(
+    APPROVABLE_SUBMISSION_FIELDS.map((key) => [key, fields[key]]),
+  ) as Partial<SuggestedFields>
+}
+
 export type CoasterSubmission = {
   id: string
   coaster_name: string
@@ -511,7 +525,7 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
       name: submission.coaster_name,
       slug: coasterSlug,
       source: 'community',
-      ...submission.suggested_fields,
+      ...approvableSuggestedFields(submission.suggested_fields),
     })
     if (!error) {
       coasterError = null

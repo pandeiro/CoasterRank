@@ -4,62 +4,74 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/**'
+      - "supabase/**"
       # The Edge Function bundles packages/bt/src/mm.ts at deploy time, so
       # algorithm/knob changes must redeploy the function too.
-      - 'packages/bt/**'
-      - '.github/workflows/deploy-supabase.yml'
+      - "packages/bt/**"
+      - ".github/workflows/deploy-supabase.yml"
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Failure model:
-    #   - The `secrets` context is NOT allowed in `if` expressions — only
-    #     github/needs/inputs/env/vars. So we surface the secrets as job-level
-    #     env vars (empty string when undefined) and gate every deploy step on
-    #     `env.<NAME> != ''`. When the repo secrets aren't set, every step
-    #     skips — a silent no-op (no step actually fails).
-    #   - When a step DOES run and fails, `supabase link` is the first auth-
-    #     requiring step, so its failure is almost always an EXPIRED or REVOKED
-    #     SUPABASE_ACCESS_TOKEN (we rotate these periodically), or a wrong
-    #     PROJECT_REF. The "Report failure cause" step below turns that into a
-    #     red annotation on the run summary so it's impossible to miss.
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: ${{ secrets.PROJECT_REF }}
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Validate deploy secrets
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing+=(SUPABASE_ACCESS_TOKEN)
+          [ -n "$PROJECT_REF" ] || missing+=(PROJECT_REF)
+          [ -n "$SUPABASE_DB_URL" ] || missing+=(SUPABASE_DB_URL)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::deploy-supabase is missing required repository secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Install Supabase CLI
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
-        run: npm install -g supabase
+        run: npm install -g supabase@2.39.2
 
       - name: Link project
         id: link
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase link --project-ref "${{ secrets.PROJECT_REF }}"
 
       - name: Apply migrations
         id: apply
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase db push
 
+      - name: Verify deployed schema contract
+        run: |
+          set -euo pipefail
+          columns=$(psql "$SUPABASE_DB_URL" -Atc "
+            select string_agg(parameter_name, ',' order by ordinal_position)
+            from information_schema.parameters
+            where specific_schema = 'public'
+              and routine_name = 'public_board_meta'
+              and parameter_mode = 'OUT';
+          ")
+          expected='real_user_count,ranked_user_count,last_recomputed_at'
+          if [ "$columns" != "$expected" ]; then
+            echo "::error::deployed public_board_meta contract is '$columns', expected '$expected'"
+            exit 1
+          fi
+          echo "Verified public_board_meta columns: $columns"
+
       - name: Deploy edge functions
         id: deploy_fn
-        # Deploys EVERY function directory under supabase/functions/ that has an
-        # entrypoint (index.ts or index.js). This auto-picks up new functions
-        # without workflow edits, and skips gracefully when supabase/functions/
-        # is empty or doesn't exist yet (e.g. before Phase 6) — the loop just
-        # finds nothing and exits 0, so the step stays green (not red).
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+        # Deploy every function directory with an entrypoint so new functions
+        # do not require a workflow edit.
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         shell: bash
@@ -84,36 +96,48 @@ jobs:
 
       # ── Schema-doc regeneration ──────────────────────────────────────
       - name: Checkout (clean tree for schema-doc)
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: scripts/package-lock.json
 
       - name: Generate schema docs
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
         run: npm ci && npm run schema-doc
         working-directory: scripts
 
-      - name: Commit schema docs if changed
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' }}
+      - name: Open schema docs update PR if changed
         run: |
+          set -euo pipefail
           git diff --quiet docs/SCHEMA.md && echo "No changes" && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B bot/schema-docs
           git add docs/SCHEMA.md
           git commit -m "docs: regenerate SCHEMA.md [skip ci]"
-          git push
+          git push --force origin HEAD:bot/schema-docs
+          if [ "$(gh pr list --state open --head bot/schema-docs --json number --jq 'length')" = "0" ]; then
+            cat > /tmp/schema-doc-pr.md <<'EOF'
+          This automated PR updates `docs/SCHEMA.md` from the production schema after the Supabase deployment completed.
 
-      # Runs only if any step above actually failed (not skipped). Skipped steps
-      # don't trigger failure(), so the no-op-when-secrets-missing behavior is
-      # preserved. The ::error:: workflow commands surface as red annotations
-      # on the run summary, not just buried in the log.
+          The deploy workflow keeps this change on a reviewable branch so protected `main` can require pull requests.
+          EOF
+            gh pr create \
+              --base main \
+              --head bot/schema-docs \
+              --title "docs: regenerate SCHEMA.md" \
+              --body-file /tmp/schema-doc-pr.md
+          else
+            echo "An open schema-doc PR already exists; branch was refreshed."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # The ::error:: workflow commands surface useful annotations in the run
+      # summary, not just buried in the log.
       - name: Report failure cause
         if: ${{ failure() }}
         run: |
