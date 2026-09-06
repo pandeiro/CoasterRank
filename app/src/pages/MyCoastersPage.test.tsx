@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useMyRides } from '../lib/rides'
 import { fetchProfile } from '../lib/profile'
 import { useAuth } from '../lib/auth-context'
+import { readWelcomeDismissed } from '../lib/welcome'
 import MyCoastersPage from './MyCoastersPage'
 
 // jsdom has no IntersectionObserver; the page only needs it to no-op here.
@@ -146,6 +147,7 @@ function ridesWithRanks(count: number) {
 describe('MyCoastersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(readWelcomeDismissed).mockReturnValue(false)
     consumedQuickInsert = null
     window.localStorage.clear()
   })
@@ -341,6 +343,18 @@ describe('MyCoastersPage', () => {
     expect(screen.getByTestId('welcome-modal')).toBeInTheDocument()
   })
 
+  it('hides the welcome nudge without the welcome param even when never dismissed', () => {
+    mockConfirmed([], 'u1')
+    renderPage('/me')
+    expect(screen.queryByTestId('welcome-modal')).not.toBeInTheDocument()
+  })
+
+  it('stays hidden on ?welcome=1 after a previous dismissal (e.g. back-button revisit)', () => {
+    vi.mocked(readWelcomeDismissed).mockReturnValue(true)
+    mockConfirmed([], 'u1')
+    renderPage('/me?welcome=1')
+    expect(screen.queryByTestId('welcome-modal')).not.toBeInTheDocument()
+  })
   it('hides the welcome nudge once the user has ranked something', () => {
     mockConfirmed(ridesWithRanks(2), 'u1')
     renderPage('/me?welcome=1')

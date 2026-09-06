@@ -74,6 +74,14 @@ describe('WelcomeModal', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('also dismisses via the board link so no exit path skips persistence', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    renderModal({ onClose })
+    await user.click(screen.getByRole('link', { name: /see the live board first/i }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('shows a loading state while board data resolves', () => {
     vi.mocked(useAllCoasters).mockReturnValue({ data: undefined } as never)
     renderModal()

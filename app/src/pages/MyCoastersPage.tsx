@@ -55,8 +55,10 @@ export default function MyCoastersPage() {
   // the top/bottom dividers. The list consumes it and clears pendingAdd.
   const [quickInsert, setQuickInsert] = useState<'top' | 'bottom' | null>(null)
   const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
-  // First-run welcome (?welcome=1 from the signup/login flow): shown once to
-  // users with nothing ranked yet, dismissed to localStorage.
+  // First-run welcome: shown exactly once, on the first login after signup.
+  // The redirect chain (signup / login) lands fresh users on /me?welcome=1;
+  // the persisted flag is the backstop (back-button revisit, board-link
+  // exit) and the zero-rides guard keeps it from ever firing mid-life.
   const [searchParams, setSearchParams] = useSearchParams()
   const [welcomeDismissed, setWelcomeDismissed] = useState(readWelcomeDismissed)
   const showWelcome =
@@ -64,7 +66,8 @@ export default function MyCoastersPage() {
     !isPending &&
     !isError &&
     (rides ?? []).length === 0 &&
-    (searchParams.get('welcome') === '1' || !welcomeDismissed)
+    searchParams.get('welcome') === '1' &&
+    !welcomeDismissed
 
   const dismissWelcome = useCallback(() => {
     persistWelcomeDismissed()

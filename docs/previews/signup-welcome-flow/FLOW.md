@@ -33,9 +33,11 @@ Key properties:
   `/`, leaving fresh users on the board with no next step).
 - Deep links survive the email round-trip: `RequireAuth` stashes `from`
   → signup encodes it as `?next=` → login forwards to it.
-- The welcome modal only renders for confirmed users with **zero rides**;
-  dismissal persists in `localStorage` (`cr.welcome.dismissed`) and clears
-  the `?welcome` param.
+- The welcome modal only renders for confirmed users with **zero rides**
+  **and** `?welcome=1` in the URL (set once by the signup/login redirect);
+  dismissal persists in `localStorage` (`cr.welcome.dismissed`) on every
+  exit path — Start ranking, X, backdrop, Escape, even the board link —
+  and clears the param, so back-button revisits stay suppressed.
 - Privacy is stated three times, progressively: signup microcopy
   ("private by default") → modal lock-note → profile share opt-in.
 

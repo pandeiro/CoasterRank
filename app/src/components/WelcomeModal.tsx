@@ -137,6 +137,7 @@ export default function WelcomeModal({
         </Button>
         <Link
           to="/"
+          onClick={onClose}
           className="text-center text-sm font-medium text-muted underline-offset-4 hover:text-ink hover:underline"
         >
           See the live board first
