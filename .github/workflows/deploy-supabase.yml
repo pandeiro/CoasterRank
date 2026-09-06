@@ -130,7 +130,7 @@ jobs:
           ")
           expected='1'
           if [ "$matches" != "$expected" ]; then
-            echo "::error::deployed public_board_meta OUT-param signatures: $(psql "$SUPABASE_DB_URL" -Atc "
+            signatures=$(psql "$SUPABASE_DB_URL" -Atc "
               select string_agg(p.parameter_name, ',' order by p.ordinal_position)
               from information_schema.parameters p
               join information_schema.routines r
@@ -138,11 +138,11 @@ jobs:
               where r.routine_schema = 'public'
                 and r.routine_name = 'public_board_meta'
                 and p.parameter_mode = 'OUT'
-              group by r.specific_name;"
-            )", expected 'real_user_count,ranked_user_count,last_recomputed_at'"
+              group by r.specific_name;")
+            echo "::error::deployed public_board_meta OUT-param signatures: '$signatures', expected 'real_user_count,ranked_user_count,last_recomputed_at'"
             exit 1
           fi
-          echo "Verified public_board_meta columns: $columns"
+          echo "Verified public_board_meta OUT-param signature: $matches"
 
       - name: Deploy edge functions
         id: deploy_fn
