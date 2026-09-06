@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import LoginPage from './LoginPage'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth-context'
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -14,12 +15,17 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+vi.mock('../lib/auth-context', () => ({
+  useAuth: vi.fn(),
+}))
+
 function renderLogin(initialPath = '/login') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/me" element={<p>my coasters</p>} />
+        <Route path="/riders/:username" element={<p>rider page</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -28,6 +34,7 @@ function renderLogin(initialPath = '/login') {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useAuth).mockReturnValue({ session: null, isLoading: false } as never)
   })
 
   it('logs in and navigates to /me', async () => {
@@ -63,6 +70,33 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument()
     expect(screen.queryByText('Invalid login credentials')).not.toBeInTheDocument()
+  })
+
+  it('shows the confirmed banner after email confirmation', async () => {
+    renderLogin('/login?confirmed=1')
+    expect(await screen.findByText(/email confirmed/i)).toBeInTheDocument()
+  })
+
+  it('forwards freshly confirmed users to the welcome nudge', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      isLoading: false,
+    } as never)
+    renderLogin('/login?confirmed=1')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+  })
+
+  it('preserves the deep link encoded in next through the email round-trip', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      isLoading: false,
+    } as never)
+    renderLogin('/login?confirmed=1&next=%2Friders%2Fana')
+    await waitFor(() => {
+      expect(screen.getByText('rider page')).toBeInTheDocument()
+    })
   })
 
   it('offers to resend the confirmation email when email is unconfirmed', async () => {

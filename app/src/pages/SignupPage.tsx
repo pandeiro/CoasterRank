@@ -1,17 +1,27 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
 
+type LocationState = { from?: string }
+
 export default function SignupPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
+
+  // Preserve a deep link (RequireAuth stashes it as `from`) through the
+  // email round-trip: the confirmation link lands on /login, which forwards
+  // `next` on to the final destination after the code exchange signs the
+  // user in.
+  const from = (location.state as LocationState | null)?.from
+  const nextQuery = from && from.startsWith('/') ? `&next=${encodeURIComponent(from)}` : ''
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -28,7 +38,10 @@ export default function SignupPage() {
       password,
       options: {
         data: { username, display_name: username },
-        emailRedirectTo: window.location.origin,
+        // The confirmation link lands on /login (public, so the PKCE code
+        // exchange can't race a RequireAuth bounce) and forwards on to
+        // /me?welcome=1 for the first-run nudge.
+        emailRedirectTo: `${window.location.origin}/login?confirmed=1${nextQuery}`,
       },
     })
     setSubmitting(false)
@@ -38,7 +51,7 @@ export default function SignupPage() {
     }
     if (data.session) {
       // Confirmation off (dev/test): a session is returned immediately.
-      navigate('/me', { replace: true })
+      navigate(from ?? '/me?welcome=1', { replace: true })
     } else {
       setAwaitingConfirmation(true)
     }
@@ -50,10 +63,11 @@ export default function SignupPage() {
         <h1 className="display-heading text-3xl text-ink">Check your email</h1>
         <p className="mt-2 text-sm text-muted">
           We sent a confirmation link to <strong>{email}</strong>. Confirm your address, then log in
-          to start ranking.
+          to start ranking — the link brings you right back here.
         </p>
         <Link
           to="/login"
+          state={from ? { from } : undefined}
           className="mt-4 inline-block text-sm font-medium text-ink underline underline-offset-4"
         >
           Go to login
@@ -115,10 +129,17 @@ export default function SignupPage() {
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Creating account…' : 'Create account'}
         </Button>
+        <p className="text-center text-xs text-muted">
+          Free · Your ranking stays private by default
+        </p>
       </form>
       <p className="mt-4 text-sm text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="font-medium text-ink underline underline-offset-4">
+        <Link
+          to="/login"
+          state={from ? { from } : undefined}
+          className="font-medium text-ink underline underline-offset-4"
+        >
           Log in
         </Link>
       </p>
