@@ -100,12 +100,24 @@ jobs:
           # Copy new backup in
           cp "/tmp/${{ steps.create-backup.outputs.FILENAME }}" .
 
-          # Remove backups older than RETENTION_DAYS
-          DELETED=$(find . -name 'coasterrank-*.sql.gz' -mtime +${RETENTION_DAYS} -print -delete)
-          if [ -n "$DELETED" ]; then
+          # Remove backups older than RETENTION_DAYS using filename date (YYYY-MM-DD),
+          # NOT filesystem mtime — `git clone` resets timestamps so -mtime never matches.
+          # Cross-platform date: GNU (Linux/ubuntu-latest) falls back to BSD (macOS).
+          CUTOFF=$(date -u -d "-${RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null || date -u -v-${RETENTION_DAYS}d +%Y-%m-%d)
+          DELETED=$(mktemp)
+          find . -name 'coasterrank-*.sql.gz' | while read f; do
+            filedate=$(basename "$f" | sed -E 's/coasterrank-([0-9]{4}-[0-9]{2}-[0-9]{2})\.sql\.gz/\1/')
+            if [[ "$filedate" < "$CUTOFF" ]]; then
+              echo "Deleted: $f"
+              rm "$f"
+              echo "$f" >> "$DELETED"
+            fi
+          done
+          if [ -s "$DELETED" ]; then
             echo "### Rotated (deleted):" >> "$GITHUB_STEP_SUMMARY"
-            echo "$DELETED" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+            sed 's/^/- /' "$DELETED" >> "$GITHUB_STEP_SUMMARY"
           fi
+          rm -f "$DELETED"
 
           # Stage changes
           git add -A
