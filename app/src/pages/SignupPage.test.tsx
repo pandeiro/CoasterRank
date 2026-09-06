@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import SignupPage from './SignupPage'
 import { supabase } from '../lib/supabase'
 
@@ -13,10 +13,14 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-function renderSignup() {
+function renderSignup(initialEntries: unknown[] = ['/signup']) {
   return render(
-    <MemoryRouter>
-      <SignupPage />
+    <MemoryRouter initialEntries={initialEntries as never}>
+      <Routes>
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<p>login page</p>} />
+        <Route path="/me" element={<p>my coasters</p>} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -59,6 +63,44 @@ describe('SignupPage', () => {
     )
   })
 
+  it('points the confirmation email back at /login for the code exchange', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({
+      data: { session: null, user: { id: 'u1' } },
+      error: null,
+    } as never)
+    renderSignup()
+    await fillAndSubmit('coaster_fan')
+
+    const redirectTo = vi.mocked(supabase.auth.signUp).mock.calls[0]?.[0].options
+      ?.emailRedirectTo as string
+    expect(redirectTo).toContain('/login?confirmed=1')
+  })
+
+  it('encodes a deep link into the confirmation redirect so it survives the email round-trip', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({
+      data: { session: null, user: { id: 'u1' } },
+      error: null,
+    } as never)
+    renderSignup([{ pathname: '/signup', state: { from: '/riders/ana' } }])
+    await fillAndSubmit('coaster_fan')
+
+    const redirectTo = vi.mocked(supabase.auth.signUp).mock.calls[0]?.[0].options
+      ?.emailRedirectTo as string
+    expect(redirectTo).toContain(`next=${encodeURIComponent('/riders/ana')}`)
+  })
+
+  it('sends immediate-session signups to the welcome nudge', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({
+      data: { session: { access_token: 'tok' }, user: { id: 'u1' } },
+      error: null,
+    } as never)
+    renderSignup()
+    await fillAndSubmit('coaster_fan')
+
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+  })
   it('shows the check-your-email panel when confirmation is required', async () => {
     vi.mocked(supabase.auth.signUp).mockResolvedValue({
       data: { session: null, user: { id: 'u1' } },

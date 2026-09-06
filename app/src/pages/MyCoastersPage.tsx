@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
 import RankedCoasterList, { REMOVE_UNDO_MS, type PendingAdd } from '../components/RankedCoasterList'
 import ShareListCard from '../components/ShareListCard'
 import Toast from '../components/Toast'
+import WelcomeModal from '../components/WelcomeModal'
+import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
 import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
@@ -52,6 +55,29 @@ export default function MyCoastersPage() {
   // the top/bottom dividers. The list consumes it and clears pendingAdd.
   const [quickInsert, setQuickInsert] = useState<'top' | 'bottom' | null>(null)
   const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
+  // First-run welcome (?welcome=1 from the signup/login flow): shown once to
+  // users with nothing ranked yet, dismissed to localStorage.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [welcomeDismissed, setWelcomeDismissed] = useState(readWelcomeDismissed)
+  const showWelcome =
+    isConfirmed &&
+    !isPending &&
+    !isError &&
+    (rides ?? []).length === 0 &&
+    (searchParams.get('welcome') === '1' || !welcomeDismissed)
+
+  const dismissWelcome = useCallback(() => {
+    persistWelcomeDismissed()
+    setWelcomeDismissed(true)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('welcome')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
   const searchSentinelRef = useRef<HTMLDivElement>(null)
   const [searchStuck, setSearchStuck] = useState(false)
   // Touch users skip position picking: the add lands at the end of the list
@@ -164,6 +190,15 @@ export default function MyCoastersPage() {
             : 'Search for coasters below to start building your list.'
         }
       />
+
+      {showWelcome && user?.id && (
+        <WelcomeModal
+          username={profile?.username ?? null}
+          userId={user.id}
+          avatarUrl={profile?.avatar_url}
+          onClose={dismissWelcome}
+        />
+      )}
 
       {showShareCta && (
         <div className="mt-6">

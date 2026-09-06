@@ -193,9 +193,9 @@ Admin JWTs are validated against GoTrue (`/auth/v1/user`) and then checked again
 | `/` | Public | Live board — text filter over coaster name / park / former names (aliases), material view (Everything / Wooden only / Steel only — hybrids ride with steel), country + manufacturer dropdowns, "Include non-operational" checkbox; top-N by BT score; gated "#1 votes" column (§4.4.1); "few votes" badges. |
 | `/coasters/:slug` | Public | Coaster detail — stats, current rank position, comparisons/participants, links to park and manufacturer. |
 | `/parks/:slug` | Public | Park detail — its coasters ordered by rank. |
-| `/signup` | Public | Supabase Auth email/password + email-confirmation prompt. |
-| `/login` | Public | Login. |
-| `/me` | Authed + confirmed | "My Coasters" — search-add/remove ridden coasters, `@dnd-kit` drag-sort of ranked list, save → `user_rides`. |
+| `/signup` | Public | Supabase Auth email/password + email-confirmation prompt. The confirmation link returns via `/login?confirmed=1` (public, so the PKCE code exchange can't race the RequireAuth gate), preserving any deep link as `?next=`. |
+| `/login` | Public | Login. Handles the confirmation-link landing: shows a "confirmed" banner and forwards authed users to `?next`, `state.from`, or the `/me` welcome nudge. |
+| `/me` | Authed + confirmed | "My Coasters" — search-add/remove ridden coasters, `@dnd-kit` drag-sort of ranked list, save → `user_rides`. First run (`?welcome=1` from signup/login, 0 rides): a welcome modal with an example top-5 preview, optional avatar upload, and the private-by-default note (dismiss persisted in localStorage). |
 | `/me/profile` | Authed | Username/display name. |
 | `/submit` | Authed + confirmed | Propose a new coaster → moderation queue. |
 | `/admin` | Admin | Moderate submissions, add/edit coasters, manage users (stats, impersonation, confirm/delete), trigger recompute, dashboard. |

@@ -79,20 +79,37 @@ vi.mock('../components/ConfirmEmailGate', () => ({
   default: ({ email }: { email?: string }) => <div data-testid="confirm-gate">{email}</div>,
 }))
 
-function renderPage() {
+vi.mock('../components/WelcomeModal', () => ({
+  default: ({ onClose, username }: { onClose: () => void; username: string | null }) => (
+    <div data-testid="welcome-modal">
+      welcome{username ? ` ${username}` : ''}
+      <button type="button" onClick={onClose}>
+        start ranking
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock('../lib/welcome', () => ({
+  readWelcomeDismissed: vi.fn(() => false),
+  persistWelcomeDismissed: vi.fn(),
+  WELCOME_DISMISS_KEY: 'cr.welcome.dismissed',
+}))
+
+function renderPage(initialPath = '/me') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialPath]}>
         <MyCoastersPage />
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
-function mockConfirmed(ridesData: unknown[] = []) {
+function mockConfirmed(ridesData: unknown[] = [], userId: string | null = null) {
   vi.mocked(useAuth).mockReturnValue({
-    user: { email: 'test@example.com' },
+    user: { id: userId, email: 'test@example.com' },
     isConfirmed: true,
   } as never)
   vi.mocked(useMyRides).mockReturnValue({
@@ -316,5 +333,27 @@ describe('MyCoastersPage', () => {
     mockConfirmed(ridesWithRanks(5))
     renderPage()
     expect(screen.getByText(/claim a username/i)).toBeInTheDocument()
+  })
+
+  it('shows the welcome nudge on ?welcome=1 for users with nothing ranked', () => {
+    mockConfirmed([], 'u1')
+    renderPage('/me?welcome=1')
+    expect(screen.getByTestId('welcome-modal')).toBeInTheDocument()
+  })
+
+  it('hides the welcome nudge once the user has ranked something', () => {
+    mockConfirmed(ridesWithRanks(2), 'u1')
+    renderPage('/me?welcome=1')
+    expect(screen.queryByTestId('welcome-modal')).not.toBeInTheDocument()
+  })
+
+  it('dismissing the welcome nudge persists and clears the param', async () => {
+    const user = userEvent.setup()
+    const { persistWelcomeDismissed } = await import('../lib/welcome')
+    mockConfirmed([], 'u1')
+    renderPage('/me?welcome=1')
+    await user.click(screen.getByRole('button', { name: /start ranking/i }))
+    expect(vi.mocked(persistWelcomeDismissed)).toHaveBeenCalled()
+    expect(screen.queryByTestId('welcome-modal')).not.toBeInTheDocument()
   })
 })
