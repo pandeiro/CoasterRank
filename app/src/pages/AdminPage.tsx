@@ -223,13 +223,15 @@ export default function AdminPage() {
   const lastRun = useQuery({
     queryKey: ['cron-execution-logs', 'last-success'],
     queryFn: async () => {
-      const { data } = await supabase
+      // maybeSingle: zero runs (fresh install) is expected, not an error.
+      const { data, error } = await supabase
         .from('cron_execution_logs')
         .select('created_at, duration_ms, iterations, pairs, updated, converged')
         .eq('status', 'success')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
+      if (error) throw error
       return data as {
         created_at: string
         duration_ms: number
@@ -244,13 +246,15 @@ export default function AdminPage() {
   const lastError = useQuery({
     queryKey: ['cron-execution-logs', 'last-error'],
     queryFn: async () => {
-      const { data } = await supabase
+      // maybeSingle: zero past errors is the happy path, not an error.
+      const { data, error } = await supabase
         .from('cron_execution_logs')
         .select('created_at, error_message, duration_ms, trigger_source')
         .eq('status', 'error')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
+      if (error) throw error
       return data as {
         created_at: string
         error_message: string
@@ -1417,6 +1421,10 @@ export default function AdminPage() {
               <div className="mt-4 text-sm text-muted">Loading run history…</div>
             )}
 
+            {lastRun.isError && (
+              <div className="mt-4 text-sm text-danger">Couldn&apos;t load run history.</div>
+            )}
+
             {/* Last error */}
             {lastError.data && (
               <div className="mt-3 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm">
@@ -1430,6 +1438,10 @@ export default function AdminPage() {
                   {formatDuration(lastError.data.duration_ms)}
                 </div>
               </div>
+            )}
+
+            {lastError.isError && (
+              <div className="mt-3 text-sm text-danger">Couldn&apos;t load error history.</div>
             )}
 
             {recompute.isError && (

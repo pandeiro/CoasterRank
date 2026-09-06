@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes, useRouteError } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
-import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import Layout from './components/Layout'
 import RequireAdmin from './components/RequireAdmin'
@@ -41,6 +41,15 @@ const queryClient = new QueryClient({
     onError: (error, query) => {
       if (error instanceof DOMException && error.name === 'AbortError') return
       Sentry.captureException(error, { extra: { queryKey: query.queryKey } })
+    },
+  }),
+  // Mutations surface to per-call onError toasts; without this they would
+  // never reach Sentry (thrown mutation errors don't touch the QueryCache).
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      Sentry.captureException(error, {
+        extra: { mutationKey: mutation.options.mutationKey },
+      })
     },
   }),
 })

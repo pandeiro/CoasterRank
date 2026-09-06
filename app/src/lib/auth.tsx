@@ -10,11 +10,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled) {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (cancelled) return
+      // getSession resolves (rather than rejects) on failure: without this
+      // branch the app would hang on the loading state forever.
+      if (error) {
+        console.warn('[auth] getSession failed:', error.message)
+      } else {
         setSession(data.session)
-        setIsLoading(false)
       }
+      setIsLoading(false)
     })
 
     const {
@@ -38,7 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isConfirmed: Boolean(user?.email_confirmed_at),
     signOut: async () => {
-      await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut()
+      // Thrown (not swallowed): callers must not navigate away as if the
+      // logout succeeded — the session is still alive.
+      if (error) throw error
     },
   }
 

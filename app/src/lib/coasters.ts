@@ -342,13 +342,15 @@ async function resolveUniqueCoasterSlug(
   parkId: string,
   manufacturerId: string | null = null,
 ): Promise<string> {
-  const [{ data: park }, manuResult, existing] = await Promise.all([
+  const [{ data: park, error: parkError }, manuResult, existing] = await Promise.all([
     supabase.from('parks').select('slug').eq('id', parkId).maybeSingle(),
     manufacturerId
       ? supabase.from('manufacturers').select('slug').eq('id', manufacturerId).maybeSingle()
       : Promise.resolve({ data: null } as never),
     fetchExistingCoasterSlugs(base),
   ])
+  if (parkError) throw parkError
+  if (manuResult.error) throw manuResult.error
   const parkSlug = (park as { slug?: string } | null)?.slug ?? null
   const manuSlug = (manuResult.data as { slug?: string } | null)?.slug ?? null
   return pickUniqueSlug(base, parkSlug, manuSlug, existing)
@@ -406,7 +408,9 @@ export async function submitCoaster(data: {
 }) {
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+  if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
 
   const { data: submission, error } = await supabase
@@ -449,7 +453,9 @@ export async function getMySubmissions() {
 export async function rejectSubmission(id: string, note: string) {
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+  if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
 
   const { error } = await supabase
@@ -467,7 +473,9 @@ export async function rejectSubmission(id: string, note: string) {
 export async function approveSubmission(id: string, submission: CoasterSubmission) {
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+  if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
 
   // Logic to create/link park and manufacturer.
@@ -517,6 +525,7 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
     // Re-resolve with fresh DB state and retry (numeric suffix path).
     const existing = await fetchExistingCoasterSlugs(baseSlug)
     const parkRes = await supabase.from('parks').select('slug').eq('id', parkId).maybeSingle()
+    if (parkRes.error) throw parkRes.error
     const parkSlug = (parkRes.data as { slug?: string } | null)?.slug ?? null
     coasterSlug = pickUniqueSlug(baseSlug, parkSlug, null, existing)
     // force numeric on second retry if still taken
@@ -597,22 +606,24 @@ export async function updateCoaster(id: string, updates: Partial<Coaster>) {
         : updates.slug,
     )
     // simpler: just check exact slug exists for another coaster
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('coasters')
       .select('id')
       .eq('slug', updates.slug)
       .neq('id', id)
       .maybeSingle()
+    if (error) throw error
     if (data) {
       // auto-disambiguate: keep caller's slug as base and add numeric suffix
       let n = 2
       let candidate = `${updates.slug}-${n}`
       while (true) {
-        const { data: clash } = await supabase
+        const { data: clash, error: clashError } = await supabase
           .from('coasters')
           .select('id')
           .eq('slug', candidate)
           .maybeSingle()
+        if (clashError) throw clashError
         if (!clash) break
         n++
         candidate = `${updates.slug}-${n}`

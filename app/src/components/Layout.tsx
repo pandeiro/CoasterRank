@@ -17,6 +17,9 @@ export default function Layout() {
   const location = useLocation()
   const isBoard = location.pathname === '/'
   const [scrolledPastHero, setScrolledPastHero] = useState(false)
+  // Sign-out failure feedback: signOut() throws instead of navigating, so a
+  // failed logout keeps the session (truthful) and explains itself here.
+  const [signOutError, setSignOutError] = useState<string | null>(null)
   // The board leads with its own hero; everywhere else the sticky header is
   // the permanent chrome (logo links home to the global ranking).
   const showBrand = !isBoard || scrolledPastHero
@@ -67,7 +70,13 @@ export default function Layout() {
   })
 
   async function onSignOut() {
-    await signOut()
+    setSignOutError(null)
+    try {
+      await signOut()
+    } catch (e) {
+      setSignOutError(e instanceof Error ? e.message : 'Sign out failed.')
+      return
+    }
     navigate('/')
   }
 
@@ -108,6 +117,11 @@ export default function Layout() {
                   Sign up
                 </Link>
               </>
+            )}
+            {signOutError && (
+              <span role="alert" className="text-sm text-danger">
+                Couldn&apos;t sign out: {signOutError}
+              </span>
             )}
           </nav>
         </div>
