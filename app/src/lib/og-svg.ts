@@ -124,7 +124,7 @@ function topFiveCard(rides: OgSvgRide[], username: string): string {
     ${rows}
     <rect x="${x}" y="${y + h - 56}" width="${w}" height="56" rx="20" fill="${CARD_SUBTLE}"/>
     <rect x="${x}" y="${y + h - 56}" width="${w}" height="36" fill="${CARD_SUBTLE}"/>
-    <text x="${x + 28}" y="${y + h - 21}" font-family="${BODY_FONT}" font-size="15" font-weight="700" letter-spacing="1.5" fill="#127F99">BRADLEY–TERRY · LIVE RANKING</text>
+    <text x="${x + 28}" y="${y + h - 21}" font-family="${BODY_FONT}" font-size="15" font-weight="700" letter-spacing="1.5" fill="#127F99">LIVE RANKING</text>
   </g>`
 }
 
