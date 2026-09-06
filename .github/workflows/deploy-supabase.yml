@@ -112,16 +112,34 @@ jobs:
       - name: Verify deployed schema contract
         run: |
           set -euo pipefail
-          columns=$(psql "$SUPABASE_DB_URL" -Atc "
-            select string_agg(parameter_name, ',' order by ordinal_position)
-            from information_schema.parameters
-            where specific_schema = 'public'
-              and routine_name = 'public_board_meta'
-              and parameter_mode = 'OUT';
+          # information_schema.parameters has no routine_name column; join
+          # routines on specific_name (overloads get suffixed like
+          # public_board_meta_18395) and check per-signature, so overloads
+          # don't garble the aggregated signature.
+          matches=$(psql "$SUPABASE_DB_URL" -Atc "
+            select count(*) from (
+              select string_agg(p.parameter_name, ',' order by p.ordinal_position) as sig
+              from information_schema.parameters p
+              join information_schema.routines r
+                on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
+              where r.routine_schema = 'public'
+                and r.routine_name = 'public_board_meta'
+                and p.parameter_mode = 'OUT'
+              group by r.specific_name
+            ) s where s.sig = 'real_user_count,ranked_user_count,last_recomputed_at';
           ")
-          expected='real_user_count,ranked_user_count,last_recomputed_at'
-          if [ "$columns" != "$expected" ]; then
-            echo "::error::deployed public_board_meta contract is '$columns', expected '$expected'"
+          expected='1'
+          if [ "$matches" != "$expected" ]; then
+            echo "::error::deployed public_board_meta OUT-param signatures: $(psql "$SUPABASE_DB_URL" -Atc "
+              select string_agg(p.parameter_name, ',' order by p.ordinal_position)
+              from information_schema.parameters p
+              join information_schema.routines r
+                on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
+              where r.routine_schema = 'public'
+                and r.routine_name = 'public_board_meta'
+                and p.parameter_mode = 'OUT'
+              group by r.specific_name;"
+            )", expected 'real_user_count,ranked_user_count,last_recomputed_at'"
             exit 1
           fi
           echo "Verified public_board_meta columns: $columns"
