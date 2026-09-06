@@ -290,7 +290,8 @@ Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets �
 - **Gates**: parks ≥250, rankings ≥900, `generated_at` <45m; homepage marker + latency; API shape + `X-Ranking-Cache` surface. No persisted baseline (fixed floors until drift detection warrants `health_check_logs`).
 - **Alert**: on failure → `CoasterRankAlerts` Telegram with run URL + drill snippet (`cron_execution_logs` + `/api/ranking` curl). No steady-state pings.
 
-### 9.7 SPA hosting — Cloudflare Workers (unified, single project)- Connect the GitHub repo; build command `npm run build`; root directory `app/`; `app/wrangler.toml` declares `assets.directory = "./dist"` + `assets.not_found_handling = "single-page-application"` for SPA fallback; `run_worker_first = ["/", "/api/*", "/riders/*"]` scopes Worker invocations to those prefixes (all other static paths serve directly from the edge; `/` invokes the worker only so social-crawler UAs can get the home OG prerender — humans fall through to the same static assets).
+### 9.7 SPA hosting — Cloudflare Workers (unified, single project)
+- Connect the GitHub repo; build command `npm run build`; root directory `app/`; `app/wrangler.toml` declares `assets.directory = "./dist"` + `assets.not_found_handling = "single-page-application"` for SPA fallback; `run_worker_first = ["/", "/api/*", "/riders/*"]` scopes Worker invocations to those prefixes (all other static paths serve directly from the edge; `/` invokes the worker only so social-crawler UAs can get the home OG prerender — humans fall through to the same static assets).
 - Site env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 - A free `*.workers.dev` URL works end-to-end before any custom domain.
 
