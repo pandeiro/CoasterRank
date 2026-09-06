@@ -160,7 +160,7 @@ export default function ProfilePage() {
                   aria-label="Remove profile photo"
                   onClick={handleRemove}
                   disabled={isUploading}
-                  className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-danger-text text-white ring-2 ring-surface-bright transition-colors hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-danger-text text-white ring-2 ring-surface-bright transition-colors hover:bg-danger-text/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 size={14} />
                 </button>

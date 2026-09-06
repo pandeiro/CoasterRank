@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes, useRouteError } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
@@ -15,7 +15,6 @@ import BoardPage from './pages/BoardPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import NotFoundPage from './pages/NotFoundPage'
-import { MessageState } from './components/ui'
 
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
@@ -67,37 +66,29 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <Suspense
-              fallback={
-                <main className="page-container flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
-                  <MessageState>Loading…</MessageState>
-                </main>
-              }
-            >
-              <Routes>
-                <Route element={<Layout />} errorElement={<RootErrorBoundary />}>
-                  <Route path="/" element={<BoardPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/faq" element={<FaqPage />} />
-                  <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
-                  <Route path="/parks/:slug" element={<ParkDetailPage />} />
-                  <Route path="/riders/:username" element={<RiderPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="/privacy" element={<PrivacyPage />} />
-                  <Route element={<RequireAuth />}>
-                    <Route path="/me" element={<MyCoastersPage />} />
-                    <Route path="/me/profile" element={<ProfilePage />} />
-                    <Route path="/submit" element={<SubmitPage />} />
-                  </Route>
-                  <Route element={<RequireAdmin />}>
-                    <Route path="/admin/:tab?" element={<AdminPage />} />
-                  </Route>
-                  <Route path="*" element={<NotFoundPage />} />
+            <Routes>
+              <Route element={<Layout />} errorElement={<RootErrorBoundary />}>
+                <Route path="/" element={<BoardPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/faq" element={<FaqPage />} />
+                <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
+                <Route path="/parks/:slug" element={<ParkDetailPage />} />
+                <Route path="/riders/:username" element={<RiderPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route element={<RequireAuth />}>
+                  <Route path="/me" element={<MyCoastersPage />} />
+                  <Route path="/me/profile" element={<ProfilePage />} />
+                  <Route path="/submit" element={<SubmitPage />} />
                 </Route>
-              </Routes>
-            </Suspense>
+                <Route element={<RequireAdmin />}>
+                  <Route path="/admin/:tab?" element={<AdminPage />} />
+                </Route>
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>

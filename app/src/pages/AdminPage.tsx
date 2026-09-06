@@ -613,7 +613,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => approve.mutate({ id: s.id, submission: s })}
                             disabled={approve.isPending}
-                            className="rounded-full bg-success p-2 text-white hover:bg-success/90 disabled:opacity-50"
+                            className="rounded-full bg-success-text p-2 text-white hover:bg-success-text/90 disabled:opacity-50"
                             title="Approve"
                           >
                             <Check size={16} />

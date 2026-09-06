@@ -1,9 +1,5 @@
 User-agent: *
-Allow: /$
-Allow: /about
-Allow: /faq
-Allow: /coasters/
-Allow: /parks/
+Allow: /
 Disallow: /me
 Disallow: /admin
 Disallow: /submit

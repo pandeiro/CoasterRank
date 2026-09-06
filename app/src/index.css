@@ -28,7 +28,10 @@
 /* Contrast split (Lighthouse): brand hues (`accent`, `accent-strong`,
    `coral`, `success`, `warning`, `danger`) are display-only — large text,
    dots, tints, rings. All functional small text routes through the `*-text`
-   variants (≥4.5:1 on white and on their tinted pill backgrounds). */
+   variants (≥4.5:1 on white and on their tinted pill backgrounds).
+   Documented exception: `text-danger` on light surfaces passes as-is
+   (#C24156 on white = 5.0:1, on canvas 4.9:1), so small error copy stays on
+   the brand token — only white-on-danger *fills* needed darkening. */
 
 @layer base {
   html {

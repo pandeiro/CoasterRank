@@ -169,6 +169,9 @@ describe('serveOgImage', () => {
       }),
     )
     expect(response.status).toBe(502)
+    // Even the error path carries the base security headers.
+    expect(response.headers.get('strict-transport-security')).toBeTruthy()
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
   })
 })
 

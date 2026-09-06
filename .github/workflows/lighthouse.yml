@@ -57,7 +57,7 @@ jobs:
           const fs = require('fs');
           const path = '.lighthouseci/manifest.json';
           if (!fs.existsSync(path)) {
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'No LHCI manifest found — collect step failed before assert.\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '## Lighthouse (advisory)\n\nNo LHCI manifest — collect failed; see the infra-failure step below.\n');
             process.exit(0);
           }
           const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -80,6 +80,14 @@ jobs:
           ].join('\n') + '\n';
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
           "
+
+      - name: Fail on missing manifest (infra rot, not scores)
+        # Scores can never fail this job (warn-only + continue-on-error above),
+        # but a total collect failure must not stay silent-green: no manifest
+        # means no measurement at all. This job is NOT in branch protection,
+        # so red here is a signal, never a merge block.
+        if: always()
+        run: test -f .lighthouseci/manifest.json || (echo "::error::LHCI produced no manifest — collect failed, no pages measured" && exit 1)
 
       - name: Upload LHCI reports
         if: always()

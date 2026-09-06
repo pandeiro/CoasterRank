@@ -215,7 +215,7 @@ async function fallbackOgResponse(deps: OgServeDeps): Promise<Response> {
   } catch {
     return new Response('OG image unavailable', {
       status: 502,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: { ...securityHeaders(false), 'Cache-Control': 'no-store' },
     })
   }
 }

@@ -2,13 +2,14 @@
  * Security headers for Worker responses (Lighthouse "Best Practices").
  *
  * Rollout posture: everything here is paternal-safe EXCEPT Content-Security-Policy,
- * which ships as `Content-Security-Policy-Report-Only` (no `report-uri` collector
- * endpoint exists yet — violations surface in the console). Promote to enforced
- * `Content-Security-Policy` only after a reporting window with zero violations;
- * the policy below already reflects the app's real needs (Vite external module
- * scripts, React inline `style=` props + worker `<style>` blocks, Google Fonts
- * stylesheet + font files, remote avatar/storage images incl. data-URI
- * fallbacks, Supabase HTTPS/WSS on unknown fork domains — hence the broad
+ * which ships as `Content-Security-Policy-Report-Only` with NO `report-uri`
+ * (no collector endpoint exists — violations surface in the dev console only).
+ * Promote to enforced `Content-Security-Policy` only after a manual review of
+ * console output across the main routes with zero violations; the policy below
+ * already reflects the app's real needs (Vite external module scripts, React
+ * inline `style=` props + worker `<style>` blocks, Google Fonts stylesheet +
+ * font files, remote avatar/storage images incl. data-URI fallbacks, Supabase
+ * HTTPS/WSS on unknown fork domains — hence the broad
  * `connect-src 'self' https: wss:`).
  *
  * Deliberately NOT set: `Cross-Origin-Embedder-Policy` (would break

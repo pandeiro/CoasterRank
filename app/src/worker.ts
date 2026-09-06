@@ -206,7 +206,7 @@ export function renderRiderHtml(
 <body>
 <div class="wrap">
   <div class="card">
-    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="" width="72" height="72" loading="lazy" decoding="async">` : ''}
+    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="" width="72" height="72" loading="eager" decoding="async">` : ''}
     <div>
       <p class="eyebrow">Rider ranking</p>
       <h1>${escapeHtml(displayName)}</h1>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
@@ -6,6 +6,7 @@ import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
+import { MessageState } from './ui'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? 'font-medium text-ink' : 'text-muted transition-colors hover:text-ink'
@@ -141,7 +142,11 @@ export default function Layout() {
           align-items:stretch, so flex-1 alone pins the footer to the bottom
           on short pages without touching the width. */}
       <main className="page-container flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
-        <Outlet />
+        {/* Lazy-route boundary lives here (not in App): header/footer chrome
+            persists while a split chunk loads instead of blanking the page. */}
+        <Suspense fallback={<MessageState>Loading…</MessageState>}>
+          <Outlet />
+        </Suspense>
       </main>
       <ImpersonationBanner />
       <Footer />
