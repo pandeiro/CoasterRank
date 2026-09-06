@@ -57,8 +57,13 @@ export interface Env {
 const SECURITY_HEADERS: Record<string, string> = {
   // The SPA needs inline styles for its generated HTML and data URLs for the
   // generated default avatar; scripts remain same-origin only.
+  // worker-src blob: — Sentry Replay (replaysOnErrorSampleRate 1.0) spawns its
+  // compression worker from a same-origin-created blob URL at startup; without
+  // this the worker is blocked on every page load (verified via live CSP test,
+  // Sep 2026). font-src data: — KaTeX CSS embeds its fonts as data: URIs, so
+  // math disclosures fall back to system fonts without it (same verification).
   'Content-Security-Policy':
-    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
