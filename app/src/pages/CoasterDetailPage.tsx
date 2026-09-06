@@ -103,7 +103,13 @@ export default function CoasterDetailPage() {
         <p className="mt-2 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
       )}
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-col gap-2">
+        <Link
+          to={`/coasters/${slug}/suggest-edit`}
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+        >
+          See something wrong? Suggest an edit
+        </Link>
         <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
           ← Back to the board
         </Link>

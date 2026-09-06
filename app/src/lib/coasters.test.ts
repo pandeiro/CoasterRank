@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
+  approveEditSubmission,
   approveSubmission,
   buildParkMap,
   countryOptions,
   DEFAULT_FILTERS,
+  diffEditProposal,
   FEW_VOTES_THRESHOLD,
   filterCoasters,
   filtersFromSearchParams,
@@ -18,6 +20,8 @@ import {
   slugify,
   yearFromDate,
   type CoasterSubmission,
+  type EditableCoasterSnapshot,
+  type EditProposalInput,
 } from './coasters'
 import { supabase } from './supabase'
 import { makePark, makeRankingRow } from '../test/fixtures'
@@ -374,6 +378,8 @@ describe('approveSubmission', () => {
 
   const submission = {
     id: 's1',
+    kind: 'new',
+    coaster_id: null,
     coaster_name: 'Test Coaster',
     park_name: 'Test Park',
     park_id: null,
@@ -390,6 +396,7 @@ describe('approveSubmission', () => {
     reviewed_by: null,
     created_at: '',
     reviewed_at: null,
+    seen_by_submitter_at: null,
   } satisfies CoasterSubmission
 
   // helpers for the new global-unique slug path
@@ -537,5 +544,199 @@ describe('approveSubmission', () => {
     await approveSubmission('s1', { ...submission, park_id: 'p1' })
     expect(insertSingle).not.toHaveBeenCalled()
     expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p1' }))
+  })
+
+  it('strips hostile payload keys before the coaster insert (C-01)', async () => {
+    const hostile = {
+      ...submission,
+      park_id: 'p1',
+      suggested_fields: {
+        ...submission.suggested_fields,
+        height_m: 40,
+        park_id: 'evil-park',
+        name: 'Evil Name',
+        slug: 'evil-slug',
+        source: 'admin',
+        status: 'defunct',
+        external_id: 'evil',
+        id: 'evil-id',
+      },
+    } as unknown as CoasterSubmission
+    await approveSubmission('s1', hostile)
+    expect(coasterInsert).toHaveBeenCalledWith({
+      park_id: 'p1',
+      name: 'Test Coaster',
+      slug: 'test-coaster',
+      source: 'community',
+      height_m: 40,
+      speed_kmh: null,
+      length_m: null,
+      inversions: null,
+      material: null,
+    })
+  })
+})
+
+describe('diffEditProposal', () => {
+  const current: EditableCoasterSnapshot = {
+    name: 'Steel Vengeance',
+    park_id: 'park-1',
+    status: 'operating',
+    material: 'hybrid',
+    height_m: 62,
+    speed_kmh: 119,
+    length_m: 1700,
+    inversions: 4,
+    model: null,
+    type: 'Hybrid Coaster',
+    opening_date: '2018-04-28',
+  }
+
+  function proposal(overrides: Partial<EditProposalInput> = {}): EditProposalInput {
+    return {
+      name: 'Steel Vengeance',
+      park_id: 'park-1',
+      status: 'operating',
+      material: 'hybrid',
+      height_m: '62',
+      speed_kmh: '119',
+      length_m: '1700',
+      inversions: '4',
+      model: '',
+      type: 'Hybrid Coaster',
+      opening_date: '2018-04-28',
+      ...overrides,
+    }
+  }
+
+  it('returns an empty diff when nothing changed', () => {
+    expect(diffEditProposal(current, proposal())).toEqual({ diff: {}, parkChanged: false })
+  })
+
+  it('picks up only changed scalars', () => {
+    expect(diffEditProposal(current, proposal({ height_m: '63', status: 'sbno' }))).toEqual({
+      diff: { height_m: 63, status: 'sbno' },
+      parkChanged: false,
+    })
+  })
+
+  it('reports park moves separately from the diff', () => {
+    expect(diffEditProposal(current, proposal({ park_id: 'park-2' }))).toEqual({
+      diff: {},
+      parkChanged: true,
+    })
+  })
+
+  it('treats a cleared stat as an explicit null change', () => {
+    expect(diffEditProposal(current, proposal({ height_m: '' }))).toEqual({
+      diff: { height_m: null },
+      parkChanged: false,
+    })
+  })
+
+  it('ignores invalid enum values instead of proposing them', () => {
+    expect(
+      diffEditProposal(current, proposal({ material: 'titanium', status: 'running' })),
+    ).toEqual({ diff: {}, parkChanged: false })
+  })
+
+  it('requires a non-empty name change', () => {
+    expect(diffEditProposal(current, proposal({ name: '  ' }))).toEqual({
+      diff: {},
+      parkChanged: false,
+    })
+    expect(diffEditProposal(current, proposal({ name: 'SteVe' })).diff).toEqual({
+      name: 'SteVe',
+    })
+  })
+})
+
+describe('approveEditSubmission', () => {
+  const coasterUpdateEq = vi.fn()
+  const submissionUpdateEq = vi.fn()
+
+  const editSubmission = {
+    id: 'e1',
+    kind: 'edit',
+    coaster_id: 'c1',
+    coaster_name: 'Steel Vengeance',
+    park_name: 'Cedar Point',
+    park_id: 'park-1',
+    suggested_fields: {
+      height_m: 63,
+      status: 'sbno',
+    },
+    submitted_by: 'u1',
+    status: 'pending',
+    reviewer_note: null,
+    reviewed_by: null,
+    created_at: '',
+    reviewed_at: null,
+    seen_by_submitter_at: null,
+  } as unknown as CoasterSubmission
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'admin1' } },
+    } as never)
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'coasters') {
+        return { update: vi.fn().mockReturnValue({ eq: coasterUpdateEq }) }
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
+    }) as never)
+    coasterUpdateEq.mockResolvedValue({ error: null })
+    submissionUpdateEq.mockResolvedValue({ error: null })
+  })
+
+  it('applies the allowlisted diff plus park and verification stamp', async () => {
+    await approveEditSubmission('e1', editSubmission)
+    expect(coasterUpdateEq).toHaveBeenCalledWith('id', 'c1')
+    const updateArg = vi.mocked(supabase.from).mock.calls.length
+    expect(updateArg).toBeGreaterThan(0)
+    const updateMock = vi.mocked(supabase.from).mock.results[0].value as {
+      update: ReturnType<typeof vi.fn>
+    }
+    expect(updateMock.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        height_m: 63,
+        status: 'sbno',
+        park_id: 'park-1',
+        last_verified_at: expect.any(String),
+      }),
+    )
+    expect(submissionUpdateEq).toHaveBeenCalledWith('id', 'e1')
+  })
+
+  it('drops hostile payload keys instead of applying them', async () => {
+    const hostile = {
+      ...editSubmission,
+      suggested_fields: {
+        height_m: 63,
+        source: 'admin',
+        slug: 'evil',
+        park_id: 'evil-park',
+        id: 'evil-id',
+      },
+    } as unknown as CoasterSubmission
+    await approveEditSubmission('e1', hostile)
+    const updateMock = vi.mocked(supabase.from).mock.results[0].value as {
+      update: ReturnType<typeof vi.fn>
+    }
+    const applied = updateMock.update.mock.calls[0][0] as Record<string, unknown>
+    expect(applied).not.toHaveProperty('source')
+    expect(applied).not.toHaveProperty('slug')
+    expect(applied).not.toHaveProperty('id')
+    expect(applied.park_id).toBe('park-1')
+  })
+
+  it('refuses edits without a target coaster', async () => {
+    await expect(
+      approveEditSubmission('e1', { ...editSubmission, coaster_id: null }),
+    ).rejects.toThrow('missing its coaster')
+    expect(coasterUpdateEq).not.toHaveBeenCalled()
   })
 })

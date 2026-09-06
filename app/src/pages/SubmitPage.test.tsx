@@ -48,6 +48,8 @@ function mockConfirmed() {
 function makeSubmission(overrides: Partial<CoasterSubmission> = {}): CoasterSubmission {
   return {
     id: `s${Math.random()}`,
+    kind: 'new',
+    coaster_id: null,
     coaster_name: 'Test Coaster',
     park_name: 'Cedar Point',
     park_id: 'p1',
@@ -64,6 +66,7 @@ function makeSubmission(overrides: Partial<CoasterSubmission> = {}): CoasterSubm
     reviewed_by: null,
     created_at: '2026-08-19T00:00:00Z',
     reviewed_at: null,
+    seen_by_submitter_at: null,
     ...overrides,
   }
 }

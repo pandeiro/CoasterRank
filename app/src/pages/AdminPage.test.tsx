@@ -6,13 +6,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AdminPage from './AdminPage'
 import { supabase } from '../lib/supabase'
 import {
+  approveEditSubmission,
   approveSubmission,
   deletePark,
   getAllCoastersAdmin,
   getAllParksAdmin,
+  getCoastersByIds,
   getCoastersInPark,
   getOtherParkId,
   getPendingSubmissions,
+  getSubmitterTrust,
   moveCoasterToPark,
   rejectSubmission,
   useParks,
@@ -32,11 +35,14 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     ...actual,
     useParks: vi.fn(),
     getPendingSubmissions: vi.fn(),
+    getCoastersByIds: vi.fn(),
+    getSubmitterTrust: vi.fn(),
     getAllCoastersAdmin: vi.fn(),
     getAllParksAdmin: vi.fn(),
     getOtherParkId: vi.fn(),
     getCoastersInPark: vi.fn(),
     approveSubmission: vi.fn(),
+    approveEditSubmission: vi.fn(),
     rejectSubmission: vi.fn(),
     moveCoasterToPark: vi.fn(),
     deletePark: vi.fn(),
@@ -75,11 +81,14 @@ function renderPage(initialEntry = '/admin/coasters') {
 function mockBase() {
   vi.mocked(useParks).mockReturnValue({ data: parks } as never)
   vi.mocked(getPendingSubmissions).mockResolvedValue([])
+  vi.mocked(getCoastersByIds).mockResolvedValue([])
+  vi.mocked(getSubmitterTrust).mockResolvedValue(new Map())
   vi.mocked(getAllCoastersAdmin).mockResolvedValue([])
   vi.mocked(getAllParksAdmin).mockResolvedValue([])
   vi.mocked(getOtherParkId).mockResolvedValue('other-park')
   vi.mocked(getCoastersInPark).mockResolvedValue([])
   vi.mocked(approveSubmission).mockResolvedValue(undefined)
+  vi.mocked(approveEditSubmission).mockResolvedValue(undefined)
   vi.mocked(rejectSubmission).mockResolvedValue(undefined)
   vi.mocked(moveCoasterToPark).mockResolvedValue(undefined)
   vi.mocked(deletePark).mockResolvedValue(undefined)
@@ -153,6 +162,8 @@ describe('AdminPage', () => {
       vi.mocked(getPendingSubmissions).mockResolvedValue([
         {
           id: 's1',
+          kind: 'new',
+          coaster_id: null,
           coaster_name: 'New Coaster',
           park_name: 'Cedar Point',
           park_id: 'p1',
@@ -163,6 +174,7 @@ describe('AdminPage', () => {
           reviewed_by: null,
           created_at: '',
           reviewed_at: null,
+          seen_by_submitter_at: null,
         },
       ] as never)
       renderPage('/admin/submissions')
@@ -171,6 +183,118 @@ describe('AdminPage', () => {
         await screen.findByText('Submission approved and coaster created.'),
       ).toBeInTheDocument()
       expect(approveSubmission).toHaveBeenCalled()
+    })
+
+    it('renders edit suggestions as a before→after diff with trust history', async () => {
+      vi.mocked(getPendingSubmissions).mockResolvedValue([
+        {
+          id: 'e1',
+          kind: 'edit',
+          coaster_id: 'c1',
+          coaster_name: 'Steel Vengeance',
+          park_name: 'Kings Island',
+          park_id: 'p2',
+          suggested_fields: { height_m: 63, status: 'sbno' },
+          submitted_by: 'u9',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+          profiles: { id: 'u9', avatar_url: null, username: 'historybuff' },
+        },
+      ] as never)
+      vi.mocked(getCoastersByIds).mockResolvedValue([
+        {
+          id: 'c1',
+          park_id: 'p1',
+          name: 'Steel Vengeance',
+          height_m: 62,
+          status: 'operating',
+        },
+      ] as never)
+      vi.mocked(getSubmitterTrust).mockResolvedValue(
+        new Map([['u9', { submitted_by: 'u9', approved: 4, rejected: 1, pending: 1 }]]),
+      )
+      renderPage('/admin/submissions')
+      // scalar diff rows show current → proposed
+      expect(await screen.findByText(/62/)).toBeInTheDocument()
+      expect(screen.getByText(/63/)).toBeInTheDocument()
+      // park move is called out…
+      expect(screen.getByText(/Cedar Point/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Kings Island/).length).toBeGreaterThanOrEqual(1)
+      // …and the submitter's track record is visible
+      expect(screen.getByText(/4 approved · 1 rejected/)).toBeInTheDocument()
+      expect(screen.getByText('historybuff')).toBeInTheDocument()
+    })
+
+    it('routes edit approvals to the edit path', async () => {
+      vi.mocked(getPendingSubmissions).mockResolvedValue([
+        {
+          id: 'e1',
+          kind: 'edit',
+          coaster_id: 'c1',
+          coaster_name: 'Steel Vengeance',
+          park_name: 'Cedar Point',
+          park_id: 'p1',
+          suggested_fields: { height_m: 63 },
+          submitted_by: 'u1',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+        },
+      ] as never)
+      renderPage('/admin/submissions')
+      await userEvent.click(await screen.findByTitle('Approve edit'))
+      expect(await screen.findByText('Edit approved and coaster updated.')).toBeInTheDocument()
+      expect(approveEditSubmission).toHaveBeenCalled()
+      expect(approveSubmission).not.toHaveBeenCalled()
+    })
+
+    it('filters the queue by kind', async () => {
+      vi.mocked(getPendingSubmissions).mockResolvedValue([
+        {
+          id: 's1',
+          kind: 'new',
+          coaster_id: null,
+          coaster_name: 'New Coaster',
+          park_name: 'Cedar Point',
+          park_id: 'p1',
+          suggested_fields: {},
+          submitted_by: 'u1',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+        },
+        {
+          id: 'e1',
+          kind: 'edit',
+          coaster_id: 'c1',
+          coaster_name: 'Old Coaster',
+          park_name: 'Cedar Point',
+          park_id: 'p1',
+          suggested_fields: { height_m: 63 },
+          submitted_by: 'u1',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+        },
+      ] as never)
+      renderPage('/admin/submissions')
+      expect(await screen.findByText('New Coaster')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: /Edits \(1\)/ }))
+      expect(screen.queryByText('New Coaster')).not.toBeInTheDocument()
+      expect(screen.getByText('Old Coaster')).toBeInTheDocument()
     })
   })
 
