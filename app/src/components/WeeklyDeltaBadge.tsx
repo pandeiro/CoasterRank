@@ -20,7 +20,9 @@ export default function WeeklyDeltaBadge({ row }: { row: RankingRow }) {
     <span
       title={label}
       className={`absolute -right-1.5 -top-1.5 z-10 inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-semibold leading-none shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${
-        up ? 'bg-success/15 tabular-nums text-success' : 'bg-danger/10 tabular-nums text-danger'
+        up
+          ? 'bg-success/15 tabular-nums text-success-text'
+          : 'bg-danger/10 tabular-nums text-danger-text'
       }`}
     >
       <span className="sr-only">{label}</span>

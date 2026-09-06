@@ -16,7 +16,7 @@ function MockLabel({ children, note }: { children: ReactNode; note?: string }) {
 
 // The status-line link, per final copy: plain "About" (fits mobile).
 function HowItWorks() {
-  return <span className="text-sm font-medium text-ink hover:text-accent-dark">About</span>
+  return <span className="text-sm font-medium text-ink hover:text-accent-text">About</span>
 }
 
 function StatusCounts({ users }: { users?: number }) {
@@ -32,7 +32,7 @@ function StatusCounts({ users }: { users?: number }) {
         </>
       )}
       <span aria-hidden="true">·</span>
-      <span className="inline-flex items-center gap-1.5 font-medium text-accent-strong">
+      <span className="inline-flex items-center gap-1.5 font-medium text-accent-text">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
@@ -46,7 +46,14 @@ function StatusCounts({ users }: { users?: number }) {
 function MastheadLockup() {
   return (
     <p className="flex flex-wrap items-baseline gap-x-1">
-      <img src="/logo.svg" alt="" className="h-[3.7rem] w-auto sm:h-[4.5rem]" />
+      <img
+        src="/logo.svg"
+        alt=""
+        width="1444"
+        height="1113"
+        decoding="async"
+        className="h-[3.7rem] w-auto sm:h-[4.5rem]"
+      />
       <span className="display-heading -translate-y-[0.12em] text-[2.4rem] leading-none tracking-wide text-ink sm:text-[2.9rem]">
         Coaster<span className="text-coral">Rank</span>
       </span>
@@ -133,7 +140,7 @@ function LivePopunder() {
           <StatusCounts users={61} />
         </p>
         <div className="relative mt-1 inline-block">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-strong">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-text">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
@@ -180,7 +187,7 @@ function RankTreatments() {
             className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
           >
             <span
-              className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
+              className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
             >
               {row.rank}
             </span>

@@ -65,6 +65,9 @@ export default function RiderPage() {
       <Helmet>
         <title>{title}</title>
         <meta name="description" content={metaDescription} />
+        {/* Rider pages are share targets for social unfurls, not search
+            results — crawlers still read the OG tags below. */}
+        <meta name="robots" content="noindex" />
         <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="profile" />
         <meta property="og:site_name" content="CoasterRank" />
@@ -83,7 +86,7 @@ export default function RiderPage() {
       <Panel className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
         <Avatar src={profile.avatar_url} userId={profile.username} size={72} />
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
             Rider ranking
           </p>
           <h1 className="display-heading mt-1 truncate text-3xl text-ink sm:text-4xl">
@@ -124,7 +127,7 @@ export default function RiderPage() {
           </p>
           <Link
             to="/signup"
-            className="mt-1 rounded-full bg-coral px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-coral/90"
+            className="mt-1 rounded-full bg-coral-text px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-coral-text/90"
           >
             Sign up free
           </Link>

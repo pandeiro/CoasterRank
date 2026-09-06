@@ -35,7 +35,7 @@ export default function CoasterDetailPage() {
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">
+      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-text">
         {coaster.rank === null ? 'Not yet ranked' : `#${coaster.rank} on the board`}
       </p>
       <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>

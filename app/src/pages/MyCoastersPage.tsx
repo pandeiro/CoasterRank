@@ -235,7 +235,7 @@ export default function MyCoastersPage() {
                   key={where}
                   type="button"
                   onClick={() => setQuickInsert(where)}
-                  className="rounded-full border border-accent/50 bg-surface px-2 py-0.5 text-xs font-medium text-ink transition-colors hover:bg-accent/20 hover:text-accent-strong"
+                  className="rounded-full border border-accent/50 bg-surface px-2 py-0.5 text-xs font-medium text-ink transition-colors hover:bg-accent/20 hover:text-accent-text"
                 >
                   Add to {where}
                 </button>

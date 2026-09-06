@@ -112,7 +112,7 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
       {profile?.is_admin && (
         <NavLink
           to="/admin"
-          className="mr-3 inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-strong transition-colors hover:bg-accent/20"
+          className="mr-3 inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-text transition-colors hover:bg-accent/20"
         >
           Admin
         </NavLink>
@@ -171,7 +171,7 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
                 type="button"
                 role="menuitem"
                 onClick={onSignOut}
-                className="flex min-h-[52px] w-full items-center gap-3 px-5 text-left text-base text-coral transition-colors hover:bg-surface active:bg-surface"
+                className="flex min-h-[52px] w-full items-center gap-3 px-5 text-left text-base text-coral-text transition-colors hover:bg-surface active:bg-surface"
               >
                 <LogOut size={18} className="shrink-0" />
                 Sign out
@@ -201,7 +201,7 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
               type="button"
               role="menuitem"
               onClick={onSignOut}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-coral transition-colors hover:bg-surface"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-coral-text transition-colors hover:bg-surface"
             >
               <LogOut size={16} className="shrink-0" />
               Sign out

@@ -57,12 +57,18 @@ export interface Env {
 const SECURITY_HEADERS: Record<string, string> = {
   // The SPA needs inline styles for its generated HTML and data URLs for the
   // generated default avatar; scripts remain same-origin only.
+  // worker-src blob: — Sentry Replay (replaysOnErrorSampleRate 1.0) spawns its
+  // compression worker from a same-origin-created blob URL at startup; without
+  // this the worker is blocked on every page load (verified via live CSP test,
+  // Sep 2026). font-src data: — KaTeX CSS embeds its fonts as data: URIs, so
+  // math disclosures fall back to system fonts without it (same verification).
   'Content-Security-Policy':
-    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
 }
 
@@ -208,6 +214,7 @@ export function renderRiderHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
+<meta name="robots" content="noindex">
 <link rel="canonical" href="${escapeHtml(url)}">
 <meta property="og:type" content="profile">
 <meta property="og:site_name" content="CoasterRank">
@@ -228,7 +235,7 @@ export function renderRiderHtml(
 <body>
 <div class="wrap">
   <div class="card">
-    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="">` : ''}
+    ${data.profile.avatar_url ? `<img class="avatar" src="${escapeHtml(data.profile.avatar_url)}" alt="" width="72" height="72" loading="eager" decoding="async">` : ''}
     <div>
       <p class="eyebrow">Rider ranking</p>
       <h1>${escapeHtml(displayName)}</h1>
@@ -414,14 +421,16 @@ function rankingJsonResponse(
   env: Env,
   extraHeaders: Record<string, string> = {},
 ): Response {
-  return new Response(body, {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders(request, env),
-      ...extraHeaders,
-    },
-  })
+  return withSecurityHeaders(
+    new Response(body, {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(request, env),
+        ...extraHeaders,
+      },
+    }),
+  )
 }
 
 // Board meta (user counts + last recompute time) for the homepage.

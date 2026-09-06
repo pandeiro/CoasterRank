@@ -126,7 +126,15 @@ export default function BoardPage() {
             still on the -0.12em optical rise. */}
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <h1 className="mx-auto flex flex-wrap items-baseline justify-center gap-x-1 sm:mx-0 sm:justify-start">
-            <img src="/logo.svg" alt="" className="h-[3.7rem] w-auto sm:h-[4.5rem]" />
+            <img
+              src="/logo.svg"
+              alt=""
+              width="1444"
+              height="1113"
+              fetchPriority="high"
+              decoding="async"
+              className="h-[3.7rem] w-auto sm:h-[4.5rem]"
+            />
             <span className="display-heading -translate-y-[0.12em] text-[2.4rem] leading-none tracking-wide sm:text-[2.9rem]">
               Coaster<span className="text-coral">Rank</span>
             </span>
@@ -136,7 +144,7 @@ export default function BoardPage() {
               <>
                 <Link
                   to="/about"
-                  className="font-medium text-ink underline-offset-4 hover:text-accent-dark hover:underline"
+                  className="font-medium text-ink underline-offset-4 hover:text-accent-text hover:underline"
                 >
                   About
                 </Link>

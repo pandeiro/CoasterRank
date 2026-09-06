@@ -14,11 +14,24 @@
   --color-accent-strong: 21 154 184;
   --color-accent-dark: 18 131 156;
   --color-accent-ink: 13 108 128;
+  --color-accent-text: 13 108 128;
   --color-coral: 232 93 117;
+  --color-coral-text: 166 30 53;
   --color-success: 46 139 115;
+  --color-success-text: 30 110 90;
   --color-warning: 183 121 31;
+  --color-warning-text: 140 90 15;
   --color-danger: 194 65 86;
+  --color-danger-text: 166 43 63;
 }
+
+/* Contrast split (Lighthouse): brand hues (`accent`, `accent-strong`,
+   `coral`, `success`, `warning`, `danger`) are display-only — large text,
+   dots, tints, rings. All functional small text routes through the `*-text`
+   variants (≥4.5:1 on white and on their tinted pill backgrounds).
+   Documented exception: `text-danger` on light surfaces passes as-is
+   (#C24156 on white = 5.0:1, on canvas 4.9:1), so small error copy stays on
+   the brand token — only white-on-danger *fills* needed darkening. */
 
 @layer base {
   html {

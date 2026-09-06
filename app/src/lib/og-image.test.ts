@@ -169,6 +169,8 @@ describe('serveOgImage', () => {
       }),
     )
     expect(response.status).toBe(502)
+    // Header coverage for this path lives at the worker level (the outer
+    // withSecurityHeaders wrap) — see 'worker: /riders/:username/og.png'.
   })
 })
 

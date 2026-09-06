@@ -51,7 +51,7 @@ export function rankFontClass(position: number): string {
 function RankBadge({ position }: { position: number }) {
   return (
     <span
-      className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-strong shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
+      className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
     >
       {position}
     </span>
@@ -240,7 +240,7 @@ export default function CoasterTable({
               <Link
                 to={`/coasters/${row.slug}`}
                 onClick={keepLinkTarget}
-                className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
+                className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-text"
               >
                 {row.name}
               </Link>
@@ -281,7 +281,7 @@ export default function CoasterTable({
                     title="Bradley–Terry strength index from head-to-head rider comparisons; 100 is the community average"
                     className="cursor-help whitespace-nowrap"
                   >
-                    Score <span className="ml-0.5 text-muted/60">ⓘ</span>
+                    Score <span className="ml-0.5 text-muted">ⓘ</span>
                   </span>
                 </th>
               </>
@@ -330,7 +330,7 @@ export default function CoasterTable({
                     <Link
                       to={`/coasters/${row.slug}`}
                       onClick={keepLinkTarget}
-                      className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-dark"
+                      className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-text"
                     >
                       {row.name}
                     </Link>

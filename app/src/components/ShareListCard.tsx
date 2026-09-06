@@ -22,7 +22,7 @@ export function CopyLinkButton({ url, label = 'Copy link' }: { url: string; labe
 
   return (
     <Button type="button" variant="outline" size="sm" onClick={onCopy}>
-      {copied ? <Check size={14} className="text-success" /> : <Link2 size={14} />}
+      {copied ? <Check size={14} className="text-success-text" /> : <Link2 size={14} />}
       {copied ? 'Copied!' : label}
     </Button>
   )
@@ -103,7 +103,7 @@ export default function ShareListCard({
         <X size={14} />
       </button>
 
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
         {milestone === 2 ? 'Milestone unlocked' : 'Milestone'}
       </p>
       <h2 className="display-heading mt-1 text-2xl text-ink">{heading}</h2>

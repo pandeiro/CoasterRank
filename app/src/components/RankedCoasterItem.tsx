@@ -155,7 +155,7 @@ export default function RankedCoasterItem({
       aria-hidden={removing || undefined}
       {...rowListeners}
       className={`flex items-center gap-3 rounded-xl border bg-surface-bright px-3 py-3 text-sm transition-colors ${
-        highlight ? 'border-accent-strong shadow-accent' : 'border-line'
+        highlight ? 'border-accent-text shadow-accent' : 'border-line'
       } ${dragging ? 'z-20 shadow-lg opacity-90' : ''} ${removing ? 'pointer-events-none' : ''} ${
         touchDraggable ? 'touch-pan-y select-none [-webkit-touch-callout:none]' : ''
       }`}
@@ -205,7 +205,7 @@ export default function RankedCoasterItem({
         <button
           type="button"
           onClick={() => onRank(ride.coaster_id)}
-          className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-success"
+          className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-success-text"
           aria-label={`Add ${ride.coaster.name} to ranking`}
         >
           <ListPlus className="h-4 w-4" />
@@ -214,7 +214,7 @@ export default function RankedCoasterItem({
       <button
         type="button"
         onClick={() => onRemove(ride.coaster_id)}
-        className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-danger"
+        className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-danger-text"
         aria-label={`Remove ${ride.coaster.name}`}
       >
         <X className="h-4 w-4" />

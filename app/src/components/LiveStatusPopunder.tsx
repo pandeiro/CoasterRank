@@ -82,7 +82,7 @@ export default function LiveStatusPopunder({
         type="button"
         aria-expanded={open}
         onClick={() => setPinnedOpen((value) => !value)}
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded font-medium text-accent-strong"
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded font-medium text-accent-text"
       >
         <span className="relative flex h-2 w-2">
           <span

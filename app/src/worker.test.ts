@@ -432,6 +432,21 @@ describe('worker: /riders/:username/og.png', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('502s with security headers when even the default bytes are unreachable', async () => {
+    const assets = stubAssets()
+    assets.fetch.mockImplementation(async () => new Response('gone', { status: 404 }))
+    const env: Env = { ...makeEnv(), ASSETS: assets }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('null')),
+    )
+    const response = await worker.fetch(ogRequest(), env)
+    expect(response.status).toBe(502)
+    expect(response.headers.get('Strict-Transport-Security')).toBeTruthy()
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'")
+  })
+
   it('falls through to the SPA shell for path segments that cannot be usernames', async () => {
     const env: Env = { ...makeEnv(), ASSETS: stubAssets() }
     const fetchMock = stubOgUpstream()
@@ -726,5 +741,89 @@ describe('worker: /api/ranking', () => {
     const response = await worker.fetch(rankingRequest(), env)
     expect(response.status).toBe(502)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('worker: security headers', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const BASE = [
+    'strict-transport-security',
+    'x-content-type-options',
+    'referrer-policy',
+    'x-frame-options',
+    'cross-origin-opener-policy',
+    'permissions-policy',
+  ] as const
+
+  function expectBaseHeaders(response: Response) {
+    for (const name of BASE) {
+      expect(response.headers.get(name), name).toBeTruthy()
+    }
+  }
+
+  function expectEnforcedCsp(response: Response) {
+    const csp = response.headers.get('content-security-policy')
+    expect(csp).toContain("default-src 'self'")
+    expect(csp).toContain("frame-ancestors 'none'")
+    expect(response.headers.get('x-frame-options')).toBe('DENY')
+    expect(response.headers.get('content-security-policy-report-only')).toBeNull()
+  }
+
+  it('sends base + enforced CSP headers on the prerendered home HTML', async () => {
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      makeEnv(),
+    )
+    expectBaseHeaders(response)
+    expectEnforcedCsp(response)
+  })
+
+  it('sends base + enforced CSP headers on the prerendered rider HTML', async () => {
+    stubRpc(
+      new Response(JSON.stringify(riderData), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const response = await worker.fetch(riderRequest(), makeEnv())
+    expectBaseHeaders(response)
+    expectEnforcedCsp(response)
+  })
+
+  it('marks the prerendered rider HTML noindex (unfurl, not search)', async () => {
+    stubRpc(
+      new Response(JSON.stringify(riderData), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const html = await (await worker.fetch(riderRequest(), makeEnv())).text()
+    expect(html).toContain('name="robots" content="noindex"')
+  })
+
+  it('sends base + enforced CSP headers on the static-asset passthrough', async () => {
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Mozilla/5.0 Safari' } }),
+      makeEnv(),
+    )
+    expectBaseHeaders(response)
+    expectEnforcedCsp(response)
+  })
+
+  it('sends base + enforced CSP headers on the /api/ranking JSON', async () => {
+    const { handleRankingRequest } = await import('./worker')
+    const response = await handleRankingRequest(
+      new Request('https://coasterrank.test/api/ranking'),
+      makeEnv(),
+    )
+    // Env has no edge cache in tests and no stubbed fetch here — 502 path.
+    expect(response.status).toBe(502)
+    expectBaseHeaders(response)
+    expectEnforcedCsp(response)
   })
 })
