@@ -180,8 +180,10 @@ export default function MyCoastersPage() {
 
   const handleError = useCallback((message: string) => notify(message, 'error'), [notify])
 
-  // Bulk-apply undo: restores the pre-import ranked list in one RPC call
-  // (replace mode deletes only ranked rows, so nothing else is touched).
+  // Bulk-apply undo: restores the pre-import state in one RPC call —
+  // replace mode re-inserts the prior ranked list AND re-unranks any
+  // holding-pen rows the import promoted (unrankIds), since those rows would
+  // otherwise be deleted by the replace and lost entirely.
   const handleImportApplied = useCallback(
     (result: AppliedImport) => {
       const undo = async () => {
@@ -191,6 +193,7 @@ export default function MyCoastersPage() {
             replace: true,
             source: result.source,
             stats: {},
+            unrankIds: result.unrankIds,
           })
           void logImportEvent('undo', result.source, { rowsTotal: result.priorRankedIds.length })
           void qc.invalidateQueries({ queryKey: ['myRides', user?.id] })

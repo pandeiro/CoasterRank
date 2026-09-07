@@ -486,7 +486,9 @@ JOIN auth.users u ON u.id = e.user_id
 WHERE u.email NOT LIKE '%@test.coasterrank.dev';"
 ```
 
-The unmatched names that are worth turning into aliases (frequency-ordered):
+The unmatched names that are worth turning into aliases (frequency-ordered;
+covers both `applied` and `parsed` events — `parsed` carries the pre-review
+unmatched set, so rows the user never resolved are captured too):
 
 ```bash
 source .env && psql "$SUPABASE_DB_URL" -c "
@@ -494,7 +496,7 @@ SELECT name, count(*) AS times
 FROM import_events e,
      jsonb_array_elements_text(e.unmatched_names) AS name
 JOIN auth.users u ON u.id = e.user_id
-WHERE e.kind = 'applied'
+WHERE e.kind IN ('applied', 'parsed')
   AND u.email NOT LIKE '%@test.coasterrank.dev'
 GROUP BY name ORDER BY times DESC, name LIMIT 50;"
 ```

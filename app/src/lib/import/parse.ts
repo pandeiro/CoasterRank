@@ -24,6 +24,8 @@ export class ParseError extends Error {}
 
 export const MAX_IMPORT_ROWS = 2000
 export const MAX_FILE_BYTES = 5 * 1024 * 1024
+/** Paste parity with the file cap: reject absurd pastes before parsing. */
+export const MAX_PASTE_CHARS = 1_000_000
 
 const HEADER_HINT =
   /^(coaster|coasters|name|title|ride|rank|ranking|position|pos|#|no\.?|number|park|location)$/i

@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import type { RankingRow } from '../coasters'
 import type { CatalogEntry } from 'coaster-match'
+import type { UserRide } from '../rides'
 
 // Bridge between the board dataset and the pure matcher, plus the
 // apply/telemetry calls. Keeping the adapter here (not in the component)
@@ -35,6 +36,8 @@ export type ApplyImportArgs = {
   replace: boolean
   source: ImportSource
   stats: ImportStats
+  /** Coaster ids to force back into the unranked holding pen (undo of promoted rows). */
+  unrankIds?: string[]
 }
 
 /**
@@ -51,9 +54,23 @@ export async function applyImport(args: ApplyImportArgs): Promise<number> {
       ...args.stats,
       unmatched_names: args.stats.unmatched_names?.slice(0, 50) ?? [],
     },
+    p_unrank_ids: args.unrankIds ?? [],
   })
   if (error) throw error
   return typeof data === 'number' ? data : Number(data ?? 0)
+}
+
+/**
+ * Holding-pen rows the import promoted to ranked (they appear in the applied
+ * payload but were unranked before). An undo must push exactly these back to
+ * the pen — a replace-mode undo that only re-inserts prior ranked ids would
+ * delete them outright, since the (user_id, coaster_id) row IS the pen row.
+ */
+export function computePromotedIds(priorRides: UserRide[], appliedIds: string[]): string[] {
+  const applied = new Set(appliedIds)
+  return priorRides
+    .filter((r) => r.rank === null && applied.has(r.coaster_id))
+    .map((r) => r.coaster_id)
 }
 
 // Client-side lifecycle events ('parsed' | 'undo' | 'failed'). The 'applied'

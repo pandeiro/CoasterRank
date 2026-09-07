@@ -109,17 +109,27 @@ revoke execute on function public.import_stat_names(jsonb) from public, anon;
 -- ── 4. apply_imported_rides ────────────────────────────────────────────────
 -- p_rides: ordered JSON array of coaster uuids = the user's COMPLETE final
 -- ranked list (existing ranked rows included — the client owns merge order).
--- Ranks are rewritten 1..n from array position, so the ladder stays gapless.
+-- Ranks are rewritten 1..n from array position (row_number over the
+-- deduped order), so the ladder stays gapless even when the payload
+-- contains duplicate ids.
 --
 -- p_replace: replace mode first clears every RANKED row (rows with rank =
 -- null, the "added but not ranked" holding pen, are preserved); append mode
 -- requires the payload to already cover every existing ranked row and refuses
 -- otherwise, so a stale client can never silently drop part of a ladder.
+--
+-- p_unrank_ids: coaster uuids to force back into the unranked holding pen
+-- (rank = null, ridden = true). Runs AFTER the ranked upsert so the unrank
+-- wins. This is the undo contract: an import promotes holding-pen rows it
+-- contains (the (user_id, coaster_id) row IS the pen row), so restoring the
+-- pre-import state needs those ids re-unranked — a replace-mode undo that
+-- only re-inserted prior ranked ids would delete promoted rows outright.
 create or replace function public.apply_imported_rides(
   p_rides jsonb,
   p_replace boolean default false,
   p_source text default 'csv',
-  p_stats jsonb default '{}'::jsonb
+  p_stats jsonb default '{}'::jsonb,
+  p_unrank_ids jsonb default '[]'::jsonb
 )
 returns integer
 language plpgsql
@@ -152,13 +162,21 @@ begin
     raise exception 'Import contains no rows';
   end if;
 
-  -- Duplicate ids keep their FIRST occurrence (earlier = better rank). The
-  -- explicit ::uuid cast below also runs inside this transaction, so a
-  -- malformed id aborts before any write.
+  if jsonb_typeof(p_unrank_ids) is distinct from 'array' then
+    raise exception 'p_unrank_ids must be a JSON array of coaster ids';
+  end if;
+  if jsonb_array_length(p_unrank_ids) > 5000 then
+    raise exception 'Unrank list too large (max 5000 rows)';
+  end if;
+
+  -- Duplicate ids keep their FIRST occurrence (earlier = better rank); the
+  -- row_number() renumber below closes any gaps the dedupe leaves. The
+  -- explicit ::uuid cast also runs inside this transaction, so a malformed
+  -- id aborts before any write.
   create temp table tmp_import_rides on commit drop as
     select distinct on (coaster_id)
-           ord::integer as rank,
-           (elem #>> '{}')::uuid as coaster_id
+           (elem #>> '{}')::uuid as coaster_id,
+           ord::integer as ord
     from jsonb_array_elements(p_rides) with ordinality as t(elem, ord)
     order by coaster_id, ord;
 
@@ -169,6 +187,15 @@ begin
   where not exists (select 1 from coasters c where c.id = t.coaster_id);
   if v_missing > 0 then
     raise exception 'Import references % unknown coaster(s) — refresh and retry', v_missing;
+  end if;
+
+  select count(*) into v_missing
+  from jsonb_array_elements(p_unrank_ids) as x
+  where not exists (
+    select 1 from coasters c where c.id = (x #>> '{}')::uuid
+  );
+  if v_missing > 0 then
+    raise exception 'Unrank list references % unknown coaster(s)', v_missing;
   end if;
 
   if p_replace then
@@ -185,7 +212,7 @@ begin
   end if;
 
   insert into user_rides (user_id, coaster_id, rank, ridden)
-  select v_user, t.coaster_id, t.rank, true
+  select v_user, t.coaster_id, (row_number() over (order by t.ord))::integer, true
   from tmp_import_rides t
   on conflict (user_id, coaster_id) do update
     set rank = excluded.rank,
@@ -193,10 +220,28 @@ begin
 
   get diagnostics v_count = row_count;
 
+  -- Force the given ids back into the holding pen (undo of promoted rows).
+  -- After the ranked upsert so the unrank wins on conflicts.
+  if jsonb_array_length(p_unrank_ids) > 0 then
+    insert into user_rides (user_id, coaster_id, rank, ridden)
+    select v_user, (elem #>> '{}')::uuid, null, true
+    from jsonb_array_elements(p_unrank_ids) as elem
+    on conflict (user_id, coaster_id) do update
+      set rank = null,
+          ridden = true;
+  end if;
+
   update profiles
   set imported_at = now(),
       import_source = p_source
   where id = v_user;
+
+  -- Gate for the Telegram trigger: only RPC-generated events may notify.
+  -- The import_events insert-own RLS policy also lets clients log
+  -- parsed/undo/failed directly — without this marker, a scripted loop of
+  -- direct 'applied' inserts (no side effects, no cap) would spam the
+  -- channel. Transaction-local, so the trigger (same transaction) sees it.
+  perform set_config('app.import_rpc', 'true', true);
 
   insert into import_events (
     user_id, kind, source, rows_total, auto_matched, candidate_picked,
@@ -221,8 +266,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.apply_imported_rides(jsonb, boolean, text, jsonb) from public, anon;
-grant execute on function public.apply_imported_rides(jsonb, boolean, text, jsonb) to authenticated;
+revoke execute on function public.apply_imported_rides(jsonb, boolean, text, jsonb, jsonb) from public, anon;
+grant execute on function public.apply_imported_rides(jsonb, boolean, text, jsonb, jsonb) to authenticated;
 
 -- ── 5. Telegram notification (per-applied-import, kill-switched) ───────────
 insert into public.app_settings (key, enabled, label) values
@@ -242,6 +287,14 @@ begin
   -- Only committed imports notify; parsed/undo/failed stay in the table for
   -- psql analysis without ringing the channel.
   if new.kind <> 'applied' then
+    return new;
+  end if;
+
+  -- Only RPC-generated 'applied' events notify (see apply_imported_rides).
+  -- The insert-own RLS policy lets any client log 'applied' rows directly —
+  -- zero-side-effect and unthrottled — so without this gate a scripted loop
+  -- could spam the channel until the kill-switch is flipped.
+  if coalesce(current_setting('app.import_rpc', true), '') <> 'true' then
     return new;
   end if;
 

@@ -14,11 +14,13 @@ import type { UserRide } from '../../lib/rides'
 import {
   applyImport,
   catalogFromBoard,
+  computePromotedIds,
   logImportEvent,
   type ImportSource,
   type ImportStats,
 } from '../../lib/import/apply'
 import {
+  MAX_PASTE_CHARS,
   ParseError,
   parseDelimited,
   readFileAsText,
@@ -41,6 +43,10 @@ export type AppliedImport = {
   source: ImportSource
   /** Ranked list before the import — the undo payload. */
   priorRankedIds: string[]
+  /** Ids the import ranked (the applied payload). */
+  appliedIds: string[]
+  /** Holding-pen rows the import promoted — undo must re-unrank these. */
+  unrankIds: string[]
 }
 
 /**
@@ -66,13 +72,25 @@ const REVIEW_PAGE_SIZE = 100
 /** How long the page-level undo toast stays up after an import. */
 export const IMPORT_UNDO_MS = 10_000
 
-function statusFor(result: MatchResult | null, existingIds: Set<string>): RowStatus {
+function statusFor(result: MatchResult | null, rankedIds: Set<string>): RowStatus {
   if (!result) return 'missing'
   if (result.status === 'auto') {
-    return existingIds.has(result.match!.entry.id) ? 'already' : 'auto'
+    // Only RANKED prior rows are informational duplicates; a match to an
+    // unranked holding-pen row is a normal add (the RPC upsert promotes the
+    // pen row — same (user_id, coaster_id) row, no duplicate possible).
+    return rankedIds.has(result.match!.entry.id) ? 'already' : 'auto'
   }
   if (result.status === 'candidate') return 'needs-pick'
   return 'missing'
+}
+
+// Rows the review never resolved and that aren't already ranked — the raw
+// strings that feed new coaster_aliases rows. Rows with a manual pick (even
+// skipped ones) matched fine and are excluded; so are 'already' rows.
+function collectUnmatchedNames(rows: RowState[]): string[] {
+  return rows
+    .filter((r) => r.status !== 'auto' && r.status !== 'already' && !r.selectedId)
+    .map((r) => r.raw.name)
 }
 
 export default function ImportListModal({ isOpen, onClose, rides, onApplied, onError }: Props) {
@@ -98,11 +116,13 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
   const openedAt = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const existingIds = useMemo(() => new Set(rides.map((r) => r.coaster_id)), [rides])
   const priorRankedIds = useMemo(
     () => rides.filter((r) => r.rank !== null).map((r) => r.coaster_id),
     [rides],
   )
+  // Only RANKED rows block import rows (see statusFor); unranked pen rows are
+  // promotable adds, and in replace mode even ranked rows are re-includable.
+  const rankedIds = useMemo(() => new Set(priorRankedIds), [priorRankedIds])
 
   // Fresh state per open — a re-open after close (or error) starts clean.
   useEffect(() => {
@@ -148,19 +168,30 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
     return { auto, already, needsPick, missing, resolvedPicks }
   }, [rows])
 
-  const acceptedCount = useMemo(
-    () => rows.filter((r) => r.include && r.selectedId && r.status !== 'already').length,
-    [rows],
+  const acceptedRows = useMemo(
+    () =>
+      rows.filter(
+        (r) => r.selectedId != null && r.include && (mode === 'replace' || r.status !== 'already'),
+      ),
+    [rows, mode],
   )
+  const acceptedCount = acceptedRows.length
 
   const startReview = useCallback(
     (parsed: ParsedSheet, importSource: ImportSource, bytes: number | null) => {
       const boardRows = board.data ?? []
-      if (boardRows.length === 0) return
+      if (boardRows.length === 0) {
+        // useAllCoasters can fail outright (worker outage + Supabase down);
+        // a silent early-return here would end the spinner with no feedback.
+        setParseError(
+          'The coaster catalog couldn\u2019t be loaded — check your connection and try again.',
+        )
+        return
+      }
       const results = matchRows(catalogFromBoard(boardRows), parsed.rows)
       const nextRows: RowState[] = parsed.rows.map((raw, i) => {
         const result = results[i] ?? null
-        const status = statusFor(result, existingIds)
+        const status = statusFor(result, rankedIds)
         return {
           raw,
           result,
@@ -176,10 +207,14 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       setStep('review')
       void logImportEvent('parsed', importSource, {
         rowsTotal: parsed.rows.length,
-        stats: { ...summarize(nextRows), file_bytes: bytes ?? undefined },
+        stats: {
+          ...summarize(nextRows),
+          unmatched_names: collectUnmatchedNames(nextRows),
+          file_bytes: bytes ?? undefined,
+        },
       })
     },
-    [board.data, existingIds],
+    [board.data, rankedIds],
   )
 
   const handleFile = useCallback(
@@ -206,6 +241,11 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
     setParsing(true)
     setParseError(null)
     try {
+      if (pasteText.length > MAX_PASTE_CHARS) {
+        throw new ParseError(
+          `That\u2019s too much text (${(pasteText.length / 1024 / 1024).toFixed(1)} MB — max 1 MB). Import the first part as a file instead.`,
+        )
+      }
       const parsed = parseDelimited(pasteText, 'The pasted text')
       startReview(parsed, 'paste', null)
     } catch (e) {
@@ -223,7 +263,7 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
 
   const apply = useCallback(async () => {
     if (!source || applying) return
-    const accepted = rows.filter((r) => r.include && r.selectedId && r.status !== 'already')
+    const accepted = acceptedRows
     if (accepted.length === 0) return
     const priorSet = new Set(priorRankedIds)
     // Append-mode safety: a picked coaster that is somehow already ranked
@@ -239,15 +279,22 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       const stats: ImportStats = {
         ...summarize(rows),
         not_found: counts.needsPick + counts.missing,
-        unmatched_names: rows
-          .filter((r) => r.status !== 'auto' && (!r.include || !r.selectedId))
-          .map((r) => r.raw.name),
+        unmatched_names: collectUnmatchedNames(rows),
         duration_ms: openedAt.current ? Date.now() - openedAt.current : undefined,
         file_bytes: fileBytes ?? undefined,
       }
       const count = await applyImport({ orderedIds, replace: mode === 'replace', source, stats })
       await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
-      onApplied({ appliedCount: count, mode, source, priorRankedIds })
+      onApplied({
+        appliedCount: count,
+        mode,
+        source,
+        priorRankedIds,
+        appliedIds: orderedAccepted,
+        // Holding-pen rows the import promoted — undo pushes these back to
+        // the pen, otherwise a replace-mode undo would delete them outright.
+        unrankIds: computePromotedIds(rides, orderedAccepted),
+      })
       onClose()
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Import failed. Please try again.'
@@ -257,7 +304,9 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       setApplying(false)
     }
   }, [
+    acceptedRows,
     applying,
+    rides,
     counts.missing,
     counts.needsPick,
     fileBytes,
@@ -289,6 +338,8 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
           parsing={parsing}
           parseError={parseError}
           boardPending={board.isPending}
+          boardError={board.isError}
+          onRetryBoard={() => void board.refetch()}
           pasteText={pasteText}
           onPasteText={setPasteText}
           onPaste={handlePaste}
@@ -322,7 +373,8 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
                 index={i}
                 boardRows={board.data ?? []}
                 parkMap={parkMap}
-                existingIds={existingIds}
+                rankedIds={rankedIds}
+                replaceMode={mode === 'replace'}
                 onChange={(patch) => setRow(i, patch)}
               />
             ))}
@@ -378,6 +430,13 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
                       onChange={() => {
                         setMode('append')
                         setConfirmReplace(false)
+                        // 'already' rows only participate via the replace
+                        // toggle; back to excluded defaults in append.
+                        setRows((prev) =>
+                          prev.map((row) =>
+                            row.status === 'already' ? { ...row, include: false } : row,
+                          ),
+                        )
                       }}
                     />
                     Add after my list ({priorRankedIds.length} ranked)
@@ -387,7 +446,18 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
                       type="radio"
                       name="import-mode"
                       checked={mode === 'replace'}
-                      onChange={() => setMode('replace')}
+                      onChange={() => {
+                        setMode('replace')
+                        // Replace is destructive: rows the file shares with
+                        // the current ranked list default to KEPT at their
+                        // imported position (per-row toggle below), so an
+                        // import can never silently drop them.
+                        setRows((prev) =>
+                          prev.map((row) =>
+                            row.status === 'already' ? { ...row, include: true } : row,
+                          ),
+                        )
+                      }}
                     />
                     Replace my list
                   </label>
@@ -452,6 +522,8 @@ function ChooseStep({
   parsing,
   parseError,
   boardPending,
+  boardError,
+  onRetryBoard,
   pasteText,
   onPasteText,
   onPaste,
@@ -461,6 +533,8 @@ function ChooseStep({
   parsing: boolean
   parseError: string | null
   boardPending: boolean
+  boardError: boolean
+  onRetryBoard: () => void
   pasteText: string
   onPasteText: (value: string) => void
   onPaste: () => void
@@ -473,6 +547,18 @@ function ChooseStep({
   return (
     <div>
       {boardPending && <p className="mb-3 text-sm text-muted">Loading the coaster catalog…</p>}
+      {boardError && !boardPending && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger-text">
+          <span>Couldn&apos;t load the coaster catalog — imports need it for matching.</span>
+          <button
+            type="button"
+            onClick={onRetryBoard}
+            className="shrink-0 font-medium underline underline-offset-4"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <div
         onDragOver={(e) => {
           e.preventDefault()
@@ -554,14 +640,18 @@ function ReviewRow({
   index,
   boardRows,
   parkMap,
-  existingIds,
+  rankedIds,
+  replaceMode,
   onChange,
 }: {
   row: RowState
   index: number
   boardRows: RankingRow[]
   parkMap: ReturnType<typeof buildParkMap>
-  existingIds: Set<string>
+  /** Ranked coasters — excluded from pickers in append mode (they'd be
+   *  silently dropped there); re-includable in replace mode. */
+  rankedIds: Set<string>
+  replaceMode: boolean
   onChange: (patch: Partial<RowState>) => void
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -575,14 +665,15 @@ function ReviewRow({
 
   const searchResults = useMemo(() => {
     if (!searchOpen || query.trim().length < 2) return []
-    return filterAndRankCoasters(boardRows, query, parkMap, existingIds).slice(0, 5)
-  }, [searchOpen, query, boardRows, parkMap, existingIds])
+    const exclude = replaceMode ? new Set<string>() : rankedIds
+    return filterAndRankCoasters(boardRows, query, parkMap, exclude).slice(0, 5)
+  }, [searchOpen, query, boardRows, parkMap, rankedIds, replaceMode])
 
   const badge =
     row.status === 'auto' ? (
       <Badge tone="success">matched</Badge>
     ) : row.status === 'already' ? (
-      <Badge tone="neutral">already ranked</Badge>
+      <Badge tone="neutral">{replaceMode ? 'already in list' : 'already ranked'}</Badge>
     ) : row.status === 'needs-pick' ? (
       <Badge tone="warning">pick one</Badge>
     ) : row.status === 'missing' ? (
@@ -599,6 +690,11 @@ function ReviewRow({
     },
     [onChange],
   )
+
+  const chipCandidates = useMemo(() => {
+    const candidates = row.result?.candidates.slice(0, 4) ?? []
+    return candidates.filter((candidate) => replaceMode || !rankedIds.has(candidate.entry.id))
+  }, [row.result, replaceMode, rankedIds])
 
   return (
     <li className="rounded-lg border border-line bg-surface-bright px-3 py-2">
@@ -636,12 +732,14 @@ function ReviewRow({
       )}
 
       {/* Candidate chips are the primary resolution path — visible without
-          opening the picker (search is for misses and overrides). */}
+          opening the picker (search is for misses and overrides). Chips for
+          coasters that are already ranked are hidden in append mode (the
+          pick would be silently dropped there) but offered in replace mode. */}
       {!searchOpen &&
         (row.status === 'needs-pick' || row.status === 'picked' || row.status === 'resolved') &&
-        (row.result?.candidates.length ?? 0) > 0 && (
+        chipCandidates.length > 0 && (
           <div className="ml-8 mt-1.5 flex flex-wrap gap-1.5">
-            {row.result!.candidates.slice(0, 4).map((candidate) => (
+            {chipCandidates.map((candidate) => (
               <button
                 key={candidate.entry.id}
                 type="button"
@@ -670,7 +768,7 @@ function ReviewRow({
           </div>
           {(row.result?.candidates.length ?? 0) > 0 && !query && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {row.result!.candidates.slice(0, 4).map((candidate) => (
+              {chipCandidates.map((candidate) => (
                 <button
                   key={candidate.entry.id}
                   type="button"
@@ -702,23 +800,31 @@ function ReviewRow({
         </div>
       )}
 
-      {row.status !== 'auto' && row.status !== 'already' && row.selectedId && (
-        <div className="ml-8 mt-1">
-          <label className="flex items-center gap-1.5 text-xs text-ink">
-            <input
-              type="checkbox"
-              checked={row.include}
-              onChange={(e) =>
-                onChange({
-                  include: e.target.checked,
-                  status: e.target.checked ? 'picked' : 'resolved',
-                })
-              }
-            />
-            include in import
-          </label>
-        </div>
-      )}
+      {row.selectedId != null &&
+        row.status !== 'auto' &&
+        (row.status !== 'already' || replaceMode) && (
+          <div className="ml-8 mt-1">
+            <label className="flex items-center gap-1.5 text-xs text-ink">
+              <input
+                type="checkbox"
+                checked={row.include}
+                onChange={(e) =>
+                  onChange(
+                    row.status === 'already'
+                      ? // 'already' rows keep their status — the toggle only
+                        // matters in replace mode ("keep in my list").
+                        { include: e.target.checked }
+                      : {
+                          include: e.target.checked,
+                          status: e.target.checked ? 'picked' : 'resolved',
+                        },
+                  )
+                }
+              />
+              {row.status === 'already' ? 'keep in my list' : 'include in import'}
+            </label>
+          </div>
+        )}
     </li>
   )
 }

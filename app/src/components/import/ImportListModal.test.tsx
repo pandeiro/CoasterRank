@@ -216,6 +216,81 @@ describe('ImportListModal — review step', () => {
     expect(applyImport).not.toHaveBeenCalled()
   })
 
+  it('replace mode keeps already-ranked rows at their imported position', async () => {
+    // Regression: the apply set used to exclude 'already' rows unconditionally,
+    // so replace mode deleted them from the account (RPC clears ranked rows
+    // first, payload was missing them).
+    const user = userEvent.setup()
+    renderModal({
+      rides: [makeUserRide({ coaster_id: 'fury', rank: 1 })],
+    })
+    await pasteAndReview(user, 'Fury 325\tCarowinds\nPantherian')
+    expect(screen.getByRole('button', { name: /^Import 1 coasters$/i })).toBeEnabled()
+    await user.click(screen.getByRole('radio', { name: /replace my list/i }))
+    // The already-ranked row becomes keepable and defaults to kept.
+    expect(screen.getByText('already in list')).toBeInTheDocument()
+    const keep = screen.getByRole('checkbox', { name: /keep in my list/i })
+    expect(keep).toBeChecked()
+    // Still keepable-but-off: user can exclude it from the replaced list.
+    await user.click(keep)
+    expect(screen.getByRole('button', { name: /review replace…/i })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: /review replace…/i }))
+    await user.click(screen.getByRole('button', { name: /replace list with 1 coasters/i }))
+    await waitFor(() => {
+      expect(applyImport).toHaveBeenCalledWith(
+        expect.objectContaining({ orderedIds: ['pantherian'], replace: true }),
+      )
+    })
+  })
+
+  it('replace mode includes kept already-ranked rows at imported position', async () => {
+    const user = userEvent.setup()
+    renderModal({
+      rides: [makeUserRide({ coaster_id: 'fury', rank: 1 })],
+    })
+    await pasteAndReview(user, 'Fury 325\tCarowinds\nPantherian')
+    await user.click(screen.getByRole('radio', { name: /replace my list/i }))
+    await user.click(screen.getByRole('button', { name: /review replace…/i }))
+    await user.click(screen.getByRole('button', { name: /replace list with 2 coasters/i }))
+    await waitFor(() => {
+      expect(applyImport).toHaveBeenCalledWith(
+        expect.objectContaining({ orderedIds: ['fury', 'pantherian'], replace: true }),
+      )
+    })
+  })
+
+  it('append mode stays excluded for already-ranked rows even after a replace detour', async () => {
+    const user = userEvent.setup()
+    renderModal({
+      rides: [makeUserRide({ coaster_id: 'fury', rank: 1 })],
+    })
+    await pasteAndReview(user, 'Fury 325\tCarowinds\nPantherian')
+    await user.click(screen.getByRole('radio', { name: /replace my list/i }))
+    await user.click(screen.getByRole('radio', { name: /add after my list/i }))
+    expect(screen.getByRole('button', { name: /^Import 1 coasters$/i })).toBeEnabled()
+    expect(screen.queryByRole('checkbox', { name: /keep in my list/i })).not.toBeInTheDocument()
+  })
+
+  it('reports promoted holding-pen rows for undo', async () => {
+    const user = userEvent.setup()
+    const { onApplied } = renderModal({
+      rides: [makeUserRide({ coaster_id: 'fury', rank: null })],
+    })
+    await pasteAndReview(user, 'Fury 325')
+    // A pen-row match is a normal add (the RPC upsert promotes the same row).
+    expect(screen.getByText('matched', { selector: 'span' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Import 1 coasters$/i }))
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledWith(
+        expect.objectContaining({
+          priorRankedIds: [],
+          appliedIds: ['fury'],
+          unrankIds: ['fury'],
+        }),
+      )
+    })
+  })
+
   it('appends after the existing ranked list in file order', async () => {
     const user = userEvent.setup()
     const { onApplied } = renderModal({
@@ -312,6 +387,46 @@ describe('ImportListModal — review step', () => {
         expect.objectContaining({ rowsTotal: 1 }),
       )
     })
+  })
+
+  it('unmatched-names telemetry excludes already-ranked rows', async () => {
+    const user = userEvent.setup()
+    renderModal({
+      rides: [makeUserRide({ coaster_id: 'fury', rank: 1 })],
+    })
+    await pasteAndReview(user, 'Fury 325\nMadeup Coaster XYZ')
+    await waitFor(() => {
+      expect(logImportEvent).toHaveBeenCalledWith(
+        'parsed',
+        'paste',
+        expect.objectContaining({
+          stats: expect.objectContaining({ unmatched_names: ['Madeup Coaster XYZ'] }),
+        }),
+      )
+    })
+  })
+
+  it('surfaces catalog load failures instead of silently doing nothing', async () => {
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isLoading: false,
+      isError: true,
+    } as never)
+    const user = userEvent.setup()
+    renderModal()
+    await pasteText(user, 'Fury 325')
+    expect(await screen.findByText(/coaster catalog couldn.t be loaded/i)).toBeInTheDocument()
+    expect(screen.getByText(/imports need it for matching/i)).toBeInTheDocument()
+    expect(applyImport).not.toHaveBeenCalled()
+  })
+
+  it('caps absurd pastes with guidance', async () => {
+    const user = userEvent.setup()
+    renderModal()
+    await pasteText(user, 'x'.repeat(1_100_000))
+    expect(await screen.findByText(/too much text/i)).toBeInTheDocument()
+    expect(screen.getByText('Import your list')).toBeInTheDocument()
   })
 })
 

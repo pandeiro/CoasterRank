@@ -11,6 +11,11 @@
 // disambiguators like "The Bat" and a hypothetical "Bat" both normalize to
 // "bat", which correctly turns them into competing candidates instead of
 // silently hiding one behind article pedantry.
+//
+// Known limitation (accepted): the alphabet filter is Latin-only, so names in
+// non-Latin scripts (Cyrillic/CJK/Greek) normalize to '' and match as 'none'.
+// The catalog is Latin-script today; revisit with script-aware normalization
+// (e.g. NFKD + keep \p{L}) if/when the catalog grows non-Latin entries.
 
 export function normalizeName(raw: string): string {
   return (
