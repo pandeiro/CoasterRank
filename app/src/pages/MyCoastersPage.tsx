@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Upload } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
+import ImportListModal, {
+  IMPORT_UNDO_MS,
+  type AppliedImport,
+} from '../components/import/ImportListModal'
 import RankedCoasterList, { REMOVE_UNDO_MS, type PendingAdd } from '../components/RankedCoasterList'
 import ShareListCard from '../components/ShareListCard'
 import Toast from '../components/Toast'
 import WelcomeModal from '../components/WelcomeModal'
 import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
-import { MessageState, PageHeader } from '../components/ui'
+import { Button, MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import { applyImport, logImportEvent } from '../lib/import/apply'
 import { fetchProfile } from '../lib/profile'
 import { startReplay, stopReplay } from '../lib/sentry'
 import { useMyRides } from '../lib/rides'
@@ -38,6 +44,7 @@ const SEARCH_STUCK_ROOT_MARGIN = '-64px 0px 0px 0px'
 export default function MyCoastersPage() {
   const { user, isConfirmed } = useAuth()
   const { data: rides, isPending, isError } = useMyRides()
+  const qc = useQueryClient()
 
   // Shared ['profile', userId] cache (same key/shape as ProfilePage/Layout).
   const { data: profile } = useQuery({
@@ -50,6 +57,7 @@ export default function MyCoastersPage() {
   const toastSeq = useRef(0)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   // Desktop shortcut from the pending-add banner: one-shot insertion request
   // at either end of the list, so a long list doesn't force a scroll to reach
   // the top/bottom dividers. The list consumes it and clears pendingAdd.
@@ -172,6 +180,33 @@ export default function MyCoastersPage() {
 
   const handleError = useCallback((message: string) => notify(message, 'error'), [notify])
 
+  // Bulk-apply undo: restores the pre-import ranked list in one RPC call
+  // (replace mode deletes only ranked rows, so nothing else is touched).
+  const handleImportApplied = useCallback(
+    (result: AppliedImport) => {
+      const undo = async () => {
+        try {
+          await applyImport({
+            orderedIds: result.priorRankedIds,
+            replace: true,
+            source: result.source,
+            stats: {},
+          })
+          void logImportEvent('undo', result.source, { rowsTotal: result.priorRankedIds.length })
+          void qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+          notify('Import undone — your previous list is back')
+        } catch {
+          notify("Couldn't undo the import. Reload the page and remove rows manually.", 'error')
+        }
+      }
+      notify(`Imported ${result.appliedCount} coasters`, 'info', {
+        action: { label: 'Undo', onClick: () => void undo() },
+        durationMs: IMPORT_UNDO_MS,
+      })
+    },
+    [notify, qc, user?.id],
+  )
+
   if (!isConfirmed) {
     return (
       <div>
@@ -192,6 +227,12 @@ export default function MyCoastersPage() {
             ? `${rankedCount} coaster${rankedCount === 1 ? '' : 's'} ranked`
             : 'Search for coasters below to start building your list.'
         }
+        action={
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-3.5 w-3.5" />
+            Import list
+          </Button>
+        }
       />
 
       {showWelcome && user?.id && (
@@ -200,8 +241,20 @@ export default function MyCoastersPage() {
           userId={user.id}
           avatarUrl={profile?.avatar_url}
           onClose={dismissWelcome}
+          onImportList={() => {
+            dismissWelcome()
+            setImportOpen(true)
+          }}
         />
       )}
+
+      <ImportListModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        rides={rides ?? []}
+        onApplied={handleImportApplied}
+        onError={handleError}
+      />
 
       {showShareCta && (
         <div className="mt-6">

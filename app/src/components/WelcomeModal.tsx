@@ -29,11 +29,14 @@ export default function WelcomeModal({
   userId,
   avatarUrl,
   onClose,
+  onImportList,
 }: {
   username: string | null
   userId: string
   avatarUrl: string | null | undefined
   onClose: () => void
+  /** Optional: offered to users who already have a ranked list elsewhere. */
+  onImportList?: () => void
 }) {
   const example = useExampleTopFive()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -135,14 +138,25 @@ export default function WelcomeModal({
         <Button type="button" variant="coral" size="lg" onClick={onClose} className="flex-1">
           Start ranking
         </Button>
-        <Link
-          to="/"
-          onClick={onClose}
-          className="text-center text-sm font-medium text-muted underline-offset-4 hover:text-ink hover:underline"
-        >
-          See the live board first
-        </Link>
+        {onImportList && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={onImportList}
+            className="flex-1"
+          >
+            Import an existing list
+          </Button>
+        )}
       </div>
+      <Link
+        to="/"
+        onClick={onClose}
+        className="mt-2 block text-center text-sm font-medium text-muted underline-offset-4 hover:text-ink hover:underline"
+      >
+        See the live board first
+      </Link>
     </Modal>
   )
 }
