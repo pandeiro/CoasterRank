@@ -15,6 +15,8 @@ docs/PLAN.md         # authoritative project plan & decision log
 docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
   src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
+packages/match/      # pure TS coaster-name matcher for spreadsheet import (own package.json;
+  src/match.ts       #   exact/alias/park/fuzzy tiers + golden fixtures from the real catalog)
 supabase/functions/recompute-rankings/  # Deno Edge Function: pairwise RPCs -> MM -> upsert coaster_ratings
 data/                # reference datasets (ext/ = committed CC0 coaster_db.csv + provenance HTML)
 scripts/             # ops & data tooling package — own package.json (tsx, pg, csv-parse, dotenv)
@@ -30,8 +32,8 @@ A minimal root `package.json` (no workspaces) delegates to the sub-packages:
 ```bash
 npm run dev          # = app dev server
 npm run gates        # app quality gates: typecheck + lint + test:run + format:check
-npm run gates:all    # gates + scripts typecheck + bt typecheck/test (run before touching scripts/ or packages/bt/)
-npm run install:all  # install all three sub-packages
+npm run gates:all    # gates + scripts typecheck + bt + match typecheck/test (run before touching scripts/ or packages/)
+npm run install:all  # install all four sub-packages
 ```
 
 Flag-bearing script invocations (e.g. `testride:seed -- --users 20`) do **not** pass flags
@@ -98,6 +100,17 @@ npm run typecheck                 # tsc --noEmit
 npm test                          # vitest run (single pass)
 ```
 
+The import matcher package (`packages/match`) follows the same pattern. The app consumes it
+via a `file:../packages/match` dependency (npm symlinks it; Vite bundles the TS source), so
+`npm --prefix app install` must run after changes to its public API:
+
+```bash
+cd packages/match
+npm install                       # one-time (use --legacy-peer-deps if the lockfile is missing)
+npm run typecheck                 # tsc --noEmit
+npm test                          # vitest run — includes the golden fixture suite
+```
+
 The importer is idempotent: re-runs upsert by `(park_id, slug)` and only refresh rows whose
 `source = 'open-csv'`, so admin-created/community rows are never clobbered. It maps `Status`→
 `coaster_status` and `Type_Main`→`coaster_material`; 250 coasters with source `Location = "Other"`
@@ -118,6 +131,10 @@ All must pass. CI runs the same set on every PR. If you changed `scripts/`, also
 If you changed `packages/bt/` or the Edge Function, also run
 `cd packages/bt && npm run typecheck && npm test` (Edge Function imports `packages/bt/src/mm.ts`
 via relative path; Deno type-checks it at deploy time).
+If you changed `packages/match/` or the import UI, also run
+`cd packages/match && npm run typecheck && npm test` — the golden suite asserts exact matching
+outcomes against the frozen real-catalog fixture; recalibrate expectations deliberately, never
+by relaxing them to make the suite pass.
 
 ## Environment
 

@@ -64,6 +64,7 @@ graph TD
 app/            # Vite + React + TypeScript SPA (the whole frontend)
 supabase/       # CLI config, SQL migrations, Edge Functions (Deno)
 packages/bt/    # pure-TS Bradley-Terry MM fitting — own package.json
+packages/match/ # pure-TS coaster-name matcher (spreadsheet import) — own package.json
 scripts/        # ops & data tooling — own package.json (coaster import, testride CLI, oneoff/)
 data/           # reference datasets (ext/ = CC0 coaster_db.csv + provenance HTML)
 docs/           # PLAN.md (plan & decisions), RUNBOOKS.md (ops), TEST_DATA.md (testride)
@@ -93,8 +94,9 @@ A minimal root `package.json` (no workspaces) provides delegation shortcuts — 
 Optional packages (only needed for their specific tasks):
 
 ```bash
-cd scripts && npm install      # coaster catalog import (npm run import-coasters)
-cd packages/bt && npm install  # Bradley-Terry algorithm work + tests
+cd scripts && npm install        # coaster catalog import (npm run import-coasters)
+cd packages/bt && npm install    # Bradley-Terry algorithm work + tests
+cd packages/match && npm install # import-matcher algorithm work + tests
 ```
 
 ## Docs
