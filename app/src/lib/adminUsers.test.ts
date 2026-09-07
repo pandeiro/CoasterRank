@@ -20,6 +20,7 @@ function row(overrides: Partial<AdminUserRow>): AdminUserRow {
     isAdmin: false,
     publicList: false,
     confirmed: true,
+    invitedAt: null,
     synthetic: false,
     createdAt: null,
     ridesTotal: 0,

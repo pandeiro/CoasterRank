@@ -5,6 +5,9 @@ Supabase project with `npm run sync-email-templates` (from `scripts/`). The dash
 (Authentication → Emails) edits the same underlying config — this directory exists so
 changes go through PR review and git history instead of click-ops.
 
+**Want to see what they look like?** Committed screenshots (desktop + mobile, with and
+without remote images) live in [`docs/previews/email-templates/`](../../docs/previews/email-templates/README.md).
+
 ## Files
 
 | File                 | GoTrue config fields                                                       | Triggered by                              |

@@ -16,6 +16,7 @@ npx tsx src/oneoff/<name>.ts
 | `backfill-park-locations.ts`             | One-time park lat/lng/city backfill                                               |
 | `fix-missing-regions-and-non-english.ts` | One-time park region / non-English name fixes                                     |
 | `render-og-previews.ts`                  | Render mock rider OG cards → `docs/social-preview/rider-og-previews/` (Phase 9.4) |
+| `render-email-previews.ts`               | Render auth email templates (mocked Go vars, images on/off) → `docs/previews/email-templates/` |
 | `llm/`                                   | LM Studio / OpenAI client + prompts + task functions used by the above            |
 | `db/`                                    | Shared Supabase admin client used by the above                                    |
 

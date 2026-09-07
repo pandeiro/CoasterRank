@@ -16,6 +16,8 @@ export interface AdminUserRow {
   isAdmin: boolean
   publicList: boolean
   confirmed: boolean
+  /** GoTrue invite timestamp — set by admin invites, null for self-signups. */
+  invitedAt: string | null
   synthetic: boolean
   createdAt: string | null
   ridesTotal: number

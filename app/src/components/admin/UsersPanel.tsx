@@ -267,6 +267,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
                       <span className="truncate text-sm font-medium text-ink">{userLabel(u)}</span>
                       {u.synthetic && <Badge tone="coral">Test</Badge>}
                       {u.isAdmin && <Badge tone="accent">Admin</Badge>}
+                      {u.invitedAt && <Badge tone="neutral">Invited</Badge>}
                       {!u.confirmed && <Badge tone="warning">Unconfirmed</Badge>}
                     </div>
                     <div className="truncate text-xs text-muted">
@@ -325,6 +326,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
                   <span className="truncate font-semibold text-ink">{userLabel(detail)}</span>
                   {detail.synthetic && <Badge tone="coral">Test</Badge>}
                   {detail.isAdmin && <Badge tone="accent">Admin</Badge>}
+                  {detail.invitedAt && <Badge tone="neutral">Invited</Badge>}
                   {!detail.confirmed && <Badge tone="warning">Unconfirmed</Badge>}
                 </div>
                 <div className="truncate text-sm text-muted">{detail.email || 'no email'}</div>
@@ -334,6 +336,8 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-surface p-4 text-sm">
               <dt className="text-muted">Joined</dt>
               <dd className="text-ink">{formatDate(detail.createdAt)}</dd>
+              <dt className="text-muted">Invited</dt>
+              <dd className="text-ink">{detail.invitedAt ? formatDate(detail.invitedAt) : '—'}</dd>
               <dt className="text-muted">Email status</dt>
               <dd className="text-ink">{detail.confirmed ? 'Confirmed' : 'Unconfirmed'}</dd>
               <dt className="text-muted">Rides</dt>
