@@ -447,3 +447,63 @@ examples: `data/coverage/park-audit-2026-08-30.md`.
    or a crafted `decisions.json` item through the applier.
 3. Add former names as aliases, keep the current name on the row, and re-run
    `npm run coverage:doc`-style checks where applicable.
+
+## Import matching quality (spreadsheet import)
+
+The spreadsheet-import flow records every lifecycle step in `import_events`
+(`parsed` / `applied` / `undo` / `failed`) with aggregate match counts and up
+to 50 raw unmatched names. Use these to iterate on matching quality — the
+intended loop is: review unmatched names → add `coaster_aliases` rows (admin)
+→ the matcher's alias tier heals future imports.
+
+Auto-match rate over committed imports (exclude synthetic test users):
+
+```bash
+source .env && psql "$SUPABASE_DB_URL" -c "
+SELECT source,
+       count(*)                                   AS imports,
+       round(avg(auto_matched)::numeric, 1)       AS avg_auto,
+       round(avg(candidate_picked)::numeric, 1)   AS avg_picked,
+       round(avg(not_found)::numeric, 1)          AS avg_missing
+FROM import_events e
+JOIN auth.users u ON u.id = e.user_id
+WHERE e.kind = 'applied'
+  AND u.email NOT LIKE '%@test.coasterrank.dev'
+GROUP BY source ORDER BY imports DESC;"
+```
+
+Review friction — users who parsed a file but never applied (review screen is
+too demanding, or matching too weak):
+
+```bash
+source .env && psql "$SUPABASE_DB_URL" -c "
+SELECT count(*) FILTER (WHERE kind = 'parsed')  AS parsed,
+       count(*) FILTER (WHERE kind = 'applied') AS applied,
+       count(*) FILTER (WHERE kind = 'failed')  AS failed,
+       count(*) FILTER (WHERE kind = 'undo')    AS undone
+FROM import_events e
+JOIN auth.users u ON u.id = e.user_id
+WHERE u.email NOT LIKE '%@test.coasterrank.dev';"
+```
+
+The unmatched names that are worth turning into aliases (frequency-ordered):
+
+```bash
+source .env && psql "$SUPABASE_DB_URL" -c "
+SELECT name, count(*) AS times
+FROM import_events e,
+     jsonb_array_elements_text(e.unmatched_names) AS name
+JOIN auth.users u ON u.id = e.user_id
+WHERE e.kind = 'applied'
+  AND u.email NOT LIKE '%@test.coasterrank.dev'
+GROUP BY name ORDER BY times DESC, name LIMIT 50;"
+```
+
+Notes:
+- The per-import Telegram notification fires on `applied` only; mute it via
+  the `import_events` toggle in the admin panel (same kill-switch table as the
+  signup/submission/share triggers).
+- Golden matching fixtures live in `packages/match/fixtures/` (frozen real
+  catalog + expected outcomes). If prod matching changes materially (new
+  aliases, thresholds), recalibrate deliberately and re-freeze — never relax
+  expectations just to make CI pass.

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Meta-package: convenience runners for the app/, scripts/, and packages/bt/ sub-packages. No workspaces — each sub-package keeps its own dependencies and lockfile.",
   "scripts": {
-    "install:all": "npm --prefix app install && npm --prefix scripts install && npm --prefix packages/bt install",
+    "install:all": "npm --prefix app install && npm --prefix scripts install && npm --prefix packages/bt install && npm --prefix packages/match install",
     "dev": "npm --prefix app run dev",
     "build": "npm --prefix app run build",
     "typecheck": "npm --prefix app run typecheck",
@@ -13,6 +13,6 @@
     "format": "npm --prefix app run format",
     "format:check": "npm --prefix app run format:check",
     "gates": "npm --prefix app run typecheck && npm --prefix app run lint && npm --prefix app run test:run && npm --prefix app run format:check",
-    "gates:all": "npm run gates && npm --prefix scripts run typecheck && npm --prefix packages/bt run typecheck && npm --prefix packages/bt test"
+    "gates:all": "npm run gates && npm --prefix scripts run typecheck && npm --prefix packages/bt run typecheck && npm --prefix packages/bt test && npm --prefix packages/match run typecheck && npm --prefix packages/match test"
   }
 }
