@@ -22,6 +22,11 @@ export default function ProfilePage() {
   const [publicList, setPublicList] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  // Set/change password — invited accounts start without one (they accept the
+  // invite via an emailed link), so this doubles as their "set password" step.
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSaved, setPasswordSaved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { upload, remove, isUploading, error: uploadError } = useAvatarUpload(user!.id)
 
@@ -79,6 +84,23 @@ export default function ProfilePage() {
       return
     }
     save.mutate()
+  }
+
+  async function handlePasswordSubmit(e: FormEvent) {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordSaved(false)
+    if (newPassword.length < 6) {
+      setPasswordError('At least 6 characters.')
+      return
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setPasswordError(error.message)
+      return
+    }
+    setNewPassword('')
+    setPasswordSaved(true)
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -243,6 +265,36 @@ export default function ProfilePage() {
           </form>
         </div>
         {uploadError && <p className="mt-3 text-sm text-danger">{uploadError}</p>}
+      </Panel>
+
+      <Panel className="mt-6 p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-ink">Password</h2>
+        <p className="mt-1 text-sm text-muted">
+          Used for email + password logins. Invited accounts start without one — you can also log in
+          with an emailed sign-in link anytime.
+        </p>
+        <form onSubmit={handlePasswordSubmit} className="mt-4 max-w-sm space-y-3">
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-ink-soft">
+              New password
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={`mt-1 ${fieldClassName}`}
+            />
+            <p className="mt-1 text-xs text-muted">At least 6 characters.</p>
+          </div>
+          {passwordError && <p className="text-sm text-danger">{passwordError}</p>}
+          {passwordSaved && <p className="text-sm text-success-text">Password updated.</p>}
+          <Button type="submit" variant="outline">
+            Update password
+          </Button>
+        </form>
       </Panel>
     </div>
   )

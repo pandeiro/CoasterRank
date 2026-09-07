@@ -15,6 +15,7 @@
     "testride:cleanup": "tsx src/testride/cli.ts cleanup",
     "testride:confirm": "tsx src/testride/cli.ts confirm",
     "testride:recompute": "tsx src/testride/cli.ts recompute",
+    "sync-email-templates": "tsx src/sync-email-templates.ts",
     "e2e:desktop-drag": "tsx src/e2e/scenarios/me-desktop-drag.ts",
     "e2e:touch": "tsx src/e2e/scenarios/me-touch.ts",
     "typecheck": "tsc --noEmit",

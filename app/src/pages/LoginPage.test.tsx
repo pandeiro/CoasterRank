@@ -10,6 +10,8 @@ vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       signInWithPassword: vi.fn(),
+      signInWithOtp: vi.fn(),
+      verifyOtp: vi.fn(),
       resend: vi.fn(),
     },
   },
@@ -116,5 +118,87 @@ describe('LoginPage', () => {
 
     expect(supabase.auth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'a@example.com' })
     expect(await screen.findByText('Confirmation email sent.')).toBeInTheDocument()
+  })
+
+  it('links to the forgot-password flow', () => {
+    renderLogin()
+    expect(screen.getByRole('link', { name: /forgot password/i })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    )
+  })
+
+  it('requires an email before requesting a sign-in link', async () => {
+    renderLogin()
+    await userEvent.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+
+    expect(await screen.findByText(/enter your email above first/i)).toBeInTheDocument()
+    expect(supabase.auth.signInWithOtp).not.toHaveBeenCalled()
+  })
+
+  it('requests a magic link and swaps to the code-entry panel', async () => {
+    vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null } as never)
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@example.com')
+    await userEvent.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+
+    await waitFor(() => {
+      expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
+        email: 'a@example.com',
+        options: { emailRedirectTo: expect.stringContaining('/login?magic=1') },
+      })
+    })
+    expect(await screen.findByText(/check your email/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/sign-in code/i)).toBeInTheDocument()
+  })
+
+  it('signs in with the emailed code', async () => {
+    vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null } as never)
+    vi.mocked(supabase.auth.verifyOtp).mockResolvedValue({ data: {}, error: null } as never)
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@example.com')
+    await userEvent.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+    const codeInput = await screen.findByLabelText(/sign-in code/i)
+    await userEvent.type(codeInput, '12345678')
+    await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+
+    await waitFor(() => {
+      expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({
+        email: 'a@example.com',
+        token: '12345678',
+        type: 'email',
+      })
+    })
+    expect(await screen.findByText('my coasters')).toBeInTheDocument()
+  })
+
+  it('keeps only digits in the code field', async () => {
+    vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null } as never)
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@example.com')
+    await userEvent.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+    const codeInput = await screen.findByLabelText(/sign-in code/i)
+    await userEvent.type(codeInput, '12ab34')
+
+    expect(codeInput).toHaveValue('1234')
+  })
+
+  it('shows the invited banner for invite-link arrivals', () => {
+    renderLogin('/login?invited=1')
+    expect(screen.getByText(/invite accepted — welcome aboard/i)).toBeInTheDocument()
+  })
+
+  it('forwards invited users straight to /me when the exchange lands', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      isLoading: false,
+    } as never)
+    renderLogin('/login?invited=1')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
   })
 })

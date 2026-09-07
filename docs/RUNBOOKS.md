@@ -111,6 +111,58 @@ reference:
 Fallback (no tooling available): `delete from auth.users where email = '…';` in the SQL editor
 cascades profiles/rides/submissions, then recompute.
 
+## Email: templates, sender identity & deliverability
+
+Auth email goes out through **Resend SMTP** configured in Supabase (Auth → Emails → SMTP
+Settings): host `smtp.resend.com`, port 465, username `resend` (literal), password = a Resend
+API key, sender `ops@coasterrank.app` ("CoasterRank Ops"). Resend free tier: 100/day,
+3,000/month — plenty for auth volume; watch the dashboard if that changes.
+
+### Template source of truth & syncing
+
+The branded templates for confirm-signup / magic-link+OTP / reset-password / invite live in
+**`supabase/email-templates/`** (design system + field mapping documented in its README).
+Templates are auth config, not migrations — apply them with:
+
+```bash
+cd scripts
+npm run sync-email-templates             # dry-run: diffs repo vs. live config, no writes
+npm run sync-email-templates -- --apply  # PATCH via Management API + verification re-read
+```
+
+Requires `SUPABASE_ACCESS_TOKEN` + `PROJECT_REF` from `.env`. The script only ever sends
+`mailer_subjects_*` / `mailer_templates_*_content` fields — never SMTP credentials. After
+applying, trigger one live email of each type (fresh signup, magic link, reset, admin invite)
+and eyeball the rendering — the API proves config, not the inbox.
+
+**Copy is coupled to two dashboard values**: `mailer_otp_exp = 3600` and
+`mailer_otp_length = 8`. Every template says "expires in 1 hour"; if the expiry setting
+changes, update all templates in the same change.
+
+### Sender identity (manual, one-time — reference for clones)
+
+- **Inbound for the custom domain**: Cloudflare Email Routing on `coasterrank.app` forwards
+  `admin@coasterrank.app` → the ops Gmail (`coaster.rank.app@gmail.com`), so the Gmail
+  send-as verification code (and any human replies) arrive. SPF is one TXT merging the
+  Resend (SES) and Cloudflare includes; DKIM keys came from Resend domain validation.
+- **Gmail "Send mail as"** for `admin@coasterrank.app` uses Resend SMTP (same credentials as
+  above) — mail leaves properly DKIM/SPF-aligned for the custom domain instead of raw Gmail.
+- **Deliverability checks** after any sender/DNS change: mail-tester.com on a triggered
+  email, plus one Gmail + one non-Gmail inbox (spam placement, dark mode, image-off render).
+
+### The four auth emails and what triggers them
+
+| Email | Trigger |
+| --- | --- |
+| Confirm signup | `signUp()` → lands on `/login?confirmed=1` (PKCE) → welcome nudge |
+| Magic link + 8-digit code | "Email me a sign-in link" on `/login` (`signInWithOtp`); code entry via `verifyOtp` |
+| Reset password | `/forgot-password` → lands on `/reset-password` (new-password form) |
+| Invite | Admin → Users tab → Invite (`admin-users` Edge Function) → lands on `/login?invited=1`; invitees start passwordless — profile page sets a password |
+
+Deferred email ideas (submission-reviewed notifications, digests, Resend bounce webhooks,
+non-auth transactional mail via the Resend API) are brainstormed in the PR that introduced
+this runbook — none are wired today.
+
 ## Bootstrap the rankings recompute (one-time, after the Phase 6 deploy)
 
 The 15-minute pg_cron → Edge Function pipeline reads its URL + shared secret from Supabase Vault

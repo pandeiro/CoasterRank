@@ -7,11 +7,17 @@
 //        filtering + pagination client-side (one request; fine at current
 //        scale — revisit with server-side pagination if the user table
 //        outgrows a single payload).
-// POST → { action: 'confirm' | 'delete', userId }
+// POST → { action: 'confirm' | 'delete' | 'invite', userId?, email? }
 //        confirm: GoTrue admin update ({ email_confirm: true }).
 //        delete: avatar storage objects are removed first (they do NOT
 //        cascade), then deleteUser (FK cascade wipes profiles, user_rides and
 //        coaster_submissions; ratings are derived — recompute restores them).
+//        invite: GoTrue admin inviteUserByEmail — creates an unconfirmed user
+//        (the handle_new_user() trigger bootstraps its profile) and sends the
+//        branded invite email via Resend SMTP. Accepting the link signs the
+//        invitee in; there is no password yet, so the login page's invited=1
+//        banner points at the profile page (set/change password) and
+//        passwordless magic-link sign-ins work from day one.
 //
 // Security:
 //   - Caller must be an admin (user JWT validated against GoTrue +
@@ -167,12 +173,38 @@ Deno.serve(async (req) => {
     return json({ users, stats, truncated }, 200)
   }
 
-  // POST — confirm email / delete user.
+  // POST — confirm email / delete user / send invite.
   const body = (await req.json().catch(() => null)) as
-    | { action?: 'confirm' | 'delete'; userId?: string }
+    | { action?: 'confirm' | 'delete' | 'invite'; userId?: string; email?: string }
     | null
-  if (!body?.userId || (body.action !== 'confirm' && body.action !== 'delete')) {
-    return json({ error: "expected { action: 'confirm' | 'delete', userId }" }, 400)
+  if (!body?.action || !['confirm', 'delete', 'invite'].includes(body.action)) {
+    return json({ error: "expected { action: 'confirm' | 'delete' | 'invite', userId?, email? }" }, 400)
+  }
+
+  // The invite path targets an email (which may not exist yet); the other two
+  // target an existing user row.
+  if (body.action === 'invite') {
+    const email = (body.email ?? '').trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json({ error: 'invite requires a valid email' }, 400)
+    }
+    // Fixed prod redirect: the invite link lands on the public login page
+    // (?invited=1 banner + PKCE exchange signs them in). Clones will redirect
+    // to prod — acceptable, invites are a prod-only flow today.
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: 'https://coasterrank.app/login?invited=1',
+    })
+    if (error) {
+      const friendly = /already.*registered/i.test(error.message)
+        ? 'That email already has an account.'
+        : error.message
+      return json({ error: friendly }, 400)
+    }
+    return json({ ok: true, userId: data.user?.id }, 200)
+  }
+
+  if (!body.userId) {
+    return json({ error: 'confirm/delete require userId' }, 400)
   }
 
   if (callerId === body.userId) {

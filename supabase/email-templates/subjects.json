@@ -1,0 +1,6 @@
+{
+  "confirmation": "Almost there — confirm your email",
+  "magic_link": "{{ .Token }} is your CoasterRank sign-in code",
+  "recovery": "Reset your CoasterRank password",
+  "invite": "You're invited to CoasterRank"
+}

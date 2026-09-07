@@ -4,7 +4,17 @@
 // impersonation flow itself lives in lib/impersonation.
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight, Copy, Eye, LogIn, Search, Trash2 } from 'lucide-react'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Eye,
+  LogIn,
+  Search,
+  Trash2,
+  UserPlus,
+} from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import StatBlock from '../StatBlock'
 import { Badge, Button, ConfirmDialog, MessageState, Modal, Panel, fieldClassName } from '../ui'
@@ -12,6 +22,7 @@ import {
   confirmUser,
   deleteUser,
   filterUsers,
+  inviteUser,
   listAllUsers,
   pageCount,
   pageSlice,
@@ -47,6 +58,8 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
   const [page, setPage] = useState(1)
   const [detail, setDetail] = useState<AdminUserRow | null>(null)
   const [toDelete, setToDelete] = useState<AdminUserRow | null>(null)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-users'],
@@ -88,6 +101,17 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
       setToDelete(null)
       setDetail(null)
       notify('User deleted.')
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
+  })
+
+  const sendInvite = useMutation({
+    mutationFn: inviteUser,
+    onSuccess: () => {
+      invalidate()
+      setInviteOpen(false)
+      notify(`Invite sent to ${inviteEmail.trim()}.`)
+      setInviteEmail('')
     },
     onError: (err: Error) => notify(err.message, 'error'),
   })
@@ -204,7 +228,13 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
       </Panel>
 
       <Panel className="p-6">
-        <h2 className="mb-1 text-lg font-semibold text-ink">Users</h2>
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-ink">Users</h2>
+          <Button type="button" size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
+            <UserPlus size={14} />
+            Invite
+          </Button>
+        </div>
         <p className="mb-4 text-sm text-muted">
           Synthetic test users (
           <code className="rounded bg-surface px-1 text-xs">testride:seed</code> or the{' '}
@@ -346,6 +376,61 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
             <div className="flex flex-wrap items-center gap-2">{actionsFor(detail)}</div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={inviteOpen}
+        onClose={() => {
+          setInviteOpen(false)
+          sendInvite.reset()
+        }}
+        title="Invite a user"
+        panelClassName="max-w-md"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (inviteEmail.trim()) sendInvite.mutate(inviteEmail.trim())
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <label htmlFor="invite-email" className="block text-sm font-medium text-ink-soft">
+              Email
+            </label>
+            <input
+              id="invite-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="friend@example.com"
+              className={`mt-1 ${fieldClassName}`}
+            />
+          </div>
+          <p className="text-xs text-muted">
+            Sends the branded invite email (via Resend). The account is created immediately but
+            unconfirmed — accepting the emailed link confirms it and signs them in. They start
+            without a password: magic-link sign-ins from day one, or set one later on the profile
+            page.
+          </p>
+          {sendInvite.isError && (
+            <p className="text-sm text-danger">{(sendInvite.error as Error).message}</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setInviteOpen(false)}
+              className="rounded-full px-3 py-1.5 text-xs text-muted hover:bg-surface"
+            >
+              Cancel
+            </button>
+            <Button type="submit" size="sm" disabled={sendInvite.isPending}>
+              {sendInvite.isPending ? 'Sending…' : 'Send invite'}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmDialog
