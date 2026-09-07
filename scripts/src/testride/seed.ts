@@ -3,7 +3,7 @@
 //
 // Users are inserted directly into auth.users with email_confirmed_at set, so
 // they are login-ready with NO email verification and NO SMTP involvement:
-//   email:    mock-0001@test.coasterrank.dev
+//   email:    mock_0001@test.coasterrank.dev
 //   password: SYNTHETIC_PASSWORD (markers.ts)
 // The handle_new_user() trigger creates their profiles rows.
 //
@@ -79,7 +79,8 @@ function generateUsers(
   const users: GenUser[] = []
   for (let i = 0; i < count; i++) {
     const num = startOffset + i + 1
-    const username = `mock-${String(num).padStart(4, '0')}`
+    // profiles_username_format_check enforces ^[a-z0-9_]{3,20}$ — underscore, not hyphen.
+    const username = `mock_${String(num).padStart(4, '0')}`
     const counts = rideCounts(rng, rides, unranked)
     users.push({
       id: randomUUID(),
@@ -94,11 +95,12 @@ function generateUsers(
 
 async function maxExistingUsernameNumber(pool: Pool): Promise<number> {
   const res = await pool.query<{ username: string }>(
-    `select raw_user_meta_data->>'username' as username from auth.users where raw_user_meta_data->>'username' like 'mock-%'`,
+    `select raw_user_meta_data->>'username' as username from auth.users where raw_user_meta_data->>'username' like 'mock%'`,
   )
   let max = 0
   for (const row of res.rows) {
-    const m = row.username.match(/^mock-(\d+)$/)
+    // Tolerate the pre-hardening `mock-` spelling so old rows still count.
+    const m = row.username.match(/^mock[-_](\d+)$/)
     if (m?.[1]) {
       const n = Number.parseInt(m[1], 10)
       if (n > max) max = n
