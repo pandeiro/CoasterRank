@@ -35,7 +35,7 @@ npm run testride:confirm -- --email x@test.coasterrank.dev --apply
 npm run testride:recompute                                  # on-demand recompute (service-role invoke)
 ```
 
-Seed flags: `--users` (required; creates N _additional_ synthetic users, continuing numbering after the highest existing mock-XXXX user), `--rides <n|min-max>` (random distinct coasters per user,
+Seed flags: `--users` (required; creates N _additional_ synthetic users, continuing numbering after the highest existing mock_XXXX user), `--rides <n|min-max>` (random distinct coasters per user,
 ranked `1..M`; omit = no rides), `--unranked <n>` (ridden-but-unranked extras), `--with-submissions`
 (one pending submission per user), `--seed <n>` (deterministic per batch; rides are
 `ON CONFLICT DO NOTHING`).

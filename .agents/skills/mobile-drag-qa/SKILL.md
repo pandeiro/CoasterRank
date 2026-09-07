@@ -13,7 +13,7 @@ undo-window deletes, optimistic adds.
 
 1. Check first — `cd scripts && npm run testride:report` is read-only and
    shows whether synthetic users exist (emails on `@test.coasterrank.dev`,
-   shared password `testride-password`, e.g. `mock-0001`).
+   shared password `testride-password`, e.g. `mock_0001`).
 2. If none exist, **ask the user** before creating any (`testride:seed --apply`
    is a production DB write).
 3. Mutate only synthetic users, and prefer flows that don't write:
@@ -22,7 +22,7 @@ undo-window deletes, optimistic adds.
      insert divider.
    - Drag reorder DOES write ranks; restore afterwards (see below).
 4. See `docs/TEST_DATA.md` for the full lifecycle and
-   `scripts/src/oneoff/restore-mock0001-order.mts` for restoring mock-0001's
+   `scripts/src/oneoff/restore-mock0001-order.mts` for restoring mock_0001's
    canonical rank order (it uses the app's own API path — do NOT restore data
    by scripted gestures; dnd-kit auto-scroll makes multi-slot drags land
    unpredictably).
