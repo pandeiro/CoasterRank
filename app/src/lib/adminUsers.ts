@@ -2,9 +2,9 @@
 //
 // listAllUsers() fetches every user (GoTrue admin data merged with per-user
 // aggregates + baseline stats); filtering, search and pagination are
-// client-side at current scale. confirmUser()/deleteUser() invoke the
-// function's POST actions. Impersonation stays in ./impersonation (magic link
-// via the assume-identity function, synthetic users only).
+// client-side at current scale. confirmUser()/deleteUser()/inviteUser()
+// invoke the function's POST actions. Impersonation stays in ./impersonation
+// (magic link via the assume-identity function, synthetic users only).
 import { supabase } from './supabase'
 
 export interface AdminUserRow {
@@ -16,6 +16,8 @@ export interface AdminUserRow {
   isAdmin: boolean
   publicList: boolean
   confirmed: boolean
+  /** GoTrue invite timestamp — set by admin invites, null for self-signups. */
+  invitedAt: string | null
   synthetic: boolean
   createdAt: string | null
   ridesTotal: number
@@ -62,6 +64,17 @@ export async function deleteUser(userId: string): Promise<void> {
   const { error } = await supabase.functions.invoke('admin-users', {
     method: 'POST',
     body: { action: 'delete', userId },
+  })
+  if (error) throw new Error(error.message)
+}
+
+// Sends the branded invite email (Supabase → Resend SMTP). GoTrue creates the
+// user immediately (unconfirmed, profile bootstrapped by trigger); accepting
+// the emailed link confirms + signs them in.
+export async function inviteUser(email: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('admin-users', {
+    method: 'POST',
+    body: { action: 'invite', email },
   })
   if (error) throw new Error(error.message)
 }

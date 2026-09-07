@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest'
-import { filterUsers, pageSlice, pageCount, type AdminUserRow } from './adminUsers'
+import { describe, it, expect, vi } from 'vitest'
+import { filterUsers, pageSlice, pageCount, inviteUser, type AdminUserRow } from './adminUsers'
+import { supabase } from './supabase'
+
+vi.mock('./supabase', () => ({
+  supabase: {
+    functions: {
+      invoke: vi.fn(),
+    },
+  },
+}))
 
 function row(overrides: Partial<AdminUserRow>): AdminUserRow {
   return {
@@ -11,6 +20,7 @@ function row(overrides: Partial<AdminUserRow>): AdminUserRow {
     isAdmin: false,
     publicList: false,
     confirmed: true,
+    invitedAt: null,
     synthetic: false,
     createdAt: null,
     ridesTotal: 0,
@@ -86,5 +96,29 @@ describe('pageCount', () => {
     expect(pageCount(1, 50)).toBe(1)
     expect(pageCount(51, 50)).toBe(2)
     expect(pageCount(100, 50)).toBe(2)
+  })
+})
+
+describe('inviteUser', () => {
+  it('posts the invite action with the given email', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: { ok: true, userId: 'u-new' },
+      error: null,
+    } as never)
+    await inviteUser('friend@example.com')
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('admin-users', {
+      method: 'POST',
+      body: { action: 'invite', email: 'friend@example.com' },
+    })
+  })
+
+  it('surfaces the Edge Function error (e.g. already registered)', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: null,
+      error: { message: 'That email already has an account.' },
+    } as never)
+    await expect(inviteUser('friend@example.com')).rejects.toThrow(
+      'That email already has an account.',
+    )
   })
 })

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
-import { Button, fieldClassName } from '../components/ui'
+import { Button, fieldClassName, Panel } from '../components/ui'
 
 type LocationState = { from?: string }
 
@@ -17,6 +17,14 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [resent, setResent] = useState(false)
 
+  // Passwordless sign-in: after requesting a magic link the form swaps for a
+  // "check your email" panel with a code-entry field (the email carries both
+  // a one-click link and an 8-digit code, so sign-in works cross-device).
+  const [magicSent, setMagicSent] = useState(false)
+  const [code, setCode] = useState('')
+  const [magicError, setMagicError] = useState<string | null>(null)
+  const [magicSubmitting, setMagicSubmitting] = useState(false)
+
   const emailNotConfirmed = error !== null && /not confirmed/i.test(error)
 
   // Where to send the user after login. `next` survives the confirmation-email
@@ -24,12 +32,13 @@ export default function LoginPage() {
   // `state.from` covers the plain RequireAuth → login → … path. Freshly
   // confirmed users land on the first-run welcome nudge on /me.
   const confirmed = searchParams.get('confirmed') === '1'
+  const invited = searchParams.get('invited') === '1'
   const nextParam = searchParams.get('next')
   const stateFrom = (location.state as LocationState | null)?.from
   const dest =
     nextParam && nextParam.startsWith('/')
       ? nextParam
-      : (stateFrom ?? (confirmed ? '/me?welcome=1' : '/me'))
+      : (stateFrom ?? (confirmed || invited ? '/me?welcome=1' : '/me'))
 
   // The confirmation link signs the user in via the PKCE code exchange on
   // this (public) page — no form submit needed. Forward them on.
@@ -65,12 +74,97 @@ export default function LoginPage() {
     if (!error) setResent(true)
   }
 
+  async function requestMagicLink() {
+    setMagicError(null)
+    if (!email.trim()) {
+      setMagicError('Enter your email above first, then tap for a sign-in link.')
+      return
+    }
+    setMagicSubmitting(true)
+    // If the address isn't confirmed yet, Supabase sends its confirmation
+    // email instead of a sign-in link — the panel copy below covers both.
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login?magic=1` },
+    })
+    setMagicSubmitting(false)
+    if (error) {
+      setMagicError(error.message)
+      return
+    }
+    setMagicSent(true)
+  }
+
+  async function verifyCode(e: FormEvent) {
+    e.preventDefault()
+    setMagicError(null)
+    setMagicSubmitting(true)
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
+    setMagicSubmitting(false)
+    if (error) {
+      setMagicError(
+        /expired/i.test(error.message)
+          ? 'That code has expired — request a new one.'
+          : error.message,
+      )
+      return
+    }
+    navigate(dest, { replace: true })
+  }
+
+  if (magicSent) {
+    return (
+      <Panel className="mx-auto max-w-md p-6 text-center">
+        <h1 className="display-heading text-3xl text-ink">Check your email</h1>
+        <p className="mt-2 text-sm text-muted">
+          We sent a sign-in link and a code to <strong>{email}</strong>. Click the link — or type
+          the code below. Both expire in an hour. (If your email still needs confirming, this email
+          does that instead.)
+        </p>
+        <form onSubmit={verifyCode} className="mt-5 space-y-4">
+          <input
+            id="otp"
+            aria-label="Sign-in code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={8}
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            className={`${fieldClassName} mx-auto block max-w-48 text-center text-lg tracking-[0.4em]`}
+          />
+          {magicError && <p className="text-sm text-danger">{magicError}</p>}
+          <Button type="submit" disabled={magicSubmitting} className="w-full">
+            {magicSubmitting ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
+        <button
+          type="button"
+          onClick={() => {
+            setMagicSent(false)
+            setCode('')
+            setMagicError(null)
+          }}
+          className="mt-4 text-sm text-muted underline underline-offset-4 hover:text-ink"
+        >
+          Wrong address? Go back
+        </button>
+      </Panel>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-sm">
       <h1 className="display-heading text-4xl text-ink">Log in</h1>
       {confirmed && (
         <p className="mt-4 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm text-ink">
           Email confirmed — welcome! Log in to start ranking.
+        </p>
+      )}
+      {invited && (
+        <p className="mt-4 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm text-ink">
+          Invite accepted — welcome aboard!
         </p>
       )}
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
@@ -121,6 +215,30 @@ export default function LoginPage() {
           {submitting ? 'Logging in…' : 'Log in'}
         </Button>
       </form>
+      <div className="mt-5 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />
+        or
+        <span className="h-px flex-1 bg-line" />
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-4 w-full"
+        onClick={requestMagicLink}
+        disabled={magicSubmitting}
+      >
+        {magicSubmitting ? 'Sending…' : 'Email me a sign-in link'}
+      </Button>
+      {magicError && <p className="mt-2 text-sm text-danger">{magicError}</p>}
+      <p className="mt-4 text-center text-sm">
+        <Link
+          to="/forgot-password"
+          state={stateFrom || nextParam ? { from: stateFrom ?? nextParam } : undefined}
+          className="text-muted underline underline-offset-4 hover:text-ink"
+        >
+          Forgot password?
+        </Link>
+      </p>
       <p className="mt-4 text-sm text-muted">
         No account?{' '}
         <Link

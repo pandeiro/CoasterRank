@@ -10,6 +10,7 @@ supabase/            # Supabase CLI config + migrations + edge functions
   config.toml        # CLI config (committed)
   migrations/        # SQL migrations (created via `supabase migration new`)
   functions/         # Deno Edge Functions
+  email-templates/   # branded auth email HTML (source of truth; synced via scripts/sync-email-templates)
 docs/PLAN.md         # authoritative project plan & decision log
 docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
@@ -79,6 +80,7 @@ npm install                       # one-time, after cloning / after deps change
 npm run import-coasters           # dry-run: parse + report counts, no DB connection
 npm run import-coasters -- --apply  # write/refresh prod via SUPABASE_DB_URL (idempotent)
 npm run import-coasters -- data/ext/coaster_db.csv  # optional: explicit CSV path (positional)
+npm run sync-email-templates      # dry-run: diff email templates vs. live project; --apply pushes (see supabase/email-templates/)
 npm run typecheck                 # tsc --noEmit for the scripts package
 npm test                          # vitest run for the scripts package
 ```
