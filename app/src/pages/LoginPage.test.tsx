@@ -116,7 +116,11 @@ describe('LoginPage', () => {
     const resend = await screen.findByRole('button', { name: /resend confirmation email/i })
     await userEvent.click(resend)
 
-    expect(supabase.auth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'a@example.com' })
+    expect(supabase.auth.resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'a@example.com',
+      options: { emailRedirectTo: expect.stringContaining('/login?confirmed=1') },
+    })
     expect(await screen.findByText('Confirmation email sent.')).toBeInTheDocument()
   })
 
@@ -200,5 +204,48 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByText('my coasters')).toBeInTheDocument()
     })
+  })
+
+  it('surfaces a resend failure instead of failing silently (resend cooldown 429)', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      data: {},
+      error: { message: 'Email not confirmed' },
+    } as never)
+    vi.mocked(supabase.auth.resend).mockResolvedValue({
+      data: {},
+      error: { message: 'rate limited' },
+    } as never)
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@example.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret1')
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+
+    const resend = await screen.findByRole('button', { name: /resend confirmation email/i })
+    await userEvent.click(resend)
+
+    expect(await screen.findByText(/couldn't resend/i)).toBeInTheDocument()
+    expect(screen.queryByText('Confirmation email sent.')).not.toBeInTheDocument()
+  })
+
+  it('encodes the deep link into the resend redirect', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      data: {},
+      error: { message: 'Email not confirmed' },
+    } as never)
+    vi.mocked(supabase.auth.resend).mockResolvedValue({ data: {}, error: null } as never)
+    renderLogin('/login?next=%2Friders%2Fana')
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'a@example.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret1')
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+
+    const resend = await screen.findByRole('button', { name: /resend confirmation email/i })
+    await userEvent.click(resend)
+
+    const arg = vi.mocked(supabase.auth.resend).mock.calls[0][0] as {
+      options?: { emailRedirectTo?: string }
+    }
+    expect(arg.options?.emailRedirectTo).toContain(encodeURIComponent('/riders/ana'))
   })
 })

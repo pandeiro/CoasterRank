@@ -12,7 +12,14 @@ export default function ConfirmEmailGate({ email }: { email?: string }) {
   async function resend() {
     if (!email) return
     setStatus('sending')
-    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    // Same rule as the original signup (and the login-page resend): without
+    // emailRedirectTo the fresh link lands on the site root, not
+    // /login?confirmed=1.
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login?confirmed=1` },
+    })
     setStatus(error ? 'error' : 'sent')
   }
 
