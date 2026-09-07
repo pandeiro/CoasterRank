@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [resent, setResent] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendError, setResendError] = useState<string | null>(null)
 
   // Passwordless sign-in: after requesting a magic link the form swaps for a
   // "check your email" panel with a code-entry field (the email carries both
@@ -70,8 +72,27 @@ export default function LoginPage() {
   }
 
   async function resendConfirmation() {
-    const { error } = await supabase.auth.resend({ type: 'signup', email })
-    if (!error) setResent(true)
+    setResending(true)
+    setResendError(null)
+    // The original signup encodes the deep link into emailRedirectTo; the
+    // resend must do the same, or GoTrue falls back to the Site URL and the
+    // fresh link drops the user on the site root (the pre-#142 behavior).
+    const deepLink = nextParam && nextParam.startsWith('/') ? nextParam : stateFrom
+    const nextQuery =
+      deepLink && deepLink.startsWith('/') ? `&next=${encodeURIComponent(deepLink)}` : ''
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login?confirmed=1${nextQuery}` },
+    })
+    setResending(false)
+    if (error) {
+      // A 429 right after signup is normal (short per-address resend cooldown):
+      // say so instead of failing silently.
+      setResendError("Couldn't resend — try again in a minute.")
+      return
+    }
+    setResent(true)
   }
 
   async function requestMagicLink() {
@@ -203,12 +224,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={resendConfirmation}
-                className="mt-1 underline underline-offset-4 hover:text-danger-text"
+                disabled={resending}
+                className="mt-1 underline underline-offset-4 hover:text-danger-text disabled:opacity-50"
               >
-                Resend confirmation email
+                {resending ? 'Resending…' : 'Resend confirmation email'}
               </button>
             )}
             {resent && <p className="mt-1 text-muted">Confirmation email sent.</p>}
+            {resendError && <p className="mt-1">{resendError}</p>}
           </div>
         )}
         <Button type="submit" disabled={submitting} className="w-full">
