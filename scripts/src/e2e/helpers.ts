@@ -21,7 +21,7 @@ import { SYNTHETIC_PASSWORD, syntheticEmail } from '../testride/markers'
 
 export const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5199'
 /** Canonical synthetic QA user (login-ready, no email verification needed). */
-export const QA_USER = syntheticEmail('mock-0001')
+export const QA_USER = syntheticEmail('mock_0001')
 export const QA_PASSWORD = SYNTHETIC_PASSWORD
 
 const START_SERVER_COMMAND = 'cd app && npm run dev -- --port 5199 --strictPort'
