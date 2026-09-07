@@ -29,8 +29,8 @@
 
 | # | Finding | Status |
 | - | ------- | ------ |
-| F1 | **Resent confirmation links dropped the deep link**: `resend()` passed no `emailRedirectTo`, so GoTrue fell back to the Site URL and the resent link landed logged-in on the public board root with no banner/nudge (pre-#142 behavior). Captured: ![13](13-BUG-resent-landing-site-root.png), ![14](14-BUG-resent-user-dropped-on-board.png). Original link: `redirect_to=/login?confirmed=1`; resent link: `redirect_to=/` | **Fixed** (`fix/resend-redirect`) |
-| F2 | **Silent resend failure**: Supabase enforces a short per-address resend cooldown; the login page swallowed the 429, leaving the button looking dead | **Fixed** (same PR: error surfaced, button disabled while sending) |
+| F1 | **Resent confirmation links dropped the deep link**: `resend()` passed no `emailRedirectTo`, so GoTrue fell back to the Site URL and the resent link landed logged-in on the public board root with no banner/nudge (pre-#142 behavior). Captured: ![13](13-BUG-resent-landing-site-root.png), ![14](14-BUG-resent-user-dropped-on-board.png). Original link: `redirect_to=/login?confirmed=1`; resent link: `redirect_to=/` | **Fixed + re-tested in prod (#156)** |
+| F2 | **Silent resend failure**: Supabase enforces a short per-address resend cooldown; the login page swallowed the 429, leaving the button looking dead | **Fixed + re-tested in prod (#156)** |
 | F3 | **`testride:seed` was broken** by #145's `profiles_username_format_check` (`mock-0001` hyphen rejected). Every seed run failed with a constraint violation | **Fixed** (`fix/testride-username-constraint`) |
 | F4 | The header "Sign up" pill (and the `/riders/<user>` CTA) link to `/signup` without `state.from`, so deep links only survive via the RequireAuth-bounce path. Minor; candidate follow-up | Open |
 | F5 | Cloudflare Web Analytics beacon blocked by CSP (`script-src 'self'`); analytics likely dark. Unrelated to this feature | Open |
@@ -42,6 +42,16 @@
 - `testride:recompute` → 99 coasters re-rated, converged (16.5 s, 12 iterations)
 - `testride:report` → **synthetic: 0**; `auth.users` back to the 3 pre-test real accounts; zero rows matching `coaster.rank.app+%` or `@test.coasterrank.dev`
 - Console: zero page errors across all flows (one benign CSP beacon notice, F5)
+
+## Post-fix re-test (after #156 merged + deployed)
+
+| # | Behavior | Result | Evidence |
+| - | -------- | ------ | -------- |
+| 14 | Resend returns 200 with visible "Confirmation email sent." feedback (no silent failure) | ✅ | ![20](20-resend-accepted-postfix.png) |
+| 15 | **Resent link carries the deep link**: `redirect_to=/login?confirmed=1&next=%2Fsubmit` (was `redirect_to=/` before #156) | ✅ | link URL captured |
+| 16 | Resent-link landing: green banner → auto-forward → `/submit`, signed in | ✅ | ![21](21-resent-banner-postfix.png), ![22](22-resent-landed-submit-postfix.png) |
+
+The F1/F2 fixes are verified in prod. Test user cleaned up afterwards.
 
 ## Notes for future runs
 
