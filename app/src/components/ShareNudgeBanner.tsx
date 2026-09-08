@@ -66,7 +66,7 @@ export default function ShareNudgeBanner({
           remainder evenly across the two gutters. Columns stay content-width
           (no flex-1 growth) and shrink gracefully below the cap; mobile
           stacks unwrapped and keeps the rows directly on the tint. */}
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-4">
+      <div className="mx-auto flex w-full max-w-[980px] flex-wrap items-center justify-between gap-x-5 gap-y-4">
         <div className="min-w-0 flex-1 basis-52 sm:w-[260px] sm:flex-none">
           <p className="display-heading text-xl leading-tight text-ink">
             Want to share your board?
