@@ -6,6 +6,7 @@ import {
   createRoutesFromChildren,
   matchRoutes,
 } from 'react-router-dom'
+import { isChunkLoadError } from './chunk-recovery'
 
 let replayStarted = false
 
@@ -58,5 +59,11 @@ export function initSentry() {
     tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
+    // Stale-chunk dynamic-import failures after a deploy are known and
+    // self-healing (lib/chunk-recovery reloads once) — never report them.
+    beforeSend(event, hint) {
+      if (isChunkLoadError(hint?.originalException)) return null
+      return event
+    },
   })
 }

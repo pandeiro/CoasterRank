@@ -34,15 +34,42 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 import React from 'react'
 import ErrorFallback from './components/ErrorFallback'
+import { isChunkLoadError, reloadForChunkError } from './lib/chunk-recovery'
+
+// A tab that spans a deploy lazily imports chunk hashes the deploy deleted
+// (SPA fallback answers with HTML → dynamic-import failure). One guarded
+// reload self-heals; the splash below only paints for the instant before the
+// browser unloads. If recovery can't fire (already attempted, or storage
+// unavailable) we fall through to the normal fallback and report it — a
+// reload that did NOT fix a chunk error is genuinely unexpected.
+function ChunkReloadSplash() {
+  return (
+    <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
+      <p style={{ color: '#4A4A5A', fontFamily: 'system-ui, sans-serif' }}>Updating CoasterRank…</p>
+    </div>
+  )
+}
 
 function RootErrorBoundary() {
   const error = useRouteError()
+  const chunkError = isChunkLoadError(error)
+  const [recoveryExhausted, setRecoveryExhausted] = React.useState(false)
 
   React.useEffect(() => {
-    if (error) {
+    if (!error) return
+    if (!chunkError) {
+      Sentry.captureException(error)
+      return
+    }
+    if (!reloadForChunkError(error)) {
+      setRecoveryExhausted(true)
       Sentry.captureException(error)
     }
-  }, [error])
+  }, [error, chunkError])
+
+  if (chunkError && !recoveryExhausted) {
+    return <ChunkReloadSplash />
+  }
 
   return <ErrorFallback />
 }
