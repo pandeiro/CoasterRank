@@ -170,6 +170,12 @@ used in CI (as a GitHub repo secret).
   connection string in CI); it is a silent no-op if those secrets are missing.
 - **Branch policy**: PRs required to merge into `main`. CI runs the quality gates on every PR; the
   deploy job only runs after merge.
+- **Migration ordering preflight**: PR CI runs `ci/migration-order`, which fails any PR adding a
+  migration whose 14-digit timestamp is ≤ the newest migration on `main` — `supabase db push`
+  rejects out-of-order migrations at deploy time (hit on #159; fixed via re-stamp in #161/#162).
+  Fix = re-stamp the file (`git mv <ts>_<name>.sql <newer-ts>_<name>.sql`, content unchanged).
+  Not airtight: a competing PR can still merge between the check and your merge — the deploy's
+  `db push` remains the backstop.
 
 ## Runbooks
 
