@@ -15,6 +15,7 @@ function renderBanner(props: Partial<Parameters<typeof ShareNudgeBanner>[0]> = {
         avatarUrl={null}
         publicList={true}
         rankedCount={9}
+        parkCount={5}
         topPick="Steel Vengeance"
         onDismiss={onDismiss}
         {...props}
@@ -25,9 +26,17 @@ function renderBanner(props: Partial<Parameters<typeof ShareNudgeBanner>[0]> = {
 }
 
 describe('ShareNudgeBanner', () => {
-  it('previews the flat share card with copy and preview when live', () => {
+  it('leads with the share-your-board eyebrow', () => {
     renderBanner()
-    expect(screen.getByText('@coaster_fan · 9 ranked · #1 Steel Vengeance')).toBeInTheDocument()
+    expect(screen.getByText('Share your board anytime')).toBeInTheDocument()
+  })
+
+  it('previews the og-style mini card with pills, copy, and preview when live', () => {
+    renderBanner()
+    expect(screen.getByText('@coaster_fan')).toBeInTheDocument()
+    expect(screen.getByText('9 ranked')).toBeInTheDocument()
+    expect(screen.getByText('5 parks')).toBeInTheDocument()
+    expect(screen.getByText('#1 Steel Vengeance')).toBeInTheDocument()
     expect(screen.getByText(`${window.location.origin}/riders/coaster_fan`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /preview/i })).toHaveAttribute(

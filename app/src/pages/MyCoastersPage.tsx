@@ -116,9 +116,14 @@ export default function MyCoastersPage() {
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
   const rankedCount = useMemo(() => (rides ?? []).filter((r) => r.rank !== null).length, [rides])
-  // The rider share card leads with the #1 pick; the banner preview shows it.
+  // The rider share card leads with the #1 pick; the banner preview shows it
+  // plus the ranked/parks pills, echoing the OG card's stat pills.
   const topPick = useMemo(
     () => (rides ?? []).find((r) => r.rank === 1)?.coaster.name ?? null,
+    [rides],
+  )
+  const parkCount = useMemo(
+    () => new Set((rides ?? []).filter((r) => r.rank !== null).map((r) => r.coaster.park_id)).size,
     [rides],
   )
   const showShareNudge = nudge?.eligible === true && !nudgeDismissed
@@ -256,6 +261,7 @@ export default function MyCoastersPage() {
             avatarUrl={profile.avatar_url}
             publicList={profile.public_list}
             rankedCount={nudge.ranked_count}
+            parkCount={parkCount}
             topPick={topPick}
             onDismiss={() => setNudgeDismissed(true)}
           />
