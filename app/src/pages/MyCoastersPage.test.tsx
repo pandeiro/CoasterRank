@@ -318,7 +318,7 @@ describe('MyCoastersPage', () => {
       data: { eligible: true, ranked_count: 9 },
     } as never)
     renderPage()
-    await user.click(await screen.findByRole('button', { name: /dismiss/i }))
+    await user.click(await screen.findByRole('button', { name: /not right now/i }))
     expect(screen.queryByTestId('share-nudge-banner')).not.toBeInTheDocument()
   })
 

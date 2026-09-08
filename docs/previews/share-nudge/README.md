@@ -7,9 +7,9 @@ Screenshots for the idle-settled share nudge (PLAN §2 "Share nudge v2"), captur
 
 | File | Shows |
 | --- | --- |
-| `share-nudge-states-desktop.png` | The banner's three states, desktop: live (copy + preview), claimed-but-not-sharing (turn-on CTA), no username (claim CTA). Each leads with the "Want to share your board?" eyebrow over a single accent-tinted card — avatar, display-font name, cyan @handle, ranked/parks pills, copy/preview actions tucked beneath, and the OG card's top-3 rows (Racing Sans One ranks, #1 coral) directly on the tint. |
-| `share-nudge-states-mobile.png` | Same three states at 390px — the card stacks (identity, url/actions, top-3 table) full-width. |
-| `share-nudge-placement-desktop.png` | The live banner in context on `/me`, below the header row (Import list stays top-right). |
+| `share-nudge-states-desktop.png` | The banner's states, desktop: furled (three columns — "Want to share your board?" / condensed share-page skeleton / YES + NOT RIGHT NOW), then YES unfurled three ways — the rider link (copy + preview), enable-sharing instructions, claim-username instructions. One light accent-blue card; the skeleton's top-3 rows sit directly on the tint with Racing Sans One ranks (#1 coral). |
+| `share-nudge-states-mobile.png` | Same states at 390px — columns stack (question, skeleton, button row, unfurl) full-width. |
+| `share-nudge-placement-desktop.png` | The furled banner in context on `/me`, below the header row (Import list stays top-right). |
 | `share-nudge-placement-mobile.png` | Same placement at 390px — the banner sits above the full-width Import list button, keeping Import adjacent to the search bar and ranking table. |
 
 ## How they were captured
