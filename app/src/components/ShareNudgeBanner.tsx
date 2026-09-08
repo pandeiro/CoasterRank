@@ -57,7 +57,7 @@ export default function ShareNudgeBanner({
     // Plain div, not Panel — Panel's bg-surface-bright/border-line would win
     // the cascade over the banner's accent tint.
     <div
-      className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:relative sm:left-1/2 sm:w-[min(100vw-2rem,1232px)] sm:-translate-x-1/2 sm:p-5"
+      className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:p-5"
       data-testid="share-nudge-banner"
     >
       {/* Desktop only: the column cluster is capped at max-w-5xl and centered
