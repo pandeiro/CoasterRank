@@ -60,18 +60,21 @@ export default function ShareNudgeBanner({
       className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:p-5"
       data-testid="share-nudge-banner"
     >
-      {/* Desktop only: tighten the left↔middle dead zone and give the middle
-          column its own outlined card feel; mobile stacks unwrapped and keeps
-          the rows directly on the tint. */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
-        <div className="min-w-0 flex-1 basis-52">
+      {/* Desktop only: the column cluster is capped at max-w-5xl and centered
+          so leftover space moves to the banner's own padding instead of
+          pooling between the columns; justify-between then splits the small
+          remainder evenly across the two gutters. Columns stay content-width
+          (no flex-1 growth) and shrink gracefully below the cap; mobile
+          stacks unwrapped and keeps the rows directly on the tint. */}
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-4">
+        <div className="min-w-0 flex-1 basis-52 sm:w-[260px] sm:flex-none">
           <p className="display-heading text-xl leading-tight text-ink">
             Want to share your board?
           </p>
           <p className="mt-1.5 text-sm leading-snug text-muted">Put your top 3 on the internet.</p>
         </div>
 
-        <div className="min-w-0 flex-1 basis-72 sm:rounded-xl sm:border sm:border-accent/30 sm:bg-surface-bright/70 sm:p-3.5">
+        <div className="min-w-0 flex-1 basis-72 sm:max-w-[420px] sm:basis-auto sm:grow-0 sm:rounded-xl sm:border sm:border-accent/30 sm:bg-surface-bright/70 sm:p-3.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <Avatar
               src={avatarUrl}
@@ -115,7 +118,7 @@ export default function ShareNudgeBanner({
           )}
         </div>
 
-        <div className="flex w-full gap-2 sm:w-auto sm:flex-col sm:gap-2">
+        <div className="flex w-full gap-2 sm:w-auto sm:flex-col sm:shrink-0 sm:gap-2">
           <button
             type="button"
             onClick={() => setUnfurled(true)}
