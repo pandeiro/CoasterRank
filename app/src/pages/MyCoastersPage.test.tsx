@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useMyRides } from '../lib/rides'
 import { fetchProfile } from '../lib/profile'
 import { useAuth } from '../lib/auth-context'
+import { useShareNudge } from '../lib/share-nudge'
 import { readWelcomeDismissed } from '../lib/welcome'
 import MyCoastersPage from './MyCoastersPage'
 
@@ -97,6 +98,10 @@ vi.mock('../lib/welcome', () => ({
   WELCOME_DISMISS_KEY: 'cr.welcome.dismissed',
 }))
 
+vi.mock('../lib/share-nudge', () => ({
+  useShareNudge: vi.fn(),
+}))
+
 function renderPage(initialPath = '/me') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -127,6 +132,11 @@ function mockConfirmed(ridesData: unknown[] = [], userId: string | null = null) 
     og_image_url: null,
     public_list: true,
   })
+  // Default: no eligible nudge (the page hides the banner unless the RPC
+  // claims eligibility for this exact call).
+  vi.mocked(useShareNudge).mockReturnValue({
+    data: { eligible: false, ranked_count: 0 },
+  } as never)
 }
 
 function ridesWithRanks(count: number) {
@@ -158,6 +168,9 @@ describe('MyCoastersPage', () => {
       isConfirmed: false,
     } as never)
     vi.mocked(useMyRides).mockReturnValue({ data: [], isPending: false, isError: false } as never)
+    vi.mocked(useShareNudge).mockReturnValue({
+      data: { eligible: false, ranked_count: 0 },
+    } as never)
     renderPage()
     expect(screen.getByTestId('confirm-gate')).toBeInTheDocument()
     expect(screen.queryByTestId('search-bar')).not.toBeInTheDocument()
@@ -279,62 +292,34 @@ describe('MyCoastersPage', () => {
     expect(await screen.findByText('Something failed')).toBeInTheDocument()
   })
 
-  it('hides the share CTA below the 5-ranked milestone', () => {
-    mockConfirmed(ridesWithRanks(4))
+  it('shows the one-shot share nudge above the list when the RPC claims eligibility', async () => {
+    mockConfirmed(ridesWithRanks(9))
+    vi.mocked(useShareNudge).mockReturnValue({
+      data: { eligible: true, ranked_count: 9 },
+    } as never)
     renderPage()
-    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('share-nudge-banner')).toBeInTheDocument()
+    expect(screen.getByText(/9 ranked/)).toBeInTheDocument()
   })
 
-  it('shows the soft share CTA at the 5-ranked milestone', () => {
-    mockConfirmed(ridesWithRanks(5))
+  it('shows no share nudge when the RPC reports not eligible', () => {
+    mockConfirmed(ridesWithRanks(9))
+    vi.mocked(useShareNudge).mockReturnValue({
+      data: { eligible: false, ranked_count: 9 },
+    } as never)
     renderPage()
-    expect(screen.getByTestId('share-list-card')).toBeInTheDocument()
-    expect(screen.getByText('Your list is taking shape')).toBeInTheDocument()
+    expect(screen.queryByTestId('share-nudge-banner')).not.toBeInTheDocument()
   })
 
-  it('shows the stronger CTA copy at the 10-ranked milestone', () => {
-    mockConfirmed(ridesWithRanks(10))
-    renderPage()
-    expect(screen.getByText('Milestone unlocked')).toBeInTheDocument()
-    expect(screen.getByText('10 coasters ranked!')).toBeInTheDocument()
-  })
-
-  it('shows the CTA again at a higher milestone after dismissing the earlier one', () => {
-    window.localStorage.setItem('cr.share-cta.dismissed-milestone', '1')
-    mockConfirmed(ridesWithRanks(10))
-    renderPage()
-    expect(screen.getByTestId('share-list-card')).toBeInTheDocument()
-  })
-
-  it('stays hidden when the current milestone was already dismissed', () => {
-    window.localStorage.setItem('cr.share-cta.dismissed-milestone', '2')
-    mockConfirmed(ridesWithRanks(10))
-    renderPage()
-    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
-  })
-
-  it('persists dismissal for the current milestone', async () => {
+  it('hides the share nudge for the rest of the session after dismissal', async () => {
     const user = userEvent.setup()
-    mockConfirmed(ridesWithRanks(5))
+    mockConfirmed(ridesWithRanks(9))
+    vi.mocked(useShareNudge).mockReturnValue({
+      data: { eligible: true, ranked_count: 9 },
+    } as never)
     renderPage()
-    await user.click(screen.getByRole('button', { name: /dismiss/i }))
-    expect(screen.queryByTestId('share-list-card')).not.toBeInTheDocument()
-    expect(window.localStorage.getItem('cr.share-cta.dismissed-milestone')).toBe('1')
-  })
-
-  it('nudges toward claiming a username when the profile has none', () => {
-    vi.mocked(fetchProfile).mockResolvedValue({
-      id: 'u1',
-      username: null,
-      display_name: null,
-      avatar_url: null,
-      is_admin: false,
-      og_image_url: null,
-      public_list: false,
-    })
-    mockConfirmed(ridesWithRanks(5))
-    renderPage()
-    expect(screen.getByText(/claim a username/i)).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: /dismiss/i }))
+    expect(screen.queryByTestId('share-nudge-banner')).not.toBeInTheDocument()
   })
 
   it('shows the welcome nudge on ?welcome=1 for users with nothing ranked', () => {

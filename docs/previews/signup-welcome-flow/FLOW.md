@@ -23,7 +23,6 @@ flowchart TD
     W2 --> WM
     WM -->|"Start ranking (dismiss → localStorage)"| ME["/me search + rank"]
     WM -->|"See the live board first"| B["/ board"]
-    ME -->|"5 / 10 ranked"| SH["ShareListCard milestones"]
 ```
 
 Key properties:

@@ -9,7 +9,7 @@ import ImportListModal, {
   type AppliedImport,
 } from '../components/import/ImportListModal'
 import RankedCoasterList, { REMOVE_UNDO_MS, type PendingAdd } from '../components/RankedCoasterList'
-import ShareListCard from '../components/ShareListCard'
+import ShareNudgeBanner from '../components/ShareNudgeBanner'
 import Toast from '../components/Toast'
 import WelcomeModal from '../components/WelcomeModal'
 import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
@@ -17,15 +17,10 @@ import { Button, MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { applyImport, logImportEvent } from '../lib/import/apply'
 import { fetchProfile } from '../lib/profile'
+import { useShareNudge } from '../lib/share-nudge'
 import { startReplay, stopReplay } from '../lib/sentry'
 import { useMyRides } from '../lib/rides'
 import { isCoarsePointer } from '../lib/use-media-query'
-import {
-  milestoneForRankedCount,
-  persistDismissedMilestone,
-  readDismissedMilestone,
-  SHARE_CTA_DISMISS_KEY,
-} from '../lib/share-cta'
 
 type ToastAction = { label: string; onClick: () => void }
 type ToastState = {
@@ -38,7 +33,7 @@ type ToastState = {
 
 // The sticky search bar only gets its backdrop once it has actually stuck to
 // the header — in normal flow it stays transparent so adjacent card shadows
-// (milestone card above, first ranked card below) aren't painted over.
+// (header above, first ranked card below) aren't painted over.
 const SEARCH_STUCK_ROOT_MARGIN = '-64px 0px 0px 0px'
 
 export default function MyCoastersPage() {
@@ -53,6 +48,11 @@ export default function MyCoastersPage() {
     queryFn: () => fetchProfile(user!.id),
   })
 
+  // One-shot share nudge (idle-settled banner). Eligibility comes from the
+  // claiming RPC at this page's mount only; dismiss is session-local state.
+  const { data: nudge } = useShareNudge()
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
+
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastSeq = useRef(0)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -62,7 +62,6 @@ export default function MyCoastersPage() {
   // at either end of the list, so a long list doesn't force a scroll to reach
   // the top/bottom dividers. The list consumes it and clears pendingAdd.
   const [quickInsert, setQuickInsert] = useState<'top' | 'bottom' | null>(null)
-  const [dismissedMilestone, setDismissedMilestone] = useState(readDismissedMilestone)
   // First-run welcome: shown exactly once, on the first login after signup.
   // The redirect chain (signup / login) lands fresh users on /me?welcome=1;
   // the persisted flag is the backstop (back-button revisit, board-link
@@ -117,23 +116,12 @@ export default function MyCoastersPage() {
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
   const rankedCount = useMemo(() => (rides ?? []).filter((r) => r.rank !== null).length, [rides])
-
-  const milestone = milestoneForRankedCount(rankedCount)
-  const showShareCta = milestone > 0 && milestone > dismissedMilestone
-
-  const dismissShareCta = useCallback(() => {
-    setDismissedMilestone(milestone)
-    persistDismissedMilestone(milestone)
-  }, [milestone])
-
-  // Sync dismissal if storage changes elsewhere (e.g. another tab).
-  useEffect(() => {
-    function onStorage(e: StorageEvent) {
-      if (e.key === SHARE_CTA_DISMISS_KEY) setDismissedMilestone(readDismissedMilestone())
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  // The rider share card leads with the #1 pick; the banner preview shows it.
+  const topPick = useMemo(
+    () => (rides ?? []).find((r) => r.rank === 1)?.coaster.name ?? null,
+    [rides],
+  )
+  const showShareNudge = nudge?.eligible === true && !nudgeDismissed
 
   const notify = useCallback(
     (
@@ -259,14 +247,17 @@ export default function MyCoastersPage() {
         onError={handleError}
       />
 
-      {showShareCta && (
+      {showShareNudge && profile && (
         <div className="mt-6">
-          <ShareListCard
-            username={profile?.username ?? null}
-            publicList={profile?.public_list ?? false}
-            rankedCount={rankedCount}
-            milestone={milestone === 2 ? 2 : 1}
-            onDismiss={dismissShareCta}
+          <ShareNudgeBanner
+            userId={profile.id}
+            username={profile.username}
+            displayName={profile.display_name}
+            avatarUrl={profile.avatar_url}
+            publicList={profile.public_list}
+            rankedCount={nudge.ranked_count}
+            topPick={topPick}
+            onDismiss={() => setNudgeDismissed(true)}
           />
         </div>
       )}
