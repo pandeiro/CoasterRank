@@ -32,9 +32,9 @@ function renderBanner(props: Partial<Parameters<typeof ShareNudgeBanner>[0]> = {
 }
 
 describe('ShareNudgeBanner', () => {
-  it('leads with the share-your-board eyebrow', () => {
+  it('leads with the want-to-share eyebrow', () => {
     renderBanner()
-    expect(screen.getByText('Share your board anytime')).toBeInTheDocument()
+    expect(screen.getByText('Want to share your board?')).toBeInTheDocument()
   })
 
   it('previews the mini card with pills, top-3 table, and the copyable url inside', () => {
@@ -47,7 +47,10 @@ describe('ShareNudgeBanner', () => {
     expect(screen.getByText('Cedar Point')).toBeInTheDocument()
     expect(screen.getByText('#1')).toBeInTheDocument()
     expect(screen.getByText('#3')).toBeInTheDocument()
-    expect(screen.getByText(`${window.location.origin}/riders/coaster_fan`)).toBeInTheDocument()
+    // Displayed without the protocol; the copy button still gets the full URL.
+    expect(
+      screen.getByText(`${window.location.origin.replace(/^https?:\/\//, '')}/riders/coaster_fan`),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /preview/i })).toHaveAttribute(
       'href',

@@ -223,20 +223,50 @@ export default function MyCoastersPage() {
 
   return (
     <div>
-      <PageHeader
-        title="My Coasters"
-        description={
-          rankedCount > 0
-            ? `${rankedCount} coaster${rankedCount === 1 ? '' : 's'} ranked`
-            : 'Search for coasters below to start building your list.'
-        }
-        action={
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+      {/* Custom header layout (vs. PageHeader) so the share nudge can sit
+          between the title and the Import list button on mobile — the import
+          entry point belongs next to the search/ranking machinery, not
+          separated from it by the banner. Desktop keeps Import top-right. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
+        <div className="order-1 min-w-0 sm:flex-1">
+          <PageHeader
+            title="My Coasters"
+            description={
+              rankedCount > 0
+                ? `${rankedCount} coaster${rankedCount === 1 ? '' : 's'} ranked`
+                : 'Search for coasters below to start building your list.'
+            }
+          />
+        </div>
+
+        {showShareNudge && profile && (
+          <div className="order-2 w-full sm:order-3">
+            <ShareNudgeBanner
+              userId={profile.id}
+              username={profile.username}
+              displayName={profile.display_name}
+              avatarUrl={profile.avatar_url}
+              publicList={profile.public_list}
+              rankedCount={nudge.ranked_count}
+              parkCount={parkCount}
+              topThree={topThree}
+              onDismiss={() => setNudgeDismissed(true)}
+            />
+          </div>
+        )}
+
+        <div className="order-3 w-full sm:order-2 sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setImportOpen(true)}
+          >
             <Upload className="h-3.5 w-3.5" />
             Import list
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {showWelcome && user?.id && (
         <WelcomeModal
@@ -258,22 +288,6 @@ export default function MyCoastersPage() {
         onApplied={handleImportApplied}
         onError={handleError}
       />
-
-      {showShareNudge && profile && (
-        <div className="mt-6">
-          <ShareNudgeBanner
-            userId={profile.id}
-            username={profile.username}
-            displayName={profile.display_name}
-            avatarUrl={profile.avatar_url}
-            publicList={profile.public_list}
-            rankedCount={nudge.ranked_count}
-            parkCount={parkCount}
-            topThree={topThree}
-            onDismiss={() => setNudgeDismissed(true)}
-          />
-        </div>
-      )}
 
       <div ref={searchSentinelRef} aria-hidden="true" className="h-px" />
 
