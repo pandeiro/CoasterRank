@@ -4,6 +4,12 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ShareNudgeBanner from './ShareNudgeBanner'
 
+const topThree = [
+  { rank: 1, name: 'Steel Vengeance', parkName: 'Cedar Point' },
+  { rank: 2, name: 'Fury 325', parkName: 'Carowinds' },
+  { rank: 3, name: 'Iron Gwazi', parkName: null },
+]
+
 function renderBanner(props: Partial<Parameters<typeof ShareNudgeBanner>[0]> = {}) {
   const onDismiss = vi.fn()
   render(
@@ -16,7 +22,7 @@ function renderBanner(props: Partial<Parameters<typeof ShareNudgeBanner>[0]> = {
         publicList={true}
         rankedCount={9}
         parkCount={5}
-        topPick="Steel Vengeance"
+        topThree={topThree}
         onDismiss={onDismiss}
         {...props}
       />
@@ -31,12 +37,16 @@ describe('ShareNudgeBanner', () => {
     expect(screen.getByText('Share your board anytime')).toBeInTheDocument()
   })
 
-  it('previews the og-style mini card with pills, copy, and preview when live', () => {
+  it('previews the mini card with pills, top-3 table, and the copyable url inside', () => {
     renderBanner()
     expect(screen.getByText('@coaster_fan')).toBeInTheDocument()
     expect(screen.getByText('9 ranked')).toBeInTheDocument()
     expect(screen.getByText('5 parks')).toBeInTheDocument()
-    expect(screen.getByText('#1 Steel Vengeance')).toBeInTheDocument()
+    expect(screen.getByText(/top 3/i)).toBeInTheDocument()
+    expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
+    expect(screen.getByText('Cedar Point')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.getByText('#3')).toBeInTheDocument()
     expect(screen.getByText(`${window.location.origin}/riders/coaster_fan`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /preview/i })).toHaveAttribute(
@@ -49,6 +59,11 @@ describe('ShareNudgeBanner', () => {
     renderBanner({ displayName: 'Ana' })
     expect(screen.getByText('Ana')).toBeInTheDocument()
     expect(screen.queryByText('coaster_fan')).not.toBeInTheDocument()
+  })
+
+  it('hides the top-3 table when nothing is ranked', () => {
+    renderBanner({ topThree: [] })
+    expect(screen.queryByText(/top 3/i)).not.toBeInTheDocument()
   })
 
   it('asks to turn on sharing when the list is not public', () => {

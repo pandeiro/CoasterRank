@@ -76,6 +76,7 @@ function syntheticRideFromRow(row: RankingRow): UserRide {
       material: row.material,
       park_id: row.park_id,
       manufacturer_name: row.manufacturer_name,
+      park_name: row.park_name,
       park_country: row.park_country,
     },
   }

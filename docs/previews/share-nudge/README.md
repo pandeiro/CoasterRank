@@ -7,8 +7,8 @@ Screenshots for the idle-settled share nudge (PLAN §2 "Share nudge v2"), captur
 
 | File | Shows |
 | --- | --- |
-| `share-nudge-states-desktop.png` | The banner's three states, desktop: live (copy + preview), claimed-but-not-sharing (turn-on CTA), no username (claim CTA). Each leads with the "Share your board anytime" eyebrow over the dark og-style mini-card (avatar, display-font name, cyan @handle, ranked/parks/#1 pills). |
-| `share-nudge-states-mobile.png` | Same three states at 390px — the mini-card goes full-width and the actions wrap below. |
+| `share-nudge-states-desktop.png` | The banner's three states, desktop: live (copy + preview), claimed-but-not-sharing (turn-on CTA), no username (claim CTA). Each leads with the "Share your board anytime" eyebrow over the accent-tinted mini-card: avatar, display-font name, cyan @handle, ranked/parks pills, a live top-3 mini table, and the copyable rider URL in the card. |
+| `share-nudge-states-mobile.png` | Same three states at 390px — the card stacks (identity, top-3 table, URL/CTA rows) full-width. |
 | `share-nudge-placement-desktop.png` | The live banner in context on `/me`, between the page header and the sticky search bar. |
 | `share-nudge-placement-mobile.png` | Same placement at 390px (viewport crop). |
 

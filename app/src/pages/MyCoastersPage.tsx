@@ -116,10 +116,17 @@ export default function MyCoastersPage() {
 
   const existingIds = useMemo(() => new Set((rides ?? []).map((r) => r.coaster_id)), [rides])
   const rankedCount = useMemo(() => (rides ?? []).filter((r) => r.rank !== null).length, [rides])
-  // The rider share card leads with the #1 pick; the banner preview shows it
-  // plus the ranked/parks pills, echoing the OG card's stat pills.
-  const topPick = useMemo(
-    () => (rides ?? []).find((r) => r.rank === 1)?.coaster.name ?? null,
+  // The nudge's mini table mirrors the rider share card's top rows.
+  const topThree = useMemo(
+    () =>
+      (rides ?? [])
+        .filter((r) => r.rank !== null)
+        .slice(0, 3)
+        .map((r) => ({
+          rank: r.rank as number,
+          name: r.coaster.name,
+          parkName: r.coaster.park_name ?? null,
+        })),
     [rides],
   )
   const parkCount = useMemo(
@@ -262,7 +269,7 @@ export default function MyCoastersPage() {
             publicList={profile.public_list}
             rankedCount={nudge.ranked_count}
             parkCount={parkCount}
-            topPick={topPick}
+            topThree={topThree}
             onDismiss={() => setNudgeDismissed(true)}
           />
         </div>

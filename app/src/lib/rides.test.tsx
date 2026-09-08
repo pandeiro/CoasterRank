@@ -91,7 +91,7 @@ describe('useMyRides', () => {
     const { result } = renderMyRides()
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(select).toHaveBeenCalledWith(
-      'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(country))',
+      'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(name, country))',
     )
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('score'))
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('comparisons'))
@@ -113,7 +113,7 @@ describe('useMyRides', () => {
             material: 'steel',
             park_id: 'p1',
             manufacturers: { name: 'RMC' },
-            parks: { country: 'United States' },
+            parks: { name: 'Cedar Point', country: 'United States' },
           },
         },
         {
@@ -127,7 +127,7 @@ describe('useMyRides', () => {
             material: 'steel',
             park_id: 'p2',
             manufacturers: { name: 'B&M' },
-            parks: { country: 'United States' },
+            parks: { name: 'Cedar Point', country: 'United States' },
           },
         },
       ],
@@ -148,6 +148,7 @@ describe('useMyRides', () => {
           material: 'steel',
           park_id: 'p1',
           manufacturer_name: 'RMC',
+          park_name: 'Cedar Point',
           park_country: 'United States',
         },
       },
@@ -162,6 +163,7 @@ describe('useMyRides', () => {
           material: 'steel',
           park_id: 'p2',
           manufacturer_name: 'B&M',
+          park_name: 'Cedar Point',
           park_country: 'United States',
         },
       },
@@ -177,7 +179,7 @@ describe('useMyRides', () => {
       material: 'wood',
       park_id: 'p1',
       manufacturers: { name: 'GCI' },
-      parks: { country: 'United Kingdom' },
+      parks: { name: 'Alton Towers', country: 'United Kingdom' },
     }
     mockQuery({ data: [{ coaster_id: 'c1', rank: 1, coasters: [coaster] }], error: null })
     const { result } = renderMyRides()
@@ -194,6 +196,7 @@ describe('useMyRides', () => {
           material: 'wood',
           park_id: 'p1',
           manufacturer_name: 'GCI',
+          park_name: 'Alton Towers',
           park_country: 'United Kingdom',
         },
       },

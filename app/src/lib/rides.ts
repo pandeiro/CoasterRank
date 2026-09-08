@@ -14,6 +14,7 @@ export type UserRideCoaster = {
   material: string
   park_id: string
   manufacturer_name: string | null
+  park_name: string | null
   park_country: string | null
 }
 
@@ -41,7 +42,7 @@ export function useMyRides() {
       const { data, error } = await supabase
         .from('user_rides')
         .select(
-          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(country))',
+          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(name, country))',
         )
         .order('rank', { ascending: true, nullsFirst: false })
       if (error) throw error
@@ -56,7 +57,7 @@ export function useMyRides() {
         material: string
         park_id: string
         manufacturers: { name: string } | { name: string }[] | null
-        parks: { country: string } | { country: string }[] | null
+        parks: { name: string; country: string } | { name: string; country: string }[] | null
       }
       return (
         data as {
@@ -79,6 +80,7 @@ export function useMyRides() {
             material: raw.material,
             park_id: raw.park_id,
             manufacturer_name: mfg?.name ?? null,
+            park_name: park?.name ?? null,
             park_country: park?.country ?? null,
           },
         }
