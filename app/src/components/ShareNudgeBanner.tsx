@@ -60,7 +60,10 @@ export default function ShareNudgeBanner({
       className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:p-5"
       data-testid="share-nudge-banner"
     >
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+      {/* Desktop only: tighten the left↔middle dead zone and give the middle
+          column its own outlined card feel; mobile stacks unwrapped and keeps
+          the rows directly on the tint. */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
         <div className="min-w-0 flex-1 basis-52">
           <p className="display-heading text-xl leading-tight text-ink">
             Want to share your board?
@@ -68,7 +71,7 @@ export default function ShareNudgeBanner({
           <p className="mt-1.5 text-sm leading-snug text-muted">Put your top 3 on the internet.</p>
         </div>
 
-        <div className="min-w-0 flex-1 basis-72">
+        <div className="min-w-0 flex-1 basis-72 sm:rounded-xl sm:border sm:border-accent/30 sm:bg-surface-bright/70 sm:p-3.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <Avatar
               src={avatarUrl}
