@@ -5,8 +5,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SuggestEditPage from './SuggestEditPage'
 import { useAuth } from '../lib/auth-context'
-import { getMySubmissions, submitEditSuggestion, useCoaster, useParks } from '../lib/coasters'
-import { makePark, makeRankingRow } from '../test/fixtures'
+import {
+  getMySubmissions,
+  submitEditSuggestion,
+  useCoaster,
+  useManufacturers,
+  useParks,
+} from '../lib/coasters'
+import { makeManufacturer, makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/auth-context', () => ({
   useAuth: vi.fn(),
@@ -18,6 +24,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     ...actual,
     useCoaster: vi.fn(),
     useParks: vi.fn(),
+    useManufacturers: vi.fn(),
     getMySubmissions: vi.fn(),
     submitEditSuggestion: vi.fn(),
     SUBMISSION_PENDING_CAP: 5,
@@ -43,6 +50,8 @@ const coaster = makeRankingRow({
 
 const parks = [makePark({ id: 'park-1', name: 'Cedar Point' })]
 
+const manufacturers = [makeManufacturer({ id: 'mfg-intamin', name: 'Intamin AG', slug: 'intamin' })]
+
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -50,6 +59,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/coasters/steel-vengeance/suggest-edit']}>
         <Routes>
           <Route path="/coasters/:slug/suggest-edit" element={<SuggestEditPage />} />
+          <Route path="/coasters/:slug" element={<div data-testid="coaster-detail" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -69,6 +79,7 @@ describe('SuggestEditPage', () => {
       isError: false,
     } as never)
     vi.mocked(useParks).mockReturnValue({ data: parks } as never)
+    vi.mocked(useManufacturers).mockReturnValue({ data: manufacturers } as never)
     vi.mocked(getMySubmissions).mockResolvedValue([])
     vi.mocked(submitEditSuggestion).mockResolvedValue({ id: 'e1' } as never)
   })
@@ -95,7 +106,30 @@ describe('SuggestEditPage', () => {
       park_name: 'Cedar Point',
       park_id: 'park-1',
       suggested_fields: { height_m: 63 },
+      note: null,
     })
+  })
+
+  it('proposes a manufacturer swap and carries the note', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const manufacturer = await screen.findByLabelText(/manufacturer/i)
+    await user.type(manufacturer, 'Intamin')
+    await user.click(screen.getByText('Intamin AG'))
+    expect(await screen.findByText('1 change proposed.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText(/note \(optional\)/i), 'Per RCDB, built by Intamin.')
+    await user.click(screen.getByRole('button', { name: /suggest edit/i }))
+    expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
+      suggested_fields: { manufacturer_id: 'mfg-intamin' },
+      note: 'Per RCDB, built by Intamin.',
+    })
+  })
+
+  it('navigates back to the coaster on cancel', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /cancel/i }))
+    expect(screen.getByTestId('coaster-detail')).toBeInTheDocument()
   })
 
   it('shows the email gate when not confirmed', async () => {

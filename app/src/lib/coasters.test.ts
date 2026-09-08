@@ -546,7 +546,7 @@ describe('approveSubmission', () => {
     expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p1' }))
   })
 
-  it('strips hostile payload keys before the coaster insert (C-01)', async () => {
+  it('applies approvable descriptive fields but strips hostile keys (C-01)', async () => {
     const hostile = {
       ...submission,
       park_id: 'p1',
@@ -560,6 +560,9 @@ describe('approveSubmission', () => {
         status: 'defunct',
         external_id: 'evil',
         id: 'evil-id',
+        manufacturer_id: '11111111-2222-4333-8444-555555555555',
+        model: 'Ibox',
+        opening_date: '2024-05-04',
       },
     } as unknown as CoasterSubmission
     await approveSubmission('s1', hostile)
@@ -569,6 +572,40 @@ describe('approveSubmission', () => {
       slug: 'test-coaster',
       source: 'community',
       height_m: 40,
+      speed_kmh: null,
+      length_m: null,
+      inversions: null,
+      material: null,
+      status: 'defunct',
+      manufacturer_id: '11111111-2222-4333-8444-555555555555',
+      model: 'Ibox',
+      opening_date: '2024-05-04',
+    })
+    const insertArg = coasterInsert.mock.calls[0][0] as Record<string, unknown>
+    expect(insertArg).not.toHaveProperty('id')
+    expect(insertArg).not.toHaveProperty('external_id')
+  })
+
+  it('drops malformed descriptive values instead of applying them', async () => {
+    const malformed = {
+      ...submission,
+      park_id: 'p1',
+      suggested_fields: {
+        ...submission.suggested_fields,
+        manufacturer_id: 'not-a-uuid',
+        status: 'running',
+        model: 'x'.repeat(121),
+        type: 42,
+        opening_date: 'not-a-date',
+      },
+    } as unknown as CoasterSubmission
+    await approveSubmission('s1', malformed)
+    expect(coasterInsert).toHaveBeenCalledWith({
+      park_id: 'p1',
+      name: 'Test Coaster',
+      slug: 'test-coaster',
+      source: 'community',
+      height_m: null,
       speed_kmh: null,
       length_m: null,
       inversions: null,
@@ -587,6 +624,7 @@ describe('diffEditProposal', () => {
     speed_kmh: 119,
     length_m: 1700,
     inversions: 4,
+    manufacturer_id: 'mfg-1',
     model: null,
     type: 'Hybrid Coaster',
     opening_date: '2018-04-28',
@@ -602,6 +640,7 @@ describe('diffEditProposal', () => {
       speed_kmh: '119',
       length_m: '1700',
       inversions: '4',
+      manufacturer_id: 'mfg-1',
       model: '',
       type: 'Hybrid Coaster',
       opening_date: '2018-04-28',
@@ -648,6 +687,16 @@ describe('diffEditProposal', () => {
     expect(diffEditProposal(current, proposal({ name: 'SteVe' })).diff).toEqual({
       name: 'SteVe',
     })
+  })
+
+  it('picks up manufacturer swaps and clears', () => {
+    expect(diffEditProposal(current, proposal({ manufacturer_id: 'mfg-2' })).diff).toEqual({
+      manufacturer_id: 'mfg-2',
+    })
+    expect(diffEditProposal(current, proposal({ manufacturer_id: '' })).diff).toEqual({
+      manufacturer_id: null,
+    })
+    expect(diffEditProposal(current, proposal({ manufacturer_id: 'mfg-1' })).diff).toEqual({})
   })
 })
 
@@ -731,6 +780,39 @@ describe('approveEditSubmission', () => {
     expect(applied).not.toHaveProperty('slug')
     expect(applied).not.toHaveProperty('id')
     expect(applied.park_id).toBe('park-1')
+  })
+
+  it('applies only well-formed manufacturer ids', async () => {
+    await approveEditSubmission('e1', {
+      ...editSubmission,
+      suggested_fields: { manufacturer_id: '99999999-8888-4777-8666-555555555555' },
+    } as unknown as CoasterSubmission)
+    const good = vi.mocked(supabase.from).mock.results[0].value as {
+      update: ReturnType<typeof vi.fn>
+    }
+    expect(good.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        manufacturer_id: '99999999-8888-4777-8666-555555555555',
+        park_id: 'park-1',
+      }),
+    )
+
+    vi.clearAllMocks()
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'coasters') {
+        return { update: vi.fn().mockReturnValue({ eq: coasterUpdateEq }) }
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) }
+    }) as never)
+    coasterUpdateEq.mockResolvedValue({ error: null })
+    await approveEditSubmission('e1', {
+      ...editSubmission,
+      suggested_fields: { manufacturer_id: 'garbage' },
+    } as unknown as CoasterSubmission)
+    const bad = vi.mocked(supabase.from).mock.results[0].value as {
+      update: ReturnType<typeof vi.fn>
+    }
+    expect(bad.update.mock.calls[0][0]).not.toHaveProperty('manufacturer_id')
   })
 
   it('refuses edits without a target coaster', async () => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import Toast from '../components/Toast'
@@ -14,8 +14,10 @@ import {
   SUBMISSION_PENDING_CAP,
   submitEditSuggestion,
   useCoaster,
+  useManufacturers,
   useParks,
   type EditProposalInput,
+  type Manufacturer,
   type Park,
 } from '../lib/coasters'
 
@@ -30,12 +32,21 @@ export default function SuggestEditPage() {
   const queryClient = useQueryClient()
   const { data: coaster, isPending, isError } = useCoaster(slug)
   const { data: parks = [] } = useParks()
+  const { data: manufacturers = [] } = useManufacturers()
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(null)
 
   // Park picker (same typeahead pattern as /submit), seeded to the current park.
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
   const [parkTouched, setParkTouched] = useState(false)
+
+  // Manufacturer picker — same pattern, seeded to the current manufacturer.
+  const [searchManufacturer, setSearchManufacturer] = useState('')
+  const [selectedManufacturer, setSelectedManufacturer] = useState<Manufacturer | null>(null)
+  const [manufacturerTouched, setManufacturerTouched] = useState(false)
+
+  // Free-text context for the reviewer (explanations, evidence links, …).
+  const [note, setNote] = useState('')
 
   const { data: mySubmissions = [] } = useQuery({
     queryKey: ['my-submissions', user?.id],
@@ -54,8 +65,20 @@ export default function SuggestEditPage() {
   }, [coaster, parks])
   const effectivePark = parkTouched ? selectedPark : (selectedPark ?? currentPark)
 
+  const currentManufacturer: Manufacturer | null = useMemo(() => {
+    if (!coaster) return null
+    return manufacturers.find((m) => m.id === coaster.manufacturer_id) ?? null
+  }, [coaster, manufacturers])
+  const effectiveManufacturer = manufacturerTouched
+    ? selectedManufacturer
+    : (selectedManufacturer ?? currentManufacturer)
+
   const filteredParks = parks
     .filter((p) => p.name.toLowerCase().includes(searchPark.toLowerCase()))
+    .slice(0, 5)
+
+  const filteredManufacturers = manufacturers
+    .filter((m) => m.name.toLowerCase().includes(searchManufacturer.toLowerCase()))
     .slice(0, 5)
 
   const mutation = useMutation({
@@ -83,6 +106,7 @@ export default function SuggestEditPage() {
       speed_kmh: str(coaster.speed_kmh),
       length_m: str(coaster.length_m),
       inversions: str(coaster.inversions),
+      manufacturer_id: coaster.manufacturer_id ?? '',
       model: coaster.model ?? '',
       type: coaster.type ?? '',
       opening_date: coaster.opening_date ?? '',
@@ -93,8 +117,15 @@ export default function SuggestEditPage() {
   const [draft, setDraft] = useState<Partial<EditProposalInput>>({})
   const merged: EditProposalInput | null = useMemo(
     () =>
-      initial ? { ...initial, ...draft, park_id: effectivePark?.id ?? initial.park_id } : null,
-    [initial, draft, effectivePark],
+      initial
+        ? {
+            ...initial,
+            ...draft,
+            park_id: effectivePark?.id ?? initial.park_id,
+            manufacturer_id: effectiveManufacturer?.id ?? initial.manufacturer_id,
+          }
+        : null,
+    [initial, draft, effectivePark, effectiveManufacturer],
   )
   const { diff, parkChanged } = useMemo(
     () =>
@@ -133,6 +164,7 @@ export default function SuggestEditPage() {
       park_name: effectivePark.name,
       park_id: effectivePark.id,
       suggested_fields: diff,
+      note: note.trim() || null,
     })
   }
 
@@ -214,6 +246,46 @@ export default function SuggestEditPage() {
                   ⚠ Moving to {effectivePark.name} — moderators check this carefully.
                 </p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-2 relative">
+              <label htmlFor="edit-manufacturer" className="text-sm font-medium text-ink-soft">
+                Manufacturer
+              </label>
+              <input
+                id="edit-manufacturer"
+                value={
+                  manufacturerTouched ? searchManufacturer : (effectiveManufacturer?.name ?? '')
+                }
+                onChange={(e) => {
+                  setSearchManufacturer(e.target.value)
+                  setSelectedManufacturer(null)
+                  setManufacturerTouched(true)
+                }}
+                className={fieldClassName}
+                placeholder="Unknown"
+                autoComplete="off"
+              />
+              {manufacturerTouched &&
+                searchManufacturer &&
+                !selectedManufacturer &&
+                filteredManufacturers.length > 0 && (
+                  <ul className="absolute top-full z-20 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
+                    {filteredManufacturers.map((m) => (
+                      <li
+                        key={m.id}
+                        className="cursor-pointer p-2 text-sm hover:bg-canvas"
+                        onClick={() => {
+                          setSelectedManufacturer(m)
+                          setSearchManufacturer(m.name)
+                        }}
+                      >
+                        {m.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              {currentLine('manufacturer', coaster.manufacturer_name ?? '')}
             </div>
           </div>
 
@@ -328,31 +400,53 @@ export default function SuggestEditPage() {
             </div>
           </div>
 
+          <div className="border-t border-line pt-6">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="edit-note" className="text-sm font-medium text-ink-soft">
+                Note (optional)
+              </label>
+              <textarea
+                id="edit-note"
+                rows={3}
+                maxLength={2000}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className={fieldClassName}
+                placeholder="Anything that helps the reviewer…"
+              />
+              <p className="text-xs text-muted">
+                Extra context for the reviewer — additional explanation, corrections, or evidence
+                links (RCDB, park site), etc.
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
             <p className="text-sm text-muted">
               {changeCount === 0
                 ? 'No changes yet.'
                 : `${changeCount} change${changeCount === 1 ? '' : 's'} proposed.`}
             </p>
-            <Button
-              type="submit"
-              variant="coral"
-              disabled={mutation.isPending || atCap || changeCount === 0 || !effectivePark}
-            >
-              {mutation.isPending ? 'Sending…' : 'Suggest Edit'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={() => navigate(`/coasters/${slug}`)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="coral"
+                disabled={mutation.isPending || atCap || changeCount === 0 || !effectivePark}
+              >
+                {mutation.isPending ? 'Sending…' : 'Suggest Edit'}
+              </Button>
+            </div>
           </div>
         </form>
       </Panel>
-
-      <p className="mt-4 text-sm">
-        <Link
-          to={`/coasters/${slug}`}
-          className="font-medium text-ink underline-offset-4 hover:underline"
-        >
-          ← Back to {coaster.name}
-        </Link>
-      </p>
 
       {toast && (
         <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />

@@ -200,9 +200,6 @@ export default function AboutPage() {
         <Link to="/faq" className="text-muted underline transition-colors hover:text-ink">
           More questions? Read the FAQ
         </Link>
-        <Link to="/" className="text-muted underline-offset-4 transition-colors hover:text-ink">
-          &larr; Back to the board
-        </Link>
       </div>
     </div>
   )

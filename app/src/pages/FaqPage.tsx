@@ -55,7 +55,9 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
         <Link to="/submit" className="underline transition-colors hover:text-ink">
           Submit page
         </Link>
-        . Spotted an error — a wrong park, a coaster that&apos;s gone defunct? Open an issue on{' '}
+        . Spotted an error on a coaster — a wrong stat, park, or manufacturer? Use the{' '}
+        <em>See something wrong? Suggest an edit</em> link on that coaster&apos;s page. For anything
+        else, open an issue on{' '}
         <a
           href="https://github.com/pandeiro/CoasterRank/issues"
           target="_blank"
@@ -126,12 +128,6 @@ export default function FaqPage() {
             {a}
           </section>
         ))}
-      </div>
-
-      <div className="mt-12 border-t border-line pt-6">
-        <Link to="/" className="text-xs text-muted underline transition-colors hover:text-ink">
-          &larr; Back to the board
-        </Link>
       </div>
     </div>
   )
