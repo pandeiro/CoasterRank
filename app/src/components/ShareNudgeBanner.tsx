@@ -57,7 +57,7 @@ export default function ShareNudgeBanner({
     // Plain div, not Panel — Panel's bg-surface-bright/border-line would win
     // the cascade over the banner's accent tint.
     <div
-      className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:p-5"
+      className="rounded-xl border border-accent/30 bg-accent/10 p-4 shadow-panel sm:relative sm:left-1/2 sm:w-[min(100vw-2rem,1232px)] sm:-translate-x-1/2 sm:p-5"
       data-testid="share-nudge-banner"
     >
       {/* Desktop only: the column cluster is capped at max-w-5xl and centered
@@ -66,7 +66,7 @@ export default function ShareNudgeBanner({
           remainder evenly across the two gutters. Columns stay content-width
           (no flex-1 growth) and shrink gracefully below the cap; mobile
           stacks unwrapped and keeps the rows directly on the tint. */}
-      <div className="mx-auto flex w-full max-w-[980px] flex-wrap items-center justify-between gap-x-5 gap-y-4">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-4">
         <div className="min-w-0 flex-1 basis-52 sm:w-[260px] sm:flex-none">
           <p className="display-heading text-xl leading-tight text-ink">
             Want to share your board?
@@ -74,7 +74,7 @@ export default function ShareNudgeBanner({
           <p className="mt-1.5 text-sm leading-snug text-muted">Put your top 3 on the internet.</p>
         </div>
 
-        <div className="min-w-0 flex-1 basis-72 sm:max-w-[420px] sm:basis-auto sm:grow-0 sm:rounded-xl sm:border sm:border-accent/30 sm:bg-surface-bright/70 sm:p-3.5">
+        <div className="min-w-0 flex-1 basis-72 sm:w-[440px] sm:basis-auto sm:grow-0 sm:rounded-xl sm:border sm:border-accent/30 sm:bg-surface-bright/70 sm:p-3.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <Avatar
               src={avatarUrl}
