@@ -34,12 +34,7 @@ export default function RiderPage() {
           <title>Rider not found — CoasterRank</title>
           <meta name="robots" content="noindex" />
         </Helmet>
-        <MessageState>
-          This rider page doesn&apos;t exist or isn&apos;t shared.{' '}
-          <Link to="/" className="font-medium text-ink underline underline-offset-4">
-            Back to the board
-          </Link>
-        </MessageState>
+        <MessageState>This rider page doesn&apos;t exist or isn&apos;t shared.</MessageState>
       </div>
     )
   }

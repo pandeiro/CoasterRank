@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import FaqPage from './FaqPage'
 
 describe('FaqPage', () => {
-  it('renders all questions with links back to the board', () => {
+  it('renders all questions with in-app links', () => {
     render(
       <MemoryRouter>
         <FaqPage />
@@ -12,7 +12,7 @@ describe('FaqPage', () => {
     )
     expect(screen.getByRole('heading', { name: 'FAQ' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(8)
-    expect(screen.getByRole('link', { name: '← Back to the board' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: /back to the board/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'How the ranking works' })).toHaveAttribute(
       'href',
       '/about',

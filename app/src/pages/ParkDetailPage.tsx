@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
 import { MessageState } from '../components/ui'
 import { useAllCoasters, usePark } from '../lib/coasters'
@@ -38,11 +38,6 @@ export default function ParkDetailPage() {
       </p>
       <div className="mt-6">
         <CoasterTable rows={parkCoasters} showPark={false} />
-      </div>
-      <div className="mt-8">
-        <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
-          ← Back to the board
-        </Link>
       </div>
     </div>
   )

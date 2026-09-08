@@ -81,6 +81,20 @@ describe('CoasterDetailPage', () => {
     expect(screen.getByText(/Also known as: Gwazi/)).toBeInTheDocument()
   })
 
+  it('links to suggest-edit and drops the redundant board link', () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Steel Vengeance' }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.getByRole('link', { name: /see something wrong/i })).toHaveAttribute(
+      'href',
+      '/coasters/steel-vengeance/suggest-edit',
+    )
+    expect(screen.queryByRole('link', { name: /back to the board/i })).not.toBeInTheDocument()
+  })
+
   it('shows an em dash for missing stats', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({

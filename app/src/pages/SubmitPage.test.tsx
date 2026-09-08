@@ -5,18 +5,30 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SubmitPage from './SubmitPage'
 import { useAuth } from '../lib/auth-context'
-import { getMySubmissions, submitCoaster, useParks, type CoasterSubmission } from '../lib/coasters'
+import {
+  getMySubmissions,
+  submitCoaster,
+  useManufacturers,
+  useParks,
+  type CoasterSubmission,
+} from '../lib/coasters'
 
 vi.mock('../lib/auth-context', () => ({
   useAuth: vi.fn(),
 }))
 
-vi.mock('../lib/coasters', () => ({
-  useParks: vi.fn(),
-  getMySubmissions: vi.fn(),
-  submitCoaster: vi.fn(),
-  SUBMISSION_PENDING_CAP: 5,
-}))
+vi.mock('../lib/coasters', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/coasters')>()
+  return {
+    ...actual,
+    useParks: vi.fn(),
+    useManufacturers: vi.fn(),
+    getMySubmissions: vi.fn(),
+    markMySubmissionsSeen: vi.fn(),
+    submitCoaster: vi.fn(),
+    SUBMISSION_PENDING_CAP: 5,
+  }
+})
 
 vi.mock('../components/ConfirmEmailGate', () => ({
   default: ({ email }: { email?: string }) => <div data-testid="confirm-gate">{email}</div>,
@@ -24,6 +36,10 @@ vi.mock('../components/ConfirmEmailGate', () => ({
 
 const parks = [
   { id: 'p1', name: 'Cedar Point', slug: 'cedar-point', country: 'USA', region: null, city: null },
+]
+
+const manufacturers = [
+  { id: 'mfg-rmc', name: 'Rocky Mountain Construction', slug: 'rocky-mountain-construction' },
 ]
 
 function renderPage() {
@@ -43,6 +59,7 @@ function mockConfirmed() {
     isConfirmed: true,
   } as never)
   vi.mocked(useParks).mockReturnValue({ data: parks } as never)
+  vi.mocked(useManufacturers).mockReturnValue({ data: manufacturers } as never)
 }
 
 function makeSubmission(overrides: Partial<CoasterSubmission> = {}): CoasterSubmission {
@@ -84,11 +101,11 @@ describe('SubmitPage', () => {
       isConfirmed: false,
     } as never)
     vi.mocked(useParks).mockReturnValue({ data: parks } as never)
+    vi.mocked(useManufacturers).mockReturnValue({ data: [] } as never)
     renderPage()
     expect(screen.getByTestId('confirm-gate')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /submit for review/i })).not.toBeInTheDocument()
   })
-
   it('lists the user’s submissions with status', async () => {
     mockConfirmed()
     vi.mocked(getMySubmissions).mockResolvedValue([
@@ -139,10 +156,43 @@ describe('SubmitPage', () => {
           length_m: null,
           inversions: null,
           material: null,
+          manufacturer_id: null,
+          status: null,
+          model: null,
+          type: null,
+          opening_date: null,
         },
+        note: null,
       },
       expect.anything(),
     )
+  })
+
+  it('carries manufacturer, details, and the note into the payload', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Steel Vengeance 2')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar Point')
+    await user.type(screen.getByLabelText(/manufacturer/i), 'Rocky')
+    await user.click(screen.getByText('Rocky Mountain Construction'))
+    await user.selectOptions(screen.getByLabelText(/^status/i), 'under_construction')
+    await user.type(screen.getByLabelText(/^model/i), 'RMC IBox Track')
+    await user.type(screen.getByLabelText(/opening date/i), '2027-05-01')
+    await user.type(screen.getByLabelText(/note \(optional\)/i), 'RCDB: https://rcdb.com/9999')
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
+    expect(vi.mocked(submitCoaster).mock.calls[0][0]).toMatchObject({
+      suggested_fields: {
+        manufacturer_id: 'mfg-rmc',
+        status: 'under_construction',
+        model: 'RMC IBox Track',
+        opening_date: '2027-05-01',
+      },
+      note: 'RCDB: https://rcdb.com/9999',
+    })
   })
 
   it('shows an error toast when the insert fails', async () => {

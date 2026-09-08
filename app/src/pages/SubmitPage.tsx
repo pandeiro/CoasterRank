@@ -6,12 +6,16 @@ import Toast from '../components/Toast'
 import { Button, fieldClassName, MessageState, Panel, selectClassName } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import {
+  capitalize,
+  COASTER_STATUSES,
   getMySubmissions,
   markMySubmissionsSeen,
   SUBMISSION_PENDING_CAP,
   submitCoaster,
+  useManufacturers,
   useParks,
   type CoasterSubmission,
+  type Manufacturer,
   type Park,
   type SuggestedFields,
 } from '../lib/coasters'
@@ -26,11 +30,14 @@ export default function SubmitPage() {
   const { user, isConfirmed } = useAuth()
   const queryClient = useQueryClient()
   const { data: parks = [] } = useParks()
+  const { data: manufacturers = [] } = useManufacturers()
   const [searchParams] = useSearchParams()
   const location = useLocation()
 
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
+  const [searchManufacturer, setSearchManufacturer] = useState('')
+  const [selectedManufacturer, setSelectedManufacturer] = useState<Manufacturer | null>(null)
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(() => {
     const justSuggested = (location.state as { justSuggested?: string } | null)?.justSuggested
     return justSuggested
@@ -75,6 +82,10 @@ export default function SubmitPage() {
     .filter((p) => p.name.toLowerCase().includes(searchPark.toLowerCase()))
     .slice(0, 5)
 
+  const filteredManufacturers = manufacturers
+    .filter((m) => m.name.toLowerCase().includes(searchManufacturer.toLowerCase()))
+    .slice(0, 5)
+
   const mutation = useMutation({
     mutationFn: submitCoaster,
     onSuccess: () => {
@@ -101,7 +112,13 @@ export default function SubmitPage() {
       length_m: formData.get('length') ? Number(formData.get('length')) : null,
       inversions: formData.get('inversions') ? Number(formData.get('inversions')) : null,
       material: (formData.get('material') as SuggestedFields['material']) || null,
+      manufacturer_id: selectedManufacturer?.id ?? null,
+      status: (formData.get('status') as SuggestedFields['status']) || null,
+      model: ((formData.get('model') as string) || '').trim() || null,
+      type: ((formData.get('type') as string) || '').trim() || null,
+      opening_date: (formData.get('opening_date') as string) || null,
     }
+    const note = ((formData.get('note') as string) || '').trim() || null
 
     mutation.mutate(
       {
@@ -109,12 +126,15 @@ export default function SubmitPage() {
         park_name: selectedPark ? selectedPark.name : (formData.get('park_name') as string).trim(),
         park_id: selectedPark?.id ?? null,
         suggested_fields,
+        note,
       },
       {
         onSuccess: () => {
           form.reset()
           setSearchPark('')
           setSelectedPark(null)
+          setSearchManufacturer('')
+          setSelectedManufacturer(null)
         },
       },
     )
@@ -263,6 +283,114 @@ export default function SubmitPage() {
                   <option value="other">Other</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <div className="border-t border-line pt-6">
+            <h3 className="mb-4 text-lg font-semibold text-ink">Details (Optional)</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex flex-col gap-2 relative">
+                <label htmlFor="manufacturer" className="text-sm font-medium text-ink-soft">
+                  Manufacturer
+                </label>
+                <input
+                  id="manufacturer"
+                  value={selectedManufacturer ? selectedManufacturer.name : searchManufacturer}
+                  onChange={(e) => {
+                    setSearchManufacturer(e.target.value)
+                    setSelectedManufacturer(null)
+                  }}
+                  className={fieldClassName}
+                  placeholder="Search for a manufacturer..."
+                  autoComplete="off"
+                />
+                {searchManufacturer &&
+                  !selectedManufacturer &&
+                  filteredManufacturers.length > 0 && (
+                    <ul className="absolute top-full z-20 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
+                      {filteredManufacturers.map((m) => (
+                        <li
+                          key={m.id}
+                          className="cursor-pointer p-2 text-sm hover:bg-canvas"
+                          onClick={() => {
+                            setSelectedManufacturer(m)
+                            setSearchManufacturer(m.name)
+                          }}
+                        >
+                          {m.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="status" className="text-sm font-medium text-ink-soft">
+                  Status
+                </label>
+                <select id="status" name="status" className={selectClassName}>
+                  <option value="">Select status...</option>
+                  {COASTER_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {capitalize(s)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="model" className="text-sm font-medium text-ink-soft">
+                  Model
+                </label>
+                <input
+                  id="model"
+                  name="model"
+                  maxLength={120}
+                  className={fieldClassName}
+                  placeholder="e.g. RMC IBox Track"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="type" className="text-sm font-medium text-ink-soft">
+                  Type
+                </label>
+                <input
+                  id="type"
+                  name="type"
+                  maxLength={120}
+                  className={fieldClassName}
+                  placeholder="e.g. Hypercoaster"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="opening_date" className="text-sm font-medium text-ink-soft">
+                  Opening Date
+                </label>
+                <input
+                  id="opening_date"
+                  name="opening_date"
+                  type="date"
+                  className={fieldClassName}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-line pt-6">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="note" className="text-sm font-medium text-ink-soft">
+                Note (optional)
+              </label>
+              <textarea
+                id="note"
+                name="note"
+                rows={3}
+                maxLength={2000}
+                className={fieldClassName}
+                placeholder="Anything that helps the reviewer…"
+              />
+              <p className="text-xs text-muted">
+                Extra context for the reviewer — additional explanation, corrections, or evidence
+                links (RCDB, park site), etc.
+              </p>
             </div>
           </div>
 

@@ -81,6 +81,7 @@ const SUBMISSION_FIELD_LABELS: Record<string, string> = {
   length_m: 'Length (m)',
   inversions: 'Inversions',
   material: 'Material',
+  manufacturer_id: 'Manufacturer',
   status: 'Status',
   model: 'Model',
   type: 'Type',
@@ -88,8 +89,15 @@ const SUBMISSION_FIELD_LABELS: Record<string, string> = {
   name: 'Name',
 }
 
-function formatSubmissionValue(key: string, value: number | string | null | undefined): string {
+function formatSubmissionValue(
+  key: string,
+  value: number | string | null | undefined,
+  manufacturerNameById?: Map<string, string>,
+): string {
   if (value === null || value === undefined) return '—'
+  if (key === 'manufacturer_id' && typeof value === 'string') {
+    return manufacturerNameById?.get(value) ?? value
+  }
   if (key === 'material' || key === 'status') return capitalize(String(value))
   return String(value)
 }
@@ -116,17 +124,31 @@ function TrustChip({ trust }: { trust: SubmitterTrust | undefined }) {
 }
 
 // Typed stat list for new-coaster submissions (replaces the raw JSON dump —
-// reviewers approve named fields, not a blob).
-function NewSubmissionStats({ submission }: { submission: CoasterSubmission }) {
+// reviewers approve named fields, not a blob). The five stat keys always
+// render; descriptive extras render only when suggested.
+function NewSubmissionStats({
+  submission,
+  manufacturerNameById,
+}: {
+  submission: CoasterSubmission
+  manufacturerNameById: Map<string, string>
+}) {
   const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
+  const extraKeys = ['manufacturer_id', 'status', 'model', 'type', 'opening_date'].filter(
+    (key) => fields[key] !== null && fields[key] !== undefined,
+  )
   return (
     <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs sm:grid-cols-3">
-      {['height_m', 'speed_kmh', 'length_m', 'inversions', 'material'].map((key) => (
-        <div key={key} className="flex justify-between gap-2">
-          <dt className="text-muted">{SUBMISSION_FIELD_LABELS[key]}</dt>
-          <dd className="font-medium text-ink">{formatSubmissionValue(key, fields[key])}</dd>
-        </div>
-      ))}
+      {[...['height_m', 'speed_kmh', 'length_m', 'inversions', 'material'], ...extraKeys].map(
+        (key) => (
+          <div key={key} className="flex justify-between gap-2">
+            <dt className="text-muted">{SUBMISSION_FIELD_LABELS[key]}</dt>
+            <dd className="font-medium text-ink">
+              {formatSubmissionValue(key, fields[key], manufacturerNameById)}
+            </dd>
+          </div>
+        ),
+      )}
     </dl>
   )
 }
@@ -137,10 +159,12 @@ function EditSubmissionDiff({
   submission,
   target,
   parkNameById,
+  manufacturerNameById,
 }: {
   submission: CoasterSubmission
   target: Coaster | undefined
   parkNameById: Map<string, string>
+  manufacturerNameById: Map<string, string>
 }) {
   const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
   const changedKeys = Object.keys(fields)
@@ -155,10 +179,14 @@ function EditSubmissionDiff({
           <span className="shrink-0 text-muted">{SUBMISSION_FIELD_LABELS[key] ?? key}</span>
           <span className="truncate text-right">
             <span className="text-muted line-through">
-              {formatSubmissionValue(key, target?.[key as keyof Coaster] as never)}
+              {formatSubmissionValue(
+                key,
+                target?.[key as keyof Coaster] as never,
+                manufacturerNameById,
+              )}
             </span>{' '}
             <span className="font-medium text-ink">
-              → {formatSubmissionValue(key, fields[key])}
+              → {formatSubmissionValue(key, fields[key], manufacturerNameById)}
             </span>
           </span>
         </div>
@@ -307,6 +335,10 @@ export default function AdminPage() {
   })
 
   const parkNameById = useMemo(() => new Map(allParks.map((p) => [p.id, p.name])), [allParks])
+  const manufacturerNameById = useMemo(
+    () => new Map(allManufacturers.map((m) => [m.id, m.name])),
+    [allManufacturers],
+  )
 
   const {
     data: allCoasters = [],
@@ -820,9 +852,19 @@ export default function AdminPage() {
                               submission={s}
                               target={s.coaster_id ? editTargetMap.get(s.coaster_id) : undefined}
                               parkNameById={parkNameById}
+                              manufacturerNameById={manufacturerNameById}
                             />
                           ) : (
-                            <NewSubmissionStats submission={s} />
+                            <NewSubmissionStats
+                              submission={s}
+                              manufacturerNameById={manufacturerNameById}
+                            />
+                          )}
+                          {s.note && (
+                            <p className="mt-2 rounded-lg border border-line bg-surface-bright p-2 text-xs text-muted">
+                              <span className="font-medium text-ink-soft">Submitter note:</span>{' '}
+                              {s.note}
+                            </p>
                           )}
                         </div>
                         <div className="flex gap-2 ml-4">

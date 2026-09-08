@@ -375,16 +375,26 @@ export function yearFromDate(date: string | null): number | null {
 }
 
 // Optional stats a user suggests for a new coaster (stored as jsonb on
-// coaster_submissions.suggested_fields).
+// coaster_submissions.suggested_fields). The five stat keys are always sent
+// (null = not suggested); the descriptive keys ride along when provided —
+// the DB payload CHECK allows exactly this extended set for kind='new'.
 export type SuggestedFields = {
   height_m: number | null
   speed_kmh: number | null
   length_m: number | null
   inversions: number | null
   material: CoasterMaterial | null
+  manufacturer_id?: string | null
+  status?: CoasterStatus | null
+  model?: string | null
+  type?: string | null
+  opening_date?: string | null
 }
 
 export type SubmissionKind = 'new' | 'edit'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 // Audit C-01, Option B: the ONLY keys from a new-coaster payload that may
 // reach the coasters INSERT. The DB CHECK
@@ -397,26 +407,46 @@ const APPROVABLE_SUBMISSION_FIELDS = [
   'length_m',
   'inversions',
   'material',
+  'manufacturer_id',
+  'status',
+  'model',
+  'type',
+  'opening_date',
 ] as const
 
+// Builds the INSERT fragment for approving a NEW-coaster submission. The five
+// stats pass through (already null-normalized client-side); descriptive
+// values are re-validated here so a malformed payload degrades to "field not
+// set" instead of failing (or worse, poisoning) the coaster row.
 function approvableSuggestedFields(fields: SuggestedFields): Partial<SuggestedFields> {
-  return Object.fromEntries(
-    APPROVABLE_SUBMISSION_FIELDS.map((key) => [key, fields[key]]),
-  ) as Partial<SuggestedFields>
+  const safe: Partial<SuggestedFields> = {
+    height_m: fields.height_m,
+    speed_kmh: fields.speed_kmh,
+    length_m: fields.length_m,
+    inversions: fields.inversions,
+    material: isCoasterMaterial(fields.material) ? fields.material : null,
+  }
+  if (fields.manufacturer_id && UUID_RE.test(fields.manufacturer_id)) {
+    safe.manufacturer_id = fields.manufacturer_id
+  }
+  if (fields.status && isCoasterStatus(fields.status)) safe.status = fields.status
+  if (typeof fields.model === 'string' && fields.model.length > 0 && fields.model.length <= 120) {
+    safe.model = fields.model
+  }
+  if (typeof fields.type === 'string' && fields.type.length > 0 && fields.type.length <= 120) {
+    safe.type = fields.type
+  }
+  if (fields.opening_date && ISO_DATE_RE.test(fields.opening_date)) {
+    safe.opening_date = fields.opening_date
+  }
+  return safe
 }
 
 // Scalar fields a user may propose changing on an EXISTING coaster
 // (kind='edit'). Stored as a DIFF — only changed keys are present. A park
 // move rides on the top-level park_id/park_name columns, never in here;
 // slug is never user-editable (detail URLs must stay stable).
-export const EDITABLE_SUBMISSION_FIELDS = [
-  ...APPROVABLE_SUBMISSION_FIELDS,
-  'status',
-  'model',
-  'type',
-  'opening_date',
-  'name',
-] as const
+export const EDITABLE_SUBMISSION_FIELDS = [...APPROVABLE_SUBMISSION_FIELDS, 'name'] as const
 
 export type EditSuggestedFields = {
   height_m?: number | null
@@ -424,6 +454,7 @@ export type EditSuggestedFields = {
   length_m?: number | null
   inversions?: number | null
   material?: CoasterMaterial | null
+  manufacturer_id?: string | null
   status?: CoasterStatus | null
   model?: string | null
   type?: string | null
@@ -443,6 +474,7 @@ export type EditableCoasterSnapshot = Pick<
   | 'speed_kmh'
   | 'length_m'
   | 'inversions'
+  | 'manufacturer_id'
   | 'model'
   | 'type'
   | 'opening_date'
@@ -458,6 +490,7 @@ export type EditProposalInput = {
   speed_kmh: string
   length_m: string
   inversions: string
+  manufacturer_id: string
   model: string
   type: string
   opening_date: string
@@ -497,6 +530,13 @@ export function diffEditProposal(
     if (proposed !== (current[key] ?? null)) diff[key] = proposed
   }
 
+  // Manufacturer rides as an id chosen from the catalog typeahead ('' =
+  // cleared → null).
+  const proposedManufacturerId = proposal.manufacturer_id || null
+  if (proposedManufacturerId !== (current.manufacturer_id ?? null)) {
+    diff.manufacturer_id = proposedManufacturerId
+  }
+
   const proposedName = proposal.name.trim()
   if (proposedName && proposedName !== current.name) diff.name = proposedName
 
@@ -514,6 +554,7 @@ export type CoasterSubmission = {
   park_name: string
   park_id: string | null
   suggested_fields: SuggestedFields
+  note?: string | null
   submitted_by: string
   status: 'pending' | 'approved' | 'rejected'
   reviewer_note: string | null
@@ -529,6 +570,7 @@ export async function submitCoaster(data: {
   park_name: string
   park_id: string | null
   suggested_fields: SuggestedFields
+  note?: string | null
 }) {
   const {
     data: { user },
@@ -544,6 +586,7 @@ export async function submitCoaster(data: {
       park_name: data.park_name,
       park_id: data.park_id,
       suggested_fields: data.suggested_fields,
+      note: data.note ?? null,
       submitted_by: user.id,
     })
     .select()
@@ -563,6 +606,7 @@ export async function submitEditSuggestion(data: {
   park_name: string
   park_id: string
   suggested_fields: EditSuggestedFields
+  note?: string | null
 }) {
   const {
     data: { user },
@@ -580,6 +624,7 @@ export async function submitEditSuggestion(data: {
       park_name: data.park_name,
       park_id: data.park_id,
       suggested_fields: data.suggested_fields,
+      note: data.note ?? null,
       submitted_by: user.id,
     })
     .select()
@@ -809,6 +854,13 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
   }
   if (typeof fields.status === 'string' && isCoasterStatus(fields.status)) {
     updates.status = fields.status
+  }
+  // Manufacturer rides as an id; only a well-formed uuid (or an explicit
+  // clear) is applied — anything else failed the DB CHECK already.
+  if (typeof fields.manufacturer_id === 'string' && UUID_RE.test(fields.manufacturer_id)) {
+    updates.manufacturer_id = fields.manufacturer_id
+  } else if (fields.manufacturer_id === null) {
+    updates.manufacturer_id = null
   }
   for (const key of ['model', 'type'] as const) {
     const raw = fields[key]

@@ -22,7 +22,7 @@ describe('AboutPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Open source, and open to you' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '← Back to the board' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: /back to the board/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'More questions? Read the FAQ' })).toHaveAttribute(
       'href',
       '/faq',
