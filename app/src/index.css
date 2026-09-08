@@ -93,6 +93,10 @@
     animation: drop-in 0.25s ease-out;
   }
 
+  .animate-unfurl {
+    animation: unfurl 0.22s ease-out;
+  }
+
   .formula-box {
     @apply rounded-lg border border-line/70 bg-surface-bright px-4 py-2 text-ink;
   }
@@ -109,8 +113,23 @@
   }
 }
 
+@keyframes unfurl {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-drop-in {
+    animation: none;
+  }
+
+  .animate-unfurl {
     animation: none;
   }
 }

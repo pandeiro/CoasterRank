@@ -39,6 +39,7 @@ describe('RankedCoasterItem', () => {
         material: 'steel',
         park_id: 'p1',
         manufacturer_name: 'Intamin',
+        park_name: 'Test Park',
         park_country: 'Germany',
       },
     })
@@ -63,6 +64,7 @@ describe('RankedCoasterItem', () => {
         material: 'steel',
         park_id: 'p1',
         manufacturer_name: 'RMC',
+        park_name: 'Cedar Point',
         park_country: 'United States',
       },
     })

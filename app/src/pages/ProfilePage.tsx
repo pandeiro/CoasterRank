@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
 import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Badge, Button, fieldClassName, MessageState, Panel } from '../components/ui'
-import { CopyLinkButton } from '../components/ShareListCard'
+import { CopyLinkButton } from '../components/CopyLinkButton'
 import Avatar from '../components/ui/Avatar'
 
 export type { Profile }
