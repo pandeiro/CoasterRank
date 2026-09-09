@@ -33,14 +33,23 @@ export type OgSvgRide = {
   name: string
   park_name: string | null
   manufacturer_name: string | null
+  /** Global BT score (coaster_ratings), null when unrated — tiebreak input. */
+  score: number | null
 }
 
 export type OgSpotlight = { name: string; count: number } | null
 
 /**
- * Most-ridden value for a ride field (top park / top builder). Count desc,
- * name asc for deterministic ties; blank values ignored. Null when no ride
- * carries the field (empty lists, unknown parks/manufacturers).
+ * Most-ridden value for a ride field (top park / top builder).
+ *
+ * Tiebreak chain (preference, not volume, not alphabet):
+ *   1. most entries in the pool,
+ *   2. highest average global score across those entries,
+ *   3. best (lowest) rank among those entries,
+ *   4. name asc — deterministic final fallback.
+ *
+ * Blank values ignored. Null when no ride carries the field (empty lists,
+ * unknown parks/manufacturers).
  *
  * `limit` scopes the pool to the first N rides by rank — the top-builder
  * spotlight uses 10 so it reflects preference (what you rank highest), not
@@ -53,19 +62,48 @@ export function topSpotlight(
 ): OgSpotlight {
   const ordered = [...rides].sort((a, b) => a.rank - b.rank)
   const pool = limit === undefined ? ordered : ordered.slice(0, limit)
-  const counts = new Map<string, number>()
+  type Agg = { name: string; count: number; bestRank: number; scoreSum: number; scoreN: number }
+  const aggs = new Map<string, Agg>()
   for (const ride of pool) {
     const value = ride[key]?.trim()
     if (!value) continue
-    counts.set(value, (counts.get(value) ?? 0) + 1)
-  }
-  let best: { name: string; count: number } | null = null
-  for (const [name, count] of counts) {
-    if (!best || count > best.count || (count === best.count && name < best.name)) {
-      best = { name, count }
+    let agg = aggs.get(value)
+    if (!agg) {
+      agg = { name: value, count: 0, bestRank: ride.rank, scoreSum: 0, scoreN: 0 }
+      aggs.set(value, agg)
+    }
+    agg.count += 1
+    if (ride.rank < agg.bestRank) agg.bestRank = ride.rank
+    if (ride.score !== null && Number.isFinite(ride.score)) {
+      agg.scoreSum += ride.score
+      agg.scoreN += 1
     }
   }
-  return best
+  // Average over SCORED entries only; when either side has no scores the
+  // average is skipped and the user's own rank order decides.
+  const avg = (agg: Agg): number | null => (agg.scoreN > 0 ? agg.scoreSum / agg.scoreN : null)
+  let best: Agg | null = null
+  for (const agg of aggs.values()) {
+    if (!best) {
+      best = agg
+      continue
+    }
+    if (agg.count !== best.count) {
+      if (agg.count > best.count) best = agg
+      continue
+    }
+    const [aggAvg, bestAvg] = [avg(agg), avg(best)]
+    if (aggAvg !== null && bestAvg !== null && aggAvg !== bestAvg) {
+      if (aggAvg > bestAvg) best = agg
+      continue
+    }
+    if (agg.bestRank !== best.bestRank) {
+      if (agg.bestRank < best.bestRank) best = agg
+      continue
+    }
+    if (agg.name < best.name) best = agg
+  }
+  return best ? { name: best.name, count: best.count } : null
 }
 
 export type OgSvgProfile = {

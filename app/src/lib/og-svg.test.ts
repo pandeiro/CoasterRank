@@ -29,30 +29,35 @@ const rides = [
     name: 'Steel Vengeance',
     park_name: 'Cedar Point',
     manufacturer_name: 'Rocky Mountain Construction',
+    score: null,
   },
   {
     rank: 2,
     name: 'VelociCoaster',
     park_name: 'Universal Islands of Adventure',
     manufacturer_name: 'Intamin',
+    score: null,
   },
   {
     rank: 3,
     name: 'Zadra',
     park_name: 'Energylandia',
     manufacturer_name: 'Rocky Mountain Construction',
+    score: null,
   },
   {
     rank: 4,
     name: 'El Toro',
     park_name: 'Six Flags Great Adventure',
     manufacturer_name: 'Intamin',
+    score: null,
   },
   {
     rank: 5,
     name: 'Pantheon',
     park_name: 'Busch Gardens Williamsburg',
     manufacturer_name: 'Intamin',
+    score: null,
   },
 ]
 
@@ -110,7 +115,15 @@ describe('buildRiderOgSvg', () => {
   it('escapes user-controlled text', () => {
     const svg = buildRiderOgSvg(
       profile({ displayName: '<script>alert("x")</script>', username: 'evil_user' }),
-      [{ rank: 1, name: 'A & B <C>', park_name: 'P "quoted"', manufacturer_name: null }],
+      [
+        {
+          rank: 1,
+          name: 'A & B <C>',
+          park_name: 'P "quoted"',
+          manufacturer_name: null,
+          score: null,
+        },
+      ],
     )
     expect(svg).not.toContain('<script>')
     expect(svg).toContain('&lt;script&gt;')
@@ -120,7 +133,13 @@ describe('buildRiderOgSvg', () => {
 
   it('truncates overlong names instead of overflowing', () => {
     const svg = buildRiderOgSvg(profile({ displayName: 'A'.repeat(60) }), [
-      { rank: 1, name: 'B'.repeat(60), park_name: 'C'.repeat(80), manufacturer_name: null },
+      {
+        rank: 1,
+        name: 'B'.repeat(60),
+        park_name: 'C'.repeat(80),
+        manufacturer_name: null,
+        score: null,
+      },
     ])
     expect(svg).not.toContain('A'.repeat(60))
     expect(svg).toContain('…')
@@ -129,7 +148,13 @@ describe('buildRiderOgSvg', () => {
   it('caps the list at 5 rides', () => {
     const many = [
       ...rides,
-      { rank: 6, name: 'Sixth Wheel', park_name: 'Elsewhere', manufacturer_name: null },
+      {
+        rank: 6,
+        name: 'Sixth Wheel',
+        park_name: 'Elsewhere',
+        manufacturer_name: null,
+        score: null,
+      },
     ]
     const svg = buildRiderOgSvg(profile(), many)
     expect(svg).not.toContain('Sixth Wheel')
@@ -160,9 +185,15 @@ describe('buildRiderOgSvg', () => {
 
 describe('topSpotlight', () => {
   const spotRides = [
-    { rank: 1, name: 'A', park_name: 'Cedar Point', manufacturer_name: 'Intamin' },
-    { rank: 2, name: 'B', park_name: 'Cedar Point', manufacturer_name: 'Bolliger & Mabillard' },
-    { rank: 3, name: 'C', park_name: 'Carowinds', manufacturer_name: 'Intamin' },
+    { rank: 1, name: 'A', park_name: 'Cedar Point', manufacturer_name: 'Intamin', score: null },
+    {
+      rank: 2,
+      name: 'B',
+      park_name: 'Cedar Point',
+      manufacturer_name: 'Bolliger & Mabillard',
+      score: null,
+    },
+    { rank: 3, name: 'C', park_name: 'Carowinds', manufacturer_name: 'Intamin', score: null },
   ]
 
   it('picks the most-ridden value with its count', () => {
@@ -170,26 +201,52 @@ describe('topSpotlight', () => {
     expect(topSpotlight(spotRides, 'manufacturer_name')).toEqual({ name: 'Intamin', count: 2 })
   })
 
-  it('breaks ties alphabetically for determinism', () => {
-    const tied = [
-      { rank: 1, name: 'A', park_name: 'Zeta Park', manufacturer_name: null },
-      { rank: 2, name: 'B', park_name: 'Alpha Park', manufacturer_name: null },
+  it('breaks count ties by average score, then best rank, then name', () => {
+    const scored = [
+      { rank: 1, name: 'A', park_name: 'Zeta Park', manufacturer_name: 'RMC', score: 1.0 },
+      { rank: 2, name: 'B', park_name: 'Alpha Park', manufacturer_name: 'Intamin', score: 3.0 },
+      { rank: 3, name: 'C', park_name: 'Alpha Park', manufacturer_name: 'Intamin', score: 3.0 },
+      { rank: 4, name: 'D', park_name: 'Zeta Park', manufacturer_name: 'RMC', score: 1.0 },
     ]
-    expect(topSpotlight(tied, 'park_name')).toEqual({ name: 'Alpha Park', count: 1 })
+    // 2–2 on count; Intamin's avg (3.0) beats RMC's (1.0) despite RMC holding #1.
+    expect(topSpotlight(scored, 'manufacturer_name')).toEqual({ name: 'Intamin', count: 2 })
+    expect(topSpotlight(scored, 'park_name')).toEqual({ name: 'Alpha Park', count: 2 })
+  })
+
+  it('falls back to best rank when neither side is scored', () => {
+    const unscored = [
+      { rank: 1, name: 'A', park_name: 'Zeta Park', manufacturer_name: null, score: null },
+      { rank: 2, name: 'B', park_name: 'Alpha Park', manufacturer_name: null, score: null },
+    ]
+    expect(topSpotlight(unscored, 'park_name')).toEqual({ name: 'Zeta Park', count: 1 })
+  })
+
+  it('uses name only as the final deterministic fallback', () => {
+    const identical = [
+      { rank: 1, name: 'A', park_name: 'Zeta Park', manufacturer_name: null, score: 2.0 },
+      { rank: 1, name: 'B', park_name: 'Alpha Park', manufacturer_name: null, score: 2.0 },
+    ]
+    expect(topSpotlight(identical, 'park_name')).toEqual({ name: 'Alpha Park', count: 1 })
   })
 
   it('ignores blank values and returns null when nothing qualifies', () => {
     expect(topSpotlight([], 'park_name')).toBeNull()
-    const blanks = [{ rank: 1, name: 'A', park_name: null, manufacturer_name: '  ' }]
+    const blanks = [{ rank: 1, name: 'A', park_name: null, manufacturer_name: '  ', score: null }]
     expect(topSpotlight(blanks, 'park_name')).toBeNull()
     expect(topSpotlight(blanks, 'manufacturer_name')).toBeNull()
   })
 
   it('scopes the pool to the first N rides by rank when limited', () => {
     const many = [
-      { rank: 3, name: 'C', park_name: 'Carowinds', manufacturer_name: 'Bolliger & Mabillard' },
-      { rank: 1, name: 'A', park_name: 'Cedar Point', manufacturer_name: 'Intamin' },
-      { rank: 2, name: 'B', park_name: 'Cedar Point', manufacturer_name: 'Intamin' },
+      {
+        rank: 3,
+        name: 'C',
+        park_name: 'Carowinds',
+        manufacturer_name: 'Bolliger & Mabillard',
+        score: null,
+      },
+      { rank: 1, name: 'A', park_name: 'Cedar Point', manufacturer_name: 'Intamin', score: null },
+      { rank: 2, name: 'B', park_name: 'Cedar Point', manufacturer_name: 'Intamin', score: null },
     ]
     // Unsorted input still ranks by rank: top 2 are both Intamin / Cedar Point.
     expect(topSpotlight(many, 'manufacturer_name', 2)).toEqual({ name: 'Intamin', count: 2 })

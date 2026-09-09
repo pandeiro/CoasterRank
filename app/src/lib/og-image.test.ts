@@ -24,12 +24,14 @@ function rider(): OgImageRider {
         name: 'Steel Vengeance',
         park_name: 'Cedar Point',
         manufacturer_name: 'Rocky Mountain Construction',
+        score: null,
       },
       {
         rank: 2,
         name: 'Zadra',
         park_name: 'Energylandia',
         manufacturer_name: 'Rocky Mountain Construction',
+        score: null,
       },
     ],
   }
@@ -84,6 +86,7 @@ describe('toOgSvgInput', () => {
         name: `Coaster ${i + 1}`,
         park_name: i % 2 === 0 ? 'Park A' : 'Park B',
         manufacturer_name: 'Intamin',
+        score: null,
       })),
     }
     const input = toOgSvgInput(many, 'data:image/png;base64,AAA')
@@ -103,14 +106,20 @@ describe('toOgSvgInput', () => {
   })
 
   it('draws the top builder from the top 10 by rank, not the full list', () => {
-    const rides: OgImageRider['rides'] = Array.from({ length: 12 }, (_, i) => ({
-      rank: i + 1,
-      name: `Coaster ${i + 1}`,
-      park_name: 'Park A',
-      // Top 10 favor Intamin; the tail is all RMC (would win unscoped 4-8).
-      manufacturer_name: i < 10 && i % 2 === 0 ? 'Intamin' : 'Rocky Mountain Construction',
-    }))
-    // Top 10: Intamin 5 (ranks 1,3,5,7,9) vs RMC 5 (2,4,6,8,10) → alpha tiebreak.
+    const rides: OgImageRider['rides'] = Array.from({ length: 12 }, (_, i) => {
+      const rank = i + 1
+      const intamin = rank >= 2 && rank <= 6
+      return {
+        rank,
+        name: `Coaster ${rank}`,
+        park_name: 'Park A',
+        manufacturer_name: intamin ? 'Intamin' : 'Rocky Mountain Construction',
+        score: intamin ? 3.0 : 1.0,
+      }
+    })
+    // Top 10: 5 Intamin (avg 3.0, best rank 2) vs 5 RMC (avg 1.0, best rank 1) —
+    // average score outranks best rank, so Intamin wins despite RMC holding #1.
+    // Unscoped, the RMC tail (ranks 7–12) would win 7–5.
     const input = toOgSvgInput({ ...rider(), rides }, null)
     expect(input.profile.topManufacturer).toEqual({ name: 'Intamin', count: 5 })
     // Full-list park scope is untouched.
