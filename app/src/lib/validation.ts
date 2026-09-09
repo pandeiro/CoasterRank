@@ -5,9 +5,11 @@ export const USERNAME_RULES = '3–20 characters: lowercase letters, numbers, an
 /**
  * Usernames that can never be claimed (brand/system squatting on /@ handles).
  * Keep in sync with the profiles_username_reserved_check constraint in
- * supabase/migrations/<reserved-usernames migration>.sql.
+ * supabase/migrations/*_reserved_usernames.sql — enforced by the parity test
+ * in validation.test.ts (it reads the migration, so this set and the regex
+ * alternation cannot drift apart).
  */
-const RESERVED_USERNAMES = new Set([
+export const RESERVED_USERNAMES = new Set([
   'admin',
   'api',
   'me',

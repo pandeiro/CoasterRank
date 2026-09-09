@@ -6,9 +6,12 @@ main = "src/worker.ts"
 # shell unfurls without a preview image). Humans on "/" also invoke the
 # worker but fall through to the same static assets — one extra hop, no
 # behavior change. "/riders/*" and "/@*" cover the rider share pages (the /@
-# vanity alias prerenders with og:url canonicalized to /riders/*). All other
+# vanity alias prerenders with og:url canonicalized to /riders/*). "/%40*" is
+# the belt-and-suspenders twin: if Cloudflare matches globs against the raw
+# encoded path, a crawler on a chat-app-encoded /%40username share URL would
+# otherwise bypass the worker and unfurl the bare SPA shell. All other
 # static paths still serve directly from the edge.
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/api/*", "/riders/*", "/@*"] }
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/api/*", "/riders/*", "/@*", "/%40*"] }
 
 # Workers Logs: ships console.* from the worker to the Cloudflare dashboard
 # (Workers → coasterrank → Logs) — this is how /api/ranking cache fills are

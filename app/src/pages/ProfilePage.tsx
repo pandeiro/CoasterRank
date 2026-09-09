@@ -4,14 +4,13 @@ import { Camera, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { riderShareUrl } from '../lib/rider'
-import { fetchProfile, type Profile } from '../lib/profile'
+import { fetchProfile, claimErrorMessage, type Profile } from '../lib/profile'
 import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
 import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Badge, Button, fieldClassName, MessageState, Panel } from '../components/ui'
 import { CopyLinkButton } from '../components/CopyLinkButton'
 import Avatar from '../components/ui/Avatar'
-
 export type { Profile }
 
 export default function ProfilePage() {
@@ -68,10 +67,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
     },
     onError: (error) => {
-      // Postgres unique_violation => profiles.username is taken.
-      setFormError(
-        'code' in error && error.code === '23505' ? 'That username is taken.' : error.message,
-      )
+      setFormError(claimErrorMessage(error))
     },
   })
 
@@ -222,8 +218,7 @@ export default function ProfilePage() {
               <label htmlFor="publicList" className="block text-sm">
                 <span className="font-medium text-ink">Share my ranking</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  Puts your ranked list at{' '}
-                  <code className="font-mono">/riders/{username || '…'}</code>
+                  Puts your ranked list at <code className="font-mono">/@{username || '…'}</code>
                   {username ? '' : ' (once you claim a username)'}. Your email and any unranked
                   coasters stay private.
                 </span>

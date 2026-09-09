@@ -10,16 +10,26 @@ export default function NotFoundPage() {
 
   // Alias hit: <Navigate> resolves within the same router render pass —
   // no 404 flash, no network round trip. The address bar canonicalizes to
-  // /riders/:username; /@username exists as the short share form.
+  // /riders/:username (query + hash preserved); /@username exists as the
+  // short share form.
   let path = location.pathname
   try {
     path = decodeURIComponent(path)
   } catch {
     // Malformed escape → falls through to the 404 below.
   }
-  const alias = AT_PATH_RE.exec(path)
+  const alias = AT_PATH_RE.exec(path.replace(/\/+$/, ''))
   if (alias) {
-    return <Navigate to={`/riders/${alias[1].toLowerCase()}`} replace />
+    return (
+      <Navigate
+        to={{
+          pathname: `/riders/${alias[1].toLowerCase()}`,
+          search: location.search,
+          hash: location.hash,
+        }}
+        replace
+      />
+    )
   }
 
   return (

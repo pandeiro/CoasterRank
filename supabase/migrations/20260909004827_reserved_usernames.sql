@@ -1,7 +1,8 @@
 -- Reserved usernames: brand/system words can never be claimed as public
 -- /@<username> handles (squatting "/@admin" or "/@coasterrank" must not be
 -- possible). Keep the list in sync with RESERVED_USERNAMES in
--- app/src/lib/validation.ts (client-side mirror with the friendly error).
+-- app/src/lib/validation.ts — the parity test in
+-- app/src/lib/validation.test.ts reads this migration and fails on drift.
 --
 -- The site-owner admin account predates this list and is grandfathered: rows
 -- with is_admin = true are exempt from the constraint. Non-admin profiles

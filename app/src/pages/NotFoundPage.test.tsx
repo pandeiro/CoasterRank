@@ -16,8 +16,14 @@ describe('NotFoundPage', () => {
 })
 
 function RiderStub() {
-  const { pathname } = useLocation()
-  return <p data-testid="rider-path">{pathname}</p>
+  const { pathname, search, hash } = useLocation()
+  return (
+    <p data-testid="rider-path">
+      {pathname}
+      {search}
+      {hash}
+    </p>
+  )
 }
 
 function renderAt(path: string) {
@@ -47,9 +53,21 @@ describe('NotFoundPage: /@username alias redirect', () => {
     expect(screen.getByTestId('rider-path')).toHaveTextContent('/riders/pandeiro')
   })
 
-  it('accepts a trailing slash', () => {
+  it('accepts trailing slashes', () => {
     renderAt('/@pandeiro/')
     expect(screen.getByTestId('rider-path')).toHaveTextContent('/riders/pandeiro')
+  })
+
+  it('tolerates repeated trailing slashes (crawlers get the same prerender)', () => {
+    renderAt('/@pandeiro///')
+    expect(screen.getByTestId('rider-path')).toHaveTextContent('/riders/pandeiro')
+  })
+
+  it('preserves query string and hash on canonicalization', () => {
+    renderAt('/@pandeiro?utm_source=slack#top')
+    expect(screen.getByTestId('rider-path')).toHaveTextContent(
+      '/riders/pandeiro?utm_source=slack#top',
+    )
   })
 
   it('shows the 404 for segments that cannot be usernames', () => {

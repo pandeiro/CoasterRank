@@ -94,9 +94,42 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('That username is taken.')).toBeInTheDocument()
   })
 
+  it('maps a reserved-list CHECK hit (deploy skew / API caller) to a friendly error', async () => {
+    updateEq.mockResolvedValue({
+      error: {
+        code: '23514',
+        message: 'new row violates check constraint "profiles_username_reserved_check"',
+      },
+    })
+    renderProfile()
+
+    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    expect(await screen.findByText('That username is reserved.')).toBeInTheDocument()
+  })
+
+  it('maps any other CHECK hit to a generic invalid-username error', async () => {
+    updateEq.mockResolvedValue({
+      error: {
+        code: '23514',
+        message: 'new row violates check constraint "profiles_username_format_check"',
+      },
+    })
+    renderProfile()
+
+    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    expect(await screen.findByText('That username is invalid.')).toBeInTheDocument()
+  })
+
   it('shows the public page URL only after the share toggle is on', async () => {
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
+
+    // The always-visible helper hint agrees with the share form.
+    expect(screen.getByText('/@coaster_fan')).toBeInTheDocument()
 
     expect(screen.queryByText(`${window.location.origin}/@coaster_fan`)).not.toBeInTheDocument()
 

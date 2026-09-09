@@ -159,9 +159,7 @@ export default function ShareNudgeBanner({
                 profile settings
               </Link>{' '}
               — your page is already waiting at{' '}
-              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                /riders/{username}
-              </code>
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/@{username}</code>
               .
             </p>
           ) : (
@@ -171,10 +169,7 @@ export default function ShareNudgeBanner({
                 profile settings
               </Link>{' '}
               and your board gets its own page at{' '}
-              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                /riders/your-name
-              </code>
-              .
+              <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">/@your-name</code>.
             </p>
           )}
         </div>

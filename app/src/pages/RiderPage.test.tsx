@@ -153,6 +153,32 @@ describe('RiderPage', () => {
     expect(screen.getByText(/doesn't exist or isn't shared/i)).toBeInTheDocument()
   })
 
+  it('lowercases mixed-case usernames before querying (lookup is case-insensitive)', () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: riderData,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAt('/riders/Coaster_Fan')
+
+    expect(vi.mocked(useRiderPage)).toHaveBeenCalledWith('coaster_fan')
+    expect(screen.getByText('Coaster Fan')).toBeInTheDocument()
+  })
+
+  it('shows not-found — never an infinite spinner — for invalid segments', () => {
+    // A disabled TanStack query stays pending forever; the page must gate on
+    // validity itself instead of trusting isPending.
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+    } as never)
+    renderAt('/riders/AB')
+
+    expect(screen.getByText(/doesn't exist or isn't shared/i)).toBeInTheDocument()
+    expect(screen.queryByText(/loading/i)).not.toBeInTheDocument()
+  })
+
   it('shows the empty-list state when nothing is ranked', () => {
     vi.mocked(useRiderPage).mockReturnValue({
       data: { ...riderData, rides: [] },

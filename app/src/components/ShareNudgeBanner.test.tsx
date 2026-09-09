@@ -97,7 +97,11 @@ describe('ShareNudgeBanner', () => {
       'href',
       '/me/profile',
     )
-    expect(screen.getByText(/riders\/coaster_fan/i)).toBeInTheDocument()
+    // The waiting-page hint agrees with the share form one screen shows
+    // (scoped to the <code> hint — the identity line also shows @username).
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'CODE' && el.textContent === '/@coaster_fan'),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
   })
 
