@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CoasterDetailPage from './CoasterDetailPage'
-import { useCoaster } from '../lib/coasters'
+import { useAuth } from '../lib/auth-context'
+import { useCoaster, useRecomputeFreshness } from '../lib/coasters'
+import { useAddRide, useMyRides } from '../lib/rides'
 import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -10,8 +12,30 @@ vi.mock('../lib/coasters', async (importOriginal) => {
   return {
     ...actual,
     useCoaster: vi.fn(),
+    useRecomputeFreshness: vi.fn(),
   }
 })
+
+vi.mock('../lib/auth-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/auth-context')>()
+  return {
+    ...actual,
+    useAuth: vi.fn(),
+  }
+})
+
+vi.mock('../lib/rides', () => ({
+  useMyRides: vi.fn(),
+  useAddRide: vi.fn(),
+}))
+
+const sixMinutesAgo = new Date(Date.now() - 6 * 60_000).toISOString()
+
+function mockLoggedOut() {
+  vi.mocked(useAuth).mockReturnValue({ session: null, isLoading: false } as never)
+  vi.mocked(useMyRides).mockReturnValue({ data: undefined, isPending: true } as never)
+  vi.mocked(useAddRide).mockReturnValue({ mutate: vi.fn(), isPending: false } as never)
+}
 
 function renderPage(slug = 'steel-vengeance') {
   return render(
@@ -26,9 +50,11 @@ function renderPage(slug = 'steel-vengeance') {
 describe('CoasterDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockLoggedOut()
+    vi.mocked(useRecomputeFreshness).mockReturnValue({ data: sixMinutesAgo } as never)
   })
 
-  it('shows the coaster stats and links to its park', () => {
+  it('shows identity, the community ranking panel, and demoted specs', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({
         park_id: 'park-1',
@@ -39,6 +65,9 @@ describe('CoasterDetailPage', () => {
         manufacturer_name: 'Rocky Mountain Construction',
         name: 'Steel Vengeance',
         slug: 'steel-vengeance',
+        model: 'I-Box Track',
+        type: 'Steel',
+        opening_date: '2018-05-05',
         height_m: 61,
         speed_kmh: 119,
         length_m: 1146,
@@ -55,20 +84,34 @@ describe('CoasterDetailPage', () => {
     renderPage()
 
     expect(screen.getByRole('heading', { name: 'Steel Vengeance' })).toBeInTheDocument()
-    expect(screen.getByText('#3 on the board')).toBeInTheDocument()
+    // Rank lives inside the ranking panel now, paired with the score (the
+    // "on the board" suffix is sr-only, so match the visible numeral).
+    expect(screen.getByText('#3')).toBeInTheDocument()
+    expect(screen.getByText('2.50')).toBeInTheDocument()
+    expect(screen.getByText('Community ranking')).toBeInTheDocument()
+    expect(screen.getByText('Updated 6 minutes ago')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Cedar Point' })).toHaveAttribute(
       'href',
       '/parks/cedar-point',
     )
     expect(screen.getByText(/Sandusky, United States/)).toBeInTheDocument()
     expect(screen.getByText(/Rocky Mountain Construction/)).toBeInTheDocument()
-    expect(screen.getByText('2.50')).toBeInTheDocument()
+    // Supporting BT stats inside the panel strip.
     expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('131')).toBeInTheDocument()
+    expect(screen.getByText('114 (87%)')).toBeInTheDocument()
+    // Demoted spec pairs + consolidated metadata line.
     expect(screen.getByText('61 m')).toBeInTheDocument()
     expect(screen.getByText('119 km/h')).toBeInTheDocument()
-    expect(screen.getByText('Operating')).toBeInTheDocument()
-    expect(screen.getByText('Steel')).toBeInTheDocument()
-    expect(screen.getByText('114 (87%)')).toBeInTheDocument()
+    expect(screen.getByText('1146 m')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Track: I-Box Track · Material: Steel · Opened: 2018 · Status: Operating/),
+    ).toBeInTheDocument()
+    // Logged-out CTA anchored to the panel.
+    expect(screen.getByRole('link', { name: 'Sign up to rank this coaster' })).toHaveAttribute(
+      'href',
+      '/signup',
+    )
   })
 
   it('lists former names from the row aliases', () => {
@@ -81,18 +124,50 @@ describe('CoasterDetailPage', () => {
     expect(screen.getByText(/Also known as: Gwazi/)).toBeInTheDocument()
   })
 
-  it('links to suggest-edit and drops the redundant board link', () => {
+  it('links to suggest-edit and scopes the details section', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({ name: 'Steel Vengeance' }),
       isPending: false,
       isError: false,
     } as never)
     renderPage()
+    expect(screen.getByText('Coaster details')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /see something wrong/i })).toHaveAttribute(
       'href',
       '/coasters/steel-vengeance/suggest-edit',
     )
     expect(screen.queryByRole('link', { name: /back to the board/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the weekly movement chip next to the rank', () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Climber', rank: 3, rank_last_week: 5 }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage('climber')
+    expect(screen.getByTitle('Up 2 places this week')).toBeInTheDocument()
+  })
+
+  it('shows a down movement chip for a coaster that fell', () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Faller', rank: 5, rank_last_week: 3 }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage('faller')
+    expect(screen.getByTitle('Down 2 places this week')).toBeInTheDocument()
+  })
+
+  it('hides the freshness marker when the meta RPC is unavailable', () => {
+    vi.mocked(useRecomputeFreshness).mockReturnValue({ data: null } as never)
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Steel Vengeance' }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.queryByText(/Updated /)).not.toBeInTheDocument()
   })
 
   it('shows an em dash for missing stats', () => {
@@ -117,7 +192,7 @@ describe('CoasterDetailPage', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(6)
   })
 
-  it('shows the few-votes badge for a low-comparison coaster', () => {
+  it('shows the few-votes badge inside the ranking panel', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({ name: 'Obscure', comparisons: 2 }),
       isPending: false,

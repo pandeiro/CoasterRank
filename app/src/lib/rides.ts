@@ -136,3 +136,31 @@ export function useSaveRanks() {
     },
   })
 }
+
+// "Add to your rankings" from the coaster detail page: inserts the ride
+// UNRANKED (rank stays null) so the user orders it in /me rather than us
+// guessing a position. MyCoastersPage already renders null-rank rows (they
+// sort last), so no downstream changes are needed. Idempotent via the
+// user_id,coaster_id conflict target — re-adding a listed coaster is a no-op.
+export function useAddRide() {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (coasterId: string) => {
+      if (!user) throw new Error('Not authenticated')
+      const { error } = await supabase
+        .from('user_rides')
+        .upsert(
+          { user_id: user.id, coaster_id: coasterId, ridden: true, rank: null },
+          { onConflict: 'user_id,coaster_id' },
+        )
+      if (error) throw error
+    },
+    // Retry transient failures before the caller's error toast kicks in.
+    retry: 2,
+    retryDelay: (attempt) => 500 * 2 ** attempt,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+    },
+  })
+}

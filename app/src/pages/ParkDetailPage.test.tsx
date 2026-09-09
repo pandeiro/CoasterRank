@@ -69,10 +69,54 @@ describe('ParkDetailPage', () => {
     expect(screen.getByText(/2 coasters/)).toBeInTheDocument()
   })
 
+  it('highlights the park’s top-ranked coaster in the hero', () => {
+    renderPage()
+    expect(screen.getByText(/Top coaster in this park:/)).toBeInTheDocument()
+    const topLink = screen
+      .getAllByRole('link', { name: 'Steel Vengeance' })
+      .find((link) => link.getAttribute('href') === '/coasters/steel-vengeance')
+    expect(topLink).toBeDefined()
+    expect(screen.getByText(/#3 on the board/)).toBeInTheDocument()
+  })
+
+  it('omits the top-coaster line when nothing is ranked', () => {
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: [
+        makeRankingRow({
+          park_id: 'p1',
+          name: 'Steel Vengeance',
+          slug: 'steel-vengeance',
+          rank: null,
+        }),
+        makeRankingRow({
+          park_id: 'p1',
+          name: 'Millennium Force',
+          slug: 'millennium-force',
+          rank: null,
+        }),
+      ],
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.queryByText(/Top coaster in this park:/)).not.toBeInTheDocument()
+  })
+
+  it('shows a park-specific empty state instead of the table filter message', () => {
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: [makeRankingRow({ park_id: 'p2', name: 'Somewhere Else', slug: 'somewhere-else' })],
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.getByText('No coasters from this park on the board yet.')).toBeInTheDocument()
+    expect(screen.queryByText('Somewhere Else')).not.toBeInTheDocument()
+  })
+
   it('lists only the park coasters', () => {
     renderPage()
-    // Both CSS-gated layouts render the park's rows.
-    expect(screen.getAllByText('Steel Vengeance')).toHaveLength(2)
+    // Both CSS-gated layouts render the park's rows, plus the hero's top-coaster link.
+    expect(screen.getAllByText('Steel Vengeance')).toHaveLength(3)
     expect(screen.getAllByText('Millennium Force')).toHaveLength(2)
     expect(screen.queryByText('Somewhere Else')).not.toBeInTheDocument()
   })

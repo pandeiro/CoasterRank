@@ -1,22 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { formatRelativeTime } from '../lib/relative-time'
 
 // How often the relative "Last ranked X ago" label re-renders without
 // refetching (§2.3): the underlying payload is cached for 15 minutes, so a
 // 30s tick keeps the label honest without any network traffic.
 const REFRESH_INTERVAL_MS = 30_000
-
-function formatLastRanked(iso: string): string {
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return ''
-  const elapsedMs = Date.now() - then
-  const minutes = Math.floor(elapsedMs / 60_000)
-  if (minutes < 1) return 'just now'
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
-  if (minutes < 60) return rtf.format(-minutes, 'minute')
-  const hours = Math.floor(elapsedMs / 3_600_000)
-  if (hours < 24) return rtf.format(-hours, 'hour')
-  return rtf.format(-Math.floor(elapsedMs / 86_400_000), 'day')
-}
 
 // The board's `Live ●` affordance (§2.3): hover (desktop) or click/tap —
 // which also covers keyboard activation — shows a small popunder with the
@@ -69,7 +57,7 @@ export default function LiveStatusPopunder({
     }
   }, [open])
 
-  const label = lastRankedAt ? formatLastRanked(lastRankedAt) : ''
+  const label = lastRankedAt ? formatRelativeTime(lastRankedAt) : ''
 
   return (
     <div

@@ -1247,6 +1247,31 @@ export function useBoardMeta() {
   })
 }
 
+// Detail-page freshness: the same public_board_meta() RPC the board reads, but
+// fetched standalone under its OWN query key — deliberately NOT BOARD_QUERY_KEY,
+// which would drag the entire /api/ranking payload (all rankings + parks) onto
+// pages that only need one timestamp. Best-effort like the board's copy: an RPC
+// failure resolves to null and the UI hides the freshness marker instead of
+// erroring the page. (coaster_ratings.updated_at is NOT a usable source — the
+// recompute upsert never writes it, so it holds first-insert values.)
+const RECOMPUTE_META_STALE_TIME_MS = 5 * 60_000
+
+export function useRecomputeFreshness() {
+  return useQuery({
+    queryKey: ['recompute-meta'],
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase.rpc('public_board_meta')
+      if (error) {
+        console.warn('[board] public_board_meta failed:', error.message)
+        return null
+      }
+      const row = Array.isArray(data) ? data[0] : (data as Record<string, unknown> | null)
+      return (row as { last_recomputed_at?: string | null } | null)?.last_recomputed_at ?? null
+    },
+    staleTime: RECOMPUTE_META_STALE_TIME_MS,
+  })
+}
+
 // Back-compat alias — prefers the cached payload's ranked_user_count so the
 // first-place gate shares the same staleness as the board itself (BOARD_STALE_TIME_MS
 // = 15m client + 15m edge TTL → worst-case ≤30m stale, intentional per PR;
