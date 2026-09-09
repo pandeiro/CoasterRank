@@ -13,6 +13,14 @@ main = "src/worker.ts"
 # static paths still serve directly from the edge.
 assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/api/*", "/riders/*", "/@*", "/%40*"] }
 
+# NOTE: resvg-wasm ships as a precompiled module via wrangler's DEFAULT
+# CompiledWasm rule (**/*.wasm — do NOT add a custom [[rules]] entry; it
+# shadows the default and breaks the build). workerd disallows runtime
+# WebAssembly.compile ("Wasm code generation disallowed by embedder"), so
+# og-image.ts passes the imported WebAssembly.Module to initWasm() instead
+# of fetched bytes. (Node/vitest can't import .wasm — loadCompiledWasm()
+# falls back to bytes there.)
+
 # Workers Logs: ships console.* from the worker to the Cloudflare dashboard
 # (Workers → coasterrank → Logs) — this is how /api/ranking cache fills are
 # observed; Cache API operations do NOT appear in standard CDN cache analytics.

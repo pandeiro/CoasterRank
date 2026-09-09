@@ -40,6 +40,7 @@ const riderData: RiderPageData = {
       status: 'operating',
       park_name: 'Cedar Point',
       park_slug: 'cedar-point',
+      manufacturer_name: 'Rocky Mountain Construction',
       score: 1.23,
     },
     {
@@ -51,6 +52,7 @@ const riderData: RiderPageData = {
       status: 'operating',
       park_name: 'Carowinds',
       park_slug: 'carowinds',
+      manufacturer_name: 'Bolliger & Mabillard',
       score: 1.1,
     },
   ],

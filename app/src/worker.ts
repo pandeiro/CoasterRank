@@ -157,6 +157,7 @@ export type WorkerRiderRide = {
   status: string
   park_name: string | null
   park_slug: string | null
+  manufacturer_name: string | null
   score: number | null
 }
 
@@ -673,14 +674,13 @@ function memberSinceYear(iso: string | null): string | null {
 }
 
 /** Maps the public RPC payload to the OG pipeline input (rides by rank). */
-function toOgImageRider(data: WorkerRiderPage, origin: string): OgImageRider {
+function toOgImageRider(data: WorkerRiderPage): OgImageRider {
   return {
     profile: {
       username: data.profile.username,
       displayName: data.profile.display_name || data.profile.username,
       avatarUrl: data.profile.avatar_url,
       memberSinceYear: memberSinceYear(data.profile.member_since),
-      pageUrl: `${origin}/riders/${data.profile.username}`,
     },
     rides: [...data.rides].sort((a, b) => a.rank - b.rank),
   }
@@ -695,7 +695,6 @@ async function fetchStaticAsset(env: Env, requestUrl: string, path: string): Pro
 export async function handleOgImageRequest(
   requestUrl: string,
   username: string,
-  origin: string,
   env: Env,
 ): Promise<Response> {
   const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
@@ -703,7 +702,7 @@ export async function handleOgImageRequest(
   const fetchRider = async (name: string): Promise<OgImageRider | null> => {
     if (!supabaseUrl || !supabaseKey) return null
     const data = await fetchRiderPageFromSupabase(name, supabaseUrl, supabaseKey)
-    return data ? toOgImageRider(data, origin) : null
+    return data ? toOgImageRider(data) : null
   }
   return serveOgImage(requestUrl, username, {
     fetchRider,
@@ -729,7 +728,7 @@ export default {
     if (ogMatch) {
       // Path regex already restricts the charset; normalize case for the RPC.
       return withSecurityHeaders(
-        await handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), url.origin, env),
+        await handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), env),
       )
     }
 
