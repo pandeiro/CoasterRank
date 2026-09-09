@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { persistWhyEmailDismissed, readWhyEmailDismissed } from '../lib/signup-cta'
 import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
 
@@ -15,6 +16,8 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
+  // Non-blocking "why email?" nudge: shown until dismissed, never gates signup.
+  const [whyEmailDismissed, setWhyEmailDismissed] = useState(readWhyEmailDismissed)
 
   // Preserve a deep link (RequireAuth stashes it as `from`) through the
   // email round-trip: the confirmation link lands on /login, which forwards
@@ -22,6 +25,11 @@ export default function SignupPage() {
   // user in.
   const from = (location.state as LocationState | null)?.from
   const nextQuery = from && from.startsWith('/') ? `&next=${encodeURIComponent(from)}` : ''
+
+  function dismissWhyEmail() {
+    persistWhyEmailDismissed()
+    setWhyEmailDismissed(true)
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -83,6 +91,34 @@ export default function SignupPage() {
   return (
     <div className="mx-auto max-w-sm">
       <h1 className="display-heading text-4xl text-ink">Sign up</h1>
+      {!whyEmailDismissed && (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-line bg-surface px-3 py-2.5">
+          <p className="flex-1 text-xs leading-5 text-muted">
+            <strong className="font-semibold text-ink">Why email confirmation?</strong> One account
+            per human keeps bots and ballot-stuffers out — that&apos;s what keeps the ranking
+            honest. We never sell your address or send spam.
+          </p>
+          <button
+            type="button"
+            onClick={dismissWhyEmail}
+            aria-label="Dismiss notice"
+            className="shrink-0 rounded-full p-1 text-muted transition-colors hover:bg-surface-bright hover:text-ink"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
@@ -134,7 +170,10 @@ export default function SignupPage() {
           {submitting ? 'Creating account…' : 'Create account'}
         </Button>
         <p className="text-center text-xs text-muted">
-          Free · Your ranking stays private by default
+          Free · No ads or trackers · Private by default.{' '}
+          <Link to="/privacy" className="underline underline-offset-4 hover:text-ink">
+            Privacy
+          </Link>
         </p>
       </form>
       <p className="mt-4 text-sm text-muted">

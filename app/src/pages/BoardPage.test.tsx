@@ -1,11 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor, within, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PAGE_SIZE, useAllCoasters, useBoardMeta, type RankingBoardPayload } from '../lib/coasters'
+import { useAuth } from '../lib/auth-context'
+import {
+  SIGNUP_CTA_ACTIVITY_WINDOW_MS,
+  SIGNUP_CTA_ARMED_KEY,
+  SIGNUP_CTA_ENGAGED_SECONDS,
+  SIGNUP_CTA_RETURN_DELAY_MS,
+  SIGNUP_CTA_STORAGE_KEY,
+} from '../lib/signup-cta'
 import { makeRankingRow } from '../test/fixtures'
+
+vi.mock('../lib/auth-context', () => ({
+  useAuth: vi.fn(),
+}))
 
 vi.mock('../lib/coasters', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/coasters')>()
@@ -64,6 +76,10 @@ function mockAllCoasters(data: Parameters<typeof makeRankingRow>[0][] = []) {
   } as never)
 }
 
+function mockAnonymousAuth() {
+  vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: false } as never)
+}
+
 function mockBoardMeta(overrides: Partial<RankingBoardPayload> = {}) {
   vi.mocked(useBoardMeta).mockReturnValue({
     data: {
@@ -98,6 +114,8 @@ describe('BoardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     observeCallback = null
+    window.localStorage.clear()
+    mockAnonymousAuth()
     mockBoardMeta()
     mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
   })
@@ -336,5 +354,161 @@ describe('BoardPage', () => {
     view.rerender(boardTree())
     expect(within(screen.getByRole('table')).queryByText('↑1')).not.toBeInTheDocument()
     view.unmount()
+  })
+})
+
+describe('BoardPage signup CTA', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+    mockAnonymousAuth()
+    mockBoardMeta()
+    mockAllCoasters([{ name: 'Steel Vengeance', slug: 'steel-vengeance' }])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function ctaDialog() {
+    return screen.queryByRole('dialog', { name: 'Sign up invitation' })
+  }
+
+  // Simulate N engaged seconds: one user action per 1s tick. Each scroll
+  // stamps activity, then the clock advances one ticker interval (inside
+  // act() so the tick's state update flushes before we assert). jsdom never
+  // scrolls (scrollY is always 0), so the minimum-scroll gate is stubbed
+  // past its threshold for the duration — the "clock alone" test below
+  // covers the unstubbed case.
+  async function engage(seconds: number) {
+    Object.defineProperty(window, 'scrollY', { value: 120, configurable: true })
+    try {
+      for (let i = 0; i < seconds; i += 1) {
+        fireEvent.scroll(window)
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000)
+        })
+      }
+    } finally {
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+    }
+  }
+
+  it('needs real activity: clock time alone never trips the gate', async () => {
+    vi.useFakeTimers()
+    renderBoard()
+    // jsdom has no scrollable depth, so scroll engagement is immediate —
+    // only the action-gated dwell is under test here.
+    await vi.advanceTimersByTimeAsync(
+      (SIGNUP_CTA_ENGAGED_SECONDS + SIGNUP_CTA_ACTIVITY_WINDOW_MS / 1000) * 1000 * 2,
+    )
+    expect(ctaDialog()).not.toBeInTheDocument()
+
+    // ...but the same span WITH activity fires it.
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign up free' })).toHaveAttribute('href', '/signup')
+  })
+
+  it('never appears while auth is still loading', async () => {
+    vi.useFakeTimers()
+    vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: true } as never)
+    renderBoard()
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).not.toBeInTheDocument()
+  })
+
+  it('never appears for logged-in users', async () => {
+    vi.useFakeTimers()
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 'u1' },
+      isLoading: false,
+    } as never)
+    renderBoard()
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).not.toBeInTheDocument()
+  })
+
+  it('stays hidden when previously dismissed', async () => {
+    vi.useFakeTimers()
+    window.localStorage.setItem(SIGNUP_CTA_STORAGE_KEY, '1')
+    window.sessionStorage.setItem(SIGNUP_CTA_ARMED_KEY, '1')
+    renderBoard()
+    // Dismissal wins over the return-trip arming too.
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).not.toBeInTheDocument()
+  })
+
+  it('dismissing persists the flag so it never shows again', async () => {
+    vi.useFakeTimers()
+    renderBoard()
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).toBeInTheDocument()
+    // fireEvent (sync) instead of userEvent: the clock is faked here.
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss signup prompt' }))
+    expect(ctaDialog()).not.toBeInTheDocument()
+    expect(window.localStorage.getItem(SIGNUP_CTA_STORAGE_KEY)).toBe('1')
+  })
+
+  it('dismissing in ?cta=show hides for the session without writing storage', async () => {
+    const user = userEvent.setup()
+    renderBoard(['/?cta=show'])
+    expect(ctaDialog()).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Dismiss signup prompt' }))
+    expect(ctaDialog()).not.toBeInTheDocument()
+    expect(window.localStorage.getItem(SIGNUP_CTA_STORAGE_KEY)).toBeNull()
+  })
+
+  it('?cta=show previews instantly without writing storage', () => {
+    renderBoard(['/?cta=show'])
+    expect(ctaDialog()).toBeInTheDocument()
+    expect(window.localStorage.getItem(SIGNUP_CTA_STORAGE_KEY)).toBeNull()
+  })
+
+  it('?cta=reset clears a previous dismissal', async () => {
+    vi.useFakeTimers()
+    window.localStorage.setItem(SIGNUP_CTA_STORAGE_KEY, '1')
+    renderBoard(['/?cta=reset'])
+    expect(window.localStorage.getItem(SIGNUP_CTA_STORAGE_KEY)).toBeNull()
+    await engage(SIGNUP_CTA_ENGAGED_SECONDS)
+    expect(ctaDialog()).toBeInTheDocument()
+  })
+
+  it('scrolling arms the return trip: coming back shows the card without re-earning', async () => {
+    vi.useFakeTimers()
+    // First visit: a little engagement, not enough to fire — but the scroll
+    // arms the tab for the return trip (e.g. off to a coaster page).
+    const first = renderBoard()
+    await engage(3)
+    expect(ctaDialog()).not.toBeInTheDocument()
+    expect(window.sessionStorage.getItem(SIGNUP_CTA_ARMED_KEY)).toBe('1')
+    first.unmount()
+
+    // Back on the board: the card appears after the settle delay, with no
+    // further activity at all.
+    renderBoard()
+    expect(ctaDialog()).not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SIGNUP_CTA_RETURN_DELAY_MS)
+    })
+    expect(ctaDialog()).toBeInTheDocument()
+  })
+
+  it('a visit with no scroll never arms, so returning stays quiet', async () => {
+    vi.useFakeTimers()
+    const first = renderBoard()
+    // Clock runs but the visitor never acts: nothing arms, nothing shows.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SIGNUP_CTA_RETURN_DELAY_MS * 5)
+    })
+    expect(window.sessionStorage.getItem(SIGNUP_CTA_ARMED_KEY)).toBeNull()
+    first.unmount()
+
+    renderBoard()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SIGNUP_CTA_RETURN_DELAY_MS * 3)
+    })
+    expect(ctaDialog()).not.toBeInTheDocument()
   })
 })
