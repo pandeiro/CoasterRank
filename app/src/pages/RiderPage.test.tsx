@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import RiderPage from './RiderPage'
 import { useRiderPage, type RiderPageData } from '../lib/rider'
@@ -63,6 +63,39 @@ function renderAt(path = '/riders/coaster_fan', auth: AuthContextValue = anonymo
         <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route path="/riders/:username" element={<RiderPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    </HelmetProvider>,
+  )
+}
+
+function LocationProbe() {
+  const { pathname, search, hash } = useLocation()
+  return (
+    <p data-testid="location">
+      {pathname}
+      {search}
+      {hash}
+    </p>
+  )
+}
+
+function renderAtWithProbe(path: string) {
+  return render(
+    <HelmetProvider>
+      <AuthContext.Provider value={anonymousAuth}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path="/riders/:username"
+              element={
+                <>
+                  <RiderPage />
+                  <LocationProbe />
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
@@ -163,6 +196,29 @@ describe('RiderPage', () => {
 
     expect(vi.mocked(useRiderPage)).toHaveBeenCalledWith('coaster_fan')
     expect(screen.getByText('Coaster Fan')).toBeInTheDocument()
+  })
+
+  it('corrects the address bar to the canonical lowercase URL', () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: riderData,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAtWithProbe('/riders/Coaster_Fan')
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/riders/coaster_fan')
+    expect(screen.getByText('Coaster Fan')).toBeInTheDocument()
+  })
+
+  it('preserves query string and hash on case correction', () => {
+    vi.mocked(useRiderPage).mockReturnValue({
+      data: riderData,
+      isPending: false,
+      isError: false,
+    } as never)
+    renderAtWithProbe('/riders/Coaster_Fan?utm_source=x#top')
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/riders/coaster_fan?utm_source=x#top')
   })
 
   it('shows not-found — never an infinite spinner — for invalid segments', () => {

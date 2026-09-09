@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
@@ -28,6 +28,7 @@ function RiderNotFound() {
 
 export default function RiderPage() {
   const { username } = useParams()
+  const location = useLocation()
   const { user } = useAuth()
   // Lowercase-tolerant: shared URLs get retyped with capitals and the DB
   // lookup is case-insensitive, but the client query gate is lowercase-only.
@@ -39,6 +40,23 @@ export default function RiderPage() {
   // page shows Loading… indefinitely instead of not-found.
   if (!isValidRiderUsername(canonicalUsername)) {
     return <RiderNotFound />
+  }
+
+  // Case-canonicalize the address bar: usernames are lowercase-only by DB
+  // contract (profiles_username_format_check), so the lowercase form IS the
+  // canonical URL — no need to wait for the RPC. Same-render-pass replace,
+  // search/hash preserved, consistent with the /@ alias redirect.
+  if (username !== canonicalUsername) {
+    return (
+      <Navigate
+        to={{
+          pathname: `/riders/${canonicalUsername}`,
+          search: location.search,
+          hash: location.hash,
+        }}
+        replace
+      />
+    )
   }
 
   if (isPending) {

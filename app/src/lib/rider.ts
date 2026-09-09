@@ -33,7 +33,7 @@ export type RiderPageData = {
   rides: RiderRide[]
 }
 
-export function isValidRiderUsername(username: string | undefined): boolean {
+export function isValidRiderUsername(username: string | undefined): username is string {
   return typeof username === 'string' && USERNAME_RE.test(username)
 }
 
