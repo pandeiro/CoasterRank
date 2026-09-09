@@ -23,8 +23,7 @@ export function claimErrorMessage(error: unknown): string {
     // Postgres unique_violation => profiles.username is taken.
     if (error.code === '23505') return 'That username is taken.'
     if (error.code === '23514') {
-      const message =
-        'message' in error && typeof error.message === 'string' ? error.message : ''
+      const message = 'message' in error && typeof error.message === 'string' ? error.message : ''
       return message.includes('reserved')
         ? 'That username is reserved.'
         : 'That username is invalid.'
