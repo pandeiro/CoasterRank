@@ -33,7 +33,7 @@ export type RiderPageData = {
   rides: RiderRide[]
 }
 
-export function isValidRiderUsername(username: string | undefined): boolean {
+export function isValidRiderUsername(username: string | undefined): username is string {
   return typeof username === 'string' && USERNAME_RE.test(username)
 }
 
@@ -56,4 +56,13 @@ export function useRiderPage(username: string | undefined) {
 /** The canonical public URL for a rider page (no trailing slash). */
 export function riderPageUrl(username: string): string {
   return `${window.location.origin}/riders/${username}`
+}
+
+/**
+ * Short share URL — the /@username vanity alias. Copy-to-clipboard and
+ * displayed share links emit this; og:url/canonical stay on /riders/:username
+ * (see riderPageUrl).
+ */
+export function riderShareUrl(username: string): string {
+  return `${window.location.origin}/@${username}`
 }

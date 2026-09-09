@@ -13,6 +13,26 @@ export type Profile = {
 }
 
 /**
+ * Maps profile-save failures to friendly copy. The client pre-checks format
+ * and reservation before saving, so a DB contract hit only happens via
+ * deploy skew (old client), direct API calls, or list drift — never leave it
+ * as raw Postgres text.
+ */
+export function claimErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    // Postgres unique_violation => profiles.username is taken.
+    if (error.code === '23505') return 'That username is taken.'
+    if (error.code === '23514') {
+      const message = 'message' in error && typeof error.message === 'string' ? error.message : ''
+      return message.includes('reserved')
+        ? 'That username is reserved.'
+        : 'That username is invalid.'
+    }
+  }
+  return error instanceof Error ? error.message : 'Something went wrong.'
+}
+
+/**
  * The single fetch behind the shared `['profile', userId]` query cache entry.
  * Every observer of that key MUST use this function (same SELECT shape): a
  * narrower queryFn under the same key could satisfy other observers with a

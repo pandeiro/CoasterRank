@@ -1,11 +1,11 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
 import StatBlock from '../components/StatBlock'
 import { MessageState, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
-import { riderPageUrl, useRiderPage } from '../lib/rider'
+import { riderPageUrl, useRiderPage, isValidRiderUsername } from '../lib/rider'
 import { truncate } from '../lib/truncate'
 
 function yearOf(iso: string | null): number | null {
@@ -14,10 +14,50 @@ function yearOf(iso: string | null): number | null {
   return Number.isFinite(year) ? year : null
 }
 
+function RiderNotFound() {
+  return (
+    <div className="py-12">
+      <Helmet>
+        <title>Rider not found — CoasterRank</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <MessageState>This rider page doesn&apos;t exist or isn&apos;t shared.</MessageState>
+    </div>
+  )
+}
+
 export default function RiderPage() {
   const { username } = useParams()
+  const location = useLocation()
   const { user } = useAuth()
-  const { data, isPending, isError } = useRiderPage(username)
+  // Lowercase-tolerant: shared URLs get retyped with capitals and the DB
+  // lookup is case-insensitive, but the client query gate is lowercase-only.
+  const canonicalUsername = username?.toLowerCase()
+  const { data, isPending, isError } = useRiderPage(canonicalUsername)
+
+  // Invalid segments (too short, bad charset) must not-found, not spin: with
+  // TanStack v5 a disabled query stays pending forever, so without this the
+  // page shows Loading… indefinitely instead of not-found.
+  if (!isValidRiderUsername(canonicalUsername)) {
+    return <RiderNotFound />
+  }
+
+  // Case-canonicalize the address bar: usernames are lowercase-only by DB
+  // contract (profiles_username_format_check), so the lowercase form IS the
+  // canonical URL — no need to wait for the RPC. Same-render-pass replace,
+  // search/hash preserved, consistent with the /@ alias redirect.
+  if (username !== canonicalUsername) {
+    return (
+      <Navigate
+        to={{
+          pathname: `/riders/${canonicalUsername}`,
+          search: location.search,
+          hash: location.hash,
+        }}
+        replace
+      />
+    )
+  }
 
   if (isPending) {
     return <MessageState>Loading…</MessageState>
@@ -28,15 +68,7 @@ export default function RiderPage() {
   }
 
   if (!data) {
-    return (
-      <div className="py-12">
-        <Helmet>
-          <title>Rider not found — CoasterRank</title>
-          <meta name="robots" content="noindex" />
-        </Helmet>
-        <MessageState>This rider page doesn&apos;t exist or isn&apos;t shared.</MessageState>
-      </div>
-    )
+    return <RiderNotFound />
   }
 
   const { profile, rides } = data

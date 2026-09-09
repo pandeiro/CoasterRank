@@ -3,15 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
-import { riderPageUrl } from '../lib/rider'
-import { fetchProfile, type Profile } from '../lib/profile'
+import { riderShareUrl } from '../lib/rider'
+import { fetchProfile, claimErrorMessage, type Profile } from '../lib/profile'
 import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
-import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
+import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Badge, Button, fieldClassName, MessageState, Panel } from '../components/ui'
 import { CopyLinkButton } from '../components/CopyLinkButton'
 import Avatar from '../components/ui/Avatar'
-
 export type { Profile }
 
 export default function ProfilePage() {
@@ -68,10 +67,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
     },
     onError: (error) => {
-      // Postgres unique_violation => profiles.username is taken.
-      setFormError(
-        'code' in error && error.code === '23505' ? 'That username is taken.' : error.message,
-      )
+      setFormError(claimErrorMessage(error))
     },
   })
 
@@ -81,6 +77,13 @@ export default function ProfilePage() {
     setSaved(false)
     if (username && !USERNAME_RE.test(username)) {
       setFormError(`Username must be ${USERNAME_RULES}`)
+      return
+    }
+    // Reserved names can't be claimed — except keeping the one you already
+    // have (the site admin's account predates the list and is grandfathered
+    // in the DB constraint too).
+    if (isReservedUsername(username) && username !== profile?.username) {
+      setFormError('That username is reserved.')
       return
     }
     save.mutate()
@@ -215,8 +218,7 @@ export default function ProfilePage() {
               <label htmlFor="publicList" className="block text-sm">
                 <span className="font-medium text-ink">Share my ranking</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  Puts your ranked list at{' '}
-                  <code className="font-mono">/riders/{username || '…'}</code>
+                  Puts your ranked list at <code className="font-mono">/@{username || '…'}</code>
                   {username ? '' : ' (once you claim a username)'}. Your email and any unranked
                   coasters stay private.
                 </span>
@@ -225,9 +227,9 @@ export default function ProfilePage() {
             {publicList && username && USERNAME_RE.test(username) && (
               <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
                 <code className="min-w-0 flex-1 truncate font-mono text-xs text-ink-soft">
-                  {riderPageUrl(username)}
+                  {riderShareUrl(username)}
                 </code>
-                <CopyLinkButton url={riderPageUrl(username)} label="Copy" />
+                <CopyLinkButton url={riderShareUrl(username)} label="Copy" />
               </div>
             )}
             <div>
