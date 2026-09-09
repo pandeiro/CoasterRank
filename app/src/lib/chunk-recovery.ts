@@ -19,6 +19,9 @@ const CHUNK_LOAD_ERROR_RE =
   /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|unable to preload|loading (?:css )?chunk .{0,40}failed/i
 
 export function isChunkLoadError(error: unknown): boolean {
+  if (!error) return false
+
+  // Check top-level message
   const message =
     error instanceof Error
       ? error.message
@@ -27,7 +30,16 @@ export function isChunkLoadError(error: unknown): boolean {
         : error && typeof error === 'object' && 'message' in error
           ? String((error as { message: unknown }).message)
           : ''
-  return CHUNK_LOAD_ERROR_RE.test(message)
+
+  if (CHUNK_LOAD_ERROR_RE.test(message)) return true
+
+  // Recursively check the cause chain (e.g. Sentry wrapped errors,
+  // or modern JS 'cause' property).
+  if (error instanceof Error && error.cause !== undefined) {
+    return isChunkLoadError(error.cause)
+  }
+
+  return false
 }
 
 // sessionStorage key proving a chunk-error reload was already attempted this
