@@ -35,6 +35,7 @@ async function fillAndSubmit(username: string) {
 describe('SignupPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
   })
 
   it('rejects invalid usernames client-side without calling Supabase', async () => {
@@ -128,5 +129,23 @@ describe('SignupPage', () => {
     await fillAndSubmit('coaster_fan')
 
     expect(await screen.findByText('Password should be at least 6 characters')).toBeInTheDocument()
+  })
+
+  it('shows the non-blocking why-email nudge until dismissed', async () => {
+    const user = userEvent.setup()
+    renderSignup()
+    expect(screen.getByText('Why email confirmation?')).toBeInTheDocument()
+    // The form stays fully usable behind the nudge.
+    expect(screen.getByRole('button', { name: /create account/i })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Dismiss notice' }))
+    expect(screen.queryByText('Why email confirmation?')).not.toBeInTheDocument()
+    expect(window.localStorage.getItem('cr.signup-why-email.dismissed')).toBe('1')
+  })
+
+  it('hides the why-email nudge once dismissed in a prior visit', () => {
+    window.localStorage.setItem('cr.signup-why-email.dismissed', '1')
+    renderSignup()
+    expect(screen.queryByText('Why email confirmation?')).not.toBeInTheDocument()
   })
 })
