@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { riderPageUrl } from '../lib/rider'
+import { riderShareUrl } from '../lib/rider'
 import { CopyLinkButton } from './CopyLinkButton'
 import Avatar from './ui/Avatar'
 
@@ -49,7 +49,8 @@ export default function ShareNudgeBanner({
   onDismiss,
 }: ShareNudgeBannerProps) {
   const [unfurled, setUnfurled] = useState(false)
-  const url = username && publicList ? riderPageUrl(username) : null
+  // Short /@ share form for copy/display; the Preview link stays canonical.
+  const url = username && publicList ? riderShareUrl(username) : null
   // Display without the protocol — the copy button still copies the full URL.
   const urlShown = url?.replace(/^https?:\/\//, '')
 

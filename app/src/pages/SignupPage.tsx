@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { USERNAME_RE, USERNAME_RULES } from '../lib/validation'
+import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
 
 type LocationState = { from?: string }
@@ -28,6 +28,10 @@ export default function SignupPage() {
     setError(null)
     if (!USERNAME_RE.test(username)) {
       setError(`Username must be ${USERNAME_RULES}`)
+      return
+    }
+    if (isReservedUsername(username)) {
+      setError('That username is reserved.')
       return
     }
     setSubmitting(true)

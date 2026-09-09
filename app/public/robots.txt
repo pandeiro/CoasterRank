@@ -4,4 +4,5 @@ Disallow: /me
 Disallow: /admin
 Disallow: /submit
 Disallow: /riders/
+Disallow: /@
 Disallow: /api/

@@ -44,6 +44,13 @@ describe('SignupPage', () => {
     expect(supabase.auth.signUp).not.toHaveBeenCalled()
   })
 
+  it('rejects reserved usernames client-side without calling Supabase', async () => {
+    renderSignup()
+    await fillAndSubmit('admin')
+    expect(await screen.findByText('That username is reserved.')).toBeInTheDocument()
+    expect(supabase.auth.signUp).not.toHaveBeenCalled()
+  })
+
   it('passes username/display_name through signup metadata', async () => {
     vi.mocked(supabase.auth.signUp).mockResolvedValue({
       data: { session: null, user: { id: 'u1' } },

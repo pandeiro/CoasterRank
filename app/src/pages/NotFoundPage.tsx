@@ -1,4 +1,27 @@
+import { Navigate, useLocation } from 'react-router-dom'
+
+// /@username vanity alias — must mirror RIDER_AT_PATH_RE in worker.ts and
+// USERNAME_RE in lib/validation. Shared links are sometimes %-encoded
+// (@ → %40) by chat apps; decode before matching, malformed escapes → 404.
+const AT_PATH_RE = /^\/@([A-Za-z0-9_]{3,20})\/?$/
+
 export default function NotFoundPage() {
+  const location = useLocation()
+
+  // Alias hit: <Navigate> resolves within the same router render pass —
+  // no 404 flash, no network round trip. The address bar canonicalizes to
+  // /riders/:username; /@username exists as the short share form.
+  let path = location.pathname
+  try {
+    path = decodeURIComponent(path)
+  } catch {
+    // Malformed escape → falls through to the 404 below.
+  }
+  const alias = AT_PATH_RE.exec(path)
+  if (alias) {
+    return <Navigate to={`/riders/${alias[1].toLowerCase()}`} replace />
+  }
+
   return (
     <div className="py-24 text-center">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent-text">404</p>

@@ -311,6 +311,83 @@ describe('worker: fetch handler', () => {
     expect(await response.text()).toBe('spa-shell')
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('prerenders OG HTML for the /@username alias with canonical /riders URLs', async () => {
+    const env = makeEnv()
+    const fetchMock = stubRpc(
+      new Response(JSON.stringify(riderData), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const response = await worker.fetch(riderRequest({ path: '/@coaster_fan' }), env)
+    const html = await response.text()
+
+    expect(response.headers.get('Content-Type')).toContain('text/html')
+    expect(response.headers.get('Cache-Control')).toContain('max-age=300')
+    expect(html).toContain('Coaster Fan (@coaster_fan) — CoasterRank')
+    // The alias prerender canonicalizes og:url/canonical/CTA to /riders/*;
+    // the og:image (computed from the username) is path-independent.
+    expect(html).toContain('rel="canonical" href="https://coasterrank.test/riders/coaster_fan"')
+    expect(html).toContain(
+      'property="og:url" content="https://coasterrank.test/riders/coaster_fan"',
+    )
+    expect(html).toContain(
+      'property="og:image" content="https://coasterrank.test/riders/coaster_fan/og.png?v=',
+    )
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(init.body))).toEqual({ p_username: 'coaster_fan' })
+  })
+
+  it('serves the SPA shell to humans on the /@username alias', async () => {
+    const env = makeEnv()
+    const fetchMock = stubRpc(new Response(JSON.stringify(riderData)))
+    const response = await worker.fetch(
+      riderRequest({ path: '/@coaster_fan', ua: 'Mozilla/5.0 Safari' }),
+      env,
+    )
+    expect(await response.text()).toBe('spa-shell')
+    expect(env.ASSETS.fetch).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the SPA shell for /@ segments that cannot be usernames', async () => {
+    const env = makeEnv()
+    const fetchMock = stubRpc(new Response(JSON.stringify(riderData)))
+    const response = await worker.fetch(riderRequest({ path: '/@AB' }), env)
+    expect(await response.text()).toBe('spa-shell')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('serves shared not-found HTML for unknown riders on the /@ alias', async () => {
+    const env = makeEnv()
+    stubRpc(new Response('null', { headers: { 'content-type': 'application/json' } }))
+    const response = await worker.fetch(riderRequest({ path: '/@coaster_fan' }), env)
+    const html = await response.text()
+    expect(html).toContain('Rider not found — CoasterRank')
+    expect(html).toContain('noindex')
+  })
+
+  it('matches the /@ alias with mixed case and %-encoded @', async () => {
+    const env = makeEnv()
+    // Fresh Response per call — a Response body can only be consumed once,
+    // and the loop makes three RPC reads.
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify(riderData), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    for (const path of ['/@Coaster_Fan', '/@coaster_fan/', '/%40coaster_fan']) {
+      const response = await worker.fetch(riderRequest({ path }), env)
+      const html = await response.text()
+      expect(html, path).toContain(
+        'rel="canonical" href="https://coasterrank.test/riders/coaster_fan"',
+      )
+      const [, init] = fetchMock.mock.calls.at(-1) as unknown as [string, RequestInit]
+      expect(JSON.parse(String(init.body)), path).toEqual({ p_username: 'coaster_fan' })
+    }
+  })
 })
 
 describe('worker: not-found HTML', () => {

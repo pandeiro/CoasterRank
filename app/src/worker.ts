@@ -14,6 +14,9 @@
  *    full OG/Twitter meta tags (most link-unfurling crawlers don't execute
  *    JS, so the SPA shell would otherwise unfurl as a bare "CoasterRank").
  *    Humans on the same URL fall through to static assets (the SPA).
+ *  - `/@username` (vanity alias for sharing) → same prerendered HTML with
+ *    og:url/canonical normalized to /riders/:username; humans fall through
+ *    to the SPA, which redirects to the canonical route.
  *  - `/riders/:username/og.png` (any User-Agent) → the dynamic 1200×630
  *    share card (rider's current top 5 + summary, SVG → PNG via resvg-wasm),
  *    edge-cached for 5 minutes. This is the og:image the rider HTML points
@@ -98,6 +101,42 @@ const RIDER_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/?$/
 // after reading the HTML meta; humans hit it via in-app previews). Checked
 // before the crawler gate below.
 const RIDER_OG_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/og\.png\/?$/
+// /@username vanity alias for the rider page. The alias is for sharing; the
+// canonical URL stays /riders/:username, so prerendered HTML for alias hits
+// points og:url/canonical at the canonical path.
+const RIDER_AT_PATH_RE = /^\/@([A-Za-z0-9_]{3,20})\/?$/
+
+// Shared links are sometimes %-encoded (@ → %40) by chat apps; decode before
+// matching. Malformed escapes fall back to the raw value (→ SPA shell).
+function tryDecodePathname(pathname: string): string {
+  try {
+    return decodeURIComponent(pathname)
+  } catch {
+    return pathname
+  }
+}
+
+/**
+ * Resolves the canonical rider page from a request path: the /riders/:username
+ * route and its /@username alias both map to the canonical username + the
+ * canonical /riders/:username path. Null when the path is neither (→ SPA).
+ */
+export function resolveRiderPath(
+  pathname: string,
+): { username: string; canonicalPath: string } | null {
+  const path = tryDecodePathname(pathname).replace(/\/+$/, '') || '/'
+  const canonical = RIDER_PATH_RE.exec(path)
+  if (canonical) {
+    const username = canonical[1].toLowerCase()
+    return { username, canonicalPath: `/riders/${username}` }
+  }
+  const alias = RIDER_AT_PATH_RE.exec(path)
+  if (alias) {
+    const username = alias[1].toLowerCase()
+    return { username, canonicalPath: `/riders/${username}` }
+  }
+  return null
+}
 
 export type WorkerRiderProfile = {
   username: string
@@ -708,9 +747,9 @@ export default {
       )
     }
 
-    const match = RIDER_PATH_RE.exec(url.pathname)
+    const rider = resolveRiderPath(url.pathname)
 
-    if (!match || !isSocialCrawler(request.headers.get('user-agent'))) {
+    if (!rider || !isSocialCrawler(request.headers.get('user-agent'))) {
       return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
@@ -721,13 +760,10 @@ export default {
       return withSecurityHeaders(await env.ASSETS.fetch(request))
     }
 
-    // Path regex already restricts the charset; normalize case for the RPC.
-    const username = match[1].toLowerCase()
-
     try {
-      const data = await fetchRiderPageFromSupabase(username, supabaseUrl, supabaseKey)
+      const data = await fetchRiderPageFromSupabase(rider.username, supabaseUrl, supabaseKey)
       const html = data
-        ? renderRiderHtml(data, url.origin, url.pathname)
+        ? renderRiderHtml(data, url.origin, rider.canonicalPath)
         : renderRiderNotFoundHtml(url.origin)
       return withSecurityHeaders(
         new Response(html, {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ShareNudgeBanner from './ShareNudgeBanner'
@@ -61,19 +61,32 @@ describe('ShareNudgeBanner', () => {
   })
 
   it('keeps the url hidden until YES unfurls it, protocol-stripped, with copy + preview', async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderBanner()
     expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^yes$/i }))
-    // Displayed without the protocol; the copy button still gets the full URL.
+    // The short /@ share form, displayed without the protocol; the preview
+    // link stays on the canonical /riders route.
     expect(
-      screen.getByText(`${window.location.origin.replace(/^https?:\/\//, '')}/riders/coaster_fan`),
+      screen.getByText(`${window.location.origin.replace(/^https?:\/\//, '')}/@coaster_fan`),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /preview/i })).toHaveAttribute(
       'href',
       '/riders/coaster_fan',
     )
+    // fireEvent, not user-event for the copy click: user-event installs its
+    // own clipboard stub, which would intercept the write and hide it from
+    // our spy (see CopyLinkButton.test).
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }))
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/@coaster_fan`)
+    })
   })
 
   it('unfurls profile-settings instructions when the list is not public', async () => {

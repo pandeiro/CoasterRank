@@ -57,3 +57,12 @@ export function useRiderPage(username: string | undefined) {
 export function riderPageUrl(username: string): string {
   return `${window.location.origin}/riders/${username}`
 }
+
+/**
+ * Short share URL — the /@username vanity alias. Copy-to-clipboard and
+ * displayed share links emit this; og:url/canonical stay on /riders/:username
+ * (see riderPageUrl).
+ */
+export function riderShareUrl(username: string): string {
+  return `${window.location.origin}/@${username}`
+}
