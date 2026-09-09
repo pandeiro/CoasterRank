@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import { initSentry } from './lib/sentry'
-import { clearChunkReloadGuard } from './lib/chunk-recovery'
+import { clearChunkReloadGuard, reloadForChunkError } from './lib/chunk-recovery'
 import './index.css'
 import App from './App.tsx'
 import ErrorFallback from './components/ErrorFallback'
@@ -30,7 +30,14 @@ console.log(`
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+    <Sentry.ErrorBoundary
+      fallback={<ErrorFallback />}
+      onError={(error) => {
+        // Last-resort recovery: if the error bubbles past the route boundary,
+        // attempt one silent reload before rendering the fallback.
+        reloadForChunkError(error)
+      }}
+    >
       <App />
     </Sentry.ErrorBoundary>
   </StrictMode>,
