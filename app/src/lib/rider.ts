@@ -25,6 +25,8 @@ export type RiderRide = {
   status: string
   park_name: string | null
   park_slug: string | null
+  /** NULL when the coaster has no linked manufacturer (or pre-migration RPC). */
+  manufacturer_name: string | null
   score: number | null
 }
 

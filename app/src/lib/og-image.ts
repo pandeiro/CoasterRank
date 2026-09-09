@@ -1,4 +1,4 @@
-import { buildRiderOgSvg, type OgSvgProfile, type OgSvgRide } from './og-svg'
+import { buildRiderOgSvg, topSpotlight, type OgSvgProfile, type OgSvgRide } from './og-svg'
 
 /**
  * Edge OG image pipeline for /riders/:username/og.png (see worker.ts).
@@ -56,7 +56,6 @@ export type OgImageRider = {
     displayName: string
     avatarUrl: string | null
     memberSinceYear: string | null
-    pageUrl: string
   }
   rides: OgSvgRide[]
 }
@@ -106,8 +105,10 @@ export function toOgSvgInput(rider: OgImageRider, avatarDataUri: string | null):
       memberSinceYear: rider.profile.memberSinceYear,
       rankedCount,
       parkCount,
+      topPark: topSpotlight(rider.rides, 'park_name'),
+      // Builder draws from the top 10 by rank: preference, not volume.
+      topManufacturer: topSpotlight(rider.rides, 'manufacturer_name', 10),
       avatarDataUri,
-      pageUrl: rider.profile.pageUrl,
     },
     rides: rider.rides.slice(0, 5),
   }
@@ -118,10 +119,36 @@ export function toOgSvgInput(rider: OgImageRider, avatarDataUri: string | null):
 let wasmInitPromise: Promise<void> | null = null
 let fontPromise: Promise<FontBuffer[]> | null = null
 
+/**
+ * Precompiled resvg module (wrangler CompiledWasm rule — see wrangler.toml).
+ * Null outside workerd (node/vitest can't import .wasm): callers fall back
+ * to initWasm() from fetched bytes, which compiles fine outside workerd.
+ */
+async function loadCompiledWasm(): Promise<WebAssembly.Module | null> {
+  try {
+    const mod = (await import('../../public/resvg.wasm')) as {
+      default?: unknown
+    }
+    const candidate = mod.default ?? mod
+    return candidate instanceof WebAssembly.Module ? candidate : null
+  } catch {
+    return null
+  }
+}
+
 async function ensureWasm(fetchStatic: StaticAssetFetcher): Promise<void> {
   if (!wasmInitPromise) {
     wasmInitPromise = (async () => {
       const { initWasm } = await import('@resvg/resvg-wasm')
+      // workerd disallows runtime wasm compilation entirely (even an 8-byte
+      // module throws "Wasm code generation disallowed by embedder"), so the
+      // precompiled module is the ONLY path that works in production. The
+      // bytes path below survives for node (previews, vitest).
+      const compiled = await loadCompiledWasm()
+      if (compiled) {
+        await initWasm(compiled)
+        return
+      }
       const wasmBytes = await fetchStatic(OG_WASM_PATH)
       await initWasm(wasmBytes)
     })().catch((error) => {
@@ -260,7 +287,11 @@ export async function serveOgImage(
       }
     }
     return ogPngResponse(png, deps.cache ? 'MISS' : 'BYPASS', OG_IMAGE_BROWSER_TTL_SECONDS)
-  } catch {
+  } catch (error) {
+    // Silent fallbacks made a global render outage invisible (every rider
+    // served the default card with no signal). Log username + stage so
+    // Workers Logs shows which step throws.
+    console.error(`[og] render failed for ${username}:`, error)
     return fallbackOgResponse(deps)
   }
 }

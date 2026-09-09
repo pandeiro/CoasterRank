@@ -17,11 +17,20 @@ function rider(): OgImageRider {
       displayName: 'Marina Thrills',
       avatarUrl: 'https://img.test/avatar.png',
       memberSinceYear: '2021',
-      pageUrl: 'https://coasterrank.test/riders/marina_thrills',
     },
     rides: [
-      { rank: 1, name: 'Steel Vengeance', park_name: 'Cedar Point' },
-      { rank: 2, name: 'Zadra', park_name: 'Energylandia' },
+      {
+        rank: 1,
+        name: 'Steel Vengeance',
+        park_name: 'Cedar Point',
+        manufacturer_name: 'Rocky Mountain Construction',
+      },
+      {
+        rank: 2,
+        name: 'Zadra',
+        park_name: 'Energylandia',
+        manufacturer_name: 'Rocky Mountain Construction',
+      },
     ],
   }
 }
@@ -74,6 +83,7 @@ describe('toOgSvgInput', () => {
         rank: i + 1,
         name: `Coaster ${i + 1}`,
         park_name: i % 2 === 0 ? 'Park A' : 'Park B',
+        manufacturer_name: 'Intamin',
       })),
     }
     const input = toOgSvgInput(many, 'data:image/png;base64,AAA')
@@ -81,6 +91,30 @@ describe('toOgSvgInput', () => {
     expect(input.profile.parkCount).toBe(2)
     expect(input.rides).toHaveLength(5)
     expect(input.profile.avatarDataUri).toBe('data:image/png;base64,AAA')
+  })
+
+  it('derives top-park and top-builder spotlights', () => {
+    const input = toOgSvgInput(rider(), null)
+    expect(input.profile.topPark).toEqual({ name: 'Cedar Point', count: 1 })
+    expect(input.profile.topManufacturer).toEqual({
+      name: 'Rocky Mountain Construction',
+      count: 2,
+    })
+  })
+
+  it('draws the top builder from the top 10 by rank, not the full list', () => {
+    const rides: OgImageRider['rides'] = Array.from({ length: 12 }, (_, i) => ({
+      rank: i + 1,
+      name: `Coaster ${i + 1}`,
+      park_name: 'Park A',
+      // Top 10 favor Intamin; the tail is all RMC (would win unscoped 4-8).
+      manufacturer_name: i < 10 && i % 2 === 0 ? 'Intamin' : 'Rocky Mountain Construction',
+    }))
+    // Top 10: Intamin 5 (ranks 1,3,5,7,9) vs RMC 5 (2,4,6,8,10) → alpha tiebreak.
+    const input = toOgSvgInput({ ...rider(), rides }, null)
+    expect(input.profile.topManufacturer).toEqual({ name: 'Intamin', count: 5 })
+    // Full-list park scope is untouched.
+    expect(input.profile.topPark).toEqual({ name: 'Park A', count: 12 })
   })
 })
 

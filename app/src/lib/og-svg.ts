@@ -32,6 +32,40 @@ export type OgSvgRide = {
   rank: number
   name: string
   park_name: string | null
+  manufacturer_name: string | null
+}
+
+export type OgSpotlight = { name: string; count: number } | null
+
+/**
+ * Most-ridden value for a ride field (top park / top builder). Count desc,
+ * name asc for deterministic ties; blank values ignored. Null when no ride
+ * carries the field (empty lists, unknown parks/manufacturers).
+ *
+ * `limit` scopes the pool to the first N rides by rank — the top-builder
+ * spotlight uses 10 so it reflects preference (what you rank highest), not
+ * volume (what you happen to have ridden most of).
+ */
+export function topSpotlight(
+  rides: OgSvgRide[],
+  key: 'park_name' | 'manufacturer_name',
+  limit?: number,
+): OgSpotlight {
+  const ordered = [...rides].sort((a, b) => a.rank - b.rank)
+  const pool = limit === undefined ? ordered : ordered.slice(0, limit)
+  const counts = new Map<string, number>()
+  for (const ride of pool) {
+    const value = ride[key]?.trim()
+    if (!value) continue
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  let best: { name: string; count: number } | null = null
+  for (const [name, count] of counts) {
+    if (!best || count > best.count || (count === best.count && name < best.name)) {
+      best = { name, count }
+    }
+  }
+  return best
 }
 
 export type OgSvgProfile = {
@@ -41,10 +75,11 @@ export type OgSvgProfile = {
   memberSinceYear: string | null
   rankedCount: number
   parkCount: number
+  /** Most-ridden park / builder (with ride counts), null when none. */
+  topPark: OgSpotlight
+  topManufacturer: OgSpotlight
   /** data: URI (png/jpeg) or null → initial-letter placeholder. */
   avatarDataUri: string | null
-  /** Full canonical page URL, rendered as the footer line. */
-  pageUrl: string
 }
 
 function xmlEscape(value: string): string {
@@ -66,9 +101,9 @@ function pill(label: string, x: number, fill: string, stroke: string, text: stri
 }
 
 function avatarBlock(profile: OgSvgProfile): string {
-  const cx = 128
-  const cy = 244
-  const r = 60
+  const cx = 132
+  const cy = 252
+  const r = 68
   const ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${ACCENT}" stroke-width="5"/>`
   if (profile.avatarDataUri) {
     return `<g>
@@ -128,11 +163,29 @@ function topFiveCard(rides: OgSvgRide[], username: string): string {
   </g>`
 }
 
+/** Top-park / top-builder spotlight lines under the pills. Null rows omitted. */
+function spotlightBlock(profile: OgSvgProfile): string {
+  const rows: Array<[string, { name: string; count: number }]> = []
+  if (profile.topPark) rows.push(['TOP PARK', profile.topPark])
+  if (profile.topManufacturer) rows.push(['TOP BUILDER', profile.topManufacturer])
+  return rows
+    .map(([label, spot], i) => {
+      const y = 452 + i * 64
+      const name = xmlEscape(truncate(spot.name, 30))
+      const rides = spot.count === 1 ? '1 ridden' : `${spot.count} ridden`
+      return `<g>
+    <text x="64" y="${y}" font-family="${BODY_FONT}" font-size="14" font-weight="700" letter-spacing="3" fill="rgba(254,252,243,0.5)">${label}</text>
+    <text x="64" y="${y + 32}" font-family="${BODY_FONT}" font-size="25" font-weight="700" fill="${CANVAS}">${name}<tspan font-weight="400" font-size="20" fill="${ACCENT}"> · ${rides}</tspan></text>
+  </g>`
+    })
+    .join('\n')
+}
+
 /** Builds the full 1200x630 SVG document for a rider card. */
 export function buildRiderOgSvg(profile: OgSvgProfile, rides: OgSvgRide[]): string {
   // Racing Sans One is very wide (~30px/char at 62px); the name must clear
   // the top-5 card at x=748, so it stays short and large rather than long.
-  const displayName = truncate(profile.displayName.trim() || profile.username, 18)
+  const displayName = truncate(profile.displayName.trim() || profile.username, 16)
   const pills: string[] = []
   let px = 64
   const defs: Array<[string, string, string, string]> = [
@@ -163,14 +216,14 @@ export function buildRiderOgSvg(profile: OgSvgProfile, rides: OgSvgRide[]): stri
     <rect x="1208" y="210" width="66" height="350" rx="4" fill="${ACCENT}"/>
     <rect x="1290" y="142" width="66" height="418" rx="4" fill="${ACCENT}"/>
   </g>
-  <svg x="64" y="48" width="104" height="80" viewBox="${OG_MARK_VIEWBOX}">${OG_MARK_INNER}</svg>
-  <text x="184" y="102" font-family="${DISPLAY_FONT}" font-size="44" fill="${CANVAS}">Coaster<tspan fill="${CORAL}">Rank</tspan></text>
-  <text x="184" y="134" font-family="${BODY_FONT}" font-size="16" font-weight="700" letter-spacing="3" fill="${ACCENT}">RIDER RANKING</text>
+  <svg x="64" y="48" width="88" height="68" viewBox="${OG_MARK_VIEWBOX}">${OG_MARK_INNER}</svg>
+  <text x="168" y="88" font-family="${BODY_FONT}" font-size="16" font-weight="700" letter-spacing="3" fill="${ACCENT}">RIDER RANKING</text>
+  <text x="168" y="112" font-family="${BODY_FONT}" font-size="15" fill="rgba(254,252,243,0.45)">coasterrank.app</text>
   ${avatarBlock(profile)}
-  <text x="212" y="250" font-family="${DISPLAY_FONT}" font-size="54" fill="${CANVAS}">${xmlEscape(displayName)}</text>
-  <text x="214" y="296" font-family="${BODY_FONT}" font-size="27" fill="${ACCENT}">@${xmlEscape(profile.username)}</text>
+  <text x="220" y="258" font-family="${DISPLAY_FONT}" font-size="58" fill="${CANVAS}">${xmlEscape(displayName)}</text>
+  <text x="222" y="304" font-family="${BODY_FONT}" font-size="26" fill="${ACCENT}">@${xmlEscape(profile.username)}</text>
   ${pills.join('\n')}
+  ${spotlightBlock(profile)}
   ${topFiveCard(rides, profile.username)}
-  <text x="64" y="586" font-family="${BODY_FONT}" font-size="19" fill="rgba(254,252,243,0.45)">${xmlEscape(truncate(profile.pageUrl, 52))}</text>
 </svg>`
 }
