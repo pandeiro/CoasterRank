@@ -5,6 +5,7 @@ import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'luc
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import UsersPanel from '../components/admin/UsersPanel'
+import SharingPanel from '../components/admin/SharingPanel'
 import WeightingComparePanel from '../components/admin/WeightingComparePanel'
 import {
   Badge,
@@ -66,7 +67,15 @@ type ToastState = { id: number; message: string; tone: 'info' | 'error' }
 
 const COASTER_PAGE_SIZE = 50
 
-const ADMIN_TABS = ['coasters', 'parks', 'rehome', 'submissions', 'users', 'control-panel'] as const
+const ADMIN_TABS = [
+  'coasters',
+  'parks',
+  'rehome',
+  'submissions',
+  'users',
+  'sharing',
+  'control-panel',
+] as const
 type AdminTab = (typeof ADMIN_TABS)[number]
 
 // Old deep links keep working: the Impersonate tab became the Users tab.
@@ -1599,6 +1608,8 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'users' && <UsersPanel notify={notify} />}
+
+          {activeTab === 'sharing' && <SharingPanel />}
 
           {activeTab === 'control-panel' && (
             <Panel className="p-6">

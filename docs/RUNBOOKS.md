@@ -232,6 +232,53 @@ curl -s -D - -o /dev/null https://coasterrank.app/api/ranking | grep -iE "x-rank
   `RANKING_ALLOWED_ORIGINS` Worker var (comma-separated, dashboard Settings → Variables —
   takes effect without a code deploy). No domains are hard-coded in the worker source.
 
+## Share-loop analytics (what's observable, where)
+
+Reference for the `/admin` → Sharing tab and ad-hoc funnel checks. Decision log: PLAN §11
+("Share-loop analytics") — no anon-writable event tables, no `?ref=` attribution.
+
+- **Supabase (authoritative, queryable)**: `profiles.public_list` / `share_nudge_shown_at` /
+  `user_rides` give the funnel (signups → username claimed → eligible ≥5 ranked → nudged →
+  sharing on) as *cumulative state* — there is no enable timestamp in the DB. The share-enable
+  Telegram ping (`on_profile_share_notify_telegram`, migration `20260902165333`) is push-only.
+  `auth.users.created_at` is the signup time series.
+- **Cloudflare dashboards (aggregate only)**: Workers → coasterrank shows request/error counts
+  but not per-path; the CDN-cache-analytics trap above applies. Worker prerender/og lines are in
+  Workers Logs (`npx wrangler tail` for ad-hoc sessions).
+- **Cloudflare Web Analytics (RUM)**: the only source of human pageviews + referrers + per-path
+  counts on shared pages. The beacon is injected by the RUM site's `auto_install` (site created
+  2026-08-29) — **for browser user-agents only**: curl/wget are bot-classified and skipped, so
+  `curl | grep cloudflareinsights` always returns 0 (hit this false alarm 2026-09-10; verified
+  injection via Playwright — real Chromium gets the beacon). Verify RUM liveness with GraphQL,
+  not curl:
+
+  ```graphql
+  query($accountTag: String!) {
+    viewer {
+      accounts(filter: { accountTag: $accountTag }) {
+        rumPageloadEventsAdaptiveGroups(limit: 10, orderBy: [datetimeHour_ASC],
+          filter: { datetime_geq: "2026-09-09T00:00:00Z", datetime_leq: "2026-09-10T00:00:00Z" }) {
+          count
+          sum { visits }              # note: count = pageviews; pageviews is NOT a field
+          dimensions { datetimeHour requestPath refererHost }
+        }
+      }
+    }
+  }
+  ```
+
+  POST it to `https://api.cloudflare.com/client/v4/graphql` with `Authorization: Bearer
+  <CLOUDFLARE_API_TOKEN>` (permission: **Account → Account Analytics → Read**) and
+  `{"accountTag": "<CLOUDFLARE_ACCOUNT_ID>"}` variables; filter input type is
+  `AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject` (`requestPath_like: "/riders%"`,
+  `bot: 0` excludes likely bots). Do NOT add a manual beacon snippet to `app/index.html` —
+  it would double-count on top of auto-install.
+- **Workers Analytics Engine** (planned, phase 2): first-party CF feature — a worker binding
+  (`writeDataPoint`) for aggregate counters, queried over HTTPS via its SQL API. Free tier:
+  100k data points/day, 3-month retention. Intended for unfurl-side counts (crawler prerender
+  serves, not-found serves, og.png renders) that RUM structurally cannot see. No Supabase
+  table involved.
+
 ## Anti-abuse & rate limits (what's already in place)
 
 Most abuse protection is delegated to Supabase's built-in, server-side limits rather than custom
