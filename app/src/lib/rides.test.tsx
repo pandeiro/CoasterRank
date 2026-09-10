@@ -91,10 +91,23 @@ describe('useMyRides', () => {
     const { result } = renderMyRides()
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(select).toHaveBeenCalledWith(
-      'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(name, country))',
+      'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers!coasters_manufacturer_id_fkey(name), parks(name, country))',
     )
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('score'))
     expect(select).not.toHaveBeenCalledWith(expect.stringContaining('comparisons'))
+  })
+
+  it('pins the manufacturers embed to the direct FK (lineage junction ambiguity)', async () => {
+    // coaster_manufacturers gives coasters a SECOND path to manufacturers, so
+    // the bare `manufacturers(...)` embed is ambiguous — prod PostgREST 400s
+    // with PGRST201 and /me (and the admin Coasters panel) fail to load. The
+    // `!coasters_manufacturer_id_fkey` hint must stay on every coasters →
+    // manufacturers embed.
+    mockQuery({ data: [], error: null })
+    const { result } = renderMyRides()
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    const called = vi.mocked(select).mock.calls[0][0] as string
+    expect(called).toContain('manufacturers!coasters_manufacturer_id_fkey(')
   })
 
   it('maps a PostgREST object-shaped embed onto coaster (regression: park_id crash)', async () => {
