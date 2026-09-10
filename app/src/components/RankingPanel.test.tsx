@@ -208,6 +208,7 @@ describe('RankingPanel', () => {
       renderPanel()
       await user.click(screen.getByRole('button', { name: /how is this calculated/i }))
       expect(screen.getByText(/Bradley-Terry model/)).toBeInTheDocument()
+      expect(screen.getByText(/100 is the community average/)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Learn more' })).toHaveAttribute('href', '/about')
     })
 
