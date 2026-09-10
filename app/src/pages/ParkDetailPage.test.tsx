@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ParkDetailPage from './ParkDetailPage'
 import { useAllCoasters, usePark } from '../lib/coasters'
+import { useIsAdmin } from '../lib/useIsAdmin'
 import { makePark, makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -13,6 +15,22 @@ vi.mock('../lib/coasters', async (importOriginal) => {
     useAllCoasters: vi.fn(),
   }
 })
+
+vi.mock('../lib/useIsAdmin', () => ({
+  useIsAdmin: vi.fn(),
+}))
+
+// The quick-edit form is code-split; stub it so these tests stay focused on
+// the detail page's gating (the modal itself is covered separately).
+vi.mock('../components/admin/ParkEditModal', () => ({
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="park-edit-modal">
+      <button type="button" onClick={onClose}>
+        Close quick-edit
+      </button>
+    </div>
+  ),
+}))
 
 function renderPage(slug = 'cedar-point') {
   return render(
@@ -36,6 +54,7 @@ const park = makePark({
 describe('ParkDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useIsAdmin).mockReturnValue(false)
     vi.mocked(usePark).mockReturnValue({
       data: park,
       isPending: false,
@@ -124,6 +143,19 @@ describe('ParkDetailPage', () => {
   it('omits the park column on its own page', () => {
     renderPage()
     expect(screen.queryAllByRole('link', { name: 'Cedar Point' })).toHaveLength(0)
+  })
+
+  it('hides the admin quick-edit for non-admins', () => {
+    renderPage()
+    expect(screen.queryByRole('button', { name: /edit as admin/i })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('park-edit-modal')).not.toBeInTheDocument()
+  })
+
+  it('opens the admin quick-edit modal for admins', async () => {
+    vi.mocked(useIsAdmin).mockReturnValue(true)
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: /edit as admin/i }))
+    expect(await screen.findByTestId('park-edit-modal')).toBeInTheDocument()
   })
 
   it('handles a park that does not exist', () => {

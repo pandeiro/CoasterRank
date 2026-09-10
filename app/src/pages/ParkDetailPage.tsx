@@ -1,13 +1,23 @@
-import { useMemo } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
 import { MessageState, Panel } from '../components/ui'
 import { useAllCoasters, usePark } from '../lib/coasters'
+import { useIsAdmin } from '../lib/useIsAdmin'
+
+// Admin-only quick-edit: code-split so non-admins never download the form.
+// Mounted only for admins (useIsAdmin gates the button AND the lazy chunk).
+const ParkEditModal = lazy(() => import('../components/admin/ParkEditModal'))
 
 export default function ParkDetailPage() {
   const { slug } = useParams()
   const park = usePark(slug)
   const coasters = useAllCoasters()
+  // Hook first (unconditional): anonymous users skip the profile query
+  // entirely; authed users share Layout's ['profile', userId] cache entry.
+  const isAdmin = useIsAdmin()
+  const [adminEditOpen, setAdminEditOpen] = useState(false)
+  const [adminError, setAdminError] = useState<string | null>(null)
 
   const parkCoasters = useMemo(() => {
     const parkData = park.data
@@ -41,6 +51,21 @@ export default function ParkDetailPage() {
           {location ? `${location} · ` : ''}
           {parkCoasters.length} coasters
         </p>
+        {isAdmin && (
+          <p className="mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAdminError(null)
+                setAdminEditOpen(true)
+              }}
+              className="text-sm font-medium text-accent-text underline-offset-4 hover:underline"
+            >
+              Edit as admin
+            </button>
+          </p>
+        )}
+        {adminError && <p className="mt-2 text-sm text-danger">{adminError}</p>}
         {topCoaster && topCoaster.rank !== null && (
           <p className="mt-2 text-sm text-muted">
             Top coaster in this park:{' '}
@@ -61,6 +86,17 @@ export default function ParkDetailPage() {
           <CoasterTable rows={parkCoasters} showPark={false} />
         )}
       </div>
+      {isAdmin && adminEditOpen && (
+        <Suspense fallback={null}>
+          <ParkEditModal
+            initial={park.data}
+            mode="edit"
+            onClose={() => setAdminEditOpen(false)}
+            onSaved={() => setAdminEditOpen(false)}
+            onError={setAdminError}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

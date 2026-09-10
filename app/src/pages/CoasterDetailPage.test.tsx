@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CoasterDetailPage from './CoasterDetailPage'
 import { useAuth } from '../lib/auth-context'
 import { useCoaster, useRecomputeFreshness } from '../lib/coasters'
+import { useIsAdmin } from '../lib/useIsAdmin'
 import { useAddRide, useMyRides } from '../lib/rides'
 import { makeRankingRow } from '../test/fixtures'
 
@@ -29,6 +31,22 @@ vi.mock('../lib/rides', () => ({
   useAddRide: vi.fn(),
 }))
 
+vi.mock('../lib/useIsAdmin', () => ({
+  useIsAdmin: vi.fn(),
+}))
+
+// The quick-edit form is code-split; stub it so these tests stay focused on
+// the detail page's gating (the modal itself is covered separately).
+vi.mock('../components/admin/CoasterEditModal', () => ({
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="coaster-edit-modal">
+      <button type="button" onClick={onClose}>
+        Close quick-edit
+      </button>
+    </div>
+  ),
+}))
+
 const sixMinutesAgo = new Date(Date.now() - 6 * 60_000).toISOString()
 
 function mockLoggedOut() {
@@ -51,6 +69,7 @@ describe('CoasterDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockLoggedOut()
+    vi.mocked(useIsAdmin).mockReturnValue(false)
     vi.mocked(useRecomputeFreshness).mockReturnValue({ data: sixMinutesAgo } as never)
   })
 
@@ -220,6 +239,29 @@ describe('CoasterDetailPage', () => {
     } as never)
     renderPage()
     expect(screen.getByText("Couldn't load that coaster.")).toBeInTheDocument()
+  })
+
+  it('hides the admin quick-edit for non-admins', () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Steel Vengeance' }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.queryByRole('button', { name: /edit as admin/i })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('coaster-edit-modal')).not.toBeInTheDocument()
+  })
+
+  it('opens the admin quick-edit modal for admins', async () => {
+    vi.mocked(useIsAdmin).mockReturnValue(true)
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({ name: 'Steel Vengeance' }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: /edit as admin/i }))
+    expect(await screen.findByTestId('coaster-edit-modal')).toBeInTheDocument()
   })
 
   it('shows a loading state', () => {
