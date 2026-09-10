@@ -202,6 +202,26 @@ describe('filterAndRankCoasters', () => {
     expect(result.map((r) => r.id)).toEqual(['a', 'b', 'c'])
   })
 
+  it('floats operating above defunct within a tier, board order otherwise', () => {
+    // Input order = board order: 'old' outranks 'live' on BT score, but the
+    // operating coaster wins the shared match tier.
+    const rows = [
+      makeRankingRow({ id: 'old', name: 'Silver Streak', status: 'defunct' }),
+      makeRankingRow({ id: 'live', name: 'Silver Bullet' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'silver', parkMap, new Set())
+    expect(result.map((r) => r.id)).toEqual(['live', 'old'])
+  })
+
+  it('status never outranks a better match tier', () => {
+    const rows = [
+      makeRankingRow({ id: 'prefix', name: 'Silverwood Express', status: 'defunct' }),
+      makeRankingRow({ id: 'contains', name: 'The Silver Streak' }),
+    ]
+    const result = filterAndRankCoasters(rows, 'silver', parkMap, new Set())
+    expect(result.map((r) => r.id)).toEqual(['prefix', 'contains'])
+  })
+
   it('excludes coasters already on the list', () => {
     const rows = [
       makeRankingRow({ id: 'sb', name: 'Silver Bullet', park_id: 'knotts' }),
