@@ -172,8 +172,9 @@ export default function RankingPanel({ coaster }: { coaster: RankingRow }) {
                 >
                   <p>
                     Scores come from a Bradley-Terry model built on how riders rank coasters
-                    relative to each other. Each rider&apos;s list carries roughly equal weight,
-                    whether they&apos;ve ridden 5 coasters or 500.
+                    relative to each other. Your say grows with how much you&apos;ve ranked: a
+                    longer list carries more total weight, but each opinion in it counts less, and
+                    very short lists are damped.
                   </p>
                   <Link
                     to="/about"

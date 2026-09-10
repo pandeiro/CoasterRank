@@ -184,10 +184,10 @@ export function StaticPageMocks() {
           </MathDisclosure>
           <MathDisclosure label="Show me the weighting">
             <p>
-              Our first attempt gave every rider exactly one unit of sway — which accidentally gave
-              5-coaster riders a megaphone and rewarded ranking less. Now your say grows with how
-              much you&apos;ve ranked, softly damped for very short lists: effort and evidence
-              decide the board, not list-size games.
+              Our first attempt gave every rider exactly one unit of sway -- which accidentally gave
+              5-coaster riders a megaphone and rewarded ranking as little as possible. Now your say
+              grows with how much you&apos;ve ranked, softly damped for very short lists: effort and
+              evidence decide the board, not list-size games.
             </p>
             <div className="formula-box mt-4">
               <Tex

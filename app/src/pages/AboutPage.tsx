@@ -122,25 +122,20 @@ export default function AboutPage() {
           <p className="mt-3">
             If the raw math were applied as-is, riders with longer lists would dominate: ranking 90
             coasters generates thousands of head-to-heads, ranking 5 generates 10. Our first fix was
-            to flatten everything — every rider, no matter how short their list, got exactly one
-            unit of say. Fair-sounding, and wrong: it meant each <em>individual</em> opinion from a
-            5-coaster rider counted enormously more than one from a 90-coaster rider, enough for a
-            single new signup to swing the top of the board — and it quietly rewarded ranking as few
-            coasters as possible.
+            to flatten everything -- every rider, no matter how short their list, got exactly one
+            unit of say. Fair-sounding, and wrong: each <em>individual</em> opinion from a 5-coaster
+            rider counted enormously more than one from a 90-coaster rider, enough for a single new
+            signup to swing the top of the board -- and it quietly rewarded ranking as few coasters
+            as possible.
           </p>
           <p className="mt-3">
-            The weighting now takes the middle path, because both sides of the trade matter: a
-            3-coaster opinion is worth less than a 90-coaster one (less evidence behind it), yet the
-            raw math would let long lists dominate outright.{' '}
-            <strong className="text-ink">So your say grows with how much you&apos;ve ranked</strong>{' '}
-            — rank twice as many coasters, get about twice the say — while any single opinion from a
-            long list stays gentle.
-          </p>
-          <p className="mt-3">
-            Two guardrails round it out. Very short lists are softly damped, so a rider who ranks
-            two coasters gets a bounded say rather than a full-strength megaphone. And say grows
-            with real effort, not with list length squared — there&apos;s no way to out-shout the
-            community by stuffing a list.
+            The weighting now takes the middle path:{' '}
+            <strong className="text-ink">your say grows with how much you&apos;ve ranked</strong> --
+            rank twice as many coasters, get about twice the say. A 5-coaster opinion counts for
+            less than a 90-coaster one because there&apos;s less evidence behind it, but every list
+            still counts. Short lists get a small say instead of a megaphone, and say grows with
+            real effort, not with list length squared, so nobody can out-shout the community by
+            stuffing a list.
           </p>
 
           <MathDisclosure label="Show me the weighting">
@@ -163,8 +158,8 @@ export default function AboutPage() {
               }
             />
             <p className="mt-4">
-              Rank five coasters or five hundred -- each one you add is roughly one more unit of
-              say, and no single opinion ever outweighs the whole community.
+              Rank five coasters or five hundred -- your say keeps growing with your list, and no
+              single opinion ever outweighs the whole community.
             </p>
           </MathDisclosure>
 
