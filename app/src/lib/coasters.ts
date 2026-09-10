@@ -163,8 +163,12 @@ export function buildParkMap(parks: Park[]): Map<string, Park> {
 //   1. coaster name contains the query
 //   2. an alias (former/regional name, e.g. "Intimidator 305") contains it
 //   3. the park name contains it
-// Within a tier, board order (BT score desc, nulls last) is preserved —
-// Array#sort is stable, so equal tiers keep their input sequence.
+// Within a tier, operating coasters float above the rest (defunct/sbno/etc.
+// all tie): when several coasters match the same way, the rideable ones are
+// the likelier intent. Not a filter — defunct rides are legitimately addable
+// on a ridden list, they just sort lower. Within (tier, status), board order
+// (BT score desc, nulls last) is preserved — Array#sort is stable, so equal
+// keys keep their input sequence.
 export function filterAndRankCoasters(
   rows: RankingRow[],
   term: string,
@@ -172,7 +176,7 @@ export function filterAndRankCoasters(
   existingCoasterIds: Set<string>,
 ): RankingRow[] {
   const q = term.toLowerCase()
-  const scored: { row: RankingRow; tier: number }[] = []
+  const scored: { row: RankingRow; tier: number; penalty: 0 | 1 }[] = []
   for (const row of rows) {
     if (existingCoasterIds.has(row.id)) continue
     const name = row.name.toLowerCase()
@@ -182,9 +186,9 @@ export function filterAndRankCoasters(
     else if (row.aliases?.some((alias) => alias.toLowerCase().includes(q))) tier = 2
     else if (parkMap.get(row.park_id)?.name.toLowerCase().includes(q)) tier = 3
     else continue
-    scored.push({ row, tier })
+    scored.push({ row, tier, penalty: row.status === 'operating' ? 0 : 1 })
   }
-  return scored.sort((a, b) => a.tier - b.tier).map((s) => s.row)
+  return scored.sort((a, b) => a.tier - b.tier || a.penalty - b.penalty).map((s) => s.row)
 }
 
 // Synthetic park the importer uses for coasters with no usable location
