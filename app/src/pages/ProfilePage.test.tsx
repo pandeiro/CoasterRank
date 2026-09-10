@@ -124,18 +124,39 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('That username is invalid.')).toBeInTheDocument()
   })
 
-  it('shows the public page URL only after the share toggle is on', async () => {
+  it('publishes immediately when the share toggle is checked — no Save required', async () => {
+    updateEq.mockResolvedValue({ error: null })
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
 
-    // The always-visible helper hint agrees with the share form.
-    expect(screen.getByText('/@coaster_fan')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument()
 
-    expect(screen.queryByText(`${window.location.origin}/@coaster_fan`)).not.toBeInTheDocument()
+    // After the optimistic toggle the refetch should keep the public flag on
+    // (the server now has it); otherwise the invalidation would revert the UI.
+    selectSingle.mockResolvedValue({
+      data: { ...fakeProfile, public_list: true },
+      error: null,
+    })
 
     await userEvent.click(screen.getByLabelText(/share my ranking/i))
 
-    // Share surfaces emit the short /@ form (the page route stays /riders/*).
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ public_list: true }))
+    })
+    // Optimistic update makes the copyable link appear instantly; the URL was
+    // never copyable pre-Save, so unfurlers never see a 404.
+    expect(await screen.findByText(`${window.location.origin}/@coaster_fan`)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument()
+  })
+
+  it('shows the copyable link immediately when sharing is already persisted', async () => {
+    selectSingle.mockResolvedValue({
+      data: { ...fakeProfile, public_list: true },
+      error: null,
+    })
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+
     expect(screen.getByText(`${window.location.origin}/@coaster_fan`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument()
   })
@@ -177,17 +198,33 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('button', { name: /remove profile photo/i })).toBeInTheDocument()
   })
 
-  it('persists the public-list toggle in the update payload', async () => {
+  it('does not bundle sharing into the Save payload — the toggle saves itself', async () => {
     updateEq.mockResolvedValue({ error: null })
+    // Start privately, then publish via the immediate toggle.
     renderProfile()
     await screen.findByDisplayValue('coaster_fan')
 
+    selectSingle.mockResolvedValue({
+      data: { ...fakeProfile, public_list: true },
+      error: null,
+    })
     await userEvent.click(screen.getByLabelText(/share my ranking/i))
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ public_list: true }))
+    })
+    vi.clearAllMocks()
+    updateSpy.mockReturnValue({ eq: updateEq })
+
+    // Now change the username and Save — the payload should only carry the
+    // name fields, not public_list (which is already live).
+    const username = screen.getByDisplayValue('coaster_fan')
+    await userEvent.clear(username)
+    await userEvent.type(username, 'new_handle')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
-    await screen.findByText(/view your public page/i)
-    expect(updateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ username: 'coaster_fan', public_list: true }),
-    )
+    await screen.findByText('Saved.')
+    const lastPayload = vi.mocked(updateSpy).mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(lastPayload).toEqual(expect.objectContaining({ username: 'new_handle' }))
+    expect(lastPayload).not.toHaveProperty('public_list')
   })
 })
