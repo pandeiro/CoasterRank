@@ -375,6 +375,9 @@ describe('approveSubmission', () => {
   const insertSingle = vi.fn()
   const coasterInsert = vi.fn()
   const submissionUpdateEq = vi.fn()
+  // Queued results for approveSubmission's park-by-slug lookups (select 'id'):
+  // each findParkIdBySlug call shifts one value; empty queue → no park found.
+  let parkIdLookups: (string | null)[]
 
   const submission = {
     id: 's1',
@@ -413,23 +416,36 @@ describe('approveSubmission', () => {
       }),
     }) as unknown
 
-  const makeParkSelectMock = (slug: string | null = 'test-park') =>
+  const makeParkSelectMock = (row: { slug?: string; id?: string } | null = null) =>
     ({
       eq: () => ({
-        maybeSingle: vi.fn().mockResolvedValue({ data: slug ? { slug } : null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: row, error: null }),
       }),
     }) as unknown
 
   beforeEach(() => {
     vi.clearAllMocks()
+    parkIdLookups = []
     vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'u1' } } } as never)
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
         const insertMock = { insert: () => ({ select: () => ({ single: insertSingle }) }) }
-        // select used by resolveUniqueCoasterSlug
+        // select: approveSubmission's park-reuse lookup requests the id
+        // (queued results, default none → insert path); the coaster-slug
+        // resolver requests the slug.
         return Object.assign(() => insertMock, {
           insert: insertMock.insert,
-          select: vi.fn().mockReturnValue(makeParkSelectMock()),
+          select: vi
+            .fn()
+            .mockImplementation((columns: string) =>
+              makeParkSelectMock(
+                columns.includes('id')
+                  ? parkIdLookups.length > 0
+                    ? { id: parkIdLookups.shift()! }
+                    : null
+                  : { slug: 'test-park' },
+              ),
+            ),
         }) as unknown as ReturnType<typeof supabase.from>
       }
       if (table === 'coasters') {
@@ -494,6 +510,28 @@ describe('approveSubmission', () => {
     expect(coasterInsert).not.toHaveBeenCalled()
   })
 
+  it('reuses an existing park with the same slug instead of failing', async () => {
+    // A prior approval already created the park this submission named.
+    parkIdLookups.push('p7')
+    await approveSubmission('s1', submission)
+    expect(insertSingle).not.toHaveBeenCalled()
+    expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p7' }))
+    expect(submissionUpdateEq).toHaveBeenCalledWith('id', 's1')
+  })
+
+  it('links to the park a concurrent approval created when the insert hits a slug collision', async () => {
+    // Lookup misses, insert races a 23505, re-lookup finds the winner.
+    parkIdLookups.push(null, 'p7')
+    insertSingle.mockResolvedValue({
+      data: null,
+      error: { code: '23505', message: 'duplicate key' },
+    })
+    await approveSubmission('s1', submission)
+    expect(insertSingle).toHaveBeenCalledTimes(1)
+    expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p7' }))
+    expect(submissionUpdateEq).toHaveBeenCalledWith('id', 's1')
+  })
+
   it('retries with park-suffixed slug on global coaster collision then succeeds', async () => {
     // first insert claims slug, second succeeds with park suffix
     coasterInsert
@@ -502,7 +540,7 @@ describe('approveSubmission', () => {
     // make the global slug check see existing base slug
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
-        const sel = vi.fn().mockReturnValue(makeParkSelectMock('test-park'))
+        const sel = vi.fn().mockReturnValue(makeParkSelectMock({ slug: 'test-park' }))
         return {
           insert: () => ({ select: () => ({ single: insertSingle }) }),
           select: sel,
