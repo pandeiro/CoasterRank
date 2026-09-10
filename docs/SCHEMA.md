@@ -358,6 +358,7 @@ wins" default, decided 2026-09).
 | `admin_user_overview` | TABLE(id uuid, username text, display_name text, avatar_url text, is_admin boolean, public_list boolean, created_at timestamp with time zone, rides_total bigint, rides_ranked bigint, submissions_made bigint, submissions_reviewed bigint) | sql |
 | `check_stale_recompute` | void | plpgsql |
 | `cleanup_execution_logs` | void | plpgsql |
+| `coaster_ride_counts` | TABLE(coaster_id uuid, rides bigint) | sql |
 | `first_place_counts` | TABLE(coaster_id uuid, first_place_votes bigint) | sql |
 | `handle_new_user` | trigger | plpgsql |
 | `is_admin` | boolean | sql |

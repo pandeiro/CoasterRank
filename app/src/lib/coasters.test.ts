@@ -31,6 +31,7 @@ vi.mock('./supabase', () => ({
   supabase: {
     auth: { getUser: vi.fn() },
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }))
 
@@ -431,18 +432,87 @@ describe('slugify', () => {
 })
 
 describe('getAllCoastersAdmin', () => {
+  const range = vi.fn()
+  const order = vi.fn()
+  const select = vi.fn()
+
+  function installFromMock(): void {
+    range.mockResolvedValue({ data: [], error: null })
+    order.mockReturnValue({ range })
+    select.mockReturnValue({ order })
+    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+    // PostgrestSingleResponse carries extra fields the narrow literal misses;
+    // tests only exercise data/error paths.
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: [],
+      error: null,
+      success: true,
+      count: null,
+      status: 200,
+      statusText: 'OK',
+    } as never)
+  }
+
   it('pins the manufacturers embed to the direct FK (lineage junction ambiguity)', async () => {
     // coaster_manufacturers gives coasters a SECOND path to manufacturers, so
     // the bare `manufacturers(...)` embed is ambiguous — prod PostgREST 400s
     // with PGRST201 and the admin Coasters panel fails to load. The
     // `!coasters_manufacturer_id_fkey` hint must stay on every coasters →
     // manufacturers embed (same guard in lib/rides.test.tsx).
-    const range = vi.fn().mockResolvedValue({ data: [], error: null })
-    const order = vi.fn().mockReturnValue({ range })
-    const select = vi.fn().mockReturnValue({ order })
-    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+    installFromMock()
     await getAllCoastersAdmin()
     expect(select.mock.calls[0][0]).toContain('manufacturers!coasters_manufacturer_id_fkey(')
+    // Ride counts no longer ride the embed (it ran under the caller's RLS and
+    // zeroed out) — they come from the admin-gated RPC.
+    expect(select.mock.calls[0][0]).not.toContain('user_rides(count)')
+    expect(vi.mocked(supabase.rpc)).toHaveBeenCalledWith('coaster_ride_counts')
+  })
+
+  it('merges per-coaster ride counts from the RPC', async () => {
+    installFromMock()
+    range.mockResolvedValue({
+      data: [
+        { id: 'c1', coaster_manufacturers: null },
+        { id: 'c2', coaster_manufacturers: null },
+      ],
+      error: null,
+    })
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: [
+        { coaster_id: 'c1', rides: 7 },
+        { coaster_id: 'c2', rides: 2 },
+      ],
+      error: null,
+      success: true,
+      count: 2,
+      status: 200,
+      statusText: 'OK',
+    } as never)
+    const coasters = await getAllCoastersAdmin()
+    expect(coasters.map((c) => c.ride_count)).toEqual([7, 2])
+  })
+
+  it('treats coasters without rides (or a failed RPC) as 0 instead of throwing', async () => {
+    installFromMock()
+    range.mockResolvedValue({ data: [{ id: 'c1' }, { id: 'c2' }], error: null })
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: [{ coaster_id: 'c1', rides: 3 }],
+      error: null,
+      success: true,
+      count: 1,
+      status: 200,
+      statusText: 'OK',
+    } as never)
+    expect((await getAllCoastersAdmin()).map((c) => c.ride_count)).toEqual([3, 0])
+
+    // Deploy skew: RPC missing entirely → zeros, panel still loads.
+    vi.mocked(supabase.rpc).mockRejectedValue(new Error('schema cache'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect((await getAllCoastersAdmin()).map((c) => c.ride_count)).toEqual([0, 0])
+    } finally {
+      warn.mockRestore()
+    }
   })
 })
 
