@@ -229,7 +229,7 @@ export default function SubmitPage() {
                   name="height"
                   type="number"
                   min="0"
-                  step="0.1"
+                  step="any"
                   className={fieldClassName}
                 />
               </div>
@@ -242,7 +242,7 @@ export default function SubmitPage() {
                   name="speed"
                   type="number"
                   min="0"
-                  step="0.1"
+                  step="any"
                   className={fieldClassName}
                 />
               </div>
@@ -255,7 +255,7 @@ export default function SubmitPage() {
                   name="length"
                   type="number"
                   min="0"
-                  step="0.1"
+                  step="any"
                   className={fieldClassName}
                 />
               </div>

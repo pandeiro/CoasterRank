@@ -287,7 +287,7 @@ export default function CoasterEditModal({
           <input
             name="height"
             type="number"
-            step="0.1"
+            step="any"
             defaultValue={initial?.height_m ?? ''}
             className={fieldClassName}
           />
@@ -297,7 +297,7 @@ export default function CoasterEditModal({
           <input
             name="speed"
             type="number"
-            step="0.1"
+            step="any"
             defaultValue={initial?.speed_kmh ?? ''}
             className={fieldClassName}
           />
@@ -307,7 +307,7 @@ export default function CoasterEditModal({
           <input
             name="length"
             type="number"
-            step="0.1"
+            step="any"
             defaultValue={initial?.length_m ?? ''}
             className={fieldClassName}
           />

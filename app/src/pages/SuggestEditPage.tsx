@@ -331,9 +331,9 @@ export default function SuggestEditPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {(
               [
-                ['height_m', 'Height (m)', '0.1'],
-                ['speed_kmh', 'Speed (km/h)', '0.1'],
-                ['length_m', 'Length (m)', '0.1'],
+                ['height_m', 'Height (m)', 'any'],
+                ['speed_kmh', 'Speed (km/h)', 'any'],
+                ['length_m', 'Length (m)', 'any'],
                 ['inversions', 'Inversions', '1'],
               ] as const
             ).map(([key, label, step]) => (
