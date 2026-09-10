@@ -1040,25 +1040,35 @@ export type AdminCoaster = Coaster & {
 }
 
 export async function getAllCoastersAdmin() {
-  const { data, error } = await supabase
-    .from('coasters')
-    .select(
-      // `manufacturers` MUST be pinned to the direct FK: since
-      // coaster_manufacturers (the lineage junction) also links coasters →
-      // manufacturers, the bare embed is ambiguous (PostgREST PGRST201) and
-      // the whole admin query 400s without the `!coasters_manufacturer_id_fkey`
-      // hint. Same pin in lib/rides.ts.
-      '*, parks(name, slug), manufacturers!coasters_manufacturer_id_fkey(name), ' +
-        'coaster_manufacturers(manufacturer_id, position), ride_count:user_rides(count)',
-    )
-    .order('name')
-    .range(0, 9999)
-  if (error) throw error
+  // Ride counts come from the admin-gated security-definer RPC: the previous
+  // `ride_count:user_rides(count)` aggregate embed ran under the CALLER's RLS
+  // (user_rides is own-rows-only), so admins saw 0 rides for every coaster
+  // they hadn't personally ridden. `coaster_ride_counts()` (migration
+  // 20260911000300) bypasses RLS but returns an empty set for non-admins.
+  const [rows, counts] = await Promise.all([
+    supabase
+      .from('coasters')
+      .select(
+        // `manufacturers` MUST be pinned to the direct FK: since
+        // coaster_manufacturers (the lineage junction) also links coasters →
+        // manufacturers, the bare embed is ambiguous (PostgREST PGRST201) and
+        // the whole admin query 400s without the `!coasters_manufacturer_id_fkey`
+        // hint. Same pin in lib/rides.ts.
+        '*, parks(name, slug), manufacturers!coasters_manufacturer_id_fkey(name), ' +
+          'coaster_manufacturers(manufacturer_id, position)',
+      )
+      .order('name')
+      .range(0, 9999),
+    // The RPC ships in the same merge; on deploy skew (app up, db push
+    // lagging) degrade to zeros instead of failing the whole panel.
+    rideCountsBestEffort(),
+  ])
+  if (rows.error) throw rows.error
+  const ridesByCoasterId = new Map(counts.map((row) => [row.coaster_id, row.rides]))
   return (
-    data as unknown as Array<
+    rows.data as unknown as Array<
       Omit<AdminCoaster, 'coaster_manufacturers' | 'ride_count'> & {
         coaster_manufacturers: { manufacturer_id: string; position: number }[] | null
-        ride_count: [{ count: number }] | null
       }
     >
   ).map((c) => ({
@@ -1066,8 +1076,22 @@ export async function getAllCoastersAdmin() {
     coaster_manufacturers: (c.coaster_manufacturers ?? [])
       .slice()
       .sort((a, b) => a.position - b.position),
-    ride_count: c.ride_count?.[0]?.count ?? 0,
+    ride_count: ridesByCoasterId.get(c.id) ?? 0,
   }))
+}
+
+// Per-coaster ride counts for the admin console. Any failure (RPC missing on
+// deploy skew, network) logs a warning and yields an empty map — the panel
+// still loads, counts just read as 0 until the next reload.
+async function rideCountsBestEffort(): Promise<Array<{ coaster_id: string; rides: number }>> {
+  try {
+    const { data, error } = await supabase.rpc('coaster_ride_counts')
+    if (error) throw error
+    return (data ?? []) as Array<{ coaster_id: string; rides: number }>
+  } catch (err) {
+    console.warn('[admin] coaster_ride_counts failed:', err instanceof Error ? err.message : err)
+    return []
+  }
 }
 
 // Replace a coaster's manufacturer lineage with an ordered id list. Ids are
