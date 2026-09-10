@@ -1,11 +1,22 @@
+import { Suspense, lazy, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import RankingPanel from '../components/RankingPanel'
 import { MessageState } from '../components/ui'
 import { capitalize, useCoaster, yearFromDate } from '../lib/coasters'
+import { useIsAdmin } from '../lib/useIsAdmin'
+
+// Admin-only quick-edit: code-split so non-admins never download the form.
+// Mounted only for admins (useIsAdmin gates the button AND the lazy chunk).
+const CoasterEditModal = lazy(() => import('../components/admin/CoasterEditModal'))
 
 export default function CoasterDetailPage() {
   const { slug } = useParams()
   const { data: coaster, isPending, isError } = useCoaster(slug)
+  // Hook first (unconditional): anonymous users skip the profile query
+  // entirely; authed users share Layout's ['profile', userId] cache entry.
+  const isAdmin = useIsAdmin()
+  const [adminEditOpen, setAdminEditOpen] = useState(false)
+  const [adminError, setAdminError] = useState<string | null>(null)
 
   if (isPending) {
     return <MessageState>Loading…</MessageState>
@@ -86,15 +97,39 @@ export default function CoasterDetailPage() {
         {coaster.aliases && coaster.aliases.length > 0 && (
           <p className="mt-2 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
         )}
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             to={`/coasters/${slug}/suggest-edit`}
             className="text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
           >
             See something wrong? Suggest an edit
           </Link>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setAdminError(null)
+                setAdminEditOpen(true)
+              }}
+              className="text-sm font-medium text-accent-text underline-offset-4 hover:underline"
+            >
+              Edit as admin
+            </button>
+          )}
         </div>
+        {adminError && <p className="mt-2 text-sm text-danger">{adminError}</p>}
       </section>
+      {isAdmin && adminEditOpen && (
+        <Suspense fallback={null}>
+          <CoasterEditModal
+            initial={coaster}
+            mode="edit"
+            onClose={() => setAdminEditOpen(false)}
+            onSaved={() => setAdminEditOpen(false)}
+            onError={setAdminError}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }
