@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
+import ManufacturerMultiPicker from '../components/ManufacturerMultiPicker'
 import Toast from '../components/Toast'
 import { Button, fieldClassName, MessageState, Panel, selectClassName } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
@@ -36,8 +37,8 @@ export default function SubmitPage() {
 
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
-  const [searchManufacturer, setSearchManufacturer] = useState('')
-  const [selectedManufacturer, setSelectedManufacturer] = useState<Manufacturer | null>(null)
+  // Manufacturer lineage (multi): ordered list, index 0 = primary.
+  const [selectedLineage, setSelectedLineage] = useState<Manufacturer[]>([])
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(() => {
     const justSuggested = (location.state as { justSuggested?: string } | null)?.justSuggested
     return justSuggested
@@ -82,10 +83,6 @@ export default function SubmitPage() {
     .filter((p) => p.name.toLowerCase().includes(searchPark.toLowerCase()))
     .slice(0, 5)
 
-  const filteredManufacturers = manufacturers
-    .filter((m) => m.name.toLowerCase().includes(searchManufacturer.toLowerCase()))
-    .slice(0, 5)
-
   const mutation = useMutation({
     mutationFn: submitCoaster,
     onSuccess: () => {
@@ -112,7 +109,7 @@ export default function SubmitPage() {
       length_m: formData.get('length') ? Number(formData.get('length')) : null,
       inversions: formData.get('inversions') ? Number(formData.get('inversions')) : null,
       material: (formData.get('material') as SuggestedFields['material']) || null,
-      manufacturer_id: selectedManufacturer?.id ?? null,
+      manufacturer_ids: selectedLineage.length > 0 ? selectedLineage.map((m) => m.id) : null,
       status: (formData.get('status') as SuggestedFields['status']) || null,
       model: ((formData.get('model') as string) || '').trim() || null,
       type: ((formData.get('type') as string) || '').trim() || null,
@@ -133,8 +130,7 @@ export default function SubmitPage() {
           form.reset()
           setSearchPark('')
           setSelectedPark(null)
-          setSearchManufacturer('')
-          setSelectedManufacturer(null)
+          setSelectedLineage([])
         },
       },
     )
@@ -289,39 +285,17 @@ export default function SubmitPage() {
           <div className="border-t border-line pt-6">
             <h3 className="mb-4 text-lg font-semibold text-ink">Details (Optional)</h3>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex flex-col gap-2 relative">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="manufacturer" className="text-sm font-medium text-ink-soft">
-                  Manufacturer
+                  Manufacturers
                 </label>
-                <input
+                <ManufacturerMultiPicker
                   id="manufacturer"
-                  value={selectedManufacturer ? selectedManufacturer.name : searchManufacturer}
-                  onChange={(e) => {
-                    setSearchManufacturer(e.target.value)
-                    setSelectedManufacturer(null)
-                  }}
-                  className={fieldClassName}
+                  manufacturers={manufacturers}
+                  selected={selectedLineage}
+                  onChange={setSelectedLineage}
                   placeholder="Search for a manufacturer..."
-                  autoComplete="off"
                 />
-                {searchManufacturer &&
-                  !selectedManufacturer &&
-                  filteredManufacturers.length > 0 && (
-                    <ul className="absolute top-full z-20 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
-                      {filteredManufacturers.map((m) => (
-                        <li
-                          key={m.id}
-                          className="cursor-pointer p-2 text-sm hover:bg-canvas"
-                          onClick={() => {
-                            setSelectedManufacturer(m)
-                            setSearchManufacturer(m.name)
-                          }}
-                        >
-                          {m.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="status" className="text-sm font-medium text-ink-soft">

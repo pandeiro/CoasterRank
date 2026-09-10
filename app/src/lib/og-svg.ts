@@ -33,6 +33,8 @@ export type OgSvgRide = {
   name: string
   park_name: string | null
   manufacturer_name: string | null
+  /** Full lineage (canonical order) — every entry gets builder credit. */
+  manufacturer_names?: string[] | null
   /** Global BT score (coaster_ratings), null when unrated — tiebreak input. */
   score: number | null
 }
@@ -55,27 +57,23 @@ export type OgSpotlight = { name: string; count: number } | null
  * spotlight uses 10 so it reflects preference (what you rank highest), not
  * volume (what you happen to have ridden most of).
  */
-export function topSpotlight(
-  rides: OgSvgRide[],
-  key: 'park_name' | 'manufacturer_name',
-  limit?: number,
-): OgSpotlight {
-  const ordered = [...rides].sort((a, b) => a.rank - b.rank)
-  const pool = limit === undefined ? ordered : ordered.slice(0, limit)
+type SpotlightCredit = { name: string; rank: number; score: number | null }
+
+function pickSpotlight(credits: SpotlightCredit[]): OgSpotlight {
   type Agg = { name: string; count: number; bestRank: number; scoreSum: number; scoreN: number }
   const aggs = new Map<string, Agg>()
-  for (const ride of pool) {
-    const value = ride[key]?.trim()
+  for (const credit of credits) {
+    const value = credit.name?.trim()
     if (!value) continue
     let agg = aggs.get(value)
     if (!agg) {
-      agg = { name: value, count: 0, bestRank: ride.rank, scoreSum: 0, scoreN: 0 }
+      agg = { name: value, count: 0, bestRank: credit.rank, scoreSum: 0, scoreN: 0 }
       aggs.set(value, agg)
     }
     agg.count += 1
-    if (ride.rank < agg.bestRank) agg.bestRank = ride.rank
-    if (ride.score !== null && Number.isFinite(ride.score)) {
-      agg.scoreSum += ride.score
+    if (credit.rank < agg.bestRank) agg.bestRank = credit.rank
+    if (credit.score !== null && Number.isFinite(credit.score)) {
+      agg.scoreSum += credit.score
       agg.scoreN += 1
     }
   }
@@ -104,6 +102,42 @@ export function topSpotlight(
     if (agg.name < best.name) best = agg
   }
   return best ? { name: best.name, count: best.count } : null
+}
+
+function pool(rides: OgSvgRide[], limit?: number): OgSvgRide[] {
+  const ordered = [...rides].sort((a, b) => a.rank - b.rank)
+  return limit === undefined ? ordered : ordered.slice(0, limit)
+}
+
+export function topSpotlight(
+  rides: OgSvgRide[],
+  key: 'park_name' | 'manufacturer_name',
+  limit?: number,
+): OgSpotlight {
+  return pickSpotlight(
+    pool(rides, limit).map((ride) => ({
+      name: ride[key] ?? '',
+      rank: ride.rank,
+      score: ride.score,
+    })),
+  )
+}
+
+// Top builder over the FULL lineage: a ride on a multi-manufacturer coaster
+// (e.g. Top Thrill 2) credits EVERY entry, not just the primary. Falls back
+// to manufacturer_name when the lineage array is missing (pre-migration RPC).
+export function manufacturerSpotlight(rides: OgSvgRide[], limit?: number): OgSpotlight {
+  const credits: SpotlightCredit[] = []
+  for (const ride of pool(rides, limit)) {
+    const names =
+      ride.manufacturer_names && ride.manufacturer_names.length > 0
+        ? ride.manufacturer_names
+        : ride.manufacturer_name
+          ? [ride.manufacturer_name]
+          : []
+    for (const name of names) credits.push({ name: name ?? '', rank: ride.rank, score: ride.score })
+  }
+  return pickSpotlight(credits)
 }
 
 export type OgSvgProfile = {

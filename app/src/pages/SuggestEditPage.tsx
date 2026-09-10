@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
+import ManufacturerMultiPicker from '../components/ManufacturerMultiPicker'
 import Toast from '../components/Toast'
 import { Button, fieldClassName, MessageState, Panel, selectClassName } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
@@ -11,6 +12,8 @@ import {
   capitalize,
   diffEditProposal,
   getMySubmissions,
+  lineageIds,
+  lineageNames,
   SUBMISSION_PENDING_CAP,
   submitEditSuggestion,
   useCoaster,
@@ -40,10 +43,9 @@ export default function SuggestEditPage() {
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
   const [parkTouched, setParkTouched] = useState(false)
 
-  // Manufacturer picker — same pattern, seeded to the current manufacturer.
-  const [searchManufacturer, setSearchManufacturer] = useState('')
-  const [selectedManufacturer, setSelectedManufacturer] = useState<Manufacturer | null>(null)
-  const [manufacturerTouched, setManufacturerTouched] = useState(false)
+  // Manufacturer picker (multi) — seeded to the current lineage; the picker
+  // state is the FULL proposed list (order matters: first = primary).
+  const [lineageDraft, setLineageDraft] = useState<Manufacturer[] | null>(null)
 
   // Free-text context for the reviewer (explanations, evidence links, …).
   const [note, setNote] = useState('')
@@ -65,20 +67,18 @@ export default function SuggestEditPage() {
   }, [coaster, parks])
   const effectivePark = parkTouched ? selectedPark : (selectedPark ?? currentPark)
 
-  const currentManufacturer: Manufacturer | null = useMemo(() => {
-    if (!coaster) return null
-    return manufacturers.find((m) => m.id === coaster.manufacturer_id) ?? null
+  // Current lineage resolved to display rows; the draft (once touched) wins.
+  const seededLineage: Manufacturer[] = useMemo(() => {
+    if (!coaster) return []
+    const byId = new Map(manufacturers.map((m) => [m.id, m]))
+    return lineageIds(coaster)
+      .map((id) => byId.get(id))
+      .filter((m): m is Manufacturer => Boolean(m))
   }, [coaster, manufacturers])
-  const effectiveManufacturer = manufacturerTouched
-    ? selectedManufacturer
-    : (selectedManufacturer ?? currentManufacturer)
+  const effectiveLineage = lineageDraft ?? seededLineage
 
   const filteredParks = parks
     .filter((p) => p.name.toLowerCase().includes(searchPark.toLowerCase()))
-    .slice(0, 5)
-
-  const filteredManufacturers = manufacturers
-    .filter((m) => m.name.toLowerCase().includes(searchManufacturer.toLowerCase()))
     .slice(0, 5)
 
   const mutation = useMutation({
@@ -106,7 +106,7 @@ export default function SuggestEditPage() {
       speed_kmh: str(coaster.speed_kmh),
       length_m: str(coaster.length_m),
       inversions: str(coaster.inversions),
-      manufacturer_id: coaster.manufacturer_id ?? '',
+      manufacturer_ids: lineageIds(coaster),
       model: coaster.model ?? '',
       type: coaster.type ?? '',
       opening_date: coaster.opening_date ?? '',
@@ -122,10 +122,10 @@ export default function SuggestEditPage() {
             ...initial,
             ...draft,
             park_id: effectivePark?.id ?? initial.park_id,
-            manufacturer_id: effectiveManufacturer?.id ?? initial.manufacturer_id,
+            manufacturer_ids: effectiveLineage.map((m) => m.id),
           }
         : null,
-    [initial, draft, effectivePark, effectiveManufacturer],
+    [initial, draft, effectivePark, effectiveLineage],
   )
   const { diff, parkChanged } = useMemo(
     () =>
@@ -248,44 +248,18 @@ export default function SuggestEditPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 relative">
+            <div className="flex flex-col gap-2">
               <label htmlFor="edit-manufacturer" className="text-sm font-medium text-ink-soft">
-                Manufacturer
+                Manufacturers
               </label>
-              <input
+              <ManufacturerMultiPicker
                 id="edit-manufacturer"
-                value={
-                  manufacturerTouched ? searchManufacturer : (effectiveManufacturer?.name ?? '')
-                }
-                onChange={(e) => {
-                  setSearchManufacturer(e.target.value)
-                  setSelectedManufacturer(null)
-                  setManufacturerTouched(true)
-                }}
-                className={fieldClassName}
+                manufacturers={manufacturers}
+                selected={effectiveLineage}
+                onChange={setLineageDraft}
                 placeholder="Unknown"
-                autoComplete="off"
               />
-              {manufacturerTouched &&
-                searchManufacturer &&
-                !selectedManufacturer &&
-                filteredManufacturers.length > 0 && (
-                  <ul className="absolute top-full z-20 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
-                    {filteredManufacturers.map((m) => (
-                      <li
-                        key={m.id}
-                        className="cursor-pointer p-2 text-sm hover:bg-canvas"
-                        onClick={() => {
-                          setSelectedManufacturer(m)
-                          setSearchManufacturer(m.name)
-                        }}
-                      >
-                        {m.name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              {currentLine('manufacturer', coaster.manufacturer_name ?? '')}
+              {currentLine('manufacturers', lineageNames(coaster).join(' · '))}
             </div>
           </div>
 

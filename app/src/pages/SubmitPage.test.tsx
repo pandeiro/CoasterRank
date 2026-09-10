@@ -156,7 +156,7 @@ describe('SubmitPage', () => {
           length_m: null,
           inversions: null,
           material: null,
-          manufacturer_id: null,
+          manufacturer_ids: null,
           status: null,
           model: null,
           type: null,
@@ -186,13 +186,40 @@ describe('SubmitPage', () => {
     expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
     expect(vi.mocked(submitCoaster).mock.calls[0][0]).toMatchObject({
       suggested_fields: {
-        manufacturer_id: 'mfg-rmc',
+        manufacturer_ids: ['mfg-rmc'],
         status: 'under_construction',
         model: 'RMC IBox Track',
         opening_date: '2027-05-01',
       },
       note: 'RCDB: https://rcdb.com/9999',
     })
+  })
+
+  it('carries a multi-manufacturer lineage into the payload in pick order', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    vi.mocked(useManufacturers).mockReturnValue({
+      data: [...manufacturers, { id: 'mfg-intamin', name: 'Intamin', slug: 'intamin' }],
+    } as never)
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Top Thrill 2')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar Point')
+    // First pick leads ("newest wins" default); the second appends after it.
+    await user.type(screen.getByLabelText(/manufacturers/i), 'Rocky')
+    await user.click(screen.getByText('Rocky Mountain Construction'))
+    await user.type(screen.getByLabelText(/manufacturers/i), 'Intamin')
+    await user.click(screen.getByText('Intamin'))
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
+    expect(
+      (
+        vi.mocked(submitCoaster).mock.calls[0][0] as {
+          suggested_fields: { manufacturer_ids: string[] }
+        }
+      ).suggested_fields.manufacturer_ids,
+    ).toEqual(['mfg-intamin', 'mfg-rmc'])
   })
 
   it('shows an error toast when the insert fails', async () => {

@@ -365,16 +365,19 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
     const parkIdBySlug = new Map<string, string>()
     for (const row of parkIdRes.rows) parkIdBySlug.set(row.slug, row.id)
 
-    const cols = 15
+    // 13 columns (manufacturer rides via the coaster_manufacturers junction —
+    // the primary pointer is trigger-maintained, never written here).
+    const cols = 13
     const batchSize = 200
     let inserted = 0
     let updated = 0
+    const lineageRows: { coasterId: string; manufacturerId: string }[] = []
     for (let i = 0; i < m.coasters.length; i += batchSize) {
       const batch = m.coasters.slice(i, i + batchSize)
       const valuesSql = batch
         .map(
           (_, r) =>
-            `($${r * cols + 1}, $${r * cols + 2}, $${r * cols + 3}, $${r * cols + 4}, $${r * cols + 5}, $${r * cols + 6}, $${r * cols + 7}, $${r * cols + 8}, $${r * cols + 9}, $${r * cols + 10}, $${r * cols + 11}, $${r * cols + 12}, $${r * cols + 13}, $${r * cols + 14}, $${r * cols + 15})`,
+            `($${r * cols + 1}, $${r * cols + 2}, $${r * cols + 3}, $${r * cols + 4}, $${r * cols + 5}, $${r * cols + 6}, $${r * cols + 7}, $${r * cols + 8}, $${r * cols + 9}, $${r * cols + 10}, $${r * cols + 11}, $${r * cols + 12}, $${r * cols + 13})`,
         )
         .join(', ')
       const params: (string | number | null)[] = []
@@ -386,7 +389,6 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
           park,
           c.name,
           c.slug,
-          manuf,
           c.model,
           c.openingDate,
           c.status,
@@ -396,18 +398,16 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
           c.lengthM,
           c.inversions,
           c.type,
-          'open-csv',
           c.externalId,
         )
       }
-      const res = await client.query<{ inserted: boolean }>(
+      const res = await client.query<{ inserted: boolean; id: string }>(
         `insert into public.coasters (
-           park_id, name, slug, manufacturer_id, model, opening_date, status, material,
-           height_m, speed_kmh, length_m, inversions, type, source, external_id
+           park_id, name, slug, model, opening_date, status, material,
+           height_m, speed_kmh, length_m, inversions, type, external_id
          ) values ${valuesSql}
          on conflict (park_id, slug) do update set
            name = excluded.name,
-           manufacturer_id = excluded.manufacturer_id,
            model = excluded.model,
            opening_date = excluded.opening_date,
            status = excluded.status,
@@ -419,13 +419,40 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
            type = excluded.type,
            external_id = excluded.external_id
          where public.coasters.source = 'open-csv'
-         returning (xmax = 0) as inserted`,
+         returning (xmax = 0) as inserted, id`,
         params,
       )
-      for (const row of res.rows) {
+      for (let r = 0; r < res.rows.length; r++) {
+        const row = res.rows[r]
+        if (!row) continue
+        const coaster = batch[r]
         if (row.inserted) inserted++
         else updated++
+        // Lineage: the CSV's single manufacturer per coaster, inserted (never
+        // deleted) so admin/community lineage entries survive re-imports.
+        const manuf = coaster?.manufacturerSlug
+          ? (manufIdBySlug.get(coaster.manufacturerSlug) ?? null)
+          : null
+        if (manuf) lineageRows.push({ coasterId: row.id, manufacturerId: manuf })
       }
+    }
+
+    if (lineageRows.length > 0) {
+      const linCols = 4
+      const linValues = lineageRows
+        .map(
+          (_, r) =>
+            `($${r * linCols + 1}::uuid, $${r * linCols + 2}::uuid, $${r * linCols + 3}, $${r * linCols + 4})`,
+        )
+        .join(', ')
+      const linParams: (string | number)[] = []
+      for (const row of lineageRows) linParams.push(row.coasterId, row.manufacturerId, 0, 'open-csv')
+      await client.query(
+        `insert into public.coaster_manufacturers (coaster_id, manufacturer_id, position, source)
+         values ${linValues}
+         on conflict (coaster_id, manufacturer_id) do nothing`,
+        linParams,
+      )
     }
 
     await client.query('commit')
@@ -437,6 +464,9 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
     const verifyCoaster = await client.query(
       "select count(*)::int as n from public.coasters where source = 'open-csv'",
     )
+    const verifyLineage = await client.query(
+      "select count(*)::int as n from public.coaster_manufacturers where source = 'open-csv'",
+    )
 
     console.log('\nWritten this run:')
     console.log('  coasters inserted:', inserted)
@@ -446,10 +476,12 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
       '(skipped non-csv:',
       m.coasters.length - inserted - updated + ')',
     )
+    console.log('  lineage rows:', lineageRows.length)
     console.log('\nVerified totals (open-csv):')
     console.log('  manufacturers:', verifyMfg.rows[0].n)
     console.log('  parks:        ', verifyPark.rows[0].n)
     console.log('  coasters:     ', verifyCoaster.rows[0].n)
+    console.log('  lineage rows: ', verifyLineage.rows[0].n)
   } catch (err) {
     try {
       await client.query('rollback')

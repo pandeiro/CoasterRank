@@ -26,6 +26,8 @@ export function makeRankingRow(overrides: Partial<RankingRow> = {}): RankingRow 
     park_country: 'United States',
     park_city: 'Test City',
     manufacturer_name: null,
+    manufacturer_ids: null,
+    manufacturer_names: null,
     aliases: [],
     score: 1.0,
     comparisons: 100,

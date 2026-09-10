@@ -32,6 +32,13 @@ export type RankingRow = {
   park_city: string | null
   manufacturer_name: string | null
   aliases: string[] | null
+  // Full manufacturer lineage (multi-manufacturer support, e.g. Top Thrill 2
+  // = Intamin + Zamperla), canonical order (position asc, added_at desc —
+  // same rule the sync_primary_manufacturer trigger uses). Optional with a
+  // fallback to manufacturer_name so app/view deploy skew degrades gracefully
+  // (see lineageNames in lib/coasters).
+  manufacturer_ids?: string[] | null
+  manufacturer_names?: string[] | null
   score: number | null
   comparisons: number | null
   participants: number | null

@@ -158,6 +158,9 @@ export type WorkerRiderRide = {
   park_name: string | null
   park_slug: string | null
   manufacturer_name: string | null
+  /** Full lineage; the OG spotlight credits every entry. Optional so a
+   * pre-migration RPC payload still typechecks. */
+  manufacturer_names?: string[] | null
   score: number | null
 }
 

@@ -72,6 +72,28 @@ export type Manufacturer = {
   slug: string
 }
 
+// Full manufacturer lineage of a board row, canonical order (position asc,
+// added_at desc — same rule the sync_primary_manufacturer trigger and the
+// view use). manufacturer_names is optional so app/view deploy skew degrades
+// gracefully: a pre-migration view row still yields its single primary name.
+export function lineageNames(
+  row: Pick<RankingRow, 'manufacturer_names' | 'manufacturer_name'>,
+): string[] {
+  if (row.manufacturer_names && row.manufacturer_names.length > 0) {
+    return row.manufacturer_names.filter((n): n is string => Boolean(n))
+  }
+  return row.manufacturer_name ? [row.manufacturer_name] : []
+}
+
+export function lineageIds(
+  row: Pick<RankingRow, 'manufacturer_ids' | 'manufacturer_id'>,
+): string[] {
+  if (row.manufacturer_ids && row.manufacturer_ids.length > 0) {
+    return row.manufacturer_ids.filter((id): id is string => Boolean(id))
+  }
+  return row.manufacturer_id ? [row.manufacturer_id] : []
+}
+
 // materialView: 'wood' = wooden only; 'steel' = steel + hybrids (hybrids ride
 // as steel for filtering); 'everything' = all rows including material=other.
 export type MaterialView = 'everything' | 'wood' | 'steel'
@@ -127,9 +149,11 @@ export function filtersToSearchParams(filters: RankingFilters): URLSearchParams 
 }
 
 // Pure client-side filtering over the batch-fetched dataset. Park name/slug/
-// country, manufacturer name, and aliases are denormalized onto each row by
+// country, manufacturer names, and aliases are denormalized onto each row by
 // the view, so no reference lookups are needed. The search term matches the
-// coaster name, its park, and any former name (alias).
+// coaster name, its park, and any former name (alias). The manufacturer
+// filter matches ANY lineage entry, so a multi-manufacturer coaster (e.g.
+// Top Thrill 2) shows up under both Intamin and Zamperla.
 export function filterCoasters(rows: RankingRow[], filters: RankingFilters): RankingRow[] {
   return rows.filter((row) => {
     if (!filters.allStatuses && row.status !== 'operating') return false
@@ -137,7 +161,7 @@ export function filterCoasters(rows: RankingRow[], filters: RankingFilters): Ran
     if (filters.materialView === 'steel' && row.material !== 'steel' && row.material !== 'hybrid')
       return false
     if (filters.country && row.park_country !== filters.country) return false
-    if (filters.manufacturer && row.manufacturer_name !== filters.manufacturer) return false
+    if (filters.manufacturer && !lineageNames(row).includes(filters.manufacturer)) return false
     if (filters.q) {
       const term = filters.q.toLowerCase()
       const haystack = [row.name, row.park_name, ...(row.aliases ?? [])]
@@ -280,11 +304,11 @@ export function countryOptions(rows: RankingRow[]): CountryOption[] {
   return [...top, ...rest].map(toOption)
 }
 
-// Distinct manufacturer names on the board, alphabetically.
+// Distinct manufacturer names on the board, alphabetically. Unions EVERY
+// lineage entry so secondary manufacturers (e.g. the re-track builder) are
+// selectable in the filter dropdown too.
 export function manufacturerOptions(rows: RankingRow[]): string[] {
-  return [...new Set(rows.map((r) => r.manufacturer_name).filter((v): v is string => !!v))].sort(
-    (a, b) => a.localeCompare(b),
-  )
+  return [...new Set(rows.flatMap((r) => lineageNames(r)))].sort((a, b) => a.localeCompare(b))
 }
 
 // URL-safe slug from a display name: lowercase, spaces → dashes, strip the
@@ -388,7 +412,10 @@ export type SuggestedFields = {
   length_m: number | null
   inversions: number | null
   material: CoasterMaterial | null
+  /** Legacy single manufacturer; kept so older pending payloads stay valid. */
   manufacturer_id?: string | null
+  /** Proposed lineage (ordered id list); approval REPLACES the lineage. */
+  manufacturer_ids?: string[] | null
   status?: CoasterStatus | null
   model?: string | null
   type?: string | null
@@ -412,38 +439,62 @@ const APPROVABLE_SUBMISSION_FIELDS = [
   'inversions',
   'material',
   'manufacturer_id',
+  'manufacturer_ids',
   'status',
   'model',
   'type',
   'opening_date',
 ] as const
 
+// Extract the proposed manufacturer lineage from a submission payload
+// (defense in depth mirroring the DB CHECK's uuid shape rules):
+//   undefined        — the payload doesn't touch manufacturers (no write)
+//   []               — an explicit clear (replace with nothing)
+//   string[]         — the proposed ordered lineage (well-formed ids only)
+// The legacy single manufacturer_id normalizes to a one-element list.
+export function proposedLineageIds(fields: Record<string, unknown>): string[] | undefined {
+  if (Array.isArray(fields.manufacturer_ids)) {
+    return fields.manufacturer_ids.filter(
+      (id): id is string => typeof id === 'string' && UUID_RE.test(id),
+    )
+  }
+  if (typeof fields.manufacturer_id === 'string' && UUID_RE.test(fields.manufacturer_id)) {
+    return [fields.manufacturer_id]
+  }
+  if (fields.manufacturer_id === null) return []
+  return undefined
+}
+
 // Builds the INSERT fragment for approving a NEW-coaster submission. The five
 // stats pass through (already null-normalized client-side); descriptive
 // values are re-validated here so a malformed payload degrades to "field not
-// set" instead of failing (or worse, poisoning) the coaster row.
-function approvableSuggestedFields(fields: SuggestedFields): Partial<SuggestedFields> {
-  const safe: Partial<SuggestedFields> = {
+// set" instead of failing (or worse, poisoning) the coaster row. Manufacturer
+// lineage rides separately (manufacturerIds) because coaster_manufacturers is
+// a junction table — the coasters row itself no longer takes a manufacturer
+// column (the primary pointer is trigger-maintained).
+function approvableSuggestedFields(fields: SuggestedFields): {
+  row: Partial<SuggestedFields>
+  manufacturerIds: string[]
+} {
+  const row: Partial<SuggestedFields> = {
     height_m: fields.height_m,
     speed_kmh: fields.speed_kmh,
     length_m: fields.length_m,
     inversions: fields.inversions,
     material: isCoasterMaterial(fields.material) ? fields.material : null,
   }
-  if (fields.manufacturer_id && UUID_RE.test(fields.manufacturer_id)) {
-    safe.manufacturer_id = fields.manufacturer_id
-  }
-  if (fields.status && isCoasterStatus(fields.status)) safe.status = fields.status
+  if (fields.status && isCoasterStatus(fields.status)) row.status = fields.status
   if (typeof fields.model === 'string' && fields.model.length > 0 && fields.model.length <= 120) {
-    safe.model = fields.model
+    row.model = fields.model
   }
   if (typeof fields.type === 'string' && fields.type.length > 0 && fields.type.length <= 120) {
-    safe.type = fields.type
+    row.type = fields.type
   }
   if (fields.opening_date && ISO_DATE_RE.test(fields.opening_date)) {
-    safe.opening_date = fields.opening_date
+    row.opening_date = fields.opening_date
   }
-  return safe
+  const manufacturerIds = proposedLineageIds(fields as unknown as Record<string, unknown>) ?? []
+  return { row, manufacturerIds }
 }
 
 // Scalar fields a user may propose changing on an EXISTING coaster
@@ -458,7 +509,10 @@ export type EditSuggestedFields = {
   length_m?: number | null
   inversions?: number | null
   material?: CoasterMaterial | null
+  /** Legacy single manufacturer; kept so older pending payloads stay valid. */
   manufacturer_id?: string | null
+  /** Proposed lineage (ordered id list); approval REPLACES the lineage. */
+  manufacturer_ids?: string[] | null
   status?: CoasterStatus | null
   model?: string | null
   type?: string | null
@@ -467,7 +521,9 @@ export type EditSuggestedFields = {
 }
 
 // The user-editable columns of a coaster, used as the "current" side of an
-// edit diff.
+// edit diff. manufacturer_ids is the current lineage (canonical order) —
+// optional so pre-lineage callers / view rows (where the array rides as an
+// optional column) still satisfy the type.
 export type EditableCoasterSnapshot = Pick<
   Coaster,
   | 'name'
@@ -482,9 +538,11 @@ export type EditableCoasterSnapshot = Pick<
   | 'model'
   | 'type'
   | 'opening_date'
->
+> & { manufacturer_ids?: string[] | null }
 
-// Raw edited values from the suggest-edit form (all strings, '' = cleared).
+// Raw edited values from the suggest-edit form. manufacturer_ids is the full
+// ordered lineage list from the multi picker (NOT a diff — the form always
+// knows the whole list); diffEditProposal reduces it to a change or nothing.
 export type EditProposalInput = {
   name: string
   park_id: string
@@ -494,7 +552,7 @@ export type EditProposalInput = {
   speed_kmh: string
   length_m: string
   inversions: string
-  manufacturer_id: string
+  manufacturer_ids: string[]
   model: string
   type: string
   opening_date: string
@@ -534,11 +592,16 @@ export function diffEditProposal(
     if (proposed !== (current[key] ?? null)) diff[key] = proposed
   }
 
-  // Manufacturer rides as an id chosen from the catalog typeahead ('' =
-  // cleared → null).
-  const proposedManufacturerId = proposal.manufacturer_id || null
-  if (proposedManufacturerId !== (current.manufacturer_id ?? null)) {
-    diff.manufacturer_id = proposedManufacturerId
+  // Manufacturer lineage rides as an ordered id list from the multi picker.
+  // Order matters (it decides the primary), so any difference in ids OR
+  // sequence is a change. [] = "propose no manufacturers" (explicit clear).
+  const proposedIds = proposal.manufacturer_ids.filter((id) => Boolean(id))
+  const currentIds = (current.manufacturer_ids ?? []).filter((id) => Boolean(id))
+  if (
+    proposedIds.length !== currentIds.length ||
+    proposedIds.some((id, i) => id !== currentIds[i])
+  ) {
+    diff.manufacturer_ids = proposedIds
   }
 
   const proposedName = proposal.name.trim()
@@ -660,12 +723,29 @@ export async function getMySubmissions() {
 }
 
 // Full coaster rows by id (coasters has a public-read policy) — used by the
-// admin queue to render the current side of edit diffs.
-export async function getCoastersByIds(ids: string[]) {
+// admin queue to render the current side of edit diffs. The lineage rides
+// along (ordered ids) so manufacturer diffs show names instead of uuids.
+export type CoasterWithLineage = Coaster & { manufacturer_ids: string[] }
+
+export async function getCoastersByIds(ids: string[]): Promise<CoasterWithLineage[]> {
   if (ids.length === 0) return []
-  const { data, error } = await supabase.from('coasters').select('*').in('id', ids)
+  const { data, error } = await supabase
+    .from('coasters')
+    .select('*, coaster_manufacturers(manufacturer_id, position)')
+    .in('id', ids)
+    .range(0, 9999)
   if (error) throw error
-  return data as Coaster[]
+  return (
+    data as Array<
+      Coaster & { coaster_manufacturers: { manufacturer_id: string; position: number }[] | null }
+    >
+  ).map(({ coaster_manufacturers, ...coaster }) => ({
+    ...coaster,
+    manufacturer_ids: (coaster_manufacturers ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((row) => row.manufacturer_id),
+  }))
 }
 
 export type SubmitterTrust = {
@@ -792,23 +872,35 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
     }
   }
 
-  // 2. Create Coaster — globally unique slug (park suffix fallback)
+  // 2. Create Coaster — globally unique slug (park suffix fallback).
+  // Manufacturer lineage rides via coaster_manufacturers AFTER the row lands
+  // (the coasters row no longer carries a manufacturer column; the primary
+  // pointer is trigger-maintained).
+  const approved = approvableSuggestedFields(submission.suggested_fields)
   const baseSlug = slugify(submission.coaster_name)
   if (!parkId) throw new Error('Missing park')
   let coasterSlug = await resolveUniqueCoasterSlug(baseSlug, parkId, null)
   let coasterError: { code?: string; message: string } | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await supabase.from('coasters').insert({
-      park_id: parkId,
-      name: submission.coaster_name,
-      slug: coasterSlug,
-      source: 'community',
-      // C-01: explicit allowlist — never spread the raw payload, so a hostile
-      // key (park_id/name/slug/source/…) cannot override reviewed columns.
-      ...approvableSuggestedFields(submission.suggested_fields),
-    })
+    const { data: created, error } = await supabase
+      .from('coasters')
+      .insert({
+        park_id: parkId,
+        name: submission.coaster_name,
+        slug: coasterSlug,
+        source: 'community',
+        // C-01: explicit allowlist — never spread the raw payload, so a
+        // hostile key (park_id/name/slug/source/…) cannot override reviewed
+        // columns.
+        ...approved.row,
+      })
+      .select('id')
+      .single()
     if (!error) {
       coasterError = null
+      if (approved.manufacturerIds.length > 0) {
+        await setCoasterLineage(created.id, approved.manufacturerIds, 'submission')
+      }
       break
     }
     if (error.code !== '23505') {
@@ -880,13 +972,10 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
   if (typeof fields.status === 'string' && isCoasterStatus(fields.status)) {
     updates.status = fields.status
   }
-  // Manufacturer rides as an id; only a well-formed uuid (or an explicit
-  // clear) is applied — anything else failed the DB CHECK already.
-  if (typeof fields.manufacturer_id === 'string' && UUID_RE.test(fields.manufacturer_id)) {
-    updates.manufacturer_id = fields.manufacturer_id
-  } else if (fields.manufacturer_id === null) {
-    updates.manufacturer_id = null
-  }
+  // Manufacturer lineage is NOT part of the row update: the primary pointer
+  // (coasters.manufacturer_id) is trigger-maintained from the junction table.
+  // The proposed list (or legacy single id) replaces the lineage below.
+  const lineage = proposedLineageIds(fields)
   for (const key of ['model', 'type'] as const) {
     const raw = fields[key]
     if (raw === null) updates[key] = null
@@ -905,6 +994,13 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
 
   const { error } = await supabase.from('coasters').update(updates).eq('id', submission.coaster_id)
   if (error) throw error
+
+  // An accepted manufacturer proposal REPLACES the whole lineage with the
+  // proposed list (decided 2026-09) — undefined means the payload didn't
+  // touch manufacturers, so leave it alone.
+  if (lineage !== undefined) {
+    await setCoasterLineage(submission.coaster_id, lineage, 'submission')
+  }
 
   await markSubmissionApproved(id, user.id)
 }
@@ -929,24 +1025,85 @@ export type Coaster = {
 }
 
 // A coaster row as the admin console sees it: the full row plus the joined
-// park name, manufacturer name, and ride count.
+// park name, manufacturer name, ride count, and the ordered lineage ids the
+// edit modal's multi picker seeds from.
 export type AdminCoaster = Coaster & {
   parks: { name: string; slug: string } | null
   manufacturers: { name: string } | null
   ride_count: number
+  coaster_manufacturers: { manufacturer_id: string; position: number }[]
 }
 
 export async function getAllCoastersAdmin() {
   const { data, error } = await supabase
     .from('coasters')
-    .select('*, parks(name, slug), manufacturers(name), ride_count:user_rides(count)')
+    .select(
+      '*, parks(name, slug), manufacturers(name), ' +
+        'coaster_manufacturers(manufacturer_id, position), ride_count:user_rides(count)',
+    )
     .order('name')
     .range(0, 9999)
   if (error) throw error
-  return (data as Array<AdminCoaster & { ride_count: [{ count: number }] }>).map((c) => ({
+  return (
+    data as unknown as Array<
+      Omit<AdminCoaster, 'coaster_manufacturers' | 'ride_count'> & {
+        coaster_manufacturers: { manufacturer_id: string; position: number }[] | null
+        ride_count: [{ count: number }] | null
+      }
+    >
+  ).map((c) => ({
     ...c,
+    coaster_manufacturers: (c.coaster_manufacturers ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position),
     ride_count: c.ride_count?.[0]?.count ?? 0,
   }))
+}
+
+// Replace a coaster's manufacturer lineage with an ordered id list. Ids are
+// deduped and positions resequenced 0..n-1, so explicit order always wins
+// over the "newest added" default once a save happens. The primary pointer
+// (coasters.manufacturer_id) is maintained by the sync_primary_manufacturer
+// trigger — never write that column directly. An empty list clears the
+// lineage (pointer becomes NULL).
+export async function setCoasterLineage(
+  coasterId: string,
+  manufacturerIds: string[],
+  source: 'admin' | 'submission',
+): Promise<void> {
+  const ids = [...new Set(manufacturerIds)].filter((id) => UUID_RE.test(id))
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('coaster_manufacturers')
+    .select('manufacturer_id')
+    .eq('coaster_id', coasterId)
+    .range(0, 999)
+  if (fetchError) throw fetchError
+
+  const stale = [...new Set((existing ?? []).map((row) => row.manufacturer_id))].filter(
+    (id) => !ids.includes(id),
+  )
+  if (stale.length > 0) {
+    const { error } = await supabase
+      .from('coaster_manufacturers')
+      .delete()
+      .eq('coaster_id', coasterId)
+      .in('manufacturer_id', stale)
+    if (error) throw error
+  }
+
+  if (ids.length > 0) {
+    const { error } = await supabase.from('coaster_manufacturers').upsert(
+      ids.map((manufacturer_id, position) => ({
+        coaster_id: coasterId,
+        manufacturer_id,
+        position,
+        source,
+      })),
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
+    if (error) throw error
+  }
 }
 
 export async function updateCoaster(id: string, updates: Partial<Coaster>) {
@@ -988,7 +1145,7 @@ export async function updateCoaster(id: string, updates: Partial<Coaster>) {
   if (error) throw error
 }
 
-export async function createCoaster(data: Partial<Coaster>) {
+export async function createCoaster(data: Partial<Coaster>, lineageIds?: string[]) {
   if (data.name && data.park_id) {
     const base = data.slug ? data.slug : slugify(data.name)
     const unique = await resolveUniqueCoasterSlug(
@@ -998,18 +1155,27 @@ export async function createCoaster(data: Partial<Coaster>) {
     )
     data = { ...data, slug: unique }
   }
+  // The primary pointer is trigger-maintained from coaster_manufacturers —
+  // never write manufacturer_id on the row itself.
+  const { manufacturer_id: _ignored, ...row } = data
+  void _ignored
   let lastError: { code?: string } | null = null
-  let attemptSlug = data.slug as string | undefined
+  let attemptSlug = row.slug as string | undefined
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { data: result, error } = await supabase.from('coasters').insert(data).select().single()
-    if (!error) return result
-    if (error.code !== '23505' || !attemptSlug || !data.park_id) throw error
+    const { data: result, error } = await supabase.from('coasters').insert(row).select().single()
+    if (!error) {
+      if (lineageIds && lineageIds.length > 0) {
+        await setCoasterLineage(result.id, lineageIds, 'admin')
+      }
+      return result
+    }
+    if (error.code !== '23505' || !attemptSlug || !row.park_id) throw error
     lastError = error
     const existing = await fetchExistingCoasterSlugs(attemptSlug.replace(/-\d+$/, ''))
     let n = 2
     while (existing.has(`${attemptSlug}-${n}`)) n++
     attemptSlug = `${attemptSlug}-${n}`
-    data = { ...data, slug: attemptSlug }
+    row.slug = attemptSlug
   }
   throw lastError ?? new Error('Failed to create coaster')
 }

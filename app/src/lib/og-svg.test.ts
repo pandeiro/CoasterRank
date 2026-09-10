@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildRiderOgSvg,
+  manufacturerSpotlight,
   OG_IMAGE_WIDTH,
   OG_IMAGE_HEIGHT,
   topSpotlight,
@@ -252,5 +253,82 @@ describe('topSpotlight', () => {
     expect(topSpotlight(many, 'manufacturer_name', 2)).toEqual({ name: 'Intamin', count: 2 })
     expect(topSpotlight(many, 'park_name', 1)).toEqual({ name: 'Cedar Point', count: 1 })
     expect(topSpotlight(many, 'manufacturer_name')).toEqual({ name: 'Intamin', count: 2 })
+  })
+})
+
+describe('manufacturerSpotlight', () => {
+  it('credits every lineage manufacturer, not just the primary', () => {
+    const lineage = [
+      {
+        rank: 1,
+        name: 'Top Thrill 2',
+        park_name: 'Cedar Point',
+        manufacturer_name: 'Zamperla',
+        manufacturer_names: ['Zamperla', 'Intamin'],
+        score: null,
+      },
+      {
+        rank: 2,
+        name: 'VelociCoaster',
+        park_name: 'Universal Islands of Adventure',
+        manufacturer_name: 'Intamin',
+        manufacturer_names: ['Intamin'],
+        score: null,
+      },
+    ]
+    // A TT2 ride counts toward Zamperla AND Intamin — Intamin ties on count
+    // and wins the best-rank tiebreak (rank 1 vs rank 1 → name asc falls
+    // through; both have bestRank 1, so name asc decides: Intamin).
+    expect(manufacturerSpotlight(lineage)).toEqual({ name: 'Intamin', count: 2 })
+  })
+
+  it('falls back to manufacturer_name when the lineage array is absent', () => {
+    const legacy = [
+      {
+        rank: 1,
+        name: 'A',
+        park_name: 'P',
+        manufacturer_name: 'Rocky Mountain Construction',
+        score: null,
+      },
+    ]
+    expect(manufacturerSpotlight(legacy)).toEqual({ name: 'Rocky Mountain Construction', count: 1 })
+  })
+
+  it('scopes the pool to the first N rides by rank when limited', () => {
+    const rides = [
+      {
+        rank: 1,
+        name: 'A',
+        park_name: 'P',
+        manufacturer_name: 'Intamin',
+        manufacturer_names: ['Intamin'],
+        score: null,
+      },
+      {
+        rank: 11,
+        name: 'K',
+        park_name: 'P',
+        manufacturer_name: 'Zamperla',
+        manufacturer_names: ['Zamperla'],
+        score: null,
+      },
+    ]
+    expect(manufacturerSpotlight(rides, 10)).toEqual({ name: 'Intamin', count: 1 })
+  })
+
+  it('ignores blank entries inside the lineage and returns null when nothing qualifies', () => {
+    const blanks = [
+      {
+        rank: 1,
+        name: 'A',
+        park_name: 'P',
+        manufacturer_name: null,
+        manufacturer_names: [null as unknown as string, '  '],
+        score: null,
+      },
+    ]
+    expect(manufacturerSpotlight(blanks)).toBeNull()
+    expect(manufacturerSpotlight([])).toBeNull()
   })
 })

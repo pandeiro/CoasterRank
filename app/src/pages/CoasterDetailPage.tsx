@@ -2,7 +2,7 @@ import { Suspense, lazy, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import RankingPanel from '../components/RankingPanel'
 import { MessageState } from '../components/ui'
-import { capitalize, useCoaster, yearFromDate } from '../lib/coasters'
+import { capitalize, lineageNames, useCoaster, yearFromDate } from '../lib/coasters'
 import { useIsAdmin } from '../lib/useIsAdmin'
 
 // Admin-only quick-edit: code-split so non-admins never download the form.
@@ -34,6 +34,8 @@ export default function CoasterDetailPage() {
   // view row — no parks query needed on this page.
   const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
   const openingYear = yearFromDate(coaster.opening_date)
+  // Fully unfurled manufacturer lineage (the board shows "X et al").
+  const manufacturerLineage = lineageNames(coaster)
 
   // One consolidated metadata line (brief §6) — folds the former orphaned
   // "I-Box Track · Steel · 2018" fragment and the separate Material card
@@ -60,9 +62,9 @@ export default function CoasterDetailPage() {
 
   return (
     <div>
-      {/* Identity block (brief §1): park · location · manufacturer, then the
-          name in display type. The community ranking lives in the panel
-          below — before any spec data. */}
+      {/* Identity block (brief §1): park · location · manufacturers (full
+          lineage), then the name in display type. The community ranking
+          lives in the panel below — before any spec data. */}
       <p className="text-sm text-muted">
         {coaster.park_name && coaster.park_slug && (
           <Link to={`/parks/${coaster.park_slug}`} className="font-medium text-ink hover:underline">
@@ -70,7 +72,7 @@ export default function CoasterDetailPage() {
           </Link>
         )}
         {location ? ` · ${location}` : ''}
-        {coaster.manufacturer_name ? ` · ${coaster.manufacturer_name}` : ''}
+        {manufacturerLineage.length > 0 ? ` · ${manufacturerLineage.join(' · ')}` : ''}
       </p>
       <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
 
