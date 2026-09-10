@@ -1,15 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
-import FewVotesBadge from '../components/FewVotesBadge'
-import StatBlock from '../components/StatBlock'
+import RankingPanel from '../components/RankingPanel'
 import { MessageState } from '../components/ui'
-import {
-  capitalize,
-  firstPlaceLabel,
-  formatNumber,
-  formatScore,
-  useCoaster,
-  yearFromDate,
-} from '../lib/coasters'
+import { capitalize, useCoaster, yearFromDate } from '../lib/coasters'
 
 export default function CoasterDetailPage() {
   const { slug } = useParams()
@@ -31,86 +23,78 @@ export default function CoasterDetailPage() {
   // view row — no parks query needed on this page.
   const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
   const openingYear = yearFromDate(coaster.opening_date)
-  const firstPlace = firstPlaceLabel(coaster.first_place_votes, coaster.participants)
+
+  // One consolidated metadata line (brief §6) — folds the former orphaned
+  // "I-Box Track · Steel · 2018" fragment and the separate Material card
+  // into a single "Track · Material · Opened · Status" row. `model` carries
+  // the track type ("I-Box Track"); `type` usually duplicates material
+  // ("Steel"), so it's only a fallback when model is missing.
+  const trackLabel = coaster.model ?? coaster.type
+  const metadata = [
+    trackLabel ? `Track: ${trackLabel}` : null,
+    `Material: ${capitalize(coaster.material)}`,
+    openingYear ? `Opened: ${openingYear}` : null,
+    `Status: ${capitalize(coaster.status)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  // Static specs, demoted to plain label-over-value pairs (no card chrome).
+  const specs = [
+    { label: 'Height', value: coaster.height_m === null ? '—' : `${coaster.height_m} m` },
+    { label: 'Speed', value: coaster.speed_kmh === null ? '—' : `${coaster.speed_kmh} km/h` },
+    { label: 'Length', value: coaster.length_m === null ? '—' : `${coaster.length_m} m` },
+    { label: 'Inversions', value: coaster.inversions === null ? '—' : String(coaster.inversions) },
+  ]
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-text">
-        {coaster.rank === null ? 'Not yet ranked' : `#${coaster.rank} on the board`}
-      </p>
-      <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
-      <p className="mt-2 text-muted">
+      {/* Identity block (brief §1): park · location · manufacturer, then the
+          name in display type. The community ranking lives in the panel
+          below — before any spec data. */}
+      <p className="text-sm text-muted">
         {coaster.park_name && coaster.park_slug && (
-          <Link to={`/parks/${coaster.park_slug}`} className="font-medium hover:underline">
+          <Link to={`/parks/${coaster.park_slug}`} className="font-medium text-ink hover:underline">
             {coaster.park_name}
           </Link>
         )}
         {location ? ` · ${location}` : ''}
         {coaster.manufacturer_name ? ` · ${coaster.manufacturer_name}` : ''}
       </p>
-      <div className="mt-2">
-        {coaster.comparisons === null ? (
-          <span className="text-sm text-muted">No ratings yet</span>
-        ) : (
-          <FewVotesBadge comparisons={coaster.comparisons} />
-        )}
-      </div>
+      <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
 
-      <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatBlock
-          label="Score"
-          value={coaster.score === null ? '—' : formatScore(coaster.score)}
-        />
-        <StatBlock
-          label="Comparisons"
-          value={coaster.comparisons === null ? '—' : formatNumber(coaster.comparisons)}
-        />
-        <StatBlock
-          label="Participants"
-          value={coaster.participants === null ? '—' : formatNumber(coaster.participants)}
-        />
-        <StatBlock
-          label="#1 votes"
-          value={firstPlace ? `${firstPlace.votes} (${firstPlace.pct}%)` : '—'}
-        />
-        <StatBlock
-          label="Height"
-          value={coaster.height_m === null ? '—' : `${coaster.height_m} m`}
-        />
-        <StatBlock
-          label="Speed"
-          value={coaster.speed_kmh === null ? '—' : `${coaster.speed_kmh} km/h`}
-        />
-        <StatBlock
-          label="Length"
-          value={coaster.length_m === null ? '—' : `${coaster.length_m} m`}
-        />
-        <StatBlock
-          label="Inversions"
-          value={coaster.inversions === null ? '—' : String(coaster.inversions)}
-        />
-        <StatBlock label="Status" value={capitalize(coaster.status)} />
-        <StatBlock label="Material" value={capitalize(coaster.material)} />
-      </dl>
+      <RankingPanel coaster={coaster} />
 
-      {(coaster.model || coaster.type || openingYear) && (
-        <p className="mt-4 text-sm text-muted">
-          {[coaster.model, coaster.type, openingYear].filter(Boolean).join(' · ')}
-        </p>
-      )}
-
-      {coaster.aliases && coaster.aliases.length > 0 && (
-        <p className="mt-2 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
-      )}
-
-      <div className="mt-8">
-        <Link
-          to={`/coasters/${slug}/suggest-edit`}
-          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+      {/* Coaster Details (brief §6): demoted reference data — visually plain
+          whitespace-separated pairs, clearly scoped below the ranking. */}
+      <section aria-labelledby="coaster-details-heading" className="mt-8">
+        <h2
+          id="coaster-details-heading"
+          className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
         >
-          See something wrong? Suggest an edit
-        </Link>
-      </div>
+          Coaster details
+        </h2>
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+          {specs.map((spec) => (
+            <div key={spec.label}>
+              <dt className="text-xs uppercase tracking-[0.12em] text-muted">{spec.label}</dt>
+              <dd className="mt-1 text-lg font-semibold text-ink">{spec.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-5 text-sm text-muted">{metadata}</p>
+        {coaster.aliases && coaster.aliases.length > 0 && (
+          <p className="mt-2 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
+        )}
+        <div className="mt-6">
+          <Link
+            to={`/coasters/${slug}/suggest-edit`}
+            className="text-sm font-medium text-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            See something wrong? Suggest an edit
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }
