@@ -4,6 +4,7 @@ import {
   capitalize,
   firstPlaceLabel,
   isFewVotes,
+  lineageNames,
   type CoasterStatus,
   type RankingRow,
 } from '../lib/coasters'
@@ -352,15 +353,23 @@ export default function CoasterTable({
                 )}
                 {variant === 'board' ? (
                   <>
+                    {/* Compact manufacturer column: one name (the primary) —
+                        "X et al" when the coaster has a lineage (fully
+                        unfurled on the detail page). Full list in the title. */}
                     <td className="hidden px-4 py-2.5 text-muted lg:table-cell">
-                      {row.manufacturer_name ? (
-                        <div className="truncate" title={row.manufacturer_name}>
-                          {MANUFACTURER_ABBREVIATIONS[row.manufacturer_name] ??
-                            row.manufacturer_name}
-                        </div>
-                      ) : (
-                        '—'
-                      )}
+                      {(() => {
+                        const names = lineageNames(row)
+                        if (names.length === 0) return '—'
+                        const primary = names[0]
+                        const label =
+                          (MANUFACTURER_ABBREVIATIONS[primary] ?? primary) +
+                          (names.length > 1 ? ' et al' : '')
+                        return (
+                          <div className="truncate" title={names.join(' · ')}>
+                            {label}
+                          </div>
+                        )
+                      })()}
                     </td>
                     {/* §7.1, decided: score emphasized by an accent-tinted
                         rounded background (tabular numerals, no bold). */}

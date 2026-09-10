@@ -27,6 +27,10 @@ export type RiderRide = {
   park_slug: string | null
   /** NULL when the coaster has no linked manufacturer (or pre-migration RPC). */
   manufacturer_name: string | null
+  /** Full lineage (canonical order); every entry gets builder credit in the
+   * OG spotlight. Absent on pre-migration RPC payloads — fall back to
+   * manufacturer_name. */
+  manufacturer_names?: string[] | null
   score: number | null
 }
 

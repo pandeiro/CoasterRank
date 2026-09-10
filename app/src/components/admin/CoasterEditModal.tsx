@@ -2,11 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Copy } from 'lucide-react'
 import { fieldClassName, Modal, selectClassName } from '../ui'
+import ManufacturerMultiPicker from '../ManufacturerMultiPicker'
 import {
   createCoaster,
   isCoasterMaterial,
   isCoasterStatus,
   refreshBoardData,
+  setCoasterLineage,
   slugify,
   updateCoaster,
   useManufacturers,
@@ -14,6 +16,7 @@ import {
   type AdminCoaster,
   type Coaster,
   type Manufacturer,
+  type RankingRow,
   type Park,
 } from '../../lib/coasters'
 import CoasterAliasesManager from './CoasterAliasesManager'
@@ -22,6 +25,20 @@ function numberOrNull(value: FormDataEntryValue | null): number | null {
   if (value === null || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+// Ordered lineage ids from either seed shape: the admin console passes an
+// AdminCoaster (junction embed), the detail-page quick-edit passes a view row
+// (manufacturer_ids/names; legacy single id as final fallback).
+function initialLineageIds(initial: Partial<Coaster> | null): string[] {
+  if (!initial) return []
+  const cm = (initial as Partial<AdminCoaster>).coaster_manufacturers
+  if (cm && cm.length > 0) return cm.map((row) => row.manufacturer_id)
+  const row = initial as Partial<RankingRow>
+  if (row.manufacturer_ids && row.manufacturer_ids.length > 0) {
+    return row.manufacturer_ids.filter((id): id is string => Boolean(id))
+  }
+  return row.manufacturer_id ? [row.manufacturer_id] : []
 }
 
 export type CoasterEditModalProps = {
@@ -51,8 +68,8 @@ export default function CoasterEditModal({
   const isAdding = mode === 'create'
   const [formPark, setFormPark] = useState<Park | null>(null)
   const [formParkSearch, setFormParkSearch] = useState('')
-  const [formManufacturer, setFormManufacturer] = useState<Manufacturer | null>(null)
-  const [formManufacturerSearch, setFormManufacturerSearch] = useState('')
+  // Manufacturer lineage (multi): ordered list, index 0 = primary.
+  const [formLineage, setFormLineage] = useState<Manufacturer[]>([])
   const [copiedField, setCopiedField] = useState<string | null>(null)
   // Park/manufacturer pickers resolve the initial ids to display rows once the
   // (cached) reference lists arrive — same pattern the admin page used inline.
@@ -61,35 +78,33 @@ export default function CoasterEditModal({
   const { data: allParks = [] } = useParks()
   const { data: allManufacturers = [] } = useManufacturers()
 
-  // Pre-select the seed row's park/manufacturer once the (cached) reference
-  // lists arrive, so the form shows current values instead of empty pickers.
+  // Pre-select the seed row's park/lineage once the (cached) reference lists
+  // arrive, so the form shows current values instead of empty pickers.
   useEffect(() => {
     if (resolved || allParks.length === 0) return
     if (initial?.park_id) {
       const match = allParks.find((p) => p.id === initial.park_id)
       if (match) setFormPark(match)
     }
-    if (initial?.manufacturer_id) {
-      const match = allManufacturers.find((m) => m.id === initial.manufacturer_id)
-      if (match) setFormManufacturer(match)
+    const seedIds = initialLineageIds(initial)
+    if (seedIds.length > 0) {
+      const byId = new Map(allManufacturers.map((m) => [m.id, m]))
+      setFormLineage(seedIds.map((id) => byId.get(id)).filter((m): m is Manufacturer => Boolean(m)))
     }
     setResolved(true)
-  }, [resolved, allParks, allManufacturers, initial?.park_id, initial?.manufacturer_id])
+  }, [resolved, allParks, allManufacturers, initial])
 
   const filteredFormParks = allParks
     .filter((p) => p.name.toLowerCase().includes(formParkSearch.toLowerCase()))
     .slice(0, 5)
 
-  const filteredFormManufacturers = allManufacturers
-    .filter((m) => m.name.toLowerCase().includes(formManufacturerSearch.toLowerCase()))
-    .slice(0, 5)
-
   const saveCoaster = useMutation({
-    mutationFn: async (coaster: Partial<Coaster>) => {
+    mutationFn: async ({ coaster, lineage }: { coaster: Partial<Coaster>; lineage: string[] }) => {
       if (coaster.id) {
         await updateCoaster(coaster.id, coaster)
+        await setCoasterLineage(coaster.id, lineage, 'admin')
       } else {
-        await createCoaster(coaster)
+        await createCoaster(coaster, lineage)
       }
     },
     onSuccess: () => {
@@ -123,12 +138,13 @@ export default function CoasterEditModal({
     const name = (formData.get('name') as string).trim()
     const statusValue = formData.get('status')
     const materialValue = formData.get('material')
+    // NOTE: no manufacturer_id here — the primary pointer is trigger-maintained
+    // from coaster_manufacturers; lineage rides as the ordered id list below.
     const data: Partial<Coaster> = {
       id: initial?.id,
       name,
       slug: initial?.slug ?? slugify(name),
       park_id: formPark.id,
-      manufacturer_id: formManufacturer?.id ?? null,
       model: (formData.get('model') as string).trim() || null,
       opening_date: (formData.get('opening_date') as string) || null,
       type: (formData.get('type') as string).trim() || null,
@@ -140,7 +156,10 @@ export default function CoasterEditModal({
       inversions: numberOrNull(formData.get('inversions')),
       source: 'admin',
     }
-    saveCoaster.mutate(data)
+    saveCoaster.mutate({
+      coaster: data,
+      lineage: formLineage.map((m) => m.id),
+    })
   }
 
   return (
@@ -237,36 +256,14 @@ export default function CoasterEditModal({
           )}
           {formPark && <span className="text-xs text-muted">Selected: {formPark.name}</span>}
         </div>
-        <div className="flex flex-col gap-1 relative">
-          <label className="text-xs font-medium">Manufacturer</label>
-          <input
-            value={formManufacturer ? formManufacturer.name : formManufacturerSearch}
-            onChange={(e) => {
-              setFormManufacturerSearch(e.target.value)
-              setFormManufacturer(null)
-            }}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium">Manufacturers</label>
+          <ManufacturerMultiPicker
+            manufacturers={allManufacturers}
+            selected={formLineage}
+            onChange={setFormLineage}
             placeholder="Search for a manufacturer..."
-            className={fieldClassName}
           />
-          {formManufacturerSearch && !formManufacturer && filteredFormManufacturers.length > 0 && (
-            <ul className="absolute top-full z-10 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
-              {filteredFormManufacturers.map((m) => (
-                <li
-                  key={m.id}
-                  className="cursor-pointer p-2 text-sm hover:bg-canvas"
-                  onClick={() => {
-                    setFormManufacturer(m)
-                    setFormManufacturerSearch(m.name)
-                  }}
-                >
-                  {m.name}
-                </li>
-              ))}
-            </ul>
-          )}
-          {formManufacturer && (
-            <span className="text-xs text-muted">Selected: {formManufacturer.name}</span>
-          )}
         </div>
         <div className="md:col-span-2 border-t border-line/50" />
         <div className="flex flex-col gap-1">

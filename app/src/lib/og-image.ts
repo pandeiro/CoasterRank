@@ -1,4 +1,10 @@
-import { buildRiderOgSvg, topSpotlight, type OgSvgProfile, type OgSvgRide } from './og-svg'
+import {
+  buildRiderOgSvg,
+  manufacturerSpotlight,
+  topSpotlight,
+  type OgSvgProfile,
+  type OgSvgRide,
+} from './og-svg'
 
 /**
  * Edge OG image pipeline for /riders/:username/og.png (see worker.ts).
@@ -106,8 +112,9 @@ export function toOgSvgInput(rider: OgImageRider, avatarDataUri: string | null):
       rankedCount,
       parkCount,
       topPark: topSpotlight(rider.rides, 'park_name'),
-      // Builder draws from the top 10 by rank: preference, not volume.
-      topManufacturer: topSpotlight(rider.rides, 'manufacturer_name', 10),
+      // Builder draws from the top 10 by rank: preference, not volume. Credits
+      // every lineage manufacturer, not just the primary.
+      topManufacturer: manufacturerSpotlight(rider.rides, 10),
       avatarDataUri,
     },
     rides: rider.rides.slice(0, 5),

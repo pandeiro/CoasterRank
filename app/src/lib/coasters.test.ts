@@ -192,6 +192,47 @@ describe('filterCoasters', () => {
     ).toEqual(['steel-vengeance'])
   })
 
+  it('matches ANY lineage manufacturer (multi-manufacturer coasters)', () => {
+    const withLineage = [
+      ...rows,
+      makeRankingRow({
+        name: 'Top Thrill 2',
+        slug: 'top-thrill-2',
+        status: 'operating',
+        material: 'steel',
+        park_name: 'Cedar Point',
+        park_country: 'United States',
+        manufacturer_name: 'Zamperla',
+        manufacturer_ids: [
+          '11111111-1111-4111-8111-111111111111',
+          '22222222-2222-4222-8222-222222222222',
+        ],
+        manufacturer_names: ['Zamperla', 'Intamin'],
+      }),
+    ]
+    const filter = { ...DEFAULT_FILTERS, allStatuses: true }
+    // The re-track builder matches…
+    expect(
+      filterCoasters(withLineage, { ...filter, manufacturer: 'Zamperla' }).map((r) => r.slug),
+    ).toEqual(['top-thrill-2'])
+    // …and so does the original builder.
+    expect(
+      filterCoasters(withLineage, { ...filter, manufacturer: 'Intamin' }).map((r) => r.slug),
+    ).toEqual(['steel-vengeance', 'top-thrill-2'])
+  })
+
+  it('falls back to manufacturer_name when the lineage array is absent (deploy skew)', () => {
+    const skewRow = makeRankingRow({
+      name: 'Legacy Row',
+      slug: 'legacy-row',
+      manufacturer_name: 'Zamperla',
+      manufacturer_names: undefined,
+    })
+    expect(
+      filterCoasters([skewRow], { ...DEFAULT_FILTERS, manufacturer: 'Zamperla' }),
+    ).toHaveLength(1)
+  })
+
   it('matches search case-insensitively on the coaster name', () => {
     expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'wicker' })).toHaveLength(1)
     expect(filterCoasters(rows, { ...DEFAULT_FILTERS, q: 'STEEL' })).toHaveLength(1)
@@ -316,6 +357,23 @@ describe('manufacturerOptions', () => {
     ]
     expect(manufacturerOptions(rows)).toEqual(['B&M', 'Intamin'])
   })
+
+  it('unions every lineage entry so secondary manufacturers are selectable', () => {
+    const rows = [
+      makeRankingRow({ manufacturer_name: 'Intamin', manufacturer_names: ['Intamin'] }),
+      makeRankingRow({
+        manufacturer_name: 'Zamperla',
+        manufacturer_names: ['Zamperla', 'Intamin'],
+      }),
+      makeRankingRow({ manufacturer_name: 'Zamperla', manufacturer_names: ['Zamperla'] }),
+    ]
+    expect(manufacturerOptions(rows)).toEqual(['Intamin', 'Zamperla'])
+  })
+
+  it('unions the fallback name when the lineage array is absent', () => {
+    const rows = [makeRankingRow({ manufacturer_name: 'Intamin', manufacturer_names: undefined })]
+    expect(manufacturerOptions(rows)).toEqual(['Intamin'])
+  })
 })
 
 describe('buildParkMap', () => {
@@ -374,6 +432,10 @@ describe('slugify', () => {
 describe('approveSubmission', () => {
   const insertSingle = vi.fn()
   const coasterInsert = vi.fn()
+  const coasterSingle = vi.fn()
+  const lineageRange = vi.fn()
+  const lineageDeleteIn = vi.fn()
+  const lineageUpsert = vi.fn()
   const submissionUpdateEq = vi.fn()
 
   const submission = {
@@ -445,12 +507,25 @@ describe('approveSubmission', () => {
           }),
         } as unknown as ReturnType<typeof supabase.from>
       }
+      if (table === 'coaster_manufacturers') {
+        return {
+          select: () => ({ eq: () => ({ range: lineageRange }) }),
+          delete: () => ({ eq: () => ({ in: lineageDeleteIn }) }),
+          upsert: lineageUpsert,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
       return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
         typeof supabase.from
       >
     }) as never)
     insertSingle.mockResolvedValue({ data: { id: 'p9' }, error: null })
-    coasterInsert.mockResolvedValue({ error: null })
+    // The coaster insert is always followed by .select('id').single() so the
+    // lineage write can target the new row.
+    coasterInsert.mockImplementation(() => ({ select: () => ({ single: coasterSingle }) }))
+    coasterSingle.mockResolvedValue({ data: { id: 'c9' }, error: null })
+    lineageRange.mockResolvedValue({ data: [], error: null })
+    lineageDeleteIn.mockResolvedValue({ error: null })
+    lineageUpsert.mockResolvedValue({ error: null })
     submissionUpdateEq.mockResolvedValue({ error: null })
   })
 
@@ -496,9 +571,9 @@ describe('approveSubmission', () => {
 
   it('retries with park-suffixed slug on global coaster collision then succeeds', async () => {
     // first insert claims slug, second succeeds with park suffix
-    coasterInsert
-      .mockResolvedValueOnce({ error: { code: '23505', message: 'duplicate key' } })
-      .mockResolvedValueOnce({ error: null })
+    coasterSingle
+      .mockResolvedValueOnce({ data: null, error: { code: '23505', message: 'duplicate key' } })
+      .mockResolvedValueOnce({ data: { id: 'c9' }, error: null })
     // make the global slug check see existing base slug
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
@@ -535,7 +610,10 @@ describe('approveSubmission', () => {
   })
 
   it('maps a persistent coaster slug collision to a friendly error after retries', async () => {
-    coasterInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
+    coasterSingle.mockResolvedValue({
+      data: null,
+      error: { code: '23505', message: 'duplicate key' },
+    })
     await expect(approveSubmission('s1', submission)).rejects.toThrow(/already exists \(slug/)
     expect(submissionUpdateEq).not.toHaveBeenCalled()
   })
@@ -577,13 +655,57 @@ describe('approveSubmission', () => {
       inversions: null,
       material: null,
       status: 'defunct',
-      manufacturer_id: '11111111-2222-4333-8444-555555555555',
       model: 'Ibox',
       opening_date: '2024-05-04',
     })
     const insertArg = coasterInsert.mock.calls[0][0] as Record<string, unknown>
     expect(insertArg).not.toHaveProperty('id')
     expect(insertArg).not.toHaveProperty('external_id')
+    // The row no longer carries manufacturer_id — the lineage rides via
+    // coaster_manufacturers (legacy single id normalizes to a 1-entry list).
+    expect(insertArg).not.toHaveProperty('manufacturer_id')
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c9',
+          manufacturer_id: '11111111-2222-4333-8444-555555555555',
+          position: 0,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
+  })
+
+  it('creates a multi-manufacturer lineage from manufacturer_ids', async () => {
+    await approveSubmission('s1', {
+      ...submission,
+      park_id: 'p1',
+      suggested_fields: {
+        ...submission.suggested_fields,
+        manufacturer_ids: [
+          '11111111-2222-4333-8444-555555555555',
+          '22222222-3333-4333-8444-555555555555',
+        ],
+      },
+    } as unknown as CoasterSubmission)
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c9',
+          manufacturer_id: '11111111-2222-4333-8444-555555555555',
+          position: 0,
+          source: 'submission',
+        },
+        {
+          coaster_id: 'c9',
+          manufacturer_id: '22222222-3333-4333-8444-555555555555',
+          position: 1,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
   })
 
   it('drops malformed descriptive values instead of applying them', async () => {
@@ -611,6 +733,7 @@ describe('approveSubmission', () => {
       inversions: null,
       material: null,
     })
+    expect(lineageUpsert).not.toHaveBeenCalled()
   })
 })
 
@@ -625,6 +748,7 @@ describe('diffEditProposal', () => {
     length_m: 1700,
     inversions: 4,
     manufacturer_id: 'mfg-1',
+    manufacturer_ids: ['mfg-1', 'mfg-2'],
     model: null,
     type: 'Hybrid Coaster',
     opening_date: '2018-04-28',
@@ -640,7 +764,7 @@ describe('diffEditProposal', () => {
       speed_kmh: '119',
       length_m: '1700',
       inversions: '4',
-      manufacturer_id: 'mfg-1',
+      manufacturer_ids: ['mfg-1', 'mfg-2'],
       model: '',
       type: 'Hybrid Coaster',
       opening_date: '2018-04-28',
@@ -689,20 +813,30 @@ describe('diffEditProposal', () => {
     })
   })
 
-  it('picks up manufacturer swaps and clears', () => {
-    expect(diffEditProposal(current, proposal({ manufacturer_id: 'mfg-2' })).diff).toEqual({
-      manufacturer_id: 'mfg-2',
+  it('picks up manufacturer lineage swaps, clears and reorders', () => {
+    // Same ids, different order → a change (order decides the primary).
+    expect(
+      diffEditProposal(current, proposal({ manufacturer_ids: ['mfg-2', 'mfg-1'] })).diff,
+    ).toEqual({ manufacturer_ids: ['mfg-2', 'mfg-1'] })
+    // Shrink to one → a change.
+    expect(diffEditProposal(current, proposal({ manufacturer_ids: ['mfg-1'] })).diff).toEqual({
+      manufacturer_ids: ['mfg-1'],
     })
-    expect(diffEditProposal(current, proposal({ manufacturer_id: '' })).diff).toEqual({
-      manufacturer_id: null,
+    // Explicit clear → empty list.
+    expect(diffEditProposal(current, proposal({ manufacturer_ids: [] })).diff).toEqual({
+      manufacturer_ids: [],
     })
-    expect(diffEditProposal(current, proposal({ manufacturer_id: 'mfg-1' })).diff).toEqual({})
+    // Identical list → no diff.
+    expect(diffEditProposal(current, proposal()).diff).toEqual({})
   })
 })
 
 describe('approveEditSubmission', () => {
   const coasterUpdateEq = vi.fn()
   const submissionUpdateEq = vi.fn()
+  const lineageRange = vi.fn()
+  const lineageDeleteIn = vi.fn()
+  const lineageUpsert = vi.fn()
 
   const editSubmission = {
     id: 'e1',
@@ -733,12 +867,22 @@ describe('approveEditSubmission', () => {
       if (table === 'coasters') {
         return { update: vi.fn().mockReturnValue({ eq: coasterUpdateEq }) }
       }
+      if (table === 'coaster_manufacturers') {
+        return {
+          select: () => ({ eq: () => ({ range: lineageRange }) }),
+          delete: () => ({ eq: () => ({ in: lineageDeleteIn }) }),
+          upsert: lineageUpsert,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
       return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
         typeof supabase.from
       >
     }) as never)
     coasterUpdateEq.mockResolvedValue({ error: null })
     submissionUpdateEq.mockResolvedValue({ error: null })
+    lineageRange.mockResolvedValue({ data: [], error: null })
+    lineageDeleteIn.mockResolvedValue({ error: null })
+    lineageUpsert.mockResolvedValue({ error: null })
   })
 
   it('applies the allowlisted diff plus park, with no removed columns', async () => {
@@ -785,7 +929,7 @@ describe('approveEditSubmission', () => {
     expect(applied.park_id).toBe('park-1')
   })
 
-  it('applies only well-formed manufacturer ids', async () => {
+  it('replaces the lineage with a well-formed legacy single manufacturer', async () => {
     await approveEditSubmission('e1', {
       ...editSubmission,
       suggested_fields: { manufacturer_id: '99999999-8888-4777-8666-555555555555' },
@@ -793,21 +937,84 @@ describe('approveEditSubmission', () => {
     const good = vi.mocked(supabase.from).mock.results[0].value as {
       update: ReturnType<typeof vi.fn>
     }
-    expect(good.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        manufacturer_id: '99999999-8888-4777-8666-555555555555',
-        park_id: 'park-1',
-      }),
+    // The row update no longer touches manufacturer_id (trigger-maintained).
+    expect(good.update.mock.calls[0][0]).not.toHaveProperty('manufacturer_id')
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c1',
+          manufacturer_id: '99999999-8888-4777-8666-555555555555',
+          position: 0,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
     )
+  })
 
-    vi.clearAllMocks()
-    vi.mocked(supabase.from).mockImplementation(((table: string) => {
-      if (table === 'coasters') {
-        return { update: vi.fn().mockReturnValue({ eq: coasterUpdateEq }) }
-      }
-      return { update: () => ({ eq: submissionUpdateEq }) }
-    }) as never)
-    coasterUpdateEq.mockResolvedValue({ error: null })
+  it('replaces the whole lineage with a proposed manufacturer_ids array', async () => {
+    lineageRange.mockResolvedValue({
+      data: [{ manufacturer_id: 'aaaaaaaa-0000-4999-8999-999999999999' }],
+      error: null,
+    })
+    await approveEditSubmission('e1', {
+      ...editSubmission,
+      suggested_fields: {
+        manufacturer_ids: [
+          '99999999-8888-4777-8666-555555555555',
+          '88888888-7777-4666-8666-555555555555',
+        ],
+      },
+    } as unknown as CoasterSubmission)
+    // The old primary is replaced, not preserved (decided 2026-09).
+    expect(lineageDeleteIn).toHaveBeenCalledWith('manufacturer_id', [
+      'aaaaaaaa-0000-4999-8999-999999999999',
+    ])
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c1',
+          manufacturer_id: '99999999-8888-4777-8666-555555555555',
+          position: 0,
+          source: 'submission',
+        },
+        {
+          coaster_id: 'c1',
+          manufacturer_id: '88888888-7777-4666-8666-555555555555',
+          position: 1,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
+  })
+
+  it('treats an empty lineage proposal as an explicit clear', async () => {
+    lineageRange.mockResolvedValue({
+      data: [
+        { manufacturer_id: 'aaaaaaaa-0000-4999-8999-999999999999' },
+        { manufacturer_id: 'bbbbbbbb-0000-4999-8999-999999999999' },
+      ],
+      error: null,
+    })
+    await approveEditSubmission('e1', {
+      ...editSubmission,
+      suggested_fields: { manufacturer_ids: [] },
+    } as unknown as CoasterSubmission)
+    expect(lineageDeleteIn).toHaveBeenCalledWith('manufacturer_id', [
+      'aaaaaaaa-0000-4999-8999-999999999999',
+      'bbbbbbbb-0000-4999-8999-999999999999',
+    ])
+    expect(lineageUpsert).not.toHaveBeenCalled()
+  })
+
+  it('leaves the lineage alone when the payload does not touch manufacturers', async () => {
+    await approveEditSubmission('e1', editSubmission)
+    expect(lineageUpsert).not.toHaveBeenCalled()
+    expect(lineageDeleteIn).not.toHaveBeenCalled()
+  })
+
+  it('ignores malformed manufacturer ids instead of applying them', async () => {
     await approveEditSubmission('e1', {
       ...editSubmission,
       suggested_fields: { manufacturer_id: 'garbage' },
@@ -816,6 +1023,8 @@ describe('approveEditSubmission', () => {
       update: ReturnType<typeof vi.fn>
     }
     expect(bad.update.mock.calls[0][0]).not.toHaveProperty('manufacturer_id')
+    expect(lineageUpsert).not.toHaveBeenCalled()
+    expect(lineageDeleteIn).not.toHaveBeenCalled()
   })
 
   it('refuses edits without a target coaster', async () => {

@@ -46,11 +46,17 @@ const coaster = makeRankingRow({
   speed_kmh: 119,
   length_m: 1700,
   inversions: 4,
+  manufacturer_id: 'mfg-zamperla',
+  manufacturer_ids: ['mfg-zamperla'],
+  manufacturer_names: ['Zamperla'],
 })
 
 const parks = [makePark({ id: 'park-1', name: 'Cedar Point' })]
 
-const manufacturers = [makeManufacturer({ id: 'mfg-intamin', name: 'Intamin AG', slug: 'intamin' })]
+const manufacturers = [
+  makeManufacturer({ id: 'mfg-zamperla', name: 'Zamperla', slug: 'zamperla' }),
+  makeManufacturer({ id: 'mfg-intamin', name: 'Intamin AG', slug: 'intamin' }),
+]
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -110,18 +116,33 @@ describe('SuggestEditPage', () => {
     })
   })
 
-  it('proposes a manufacturer swap and carries the note', async () => {
+  it('proposes a lineage swap (remove old, add new) and carries the note', async () => {
     const user = userEvent.setup()
     renderPage()
-    const manufacturer = await screen.findByLabelText(/manufacturer/i)
+    const manufacturer = await screen.findByLabelText(/manufacturers/i)
+    await user.click(screen.getByRole('button', { name: /remove zamperla/i }))
     await user.type(manufacturer, 'Intamin')
     await user.click(screen.getByText('Intamin AG'))
     expect(await screen.findByText('1 change proposed.')).toBeInTheDocument()
     await user.type(screen.getByLabelText(/note \(optional\)/i), 'Per RCDB, built by Intamin.')
     await user.click(screen.getByRole('button', { name: /suggest edit/i }))
     expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
-      suggested_fields: { manufacturer_id: 'mfg-intamin' },
+      suggested_fields: { manufacturer_ids: ['mfg-intamin'] },
       note: 'Per RCDB, built by Intamin.',
+    })
+  })
+
+  it('proposes a multi-manufacturer lineage in pick order', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const manufacturer = await screen.findByLabelText(/manufacturers/i)
+    // Adding on top of the existing lineage: the new pick leads ("newest
+    // wins" default), the seeded manufacturer follows.
+    await user.type(manufacturer, 'Intamin')
+    await user.click(screen.getByText('Intamin AG'))
+    await user.click(screen.getByRole('button', { name: /suggest edit/i }))
+    expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
+      suggested_fields: { manufacturer_ids: ['mfg-intamin', 'mfg-zamperla'] },
     })
   })
 

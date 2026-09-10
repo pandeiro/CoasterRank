@@ -73,7 +73,7 @@
 | `park_id` | uuid | NO | |
 | `name` | text | NO | |
 | `slug` | text | NO | |
-| `manufacturer_id` | uuid | YES | |
+| `manufacturer_id` | uuid | YES | PRIMARY manufacturer — trigger-maintained pointer into `coaster_manufacturers` (never written directly) |
 | `model` | text | YES | |
 | `opening_date` | date | YES | |
 | `status` | USER-DEFINED | NO | |
@@ -101,6 +101,23 @@
 | `error_message` | text | YES | |
 | `created_at` | timestamp with time zone | NO | |
 | `retries_used` | integer | NO | |
+
+### `coaster_manufacturers`
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `coaster_id` | uuid | NO | PK part; FK → coasters ON DELETE CASCADE |
+| `manufacturer_id` | uuid | NO | PK part; FK → manufacturers ON DELETE CASCADE |
+| `position` | integer | NO | Explicit admin ordering (0..n-1); all-equal = never reordered |
+| `source` | text | NO | `open-csv` / `admin` / `submission` |
+| `added_at` | timestamp with time zone | NO | |
+
+Canonical order = `position asc, added_at desc` — the FIRST row is the
+primary; the `sync_primary_manufacturer` trigger mirrors it into
+`coasters.manufacturer_id`. Canonical example: Top Thrill 2 (Intamin original
++ Zamperla re-track) is filterable by either. When positions are tied (never
+explicitly reordered), the newest-added manufacturer leads ("most recent
+wins" default, decided 2026-09).
 
 ### `manufacturers`
 
@@ -192,7 +209,7 @@
 | `park_slug` | text | YES | |
 | `park_country` | text | YES | |
 | `park_city` | text | YES | |
-| `manufacturer_name` | text | YES | |
+| `manufacturer_name` | text | YES | Primary (first in canonical order) |
 | `aliases` | ARRAY | YES | |
 | `score` | numeric | YES | |
 | `comparisons` | integer | YES | |
@@ -200,6 +217,8 @@
 | `first_place_votes` | integer | YES | |
 | `rank` | bigint | YES | |
 | `rank_last_week` | integer | YES | |
+| `manufacturer_ids` | ARRAY | YES | Full lineage, canonical order (position asc, added_at desc) |
+| `manufacturer_names` | ARRAY | YES | Full lineage names, same order |
 
 ---
 
@@ -210,6 +229,9 @@
 | `app_settings` | `key` | PRIMARY KEY |  |
 | `coaster_aliases` | `coaster_id` | FOREIGN KEY | → coasters |
 | `coaster_aliases` | `id` | PRIMARY KEY |  |
+| `coaster_manufacturers` | `coaster_id` | FOREIGN KEY | → coasters (ON DELETE CASCADE) |
+| `coaster_manufacturers` | `manufacturer_id` | FOREIGN KEY | → manufacturers (ON DELETE CASCADE) |
+| `coaster_manufacturers` | `coaster_id, manufacturer_id` | PRIMARY KEY |  |
 | `coaster_ratings` | `coaster_id` | FOREIGN KEY | → coasters |
 | `coaster_ratings` | `coaster_id` | PRIMARY KEY |  |
 | `coaster_submissions` | `park_id` | FOREIGN KEY | → parks |
@@ -251,6 +273,8 @@
 | `coaster_aliases` | coaster_aliases admin manage | ALL | `is_admin()` | `is_admin()` |
 | `coaster_aliases` | coaster_aliases public read | SELECT | `true` | `` |
 | `coaster_ratings` | coaster_ratings public read | SELECT | `true` | `` |
+| `coaster_manufacturers` | coaster_manufacturers admin manage | ALL | `is_admin()` | `is_admin()` |
+| `coaster_manufacturers` | coaster_manufacturers public read | SELECT | `true` | `` |
 | `coaster_submissions` | submissions admin delete | DELETE | `is_admin()` | `` |
 | `coaster_submissions` | submissions admin update | UPDATE | `is_admin()` | `is_admin()` |
 | `coaster_submissions` | submissions owner insert | INSERT | `true` | `((submitted_by = auth.uid()) AND user_email_verified(auth.uid()) AND submission_within_cap())` |
@@ -309,7 +333,14 @@
             WHEN r.score IS NOT NULL THEN row_number() OVER (ORDER BY r.score DESC NULLS LAST, c.id)
             ELSE NULL::bigint
         END AS rank,
-    ws.rank AS rank_last_week
+    ws.rank AS rank_last_week,
+    COALESCE(( SELECT array_agg(cm.manufacturer_id ORDER BY cm.position ASC, cm.added_at DESC, cm.manufacturer_id ASC) AS array_agg
+           FROM coaster_manufacturers cm
+          WHERE cm.coaster_id = c.id), '{}'::uuid[]) AS manufacturer_ids,
+    COALESCE(( SELECT array_agg(m2.name ORDER BY cm2.position ASC, cm2.added_at DESC, m2.name ASC) AS array_agg
+           FROM coaster_manufacturers cm2
+             LEFT JOIN manufacturers m2 ON m2.id = cm2.manufacturer_id
+          WHERE cm2.coaster_id = c.id), '{}'::text[]) AS manufacturer_names
    FROM coasters c
      LEFT JOIN coaster_ratings r ON r.coaster_id = c.id
      LEFT JOIN rank_weekly_snapshots ws ON ws.coaster_id = c.id AND ws.week_start = (date_trunc('week'::text, (now() AT TIME ZONE 'utc'::text)) - '7 days'::interval)::date
@@ -341,7 +372,9 @@
 | `send_telegram_event` | void | plpgsql |
 | `set_app_settings_updated_at` | trigger | plpgsql |
 | `set_user_rides_updated_at` | trigger | plpgsql |
+| `submission_payload_valid` | boolean | sql |
 | `submission_within_cap` | boolean | sql |
+| `sync_primary_manufacturer` | trigger | plpgsql |
 | `trigger_notify_on_share` | trigger | plpgsql |
 | `trigger_notify_on_signup` | trigger | plpgsql |
 | `trigger_notify_on_submission` | trigger | plpgsql |
@@ -353,6 +386,8 @@
 
 | Table | Index | Definition |
 |-------|-------|------------|
+| `coaster_manufacturers` | `coaster_manufacturers_pkey` | (coaster_id, manufacturer_id) |
+| `coaster_manufacturers` | `coaster_manufacturers_manufacturer_id_idx` | (manufacturer_id) |
 | `coaster_submissions` | `coaster_submissions_status_idx` | (status) |
 | `coasters` | `coasters_manufacturer_id_idx` | (manufacturer_id) |
 | `coasters` | `coasters_park_id_idx` | (park_id) |

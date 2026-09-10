@@ -213,6 +213,51 @@ describe('CoasterTable', () => {
     expect(within(desktopTable()).getAllByText('—')).toHaveLength(1)
   })
 
+  it('board variant shows "X et al" for multi-manufacturer lineage (§manufacturer)', () => {
+    renderTable(
+      rowsFrom([
+        {
+          name: 'Top Thrill 2',
+          manufacturer_name: 'Zamperla',
+          manufacturer_names: ['Zamperla', 'Intamin'],
+        },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    const table = within(desktopTable())
+    expect(table.getByText('Zamperla et al')).toBeInTheDocument()
+    // The full lineage rides in the title (tooltip).
+    expect(table.getByText('Zamperla et al')).toHaveAttribute('title', 'Zamperla · Intamin')
+  })
+
+  it('board variant abbreviates the primary name inside "et al"', () => {
+    renderTable(
+      rowsFrom([
+        {
+          name: 'TT2',
+          manufacturer_name: 'Rocky Mountain Construction',
+          manufacturer_names: ['Rocky Mountain Construction', 'Intamin'],
+        },
+      ]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(within(desktopTable()).getByText('RMC et al')).toBeInTheDocument()
+  })
+
+  it('board variant falls back to manufacturer_name when the lineage array is absent', () => {
+    renderTable(
+      rowsFrom([{ name: 'Legacy', manufacturer_name: 'Intamin', manufacturer_names: undefined }]),
+      new Set(),
+      true,
+      'board',
+    )
+    expect(within(desktopTable()).getByText('Intamin')).toBeInTheDocument()
+  })
+
   it('board variant shows the score column on the index scale, dashing unrated rows', () => {
     renderTable(
       rowsFrom([

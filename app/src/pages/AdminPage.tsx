@@ -21,6 +21,7 @@ import {
   getSubmitterTrust,
   capitalize,
   type CoasterSubmission,
+  type CoasterWithLineage,
   type SubmitterTrust,
   getAllCoastersAdmin,
   deleteCoaster,
@@ -69,6 +70,7 @@ const SUBMISSION_FIELD_LABELS: Record<string, string> = {
   inversions: 'Inversions',
   material: 'Material',
   manufacturer_id: 'Manufacturer',
+  manufacturer_ids: 'Manufacturers',
   status: 'Status',
   model: 'Model',
   type: 'Type',
@@ -78,10 +80,19 @@ const SUBMISSION_FIELD_LABELS: Record<string, string> = {
 
 function formatSubmissionValue(
   key: string,
-  value: number | string | null | undefined,
+  value: unknown,
   manufacturerNameById?: Map<string, string>,
 ): string {
   if (value === null || value === undefined) return '—'
+  // Proposed/current lineage as an ordered id list → names ("A · B"); an
+  // empty array (or legacy null) is an explicit clear → '—'.
+  if (key === 'manufacturer_ids') {
+    const ids = (Array.isArray(value) ? value : [value]).filter(
+      (id): id is string => typeof id === 'string',
+    )
+    if (ids.length === 0) return '—'
+    return ids.map((id) => manufacturerNameById?.get(id) ?? id).join(' · ')
+  }
   if (key === 'manufacturer_id' && typeof value === 'string') {
     return manufacturerNameById?.get(value) ?? value
   }
@@ -120,8 +131,8 @@ function NewSubmissionStats({
   submission: CoasterSubmission
   manufacturerNameById: Map<string, string>
 }) {
-  const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
-  const extraKeys = ['manufacturer_id', 'status', 'model', 'type', 'opening_date'].filter(
+  const fields = submission.suggested_fields as unknown as Record<string, unknown>
+  const extraKeys = ['manufacturer_ids', 'status', 'model', 'type', 'opening_date'].filter(
     (key) => fields[key] !== null && fields[key] !== undefined,
   )
   return (
@@ -149,11 +160,11 @@ function EditSubmissionDiff({
   manufacturerNameById,
 }: {
   submission: CoasterSubmission
-  target: Coaster | undefined
+  target: CoasterWithLineage | undefined
   parkNameById: Map<string, string>
   manufacturerNameById: Map<string, string>
 }) {
-  const fields = submission.suggested_fields as unknown as Record<string, number | string | null>
+  const fields = submission.suggested_fields as unknown as Record<string, unknown>
   const changedKeys = Object.keys(fields)
   const parkMoved = target && submission.park_id !== target.park_id
   return (
