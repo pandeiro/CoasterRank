@@ -106,7 +106,8 @@ describe('CoasterDetailPage', () => {
     // Rank lives inside the ranking panel now, paired with the score (the
     // "on the board" suffix is sr-only, so match the visible numeral).
     expect(screen.getByText('#3')).toBeInTheDocument()
-    expect(screen.getByText('2.50')).toBeInTheDocument()
+    // Index scale, shared with the board: raw 2.5 displays as 250.0.
+    expect(screen.getByText('250.0')).toBeInTheDocument()
     expect(screen.getByText('Community ranking')).toBeInTheDocument()
     expect(screen.getByText('Updated 6 minutes ago')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Cedar Point' })).toHaveAttribute(

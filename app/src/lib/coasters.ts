@@ -364,8 +364,13 @@ export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 }
 
+// Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
+// so every surface displays them on one index scale — score × 100, one
+// decimal, 100 = community average. Single shared formatter: the board, the
+// detail-page hero, and the admin weighting tab must never drift apart (the
+// detail page once showed raw 1.03 where the board showed 102.9).
 export function formatScore(score: number): string {
-  return score.toFixed(2)
+  return (score * 100).toFixed(1)
 }
 
 export function formatNumber(value: number): string {

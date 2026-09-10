@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RankingRow } from '../lib/board-types'
+import { formatScore } from '../lib/coasters'
 import { asFiniteNumber, prefersReducedMotion } from '../lib/rankMovement'
-
-// Raw BT strengths hover in a ±3% band around the 1.0 anchor (field average),
-// so they are displayed on an index scale — 100 = community average. One
-// decimal is enough to separate adjacent ranks without implying precision.
-function formatScore(score: number): string {
-  return (score * 100).toFixed(1)
-}
 
 const TICK_DURATION_MS = 600
 

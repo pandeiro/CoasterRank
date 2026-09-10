@@ -84,6 +84,10 @@ holds.
   scale — `score × 100`, one decimal, 100 = community average — with the
   basis explained in the header tooltip. Comparisons and participants remain
   off the table (few-votes badge and first-place pill carry them).
+  Site-wide as of 2026-09-10: the index scale is the one shared formatter
+  (`formatScore` in `lib/coasters.ts`) — the coaster detail page hero and the
+  admin weighting tab render identically to the board (the detail page
+  previously showed the raw strength, reading 100× lower than the board).
 - Whole rows navigate to the coaster detail page; the inline coaster and park
   links keep their own targets.
 - Search and filters remain directly available on the board, as one control

@@ -114,8 +114,8 @@ export default function AboutPage() {
             </ul>
             <p className="mt-4">
               Iterate until nothing moves (
-              <Tex tex="\Delta < 10^{-8}" />, capped at 500 passes), then multiply by 100 for the
-              board. That&apos;s the whole trick.
+              <Tex tex="\Delta < 10^{-8}" />, capped at 500 passes), then multiply by 100 for
+              display — 100 is the community average. That&apos;s the whole trick.
             </p>
           </MathDisclosure>
 

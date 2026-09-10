@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { FlaskConical } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Button, Panel } from '../ui'
-import { getAllCoastersAdmin } from '../../lib/coasters'
+import { getAllCoastersAdmin, formatScore } from '../../lib/coasters'
 
 // Admin-only weighting comparison (PLAN §5.1): refit Bradley-Terry in memory
 // under the production default weighting vs admin-selected alternatives and
@@ -72,7 +72,7 @@ type CompareResponse = {
 
 function Score({ score }: { score: number }) {
   // Board index: 100 = community average (raw BT strength × 100).
-  return <span className="tabular-nums">{(score * 100).toFixed(1)}</span>
+  return <span className="tabular-nums">{formatScore(score)}</span>
 }
 
 export default function WeightingComparePanel() {

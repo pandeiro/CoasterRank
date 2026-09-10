@@ -174,7 +174,9 @@ export default function RankingPanel({ coaster }: { coaster: RankingRow }) {
                     Scores come from a Bradley-Terry model built on how riders rank coasters
                     relative to each other. Your say grows with how much you&apos;ve ranked: a
                     longer list carries more total weight, but each opinion in it counts less, and
-                    very short lists are damped.
+                    very short lists are damped. The score is shown on an index where{' '}
+                    <strong className="text-ink">100 is the community average</strong> — above 100
+                    means it rode higher than average more often.
                   </p>
                   <Link
                     to="/about"
