@@ -62,7 +62,7 @@ w = (P + c)^(−γ)      where P = n(n−1)/2, production: γ = 0.5, c = 28
 - **Total influence grows ~linearly with list length** (`√P ≈ n/√2`): rank twice as many coasters, get about twice the say. Tiny lists don't get a flat-equalizer bonus, and long/spam lists can't blow up quadratically.
 - **Soft floor `c = 28`** (≈ an 8-coaster list's phantom pairs) damps very short lists: a 2-item rider's lone opinion weighs `1/√29 ≈ 0.19` instead of 1.0. Before 2026-09-10, a single 2-item opinion weighed as much as the model's entire anchor prior.
 - **Rationale**: flat per-rider equalization (`w = 1/P`, the original rule) made per-opinion influence inversely proportional to list length — a 5-list rider's opinion of a pair outweighed a 90-list rider's ~400×, letting one casual signup decide global #1/#2 — and rewarded ranking as few coasters as possible. Raw counts (γ=0) are the statistical ideal under honest judges but give big/spam lists quadratic, unbounded influence. γ=0.5 is the standard hedge.
-- Admins can compare alternatives on demand: the `/admin` **Weighting comparison** panel invokes the `compare-weightings` Edge Function, which refits in memory via `pairwise_wins_custom(gamma, floor_pairs, ramp_k)` and returns side-by-side ranks + Spearman / top-10-overlap / max-move stats. Read-only: the live board is untouched, and the run is intentionally not written to `cron_execution_logs` (the stale-recompute watchdog keys on any recent success row).
+- Admins can compare alternatives on demand: the `/admin` **Weighting** tab invokes the `compare-weightings` Edge Function, which refits in memory via `pairwise_wins_custom(gamma, floor_pairs, ramp_k)` and returns side-by-side ranks + Spearman / top-10-overlap / max-move stats. Read-only: the live board is untouched, and the run is intentionally not written to `cron_execution_logs` (the stale-recompute watchdog keys on any recent success row).
 
 ## Data flow
 
@@ -206,7 +206,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 
 ### Admin Dashboard
 
-The `/admin` page Rankings panel shows:
+The `/admin/rankings` tab shows:
 
 - **Last successful run**: time ago, duration, pairs → coasters, iterations
 - **Last error** (red card): error message, time ago, trigger source
@@ -256,4 +256,4 @@ ORDER BY score DESC LIMIT 10;
 | `supabase/migrations/20260905195557_rank_weekly_snapshots.sql` | Weekly rank-snapshot table (rank-movement baseline) |
 | `supabase/migrations/20260905195558_rankings_view_weekly_delta.sql` | View gains `rank_last_week` (prev ISO week's final rank) |
 | `app/src/lib/rankMovement.ts` | Client turnover detection + weekly/live movement helpers |
-| `app/src/pages/AdminPage.tsx` | Admin Dashboard: Rankings panel with log-based widget |
+| `app/src/pages/AdminPage.tsx` | Admin Dashboard: Rankings tab (recompute + log widget), Weighting tab (comparison) |
