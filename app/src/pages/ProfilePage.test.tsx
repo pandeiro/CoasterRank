@@ -37,6 +37,8 @@ const fakeProfile = {
   og_image_url: null,
 }
 
+const unclaimedProfile = { ...fakeProfile, username: null }
+
 function renderProfile() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -68,33 +70,69 @@ describe('ProfilePage', () => {
     expect(screen.getByDisplayValue('Coaster Fan')).toBeInTheDocument()
   })
 
-  it('saves edits and confirms', async () => {
+  it('locks a claimed username and points typos at the admin email', async () => {
+    renderProfile()
+    const username = await screen.findByDisplayValue('coaster_fan')
+    expect(username).toHaveAttribute('disabled')
+    expect(screen.getByText(/can't be changed once claimed/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'admin@coasterrank.app' })).toHaveAttribute(
+      'href',
+      'mailto:admin@coasterrank.app',
+    )
+  })
+
+  it('saves display-name edits without sending the locked username', async () => {
     updateEq.mockResolvedValue({ error: null })
     renderProfile()
 
-    const username = await screen.findByDisplayValue('coaster_fan')
-    await userEvent.clear(username)
-    await userEvent.type(username, 'new_handle')
+    const displayName = await screen.findByDisplayValue('Coaster Fan')
+    await userEvent.clear(displayName)
+    await userEvent.type(displayName, 'New Name')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await waitFor(() => {
       expect(updateEq).toHaveBeenCalled()
     })
     expect(vi.mocked(supabase.from)).toHaveBeenCalledWith('profiles')
+    const payload = vi.mocked(updateSpy).mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload).toEqual({ display_name: 'New Name' })
+    expect(payload).not.toHaveProperty('username')
     expect(await screen.findByText('Saved.')).toBeInTheDocument()
   })
 
-  it('surfaces a taken username as a friendly error', async () => {
+  it('lets an unclaimed user claim a username', async () => {
+    selectSingle.mockResolvedValue({ data: unclaimedProfile, error: null })
+    updateEq.mockResolvedValue({ error: null })
+    renderProfile()
+
+    const username = await screen.findByLabelText(/^username$/i)
+    expect(username).not.toHaveAttribute('disabled')
+    await userEvent.type(username, 'new_handle')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await waitFor(() => {
+      expect(updateEq).toHaveBeenCalled()
+    })
+    const payload = vi.mocked(updateSpy).mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload).toEqual(
+      expect.objectContaining({ username: 'new_handle', display_name: 'Coaster Fan' }),
+    )
+    expect(await screen.findByText('Saved.')).toBeInTheDocument()
+  })
+
+  it('surfaces a taken username as a friendly error on claim', async () => {
+    selectSingle.mockResolvedValue({ data: unclaimedProfile, error: null })
     updateEq.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
     renderProfile()
 
-    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.type(await screen.findByLabelText(/^username$/i), 'taken_handle')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('That username is taken.')).toBeInTheDocument()
   })
 
   it('maps a reserved-list CHECK hit (deploy skew / API caller) to a friendly error', async () => {
+    selectSingle.mockResolvedValue({ data: unclaimedProfile, error: null })
     updateEq.mockResolvedValue({
       error: {
         code: '23514',
@@ -103,13 +141,14 @@ describe('ProfilePage', () => {
     })
     renderProfile()
 
-    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.type(await screen.findByLabelText(/^username$/i), 'admin')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('That username is reserved.')).toBeInTheDocument()
   })
 
   it('maps any other CHECK hit to a generic invalid-username error', async () => {
+    selectSingle.mockResolvedValue({ data: unclaimedProfile, error: null })
     updateEq.mockResolvedValue({
       error: {
         code: '23514',
@@ -118,10 +157,24 @@ describe('ProfilePage', () => {
     })
     renderProfile()
 
-    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.type(await screen.findByLabelText(/^username$/i), 'good_handle')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('That username is invalid.')).toBeInTheDocument()
+  })
+
+  it('maps a rename attempt (immutable trigger) to a friendly error', async () => {
+    updateEq.mockResolvedValue({
+      error: {
+        code: '23514',
+        message: 'username is immutable once claimed (contact admin@coasterrank.app for help)',
+      },
+    })
+    renderProfile()
+    await screen.findByDisplayValue('coaster_fan')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    expect(await screen.findByText(/can’t be changed once claimed/i)).toBeInTheDocument()
   })
 
   it('publishes immediately when the share toggle is checked — no Save required', async () => {
@@ -162,12 +215,11 @@ describe('ProfilePage', () => {
   })
 
   it('rejects claiming a reserved username with a friendly error', async () => {
+    selectSingle.mockResolvedValue({ data: unclaimedProfile, error: null })
     updateEq.mockResolvedValue({ error: null })
     renderProfile()
-    await screen.findByDisplayValue('coaster_fan')
+    const username = await screen.findByLabelText(/^username$/i)
 
-    const username = screen.getByDisplayValue('coaster_fan')
-    await userEvent.clear(username)
     await userEvent.type(username, 'admin')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
@@ -175,19 +227,21 @@ describe('ProfilePage', () => {
     expect(updateEq).not.toHaveBeenCalled()
   })
 
-  it('lets a grandfathered reserved username save unchanged', async () => {
+  it('keeps a grandfathered reserved username locked and saves display name only', async () => {
     selectSingle.mockResolvedValue({
       data: { ...fakeProfile, username: 'admin' },
       error: null,
     })
     updateEq.mockResolvedValue({ error: null })
     renderProfile()
-    await screen.findByDisplayValue('admin')
+    const username = await screen.findByDisplayValue('admin')
+    expect(username).toHaveAttribute('disabled')
 
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('Saved.')).toBeInTheDocument()
-    expect(updateEq).toHaveBeenCalled()
+    const payload = vi.mocked(updateSpy).mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload).not.toHaveProperty('username')
   })
 
   it('renders avatar badges for changing and removing the photo', async () => {
@@ -215,16 +269,17 @@ describe('ProfilePage', () => {
     vi.clearAllMocks()
     updateSpy.mockReturnValue({ eq: updateEq })
 
-    // Now change the username and Save — the payload should only carry the
-    // name fields, not public_list (which is already live).
-    const username = screen.getByDisplayValue('coaster_fan')
-    await userEvent.clear(username)
-    await userEvent.type(username, 'new_handle')
+    // Now edit the display name and Save — the payload should only carry the
+    // name field, not public_list (which is already live) or username (locked).
+    const displayName = screen.getByDisplayValue('Coaster Fan')
+    await userEvent.clear(displayName)
+    await userEvent.type(displayName, 'New Name')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await screen.findByText('Saved.')
     const lastPayload = vi.mocked(updateSpy).mock.calls.at(-1)?.[0] as Record<string, unknown>
-    expect(lastPayload).toEqual(expect.objectContaining({ username: 'new_handle' }))
+    expect(lastPayload).toEqual(expect.objectContaining({ display_name: 'New Name' }))
     expect(lastPayload).not.toHaveProperty('public_list')
+    expect(lastPayload).not.toHaveProperty('username')
   })
 })
