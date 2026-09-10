@@ -120,14 +120,22 @@ export default function AboutPage() {
           </MathDisclosure>
 
           <p className="mt-3">
-            If BT were just applied straight up, riders with longer lists would have more sway than
-            those with less credits, because they'd generate more pair-wise wins. But CoasterRank's
-            designed to try to give everybody "one vote", so we do some weighting so that every
-            rider's comparisons contribute about one unit of influence to the ranking.
+            If the raw math were applied as-is, riders with longer lists would dominate: ranking 90
+            coasters generates thousands of head-to-heads, ranking 5 generates 10. Our first fix was
+            to flatten everything -- every rider, no matter how short their list, got exactly one
+            unit of say. Fair-sounding, and wrong: each <em>individual</em> opinion from a 5-coaster
+            rider counted enormously more than one from a 90-coaster rider, enough for a single new
+            signup to swing the top of the board -- and it quietly rewarded ranking as few coasters
+            as possible.
           </p>
           <p className="mt-3">
-            So having more credits effectively gives you broader, but shallower impact -- you affect
-            more coasters' scores, but affect each one less so than someone with fewer rankings.
+            The weighting now takes the middle path:{' '}
+            <strong className="text-ink">your say grows with how much you&apos;ve ranked</strong> --
+            rank twice as many coasters, get about twice the say. A 5-coaster opinion counts for
+            less than a 90-coaster one because there&apos;s less evidence behind it, but every list
+            still counts. Short lists get a small say instead of a megaphone, and say grows with
+            real effort, not with list length squared, so nobody can out-shout the community by
+            stuffing a list.
           </p>
 
           <MathDisclosure label="Show me the weighting">
@@ -137,20 +145,21 @@ export default function AboutPage() {
             </p>
             <Formula
               tex={
-                '\\begin{aligned}\n&\\text{a list of } n \\text{ coasters} \\\\[2pt]\n&\\quad\\Longrightarrow\\quad \\frac{n(n-1)}{2} \\text{ head-to-heads}\n\\end{aligned}'
+                '\\begin{aligned}\n&\\text{a list of } n \\text{ coasters} \\\\[2pt]\n&\\quad\\Longrightarrow\\quad P = \\tfrac{n(n-1)}{2} \\text{ head-to-heads}\n\\end{aligned}'
               }
             />
             <p className="mt-4">
-              To keep a 300-credit power user from out-shouting a hundred casual riders, each of
-              your comparisons is weighted by the size of your list:
+              Each head-to-head you cast is weighted by the size of your list, with a small phantom
+              floor (about an 8-coaster list&apos;s worth) so very short lists can&apos;t shout:
             </p>
             <Formula
               tex={
-                '\\begin{aligned}\nw &= \\frac{1}{\\,n(n-1)/2\\,} \\\\[2pt]\n&\\Longrightarrow\\quad \\sum w = 1 \\text{ per rider}\n\\end{aligned}'
+                '\\begin{aligned}\nw &= \\frac{1}{\\sqrt{\\,P + 28\\,}} \\\\[2pt]\n&\\Longrightarrow\\quad \\text{total say} \\;\\approx\\; \\sqrt{P} \\;\\propto\\; n\n\\end{aligned}'
               }
             />
             <p className="mt-4">
-              Rank five coasters or five hundred -- you contribute one unit of influence either way.
+              Rank five coasters or five hundred -- your say keeps growing with your list, and no
+              single opinion ever outweighs the whole community.
             </p>
           </MathDisclosure>
 

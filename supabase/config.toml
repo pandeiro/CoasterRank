@@ -24,3 +24,6 @@ verify_jwt = true
 
 [functions.assume-identity]
 verify_jwt = true
+
+[functions.compare-weightings]
+verify_jwt = true

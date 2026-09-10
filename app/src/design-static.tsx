@@ -184,14 +184,16 @@ export function StaticPageMocks() {
           </MathDisclosure>
           <MathDisclosure label="Show me the weighting">
             <p>
-              Per-rider influence normalization — every list sums to one unit of sway, so the board
-              belongs to the community, not whoever has the most credits.
+              Our first attempt gave every rider exactly one unit of sway -- which accidentally gave
+              5-coaster riders a megaphone and rewarded ranking as little as possible. Now your say
+              grows with how much you&apos;ve ranked, softly damped for very short lists: effort and
+              evidence decide the board, not list-size games.
             </p>
             <div className="formula-box mt-4">
               <Tex
                 display
                 tex={
-                  '\\begin{aligned}\nw &= \\frac{1}{\\,n(n-1)/2\\,} \\\\[2pt]\n&\\Longrightarrow\\quad \\sum w = 1 \\text{ per rider}\n\\end{aligned}'
+                  '\\begin{aligned}\nw &= \\frac{1}{\\sqrt{\\,P + 28\\,}}, \\quad P = \\tfrac{n(n-1)}{2} \\\\[2pt]\n&\\Longrightarrow\\quad \\text{total say} \\;\\approx\\; \\sqrt{P} \\;\\propto\\; n\n\\end{aligned}'
                 }
               />
             </div>
