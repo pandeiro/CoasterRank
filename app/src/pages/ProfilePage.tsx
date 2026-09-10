@@ -18,7 +18,6 @@ export default function ProfilePage() {
   const queryClient = useQueryClient()
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [publicList, setPublicList] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   // Set/change password — invited accounts start without one (they accept the
@@ -39,16 +38,55 @@ export default function ProfilePage() {
     queryFn: () => fetchProfile(user!.id),
   })
 
-  // Share cards are rendered on demand at the edge (/riders/:username/og.png
-  // in worker.ts), so profile saves never need to touch them — the card is
-  // always at most ~5 minutes stale with zero client uploads.
+  // Sharing is live — the checkbox writes straight to `profiles.public_list`
+  // so a copied URL is never a pre-Save 404 that unfurlers cache. Username /
+  // display_name stay on the explicit Save path; the share state lives
+  // outside the form draft.
+  const persistedUsername = profile?.username ?? ''
+  const persistedShareActive =
+    Boolean(profile?.public_list) &&
+    Boolean(persistedUsername) &&
+    USERNAME_RE.test(persistedUsername)
+  const persistedShareUrl = persistedShareActive ? riderShareUrl(persistedUsername) : null
+  // Username edits are still draft until Save; warn when the live link is
+  // stale because of an unsaved rename.
+  const shareUsernameDirty = !!profile && username !== (profile.username ?? '')
+  const canShare = Boolean(persistedUsername && USERNAME_RE.test(persistedUsername))
   useEffect(() => {
     if (profile) {
       setUsername(profile.username ?? '')
       setDisplayName(profile.display_name ?? '')
-      setPublicList(profile.public_list)
     }
   }, [profile])
+
+  const togglePublic = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ public_list: next })
+        .eq('id', user!.id)
+      if (error) throw error
+      return next
+    },
+    onMutate: async (next: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['profile', user?.id] })
+      const previous = queryClient.getQueryData<Profile>(['profile', user?.id])
+      if (previous) {
+        queryClient.setQueryData<Profile>(['profile', user?.id], {
+          ...previous,
+          public_list: next,
+        })
+      }
+      return { previous }
+    },
+    onError: (error, _next, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['profile', user?.id], ctx.previous)
+      setFormError(claimErrorMessage(error))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+    },
+  })
 
   const save = useMutation({
     mutationFn: async () => {
@@ -57,7 +95,6 @@ export default function ProfilePage() {
         .update({
           username: username || null,
           display_name: displayName || null,
-          public_list: publicList,
         })
         .eq('id', user!.id)
       if (error) throw error
@@ -211,25 +248,51 @@ export default function ProfilePage() {
               <input
                 id="publicList"
                 type="checkbox"
-                checked={publicList}
-                onChange={(e) => setPublicList(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-coral"
+                checked={profile?.public_list ?? false}
+                disabled={!canShare || togglePublic.isPending}
+                onChange={(e) => {
+                  if (!canShare) return
+                  setFormError(null)
+                  togglePublic.mutate(e.target.checked)
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-coral disabled:cursor-not-allowed disabled:opacity-50"
               />
               <label htmlFor="publicList" className="block text-sm">
                 <span className="font-medium text-ink">Share my ranking</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  Puts your ranked list at <code className="font-mono">/@{username || '…'}</code>
-                  {username ? '' : ' (once you claim a username)'}. Your email and any unranked
-                  coasters stay private.
+                  {!canShare ? (
+                    <>
+                      Claim a valid username first — then your ranked list will live at{' '}
+                      <code className="font-mono">/@{username || '…'}</code>. Your email and any
+                      unranked coasters stay private.
+                    </>
+                  ) : (
+                    <>
+                      Puts your ranked list at{' '}
+                      <code className="font-mono">/@{persistedUsername}</code>. Your email and any
+                      unranked coasters stay private.
+                    </>
+                  )}
                 </span>
+                {togglePublic.isPending && (
+                  <span className="mt-1 block text-xs font-medium text-muted">Saving…</span>
+                )}
               </label>
             </div>
-            {publicList && username && USERNAME_RE.test(username) && (
-              <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
-                <code className="min-w-0 flex-1 truncate font-mono text-xs text-ink-soft">
-                  {riderShareUrl(username)}
-                </code>
-                <CopyLinkButton url={riderShareUrl(username)} label="Copy" />
+            {persistedShareUrl && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
+                  <code className="min-w-0 flex-1 truncate font-mono text-xs text-ink-soft">
+                    {persistedShareUrl}
+                  </code>
+                  <CopyLinkButton url={persistedShareUrl} label="Copy" />
+                </div>
+                {shareUsernameDirty && (
+                  <p className="text-xs text-muted">
+                    Unsaved username change — save to move your public page to{' '}
+                    <code className="font-mono">/@{username || '…'}</code>.
+                  </p>
+                )}
               </div>
             )}
             <div>
@@ -248,11 +311,11 @@ export default function ProfilePage() {
             {saved && (
               <p className="text-sm text-success-text">
                 Saved.
-                {publicList && username && (
+                {persistedShareActive && (
                   <>
                     {' '}
                     <Link
-                      to={`/riders/${username}`}
+                      to={`/riders/${persistedUsername}`}
                       className="font-medium text-ink underline underline-offset-4"
                     >
                       View your public page →
