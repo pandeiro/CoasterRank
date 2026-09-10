@@ -27,6 +27,15 @@ Supabase — so the rules in `.agents/skills/mobile-drag-qa` apply:
 3. Prefer no-write flows where possible (e.g. the undo-delete path makes zero
    server calls; search selection only enters pending-add until confirmed).
 
+## Preview captures (UX PR screenshots)
+
+For adding desktop+mobile screenshots to UX PRs, use the sibling capture
+harness `src/e2e/previews.ts` (viewport pairs, fake sessions, Supabase
+mocking/anon pass-through, clip/full-page shots, ready-to-paste PR-body
+markdown). Scenarios: `src/e2e/scenarios/previews-<slug>.ts`, output:
+`docs/previews/<slug>/`. Full workflow, safety tiers, and conventions live in
+the repo skill `.agents/skills/ux-pr-previews/SKILL.md`.
+
 ## Writing a scenario
 
 Import from `../helpers` — it owns the boilerplate so scenarios stay pure

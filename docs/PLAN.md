@@ -230,7 +230,9 @@ CoasterRank/
 │   ├── RUNBOOKS.md                    # one-time / rare ops runbooks
 │   ├── TEST_DATA.md                   # testride scenarios guide
 │   ├── RANKINGS.md                    # how ranking is computed, stored, monitored, displayed
-│   └── SCHEMA.md                      # auto-generated DB schema doc (scripts/generate-schema-doc.sh)
+│   ├── SCHEMA.md                      # auto-generated DB schema doc (scripts/generate-schema-doc.sh)
+│   └── previews/<slug>/               # committed UX PR screenshots + per-slug README
+│                                      #   (skill: .agents/skills/ux-pr-previews)
 ├── app/                               # Vite React TS SPA
 │   └── src/{pages,components,lib}
 ├── supabase/
@@ -250,6 +252,8 @@ CoasterRank/
 │       ├── import-coasters.ts         # CC0 CSV → parks + coasters (direct Postgres, idempotent)
 │       ├── coverage/                  # data-curation audit tooling (sweep/doc/apply; see data/coverage/)
 │       ├── testride/                  # synthetic-user CLI (docs/TEST_DATA.md)
+│       ├── e2e/                       # on-demand Playwright QA (helpers + scenarios README)
+│       │   └── previews.ts            # UX-PR screenshot capture harness (ux-pr-previews skill)
 │       └── oneoff/                    # archived one-off scripts (see its README)
 ├── .env.example
 └── AGENTS.md                          # commands & conventions for AI agents & humans
