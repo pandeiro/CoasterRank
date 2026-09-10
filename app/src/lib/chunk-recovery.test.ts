@@ -31,6 +31,30 @@ describe('isChunkLoadError', () => {
     expect(isChunkLoadError(new Error('Loading css chunk AdminPage failed'))).toBe(true)
   })
 
+  // Sentry 8bc959a5: Safari 26 on iOS 18.7 reports the MIME check instead of
+  // the module-import failure when the SPA fallback answers a stale chunk
+  // with index.html. Detection must catch it (previously fell through to the
+  // error page instead of the silent reload).
+  it('matches the Safari 26 MIME-type message from production', () => {
+    expect(
+      isChunkLoadError(new TypeError("'text/html' is not a valid JavaScript MIME type.")),
+    ).toBe(true)
+  })
+
+  it('matches the Chrome script-tag MIME variant', () => {
+    expect(
+      isChunkLoadError(
+        new Error(
+          "Refused to execute script from 'https://coasterrank.app/assets/x.js' because its MIME type ('text/html') is not executable and strict MIME type checking is enabled.",
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  it('rejects MIME-adjacent errors that are not load failures', () => {
+    expect(isChunkLoadError(new Error('Invalid MIME type in Content-Type header.'))).toBe(false)
+  })
+
   it('rejects unrelated errors and non-Error values', () => {
     expect(isChunkLoadError(new TypeError('Cannot read properties of undefined'))).toBe(false)
     expect(isChunkLoadError(new Error('NetworkError when attempting to fetch resource.'))).toBe(

@@ -12,11 +12,16 @@
 // Message shapes observed in the wild:
 //  - Chrome:  "Failed to fetch dynamically imported module: <url>"
 //  - Firefox: "error loading dynamically imported module <url>"
-//  - Safari:  "Importing a module script failed."
+//  - Safari ≤18: "Importing a module script failed."
+//  - Safari 26 (iOS 18.7, Sentry 8bc959a5): "'text/html' is not a valid
+//    JavaScript MIME type." — newer WebKit reports the MIME check instead of
+//    the module-import failure; same stale-hash + SPA-fallback mechanics.
+//  - Chrome <script> variant: "Refused to execute script from <url> because
+//    its MIME type ('text/html') is not executable…"
 //  - Vite preload helper (css/asset preloads): "Unable to preload CSS for <url>"
 //  - Legacy bundler loaders: "Loading chunk 4 failed." / "Loading css chunk …"
 const CHUNK_LOAD_ERROR_RE =
-  /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|unable to preload|loading (?:css )?chunk .{0,40}failed/i
+  /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|unable to preload|loading (?:css )?chunk .{0,40}failed|not a valid javascript mime type|mime type \(.{0,16}\) is not executable/i
 
 export function isChunkLoadError(error: unknown): boolean {
   if (!error) return false
