@@ -1038,7 +1038,12 @@ export async function getAllCoastersAdmin() {
   const { data, error } = await supabase
     .from('coasters')
     .select(
-      '*, parks(name, slug), manufacturers(name), ' +
+      // `manufacturers` MUST be pinned to the direct FK: since
+      // coaster_manufacturers (the lineage junction) also links coasters →
+      // manufacturers, the bare embed is ambiguous (PostgREST PGRST201) and
+      // the whole admin query 400s without the `!coasters_manufacturer_id_fkey`
+      // hint. Same pin in lib/rides.ts.
+      '*, parks(name, slug), manufacturers!coasters_manufacturer_id_fkey(name), ' +
         'coaster_manufacturers(manufacturer_id, position), ride_count:user_rides(count)',
     )
     .order('name')

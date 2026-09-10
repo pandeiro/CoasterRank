@@ -14,6 +14,7 @@ import {
   firstPlaceVisibleIds,
   FIRST_PLACE_MIN_USERS,
   FIRST_PLACE_TOP_N,
+  getAllCoastersAdmin,
   isFewVotes,
   capitalize,
   manufacturerOptions,
@@ -426,6 +427,22 @@ describe('slugify', () => {
 
   it('collapses runs of whitespace and strips punctuation', () => {
     expect(slugify('  Kingda  Ka! (2005) ')).toBe('kingda-ka-2005')
+  })
+})
+
+describe('getAllCoastersAdmin', () => {
+  it('pins the manufacturers embed to the direct FK (lineage junction ambiguity)', async () => {
+    // coaster_manufacturers gives coasters a SECOND path to manufacturers, so
+    // the bare `manufacturers(...)` embed is ambiguous — prod PostgREST 400s
+    // with PGRST201 and the admin Coasters panel fails to load. The
+    // `!coasters_manufacturer_id_fkey` hint must stay on every coasters →
+    // manufacturers embed (same guard in lib/rides.test.tsx).
+    const range = vi.fn().mockResolvedValue({ data: [], error: null })
+    const order = vi.fn().mockReturnValue({ range })
+    const select = vi.fn().mockReturnValue({ order })
+    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+    await getAllCoastersAdmin()
+    expect(select.mock.calls[0][0]).toContain('manufacturers!coasters_manufacturer_id_fkey(')
   })
 })
 

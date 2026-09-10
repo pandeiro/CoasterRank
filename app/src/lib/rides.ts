@@ -42,7 +42,11 @@ export function useMyRides() {
       const { data, error } = await supabase
         .from('user_rides')
         .select(
-          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers(name), parks(name, country))',
+          // `manufacturers` is pinned to the direct FK — the coaster_manufacturers
+          // lineage junction gives coasters a second path to manufacturers, so
+          // the bare embed is ambiguous (PostgREST PGRST201). Same pin in
+          // lib/coasters.ts (getAllCoastersAdmin).
+          'coaster_id, rank, coasters(id, name, slug, status, material, park_id, manufacturers!coasters_manufacturer_id_fkey(name), parks(name, country))',
         )
         .order('rank', { ascending: true, nullsFirst: false })
       if (error) throw error
