@@ -825,8 +825,9 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
 
 // Approve an edit suggestion: apply the allowlisted diff onto the target
 // coaster row. Park moves come from the top-level park_id column (never the
-// payload — C-01); slug is deliberately untouched so detail URLs stay
-// stable. last_verified_at is bumped: a reviewed edit is a verification.
+// payload — C-01); slug is deliberately untouched so detail URLs stay stable.
+// (last_verified_at was removed from coasters in
+// 20260823023126_remove_track_a_dedup_infrastructure.sql — do not write it.)
 export async function approveEditSubmission(id: string, submission: CoasterSubmission) {
   const {
     data: { user },
@@ -881,7 +882,6 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
   }
 
   updates.park_id = submission.park_id
-  updates.last_verified_at = new Date().toISOString()
 
   const { error } = await supabase.from('coasters').update(updates).eq('id', submission.coaster_id)
   if (error) throw error

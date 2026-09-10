@@ -741,7 +741,7 @@ describe('approveEditSubmission', () => {
     submissionUpdateEq.mockResolvedValue({ error: null })
   })
 
-  it('applies the allowlisted diff plus park and verification stamp', async () => {
+  it('applies the allowlisted diff plus park, with no removed columns', async () => {
     await approveEditSubmission('e1', editSubmission)
     expect(coasterUpdateEq).toHaveBeenCalledWith('id', 'c1')
     const updateArg = vi.mocked(supabase.from).mock.calls.length
@@ -754,9 +754,12 @@ describe('approveEditSubmission', () => {
         height_m: 63,
         status: 'sbno',
         park_id: 'park-1',
-        last_verified_at: expect.any(String),
       }),
     )
+    // last_verified_at was dropped from coasters (dedup-infrastructure
+    // removal); writing it fails the UPDATE with an undefined-column error.
+    const applied = updateMock.update.mock.calls[0][0] as Record<string, unknown>
+    expect(applied).not.toHaveProperty('last_verified_at')
     expect(submissionUpdateEq).toHaveBeenCalledWith('id', 'e1')
   })
 
