@@ -106,7 +106,7 @@ describe('AdminPage', () => {
         data: { updated: 42, durationMs: 120, iterations: 7, converged: true },
         error: null,
       } as never)
-      renderPage()
+      renderPage('/admin/rankings')
       await userEvent.click(screen.getByRole('button', { name: /recompute now/i }))
       expect(supabase.functions.invoke).toHaveBeenCalledWith('recompute-rankings', {
         method: 'POST',
@@ -122,7 +122,7 @@ describe('AdminPage', () => {
         data: null,
         error: { message: 'admin access required' },
       } as never)
-      renderPage()
+      renderPage('/admin/rankings')
       await userEvent.click(screen.getByRole('button', { name: /recompute now/i }))
       expect(await screen.findByText(/Recompute failed: admin access required/)).toBeInTheDocument()
     })
@@ -187,7 +187,7 @@ describe('AdminPage', () => {
         { id: 'c2', name: 'Fury 325' },
         { id: 'c3', name: 'The Voyage' },
       ] as never)
-      renderPage()
+      renderPage('/admin/weighting')
       await userEvent.click(screen.getByRole('button', { name: /run comparison/i }))
       expect(supabase.functions.invoke).toHaveBeenCalledWith('compare-weightings', {
         method: 'POST',
@@ -211,7 +211,7 @@ describe('AdminPage', () => {
         data: null,
         error: { message: 'admin access required' },
       } as never)
-      renderPage()
+      renderPage('/admin/weighting')
       await userEvent.click(screen.getByRole('button', { name: /run comparison/i }))
       expect(
         await screen.findByText(/Comparison failed: admin access required/),
