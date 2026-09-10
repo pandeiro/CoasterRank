@@ -39,18 +39,18 @@ export default function ProfilePage() {
   })
 
   // Sharing is live — the checkbox writes straight to `profiles.public_list`
-  // so a copied URL is never a pre-Save 404 that unfurlers cache. Username /
-  // display_name stay on the explicit Save path; the share state lives
-  // outside the form draft.
+  // so a copied URL is never a pre-Save 404 that unfurlers cache. The
+  // display name stays on the explicit Save path; the share state lives
+  // outside the form draft. Usernames are claim-once: editable only until
+  // first set (the public /riders/<username> URL derives from the handle,
+  // so renames would break shared links).
   const persistedUsername = profile?.username ?? ''
+  const isClaimed = persistedUsername !== ''
   const persistedShareActive =
     Boolean(profile?.public_list) &&
     Boolean(persistedUsername) &&
     USERNAME_RE.test(persistedUsername)
   const persistedShareUrl = persistedShareActive ? riderShareUrl(persistedUsername) : null
-  // Username edits are still draft until Save; warn when the live link is
-  // stale because of an unsaved rename.
-  const shareUsernameDirty = !!profile && username !== (profile.username ?? '')
   const canShare = Boolean(persistedUsername && USERNAME_RE.test(persistedUsername))
   useEffect(() => {
     if (profile) {
@@ -90,13 +90,12 @@ export default function ProfilePage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          username: username || null,
-          display_name: displayName || null,
-        })
-        .eq('id', user!.id)
+      // Claimed usernames are immutable (DB trigger is the backstop) — never
+      // send username once set, so a stale draft can't clobber the handle.
+      const payload = isClaimed
+        ? { display_name: displayName || null }
+        : { username: username || null, display_name: displayName || null }
+      const { error } = await supabase.from('profiles').update(payload).eq('id', user!.id)
       if (error) throw error
     },
     onSuccess: () => {
@@ -112,16 +111,18 @@ export default function ProfilePage() {
     e.preventDefault()
     setFormError(null)
     setSaved(false)
-    if (username && !USERNAME_RE.test(username)) {
-      setFormError(`Username must be ${USERNAME_RULES}`)
-      return
-    }
-    // Reserved names can't be claimed — except keeping the one you already
-    // have (the site admin's account predates the list and is grandfathered
-    // in the DB constraint too).
-    if (isReservedUsername(username) && username !== profile?.username) {
-      setFormError('That username is reserved.')
-      return
+    // Claimed usernames are locked; only the first claim is validated here.
+    // (Direct-API renames hit the profiles_username_immutable trigger and map
+    // to a friendly message via claimErrorMessage.)
+    if (!isClaimed) {
+      if (username && !USERNAME_RE.test(username)) {
+        setFormError(`Username must be ${USERNAME_RULES}`)
+        return
+      }
+      if (isReservedUsername(username)) {
+        setFormError('That username is reserved.')
+        return
+      }
     }
     save.mutate()
   }
@@ -235,14 +236,43 @@ export default function ProfilePage() {
               <label htmlFor="username" className="block text-sm font-medium text-ink-soft">
                 Username
               </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={`mt-1 ${fieldClassName}`}
-              />
-              <p className="mt-1 text-xs text-muted">{USERNAME_RULES}</p>
+              {isClaimed ? (
+                <>
+                  <input
+                    id="username"
+                    type="text"
+                    value={persistedUsername}
+                    disabled
+                    readOnly
+                    aria-readonly="true"
+                    className={`mt-1 ${fieldClassName} cursor-not-allowed opacity-70`}
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    Usernames can&apos;t be changed once claimed — they&apos;re part of your public
+                    page URL. Username typo? Email{' '}
+                    <a
+                      href="mailto:admin@coasterrank.app"
+                      className="font-medium text-ink underline underline-offset-4"
+                    >
+                      admin@coasterrank.app
+                    </a>{' '}
+                    and we&apos;ll fix it.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className={`mt-1 ${fieldClassName}`}
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    {USERNAME_RULES} Once claimed, it can&apos;t be changed.
+                  </p>
+                </>
+              )}
             </div>
             <div className="flex items-start gap-3 rounded-lg border border-line bg-surface px-3 py-3">
               <input
@@ -287,12 +317,6 @@ export default function ProfilePage() {
                   </code>
                   <CopyLinkButton url={persistedShareUrl} label="Copy" />
                 </div>
-                {shareUsernameDirty && (
-                  <p className="text-xs text-muted">
-                    Unsaved username change — save to move your public page to{' '}
-                    <code className="font-mono">/@{username || '…'}</code>.
-                  </p>
-                )}
               </div>
             )}
             <div>

@@ -24,6 +24,7 @@ export function claimErrorMessage(error: unknown): string {
     if (error.code === '23505') return 'That username is taken.'
     if (error.code === '23514') {
       const message = 'message' in error && typeof error.message === 'string' ? error.message : ''
+      if (message.includes('immutable')) return 'Username can\u2019t be changed once claimed.'
       return message.includes('reserved')
         ? 'That username is reserved.'
         : 'That username is invalid.'
