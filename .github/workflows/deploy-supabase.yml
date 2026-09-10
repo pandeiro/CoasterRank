@@ -85,20 +85,25 @@ jobs:
               having count(*) > 1
             ) duplicates;
           ")
+          # Submission payloads are checked against the LIVE constraint
+          # validator (submission_payload_valid), not a re-typed allowlist:
+          # the historical keys check (20260906120000) was superseded twice
+          # (kind-aware edits in 20260906140000, full-form new submissions in
+          # 20260908020536) and the stale re-typed version false-failed on
+          # legitimate user submissions (#177's deploy, 2026-09-10).
+          # Delegating to the live function cannot drift with schema evolution;
+          # if a future migration renames/drops it, this psql call fails loudly
+          # and the predicate must be updated with the schema — correct by
+          # construction.
           invalid_submission_rows=$(psql "$SUPABASE_DB_URL" -Atc "
             select count(*)
             from public.coaster_submissions
-            where coalesce(jsonb_typeof(suggested_fields) <> 'object', true)
-               or exists (
-                 select 1
-                 from jsonb_object_keys(suggested_fields) as key
-                 where key not in ('height_m', 'speed_kmh', 'length_m', 'inversions', 'material')
-               );
+            where not public.submission_payload_valid(kind, suggested_fields);
           ")
 
           if [ "$invalid_usernames" -ne 0 ] || [ "$duplicate_usernames" -ne 0 ] || [ "$invalid_submission_rows" -ne 0 ]; then
             echo "::error::migration preflight failed: invalid usernames=$invalid_usernames, case-insensitive duplicate usernames=$duplicate_usernames, invalid submission payload rows=$invalid_submission_rows"
-            echo "Resolve these existing rows before applying 20260906120000_security_hardening.sql. No migration was attempted."
+            echo "Existing rows must satisfy the live coaster_submissions_payload_check (submission_payload_valid(kind, suggested_fields)) and the username format/uniqueness rules before db push can run. Delete or correct the offending rows in prod, then re-run. No migration was attempted."
             exit 1
           fi
           echo "Migration preflight passed: username and submission payload data are compatible."
