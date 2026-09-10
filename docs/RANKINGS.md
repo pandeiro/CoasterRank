@@ -51,9 +51,18 @@ Two anti-noise measures prevent degenerate scores:
 | **Anchor weight** (`a = 1`) | Virtual 50/50 win/loss against an "average" coaster at strength 1.0 | Anchors the scale (1.0 = average). Prevents undefeated or rarely-compared coasters from running to infinity. A coaster with no comparisons sits at exactly 1.0. |
 | **L2 shrinkage** (`λ = 0.5`) | Pseudo-win/loss counts pulling every score toward 1.0 | Shrinks sparse data toward the mean. Equivalent to a Gamma prior in Bayesian estimation. |
 
-### Per-user normalization
+### Per-rider weighting (evidence-scaled, 2026-09-10)
 
-A user who ranks 10 coasters generates `10 × 9 / 2 = 45` pairwise comparisons. A user who ranks 3 coasters generates `3 × 2 / 2 = 3` pairs. To prevent power-users from dominating, each pair is weighted at `1 / (n × (n-1) / 2)`, so every user's total influence sums to ~1 regardless of list length.
+A user who ranks 10 coasters generates `10 × 9 / 2 = 45` pairwise comparisons; a user who ranks 3 generates 3. Each pair a rider contributes is weighted:
+
+```
+w = (P + c)^(−γ)      where P = n(n−1)/2, production: γ = 0.5, c = 28
+```
+
+- **Total influence grows ~linearly with list length** (`√P ≈ n/√2`): rank twice as many coasters, get about twice the say. Tiny lists don't get a flat-equalizer bonus, and long/spam lists can't blow up quadratically.
+- **Soft floor `c = 28`** (≈ an 8-coaster list's phantom pairs) damps very short lists: a 2-item rider's lone opinion weighs `1/√29 ≈ 0.19` instead of 1.0. Before 2026-09-10, a single 2-item opinion weighed as much as the model's entire anchor prior.
+- **Rationale**: flat per-rider equalization (`w = 1/P`, the original rule) made per-opinion influence inversely proportional to list length — a 5-list rider's opinion of a pair outweighed a 90-list rider's ~450×, letting one casual signup decide global #1/#2 — and rewarded ranking as few coasters as possible. Raw counts (γ=0) are the statistical ideal under honest judges but give big/spam lists quadratic, unbounded influence. γ=0.5 is the standard hedge.
+- Admins can compare alternatives on demand: the `/admin` **Weighting comparison** panel invokes the `compare-weightings` Edge Function, which refits in memory via `pairwise_wins_custom(gamma, floor_pairs, ramp_k)` and returns side-by-side ranks + Spearman / top-10-overlap / max-move stats. Read-only: the live board is untouched, and the run is intentionally not written to `cron_execution_logs` (the stale-recompute watchdog keys on any recent success row).
 
 ## Data flow
 
@@ -240,6 +249,8 @@ ORDER BY score DESC LIMIT 10;
 | `supabase/functions/recompute-rankings/index.ts` | Edge Function: auth, RPC calls, MM, persist, log, alert |
 | `supabase/migrations/20260816183756_rankings_view.sql` | `coaster_ratings` table + `v_coaster_rankings` view |
 | `supabase/migrations/20260817170724_bt_recompute_pg_cron.sql` | RPCs, `recompute_rankings_cron()`, pg_cron schedule |
+| `supabase/migrations/20260910120000_bt_weighting_exponent.sql` | Evidence-scaled weighting: `pairwise_wins_custom()` + `pairwise_wins()` → (γ=0.5, c=28) |
+| `supabase/functions/compare-weightings/index.ts` | Admin-only, read-only weighting comparison (on-demand alternative-weighting refits) |
 | `supabase/migrations/20260829000422_cron_execution_logs.sql` | Execution logging table + RLS |
 | `supabase/migrations/20260829011512_stale_recompute_detection.sql` | Hourly stale alert via pg_cron + Vault |
 | `supabase/migrations/20260905195557_rank_weekly_snapshots.sql` | Weekly rank-snapshot table (rank-movement baseline) |

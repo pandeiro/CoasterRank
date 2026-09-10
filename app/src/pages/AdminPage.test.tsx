@@ -146,6 +146,79 @@ describe('AdminPage', () => {
     })
   })
 
+  describe('weighting comparison', () => {
+    const compareResponse = {
+      default: {
+        rows: [
+          { coaster_id: 'c1', score: 1.5, rank: 1 },
+          { coaster_id: 'c2', score: 1.2, rank: 2 },
+          { coaster_id: 'c3', score: 0.9, rank: 3 },
+        ],
+      },
+      variants: [
+        {
+          label: 'Raw counts',
+          params: { gamma: 0, floor_pairs: 0, ramp_k: 0 },
+          rows: [
+            { coaster_id: 'c1', score: 2.1, rank: 1 },
+            { coaster_id: 'c2', score: 1.1, rank: 3 },
+            { coaster_id: 'c3', score: 1.4, rank: 2 },
+          ],
+          summary: {
+            spearman: 0.5,
+            top10Overlap: 0.8,
+            maxRankDelta: 1,
+            meanAbsRankDelta: 0.67,
+            compared: 3,
+          },
+        },
+      ],
+      topN: 25,
+      durationMs: 55,
+    }
+
+    it('invokes the compare function with the selected presets and renders the table', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: compareResponse,
+        error: null,
+      } as never)
+      vi.mocked(getAllCoastersAdmin).mockResolvedValue([
+        { id: 'c1', name: 'Steel Vengeance' },
+        { id: 'c2', name: 'Fury 325' },
+        { id: 'c3', name: 'The Voyage' },
+      ] as never)
+      renderPage()
+      await userEvent.click(screen.getByRole('button', { name: /run comparison/i }))
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('compare-weightings', {
+        method: 'POST',
+        body: {
+          variants: [
+            { gamma: 0, floor_pairs: 0, ramp_k: 0, label: 'Raw counts' },
+            { gamma: 1, floor_pairs: 0, ramp_k: 0, label: 'Old default (one unit per rider)' },
+          ],
+          topN: 25,
+        },
+      })
+      expect(await screen.findByText(/Fitted in 55ms/)).toBeInTheDocument()
+      // c2 sits #3 under raw counts vs #2 default → ↓1; c3 moves up → ↑1.
+      expect(screen.getByText('↓1')).toBeInTheDocument()
+      expect(screen.getByText('↑1')).toBeInTheDocument()
+      expect(screen.getByText(/Spearman 0.500/)).toBeInTheDocument()
+    })
+
+    it('shows the failure message when the function errors', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: null,
+        error: { message: 'admin access required' },
+      } as never)
+      renderPage()
+      await userEvent.click(screen.getByRole('button', { name: /run comparison/i }))
+      expect(
+        await screen.findByText(/Comparison failed: admin access required/),
+      ).toBeInTheDocument()
+    })
+  })
+
   describe('submissions tab', () => {
     it('shows the empty state when there are no pending submissions', async () => {
       renderPage('/admin/submissions')

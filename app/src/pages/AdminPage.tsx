@@ -5,6 +5,7 @@ import { RefreshCw, Check, X, Edit, Plus, Home, Search, Trash2, Copy } from 'luc
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import UsersPanel from '../components/admin/UsersPanel'
+import WeightingComparePanel from '../components/admin/WeightingComparePanel'
 import {
   Badge,
   Button,
@@ -1708,6 +1709,8 @@ export default function AdminPage() {
               </p>
             )}
           </Panel>
+
+          <WeightingComparePanel />
         </div>
       </div>
 
