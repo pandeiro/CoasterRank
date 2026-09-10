@@ -742,6 +742,15 @@ export async function rejectSubmission(id: string, note: string) {
   if (error) throw error
 }
 
+// Reuse an existing park by slug: a new-park submission for a park that a
+// prior approval already created (parks.slug is UNIQUE) must link to it
+// rather than fail. Returns null when no park has that slug.
+async function findParkIdBySlug(slug: string): Promise<string | null> {
+  const { data, error } = await supabase.from('parks').select('id').eq('slug', slug).maybeSingle()
+  if (error) throw error
+  return (data as { id: string } | null)?.id ?? null
+}
+
 export async function approveSubmission(id: string, submission: CoasterSubmission) {
   const {
     data: { user },
@@ -754,22 +763,33 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   // 1. Handle Park
   let parkId = submission.park_id
   if (!parkId) {
-    const { data: park, error: parkError } = await supabase
-      .from('parks')
-      .insert({
-        name: submission.park_name,
-        slug: slugify(submission.park_name),
-        source: 'community',
-      })
-      .select()
-      .single()
-    if (parkError) {
-      // parks.slug UNIQUE — a near-identical park name already exists.
-      throw parkError.code === '23505'
-        ? new Error(`A park named "${submission.park_name}" already exists.`)
-        : parkError
+    const parkSlug = slugify(submission.park_name)
+    // Second submission for a brand-new park: a prior approval may have
+    // already created it — reuse that park instead of colliding with
+    // parks.slug UNIQUE (e.g. two "Rowdy Bear" submissions in one queue).
+    parkId = await findParkIdBySlug(parkSlug)
+    if (!parkId) {
+      const { data: park, error: parkError } = await supabase
+        .from('parks')
+        .insert({
+          name: submission.park_name,
+          slug: parkSlug,
+          source: 'community',
+        })
+        .select()
+        .single()
+      if (parkError) {
+        if (parkError.code !== '23505') throw parkError
+        // Race: another approval created the park between our lookup and
+        // insert — resolve the winner by slug and reuse it.
+        parkId = await findParkIdBySlug(parkSlug)
+        if (!parkId) {
+          throw new Error(`A park named "${submission.park_name}" already exists.`)
+        }
+      } else {
+        parkId = park.id
+      }
     }
-    parkId = park.id
   }
 
   // 2. Create Coaster — globally unique slug (park suffix fallback)
