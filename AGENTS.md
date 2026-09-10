@@ -198,6 +198,9 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - **Always write PR descriptions and comments to a temp file first** (`/tmp/pr-comment.md`), then
   use `gh pr comment <PR> --body-file /tmp/pr-comment.md` or `gh pr create --body-file /tmp/pr-comment.md`.
   Backticks in shell arguments get mangled by zsh — writing to a file avoids this entirely.
+- **UX PRs embed screenshots**: capture desktop+mobile shots into `docs/previews/<slug>/` via the
+  `.agents/skills/ux-pr-previews` skill (Playwright harness in `scripts/src/e2e/previews.ts`) and
+  reference the raw.githubusercontent URLs in the PR body.
 
 ## Data Engineering Guardrails
 
