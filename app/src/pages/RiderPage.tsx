@@ -5,6 +5,7 @@ import RiderRideList from '../components/RiderRideList'
 import StatBlock from '../components/StatBlock'
 import { MessageState, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import { topSpotlight } from '../lib/og-svg'
 import { riderPageUrl, useRiderPage, isValidRiderUsername } from '../lib/rider'
 import { truncate } from '../lib/truncate'
 
@@ -78,7 +79,11 @@ export default function RiderPage() {
   // Dynamic edge-rendered card (top 5 + summary, ≤5 min stale) — see the
   // /riders/:username/og.png route in worker.ts.
   const ogImage = `${window.location.origin}/riders/${profile.username}/og.png`
-  const topPick = rides[0]
+  // Spotlights mirror the OG card (og-image.ts): top park across all rides,
+  // top builder from the top 10 by rank — preference, not volume. No "#1
+  // pick" stat; the ranked table right below already shows it.
+  const topPark = topSpotlight(rides, 'park_name')
+  const topBuilder = topSpotlight(rides, 'manufacturer_name', 10)
   const topNames = rides.slice(0, 3).map((r) => truncate(r.name, 40))
   const parkCount = new Set(rides.map((r) => r.park_name).filter(Boolean)).size
   const memberSince = yearOf(profile.member_since)
@@ -127,10 +132,11 @@ export default function RiderPage() {
       </Panel>
 
       {/* Micro-stats */}
-      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatBlock label="Ranked" value={rides.length} />
         <StatBlock label="Parks" value={parkCount} />
-        <StatBlock label="#1 pick" value={topPick ? topPick.name : '—'} />
+        <StatBlock label="Top park" value={topPark ? topPark.name : '—'} />
+        <StatBlock label="Top builder" value={topBuilder ? topBuilder.name : '—'} />
       </dl>
 
       {/* The list */}

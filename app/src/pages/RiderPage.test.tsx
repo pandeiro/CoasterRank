@@ -122,11 +122,17 @@ describe('RiderPage', () => {
     expect(screen.getByText('Coaster Fan')).toBeInTheDocument()
     expect(screen.getByText(/@coaster_fan/)).toBeInTheDocument()
     expect(screen.getByText(/member since 2024/)).toBeInTheDocument()
-    // The #1 pick appears both in the stats row and at the top of the list.
+    // Stats mirror the OG card's spotlights (top park across all rides, top
+    // builder from the top 10); "#1 pick" is gone — the table right below
+    // already shows the top-ranked coaster.
     expect(screen.getAllByText('Steel Vengeance').length).toBeGreaterThan(0)
     expect(screen.getByText('Fury 325')).toBeInTheDocument()
-    expect(screen.getByText('Cedar Point')).toBeInTheDocument()
-    expect(screen.getByText('#1 pick')).toBeInTheDocument()
+    // Cedar Point appears in both the Top park stat and the ride list.
+    expect(screen.getAllByText('Cedar Point').length).toBeGreaterThan(1)
+    expect(screen.getByText('Top park')).toBeInTheDocument()
+    expect(screen.getByText('Top builder')).toBeInTheDocument()
+    expect(screen.getByText('Rocky Mountain Construction')).toBeInTheDocument()
+    expect(screen.queryByText('#1 pick')).not.toBeInTheDocument()
     expect(screen.getByText('Build your own ranking')).toBeInTheDocument()
   })
 
@@ -246,6 +252,8 @@ describe('RiderPage', () => {
     renderAt()
 
     expect(screen.getByText('No coasters ranked yet.')).toBeInTheDocument()
+    // Spotlight stats fall back to an em dash with no rides.
+    expect(screen.getAllByText('—')).toHaveLength(2)
   })
 
   it('shows an error state on fetch failure', () => {
