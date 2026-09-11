@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, X, Edit, Plus, Home, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -10,7 +10,15 @@ import RankingsPanel from '../components/admin/RankingsPanel'
 import CoasterEditModal from '../components/admin/CoasterEditModal'
 import ParkEditModal from '../components/admin/ParkEditModal'
 import WeightingComparePanel from '../components/admin/WeightingComparePanel'
-import { Badge, Button, ConfirmDialog, fieldClassName, MessageState, Panel } from '../components/ui'
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  fieldClassName,
+  MessageState,
+  Panel,
+  selectClassName,
+} from '../components/ui'
 import Avatar from '../components/ui/Avatar'
 import {
   approveEditSubmission,
@@ -58,6 +66,10 @@ type AdminTab = (typeof ADMIN_TABS)[number]
 
 // Old deep links keep working: the Impersonate tab became the Users tab.
 const LEGACY_TAB_REDIRECT: Partial<Record<string, AdminTab>> = { impersonate: 'users' }
+
+function tabLabel(tab: AdminTab): string {
+  return tab === 'control-panel' ? 'Control Panel' : tab.charAt(0).toUpperCase() + tab.slice(1)
+}
 
 type AppSetting = { key: string; enabled: boolean; label?: string | null; updated_at: string }
 
@@ -136,12 +148,12 @@ function NewSubmissionStats({
     (key) => fields[key] !== null && fields[key] !== undefined,
   )
   return (
-    <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs sm:grid-cols-3">
+    <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
       {[...['height_m', 'speed_kmh', 'length_m', 'inversions', 'material'], ...extraKeys].map(
         (key) => (
           <div key={key} className="flex justify-between gap-2">
-            <dt className="text-muted">{SUBMISSION_FIELD_LABELS[key]}</dt>
-            <dd className="font-medium text-ink">
+            <dt className="shrink-0 text-muted">{SUBMISSION_FIELD_LABELS[key]}</dt>
+            <dd className="min-w-0 text-right font-medium break-words text-ink">
               {formatSubmissionValue(key, fields[key], manufacturerNameById)}
             </dd>
           </div>
@@ -175,7 +187,7 @@ function EditSubmissionDiff({
       {changedKeys.map((key) => (
         <div key={key} className="flex items-baseline justify-between gap-2">
           <span className="shrink-0 text-muted">{SUBMISSION_FIELD_LABELS[key] ?? key}</span>
-          <span className="truncate text-right">
+          <span className="min-w-0 text-right break-words">
             <span className="text-muted line-through">
               {formatSubmissionValue(
                 key,
@@ -196,7 +208,7 @@ function EditSubmissionDiff({
           }`}
         >
           <span className="shrink-0 text-muted">Park</span>
-          <span className="truncate text-right">
+          <span className="min-w-0 text-right break-words">
             {parkMoved ? (
               <>
                 {parkNameById.get(target.park_id) ?? target.park_id} → {submission.park_name} ⚠
@@ -218,6 +230,7 @@ function EditSubmissionDiff({
 
 export default function AdminPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { tab } = useParams()
   const isValidTab = ADMIN_TABS.includes(tab as AdminTab)
   const activeTab: AdminTab = isValidTab ? (tab as AdminTab) : 'coasters'
@@ -547,35 +560,49 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="mb-4 sm:mb-8">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
             Track operations
           </p>
           <h1 className="display-heading text-4xl text-ink">Admin</h1>
         </div>
-        <div className="flex flex-wrap gap-1 rounded-full bg-surface p-1">
-          {ADMIN_TABS.map((tab) => (
-            <Link
-              key={tab}
-              to={`/admin/${tab}`}
-              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
-                activeTab === tab
-                  ? 'bg-surface-bright font-medium text-ink shadow-sm'
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              {tab === 'control-panel'
-                ? 'Control Panel'
-                : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Link>
-          ))}
+        {/* Mobile gets a single sticky dropdown pinned under the topnav
+            (top-16 = the header's min-h-16); sm+ keeps the pill row. */}
+        <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <select
+            aria-label="Admin section"
+            value={activeTab}
+            onChange={(e) => navigate(`/admin/${e.target.value}`)}
+            className={`${selectClassName} w-full sm:hidden`}
+          >
+            {ADMIN_TABS.map((tab) => (
+              <option key={tab} value={tab}>
+                {tabLabel(tab)}
+              </option>
+            ))}
+          </select>
+          <div className="hidden flex-wrap gap-1 rounded-full bg-surface p-1 sm:flex">
+            {ADMIN_TABS.map((tab) => (
+              <Link
+                key={tab}
+                to={`/admin/${tab}`}
+                className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                  activeTab === tab
+                    ? 'bg-surface-bright font-medium text-ink shadow-sm'
+                    : 'text-muted hover:text-ink'
+                }`}
+              >
+                {tabLabel(tab)}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {activeTab === 'submissions' && (
-          <Panel className="p-6">
+          <Panel className="p-3 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold text-ink">Submission Queue</h2>
               <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
@@ -613,9 +640,9 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-4">
                 {visibleSubmissions.map((s) => (
-                  <div key={s.id} className="rounded-xl border border-line bg-surface p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                  <div key={s.id} className="rounded-xl border border-line bg-surface p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
                         <h3 className="font-semibold">
                           {s.coaster_name}{' '}
                           <span
@@ -654,13 +681,13 @@ export default function AdminPage() {
                           />
                         )}
                         {s.note && (
-                          <p className="mt-2 rounded-lg border border-line bg-surface-bright p-2 text-xs text-muted">
+                          <p className="mt-2 rounded-lg border border-line bg-surface-bright p-2 text-xs text-muted break-words whitespace-pre-wrap [overflow-wrap:anywhere]">
                             <span className="font-medium text-ink-soft">Submitter note:</span>{' '}
                             {s.note}
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex shrink-0 gap-2">
                         <button
                           onClick={() => approve.mutate({ id: s.id, submission: s })}
                           disabled={approve.isPending}
@@ -680,7 +707,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                     {activeRejectId === s.id && (
-                      <div className="mt-4 flex gap-2">
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                         <input
                           className={`flex-1 ${fieldClassName}`}
                           placeholder="Reason for rejection..."
@@ -710,7 +737,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'coasters' && (
-          <Panel className="p-6">
+          <Panel className="p-3 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-ink">Coaster Management</h2>
               <Button variant="coral" size="sm" onClick={openAddForm}>
@@ -816,7 +843,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'parks' && (
-          <Panel className="p-6">
+          <Panel className="p-3 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-ink">Park Management</h2>
               <Button variant="coral" size="sm" onClick={openAddParkForm}>
@@ -923,7 +950,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'rehome' && (
-          <Panel className="p-6">
+          <Panel className="p-3 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Home size={20} className="text-ink" />
               <h2 className="text-lg font-semibold text-ink">Re-home Coasters</h2>
@@ -934,7 +961,7 @@ export default function AdminPage() {
               their correct locations.
             </p>
 
-            <div className="mb-6 flex gap-4 rounded-xl border border-line bg-surface p-4">
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 sm:flex-row sm:gap-4 sm:p-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
                 <input
@@ -1026,7 +1053,7 @@ export default function AdminPage() {
         {activeTab === 'weighting' && <WeightingComparePanel />}
 
         {activeTab === 'control-panel' && (
-          <Panel className="p-6">
+          <Panel className="p-3 sm:p-6">
             <h2 className="text-lg font-semibold text-ink">Control Panel</h2>
             <p className="mt-1 text-sm text-muted">
               Toggle Telegram event notifications on or off in real-time without redeploying code.

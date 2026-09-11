@@ -144,6 +144,15 @@ describe('AdminPage', () => {
       await userEvent.click(screen.getByRole('link', { name: 'Rehome' }))
       expect(await screen.findByText('Re-home Coasters')).toBeInTheDocument()
     })
+
+    it('navigates between tabs via the mobile section dropdown', async () => {
+      renderPage('/admin/coasters')
+      const select = screen.getByRole('combobox', { name: 'Admin section' })
+      expect(select).toHaveValue('coasters')
+      await userEvent.selectOptions(select, 'users')
+      expect(await screen.findByText(/Synthetic test users/)).toBeInTheDocument()
+      expect(screen.getByRole('combobox', { name: 'Admin section' })).toHaveValue('users')
+    })
   })
 
   describe('weighting comparison', () => {

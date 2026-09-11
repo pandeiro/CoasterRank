@@ -144,14 +144,14 @@ export default function SharingPanel() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <StatBlock label="Riders" value={t.totalUsers} />
         <StatBlock label="Eligible (5+ ranked)" value={t.eligible} />
         <StatBlock label="Nudged" value={t.nudged} />
         <StatBlock label="Sharing on" value={t.sharingOn} />
       </div>
 
-      <Panel className="p-4 sm:p-5">
+      <Panel className="p-3 sm:p-5">
         <h2 className="display-heading text-lg text-ink">Funnel</h2>
         <p className="mt-1 text-xs leading-5 text-muted">
           Cumulative state, not a daily series — enable events are not stored (opt-ins only ping
@@ -173,7 +173,7 @@ export default function SharingPanel() {
                 <tr key={stage.key}>
                   <td className="py-2">
                     <span className="font-medium text-ink">{stage.label}</span>{' '}
-                    <span className="text-xs text-muted">{stage.hint}</span>
+                    <span className="hidden text-xs text-muted sm:inline">{stage.hint}</span>
                   </td>
                   <td className="py-2 text-right tabular-nums text-ink">{count}</td>
                   <td className="py-2 text-right tabular-nums text-muted">{pct(count, prev)}</td>
@@ -184,7 +184,7 @@ export default function SharingPanel() {
         </table>
       </Panel>
 
-      <Panel className="p-4 sm:p-5">
+      <Panel className="p-3 sm:p-5">
         <h2 className="display-heading text-lg text-ink">Current sharers</h2>
         {data.funnel.sharers.length === 0 ? (
           <p className="mt-2 text-sm text-muted">Nobody has sharing enabled yet.</p>
@@ -200,7 +200,7 @@ export default function SharingPanel() {
             <tbody className="divide-y divide-line/60">
               {data.funnel.sharers.map((s) => (
                 <tr key={s.username}>
-                  <td className="py-2">
+                  <td className="min-w-0 py-2 break-words [overflow-wrap:anywhere]">
                     <Link to={`/riders/${s.username}`} className="link-brand" target="_blank">
                       @{s.username}
                     </Link>
@@ -216,7 +216,7 @@ export default function SharingPanel() {
         )}
       </Panel>
 
-      <Panel className="p-4 sm:p-5">
+      <Panel className="p-3 sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="display-heading text-lg text-ink">Shared-page traffic (30d)</h2>
           <p className="text-xs text-muted">
@@ -235,7 +235,7 @@ export default function SharingPanel() {
                 No human pageviews on shared pages yet — share a link and watch this space.
               </p>
             ) : (
-              <div className="mt-3 grid gap-5 lg:grid-cols-2">
+              <div className="mt-3 grid gap-4 lg:grid-cols-2 lg:gap-5">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
                     Top pages
@@ -244,7 +244,7 @@ export default function SharingPanel() {
                     <tbody className="divide-y divide-line/60">
                       {rum.topPaths.map((p) => (
                         <tr key={p.path}>
-                          <td className="py-2 pr-3">
+                          <td className="min-w-0 py-2 pr-3 break-words [overflow-wrap:anywhere]">
                             {p.path.startsWith('/riders/') ? (
                               <Link to={p.path} className="link-brand" target="_blank">
                                 {p.path}
@@ -296,7 +296,7 @@ export default function SharingPanel() {
         )}
       </Panel>
 
-      <Panel className="p-4 text-xs leading-5 text-muted sm:p-5">
+      <Panel className="p-3 text-xs leading-5 text-muted sm:p-5">
         <p className="font-semibold uppercase tracking-[0.1em] text-muted">Not visible here</p>
         <p className="mt-1">
           Copy clicks, nudge accepts/dismisses, and per-link attribution are not captured anywhere
