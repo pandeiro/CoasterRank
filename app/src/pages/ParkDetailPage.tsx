@@ -1,6 +1,7 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CoasterTable from '../components/CoasterTable'
+import ParkDetailSkeleton from '../components/ParkDetailSkeleton'
 import { MessageState, Panel } from '../components/ui'
 import { useAllCoasters, usePark } from '../lib/coasters'
 import { useIsAdmin } from '../lib/useIsAdmin'
@@ -26,7 +27,7 @@ export default function ParkDetailPage() {
   }, [coasters.data, park.data])
 
   if (park.isPending || coasters.isPending) {
-    return <MessageState>Loading…</MessageState>
+    return <ParkDetailSkeleton />
   }
 
   if (park.isError || coasters.isError) {

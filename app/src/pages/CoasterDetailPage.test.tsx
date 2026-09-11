@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CoasterDetailPage from './CoasterDetailPage'
 import { useAuth } from '../lib/auth-context'
@@ -57,16 +58,19 @@ function mockLoggedOut() {
 
 function renderPage(slug = 'steel-vengeance') {
   return render(
-    <MemoryRouter initialEntries={[`/coasters/${slug}`]}>
-      <Routes>
-        <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <HelmetProvider>
+      <MemoryRouter initialEntries={[`/coasters/${slug}`]}>
+        <Routes>
+          <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </HelmetProvider>,
   )
 }
 
 describe('CoasterDetailPage', () => {
   beforeEach(() => {
+    document.title = ''
     vi.clearAllMocks()
     mockLoggedOut()
     vi.mocked(useIsAdmin).mockReturnValue(false)
@@ -120,13 +124,14 @@ describe('CoasterDetailPage', () => {
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText('131')).toBeInTheDocument()
     expect(screen.getByText('114 (87%)')).toBeInTheDocument()
-    // Demoted spec pairs + consolidated metadata line.
+    // Demoted spec pairs — all eight reference facts share one grid.
     expect(screen.getByText('61 m')).toBeInTheDocument()
     expect(screen.getByText('119 km/h')).toBeInTheDocument()
     expect(screen.getByText('1146 m')).toBeInTheDocument()
-    expect(
-      screen.getByText(/Track: I-Box Track · Material: Steel · Opened: 2018 · Status: Operating/),
-    ).toBeInTheDocument()
+    expect(screen.getByText('I-Box Track')).toBeInTheDocument()
+    expect(screen.getByText('Steel')).toBeInTheDocument()
+    expect(screen.getByText('2018')).toBeInTheDocument()
+    expect(screen.getByText('Operating')).toBeInTheDocument()
     // Logged-out CTA anchored to the panel.
     expect(screen.getByRole('link', { name: 'Sign up to rank this coaster' })).toHaveAttribute(
       'href',
@@ -265,13 +270,48 @@ describe('CoasterDetailPage', () => {
     expect(await screen.findByTestId('coaster-edit-modal')).toBeInTheDocument()
   })
 
-  it('shows a loading state', () => {
+  it('sets human-facing title, meta description, and JSON-LD via helmet', async () => {
+    vi.mocked(useCoaster).mockReturnValue({
+      data: makeRankingRow({
+        name: 'Steel Vengeance',
+        slug: 'steel-vengeance',
+        park_name: 'Cedar Point',
+        park_city: 'Sandusky',
+        park_country: 'United States',
+        rank: 3,
+        score: 2.5,
+        comparisons: 42,
+        height_m: 61,
+        speed_kmh: 119,
+        length_m: 1146,
+        inversions: 4,
+      }),
+      isPending: false,
+      isError: false,
+    } as never)
+    renderPage()
+
+    await waitFor(() => {
+      expect(document.title).toBe('Steel Vengeance at Cedar Point — CoasterRank')
+    })
+    const description = document.head.querySelector('meta[name="description"]')
+    expect(description?.getAttribute('content')).toContain('ranked #3 on CoasterRank')
+    expect(description?.getAttribute('content')).toContain('Cedar Point')
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toContain(
+      '/coasters/steel-vengeance',
+    )
+    const jsonLd = document.querySelector('script[type="application/ld+json"]')
+    expect(jsonLd?.textContent).toContain('"@type":"RollerCoaster"')
+    expect(jsonLd?.textContent).toContain('Steel Vengeance')
+  })
+
+  it('shows a loading skeleton while pending', () => {
     vi.mocked(useCoaster).mockReturnValue({
       data: undefined,
       isPending: true,
       isError: false,
     } as never)
     renderPage()
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading coaster details' })).toBeInTheDocument()
   })
 })

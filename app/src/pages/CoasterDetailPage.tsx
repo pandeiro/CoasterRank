@@ -1,13 +1,112 @@
 import { Suspense, lazy, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import CoasterDetailSkeleton from '../components/CoasterDetailSkeleton'
 import RankingPanel from '../components/RankingPanel'
 import { MessageState } from '../components/ui'
-import { capitalize, lineageNames, useCoaster, yearFromDate } from '../lib/coasters'
+import type { RankingRow } from '../lib/board-types'
+import { capitalize, formatScore, lineageNames, useCoaster, yearFromDate } from '../lib/coasters'
 import { useIsAdmin } from '../lib/useIsAdmin'
 
 // Admin-only quick-edit: code-split so non-admins never download the form.
 // Mounted only for admins (useIsAdmin gates the button AND the lazy chunk).
 const CoasterEditModal = lazy(() => import('../components/admin/CoasterEditModal'))
+
+// Human-facing meta description: identity + community standing + physical
+// stats, omitting whatever is unknown. The title stays rank-free (ranks move
+// weekly); the description carries the standing.
+function buildMetaDescription(coaster: RankingRow, location: string): string {
+  const parkBit = coaster.park_name ? ` at ${coaster.park_name}` : ''
+  const locationBit = location ? ` (${location})` : ''
+  const standingBit =
+    coaster.rank !== null && coaster.score !== null && coaster.comparisons !== null
+      ? ` — ranked #${coaster.rank} on CoasterRank with a ${formatScore(coaster.score)} community score across ${coaster.comparisons} comparisons.`
+      : ' — not yet ranked on CoasterRank.'
+  const statBits = [
+    coaster.height_m !== null ? `${coaster.height_m} m tall` : null,
+    coaster.speed_kmh !== null ? `${coaster.speed_kmh} km/h` : null,
+    coaster.length_m !== null ? `${coaster.length_m} m long` : null,
+    coaster.inversions !== null
+      ? `${coaster.inversions} inversion${coaster.inversions === 1 ? '' : 's'}`
+      : null,
+  ].filter(Boolean)
+  const statsBit = statBits.length > 0 ? ` ${statBits.join(' · ')}.` : ''
+  return `${coaster.name}${parkBit}${locationBit}${standingBit}${statsBit}`
+}
+
+// Schema.org RollerCoaster entity for crawlers that execute JS (Google indexes
+// client-rendered JSON-LD; social unfurls still get the SPA shell — accepted,
+// see the worker's rider-only prerender). Specs ride as additionalProperty
+// PropertyValues (valid on Place, which RollerCoaster inherits); only known
+// values are emitted.
+function buildJsonLd(coaster: RankingRow, pageUrl: string, metaDescription: string) {
+  const specs: Array<{ '@type': 'PropertyValue'; name: string; value: string }> = []
+  const trackLabel = coaster.model ?? coaster.type
+  if (trackLabel) specs.push({ '@type': 'PropertyValue', name: 'track', value: trackLabel })
+  specs.push({ '@type': 'PropertyValue', name: 'material', value: capitalize(coaster.material) })
+  specs.push({ '@type': 'PropertyValue', name: 'status', value: capitalize(coaster.status) })
+  if (coaster.height_m !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'height', value: `${coaster.height_m} m` })
+  if (coaster.speed_kmh !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'speed', value: `${coaster.speed_kmh} km/h` })
+  if (coaster.length_m !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'length', value: `${coaster.length_m} m` })
+  if (coaster.inversions !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'inversions',
+      value: String(coaster.inversions),
+    })
+  if (coaster.rank !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'communityRank', value: String(coaster.rank) })
+  if (coaster.score !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'communityScore',
+      value: formatScore(coaster.score),
+    })
+  if (coaster.comparisons !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'comparisons',
+      value: String(coaster.comparisons),
+    })
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'RollerCoaster',
+    name: coaster.name,
+    description: metaDescription,
+    url: pageUrl,
+    ...(coaster.park_name
+      ? {
+          containedInPlace: {
+            '@type': 'AmusementPark',
+            name: coaster.park_name,
+            ...(coaster.park_city || coaster.park_country
+              ? {
+                  address: {
+                    '@type': 'PostalAddress',
+                    ...(coaster.park_city ? { addressLocality: coaster.park_city } : {}),
+                    ...(coaster.park_country ? { addressCountry: coaster.park_country } : {}),
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(coaster.opening_date ? { openingDate: coaster.opening_date } : {}),
+    ...(lineageNames(coaster).length > 0
+      ? {
+          manufacturer: lineageNames(coaster).map((name) => ({
+            '@type': 'Organization',
+            name,
+          })),
+        }
+      : {}),
+    additionalProperty: specs,
+  }
+}
 
 export default function CoasterDetailPage() {
   const { slug } = useParams()
@@ -19,7 +118,7 @@ export default function CoasterDetailPage() {
   const [adminError, setAdminError] = useState<string | null>(null)
 
   if (isPending) {
-    return <MessageState>Loading…</MessageState>
+    return <CoasterDetailSkeleton />
   }
 
   if (isError) {
@@ -37,31 +136,50 @@ export default function CoasterDetailPage() {
   // Fully unfurled manufacturer lineage (the board shows "X et al").
   const manufacturerLineage = lineageNames(coaster)
 
-  // One consolidated metadata line (brief §6) — folds the former orphaned
-  // "I-Box Track · Steel · 2018" fragment and the separate Material card
-  // into a single "Track · Material · Opened · Status" row. `model` carries
-  // the track type ("I-Box Track"); `type` usually duplicates material
-  // ("Steel"), so it's only a fallback when model is missing.
+  // All eight reference facts share one label-over-value grid (no card
+  // chrome): the four physical specs plus track/material/opened/status.
+  // `model` carries the track type ("I-Box Track"); `type` usually duplicates
+  // material ("Steel"), so it's only a fallback when model is missing.
+  // Unknown track/opening renders as an em dash like the other specs.
   const trackLabel = coaster.model ?? coaster.type
-  const metadata = [
-    trackLabel ? `Track: ${trackLabel}` : null,
-    `Material: ${capitalize(coaster.material)}`,
-    openingYear ? `Opened: ${openingYear}` : null,
-    `Status: ${capitalize(coaster.status)}`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
-  // Static specs, demoted to plain label-over-value pairs (no card chrome).
   const specs = [
     { label: 'Height', value: coaster.height_m === null ? '—' : `${coaster.height_m} m` },
     { label: 'Speed', value: coaster.speed_kmh === null ? '—' : `${coaster.speed_kmh} km/h` },
     { label: 'Length', value: coaster.length_m === null ? '—' : `${coaster.length_m} m` },
     { label: 'Inversions', value: coaster.inversions === null ? '—' : String(coaster.inversions) },
+    { label: 'Track', value: trackLabel ?? '—' },
+    { label: 'Material', value: capitalize(coaster.material) },
+    { label: 'Opened', value: openingYear === null ? '—' : String(openingYear) },
+    { label: 'Status', value: capitalize(coaster.status) },
   ]
+
+  const pageUrl = `${window.location.origin}/coasters/${coaster.slug}`
+  const title = coaster.park_name
+    ? `${coaster.name} at ${coaster.park_name} — CoasterRank`
+    : `${coaster.name} — CoasterRank`
+  const metaDescription = buildMetaDescription(coaster, location)
+  const jsonLd = buildJsonLd(coaster, pageUrl, metaDescription)
 
   return (
     <div>
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={pageUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:site_name" content="CoasterRank" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={pageUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={metaDescription} />
+      </Helmet>
+      {/* JSON-LD lives in the body (valid for crawlers) rather than Helmet:
+          react-helmet-async drops script children, so head injection is
+          unreliable here. */}
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+
       {/* Identity block (brief §1): park · location · manufacturers (full
           lineage), then the name in display type. The community ranking
           lives in the panel below — before any spec data. */}
@@ -95,9 +213,8 @@ export default function CoasterDetailPage() {
             </div>
           ))}
         </dl>
-        <p className="mt-5 text-sm text-muted">{metadata}</p>
         {coaster.aliases && coaster.aliases.length > 0 && (
-          <p className="mt-2 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
+          <p className="mt-5 text-xs text-muted">Also known as: {coaster.aliases.join(' · ')}</p>
         )}
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link

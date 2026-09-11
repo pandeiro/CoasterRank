@@ -148,7 +148,7 @@ export default function RankingPanel({ coaster }: { coaster: RankingRow }) {
                 type="button"
                 aria-expanded={explainerOpen}
                 onClick={() => setExplainerOpen((open) => !open)}
-                className="inline-flex cursor-pointer items-center gap-1 font-medium text-accent-text hover:underline"
+                className="inline-flex cursor-pointer items-center gap-1.5 py-0.5 font-medium leading-5 text-accent-text hover:underline"
               >
                 <svg
                   width="13"
@@ -158,6 +158,7 @@ export default function RankingPanel({ coaster }: { coaster: RankingRow }) {
                   stroke="currentColor"
                   strokeWidth="2"
                   aria-hidden="true"
+                  className="shrink-0"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -168,7 +169,7 @@ export default function RankingPanel({ coaster }: { coaster: RankingRow }) {
               {explainerOpen && (
                 <div
                   role="note"
-                  className="absolute left-0 top-full z-20 mt-2 w-72 rounded-xl border border-line bg-surface-bright p-3 text-xs leading-5 text-muted shadow-lift"
+                  className="absolute right-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface-bright p-3 text-xs leading-5 text-muted shadow-lift sm:left-0 sm:right-auto"
                 >
                   <p>
                     Scores come from a Bradley-Terry model built on how riders rank coasters

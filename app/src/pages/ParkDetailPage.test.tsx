@@ -177,4 +177,19 @@ describe('ParkDetailPage', () => {
     renderPage()
     expect(screen.getByText("Couldn't load that park.")).toBeInTheDocument()
   })
+
+  it('shows a loading skeleton while pending', () => {
+    vi.mocked(usePark).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+    } as never)
+    vi.mocked(useAllCoasters).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+    } as never)
+    renderPage()
+    expect(screen.getByRole('status', { name: 'Loading park details' })).toBeInTheDocument()
+  })
 })
