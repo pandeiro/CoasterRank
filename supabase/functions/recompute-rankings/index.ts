@@ -98,6 +98,54 @@ async function rpcWithRetry<T>(
   }
 }
 
+// The crown snapshot (read-only) can transiently fail the same way the pairs
+// RPCs do ("Gateway Timeout"), so retry it before giving up. A surviving error
+// must fail the run rather than be swallowed: a null snapshot would read as
+// "no previous #1" and fire a phantom New #1 event after the upserts. Ties are
+// broken score desc, id asc — the rankings view's exact rule — so two coasters
+// with equal scores resolve to the same row every run instead of flip-flopping
+// the detected crown.
+type TopRow = { coaster_id: string }
+
+// Structural slice of the read chain below; typing the param as
+// ReturnType<typeof createClient> (like rpcWithRetry) trips local `deno check`
+// on the esm.sh-resolved generic defaults.
+type TopSnapshotClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      order: (column: string, options: { ascending: boolean }) => {
+        order: (column: string, options: { ascending: boolean }) => {
+          limit: (count: number) => {
+            maybeSingle: () => PromiseLike<{
+              data: TopRow | null
+              error: { message: string } | null
+            }>
+          }
+        }
+      }
+    }
+  }
+}
+
+async function crownSnapshotWithRetry(
+  supabase: TopSnapshotClient,
+): Promise<{ top: TopRow | null; error: string | null }> {
+  let lastError = ''
+  for (let attempt = 0; attempt <= RPC_MAX_RETRIES; attempt++) {
+    const { data, error } = await supabase
+      .from('coaster_ratings')
+      .select('coaster_id')
+      .order('score', { ascending: false })
+      .order('coaster_id', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (!error) return { top: (data ?? null) as TopRow | null, error: null }
+    lastError = error.message
+    if (attempt < RPC_MAX_RETRIES) await sleep(RPC_RETRY_DELAY_MS)
+  }
+  return { top: null, error: `${lastError} (after ${RPC_MAX_RETRIES + 1} attempts)` }
+}
+
 // ── Telegram helpers ────────────────────────────────────────────────────
 // APP_ENV prefixes every outbound message so the source project is always
 // identifiable ('prod' when unset).
@@ -262,13 +310,9 @@ Deno.serve(async (req) => {
     }
 
     // Snapshot the current #1 before recompute so we can detect a crown change.
-    const { data: prevTop } = await supabase
-      .from('coaster_ratings')
-      .select('coaster_id')
-      .order('score', { ascending: false })
-      .limit(1)
-      .single()
-    const prevTopId = prevTop?.coaster_id as string | undefined
+    const prev = await crownSnapshotWithRetry(supabase)
+    if (prev.error) throw new Error(`prev top: ${prev.error}`)
+    const prevTopId = prev.top?.coaster_id as string | undefined
 
     const { rows, iterations, converged } = computeRankings(
       pairs.map((r): Pair => {
@@ -367,13 +411,9 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - started
 
     // Check if the global #1 changed.
-    const { data: newTop } = await supabase
-      .from('coaster_ratings')
-      .select('coaster_id')
-      .order('score', { ascending: false })
-      .limit(1)
-      .single()
-    const newTopId = newTop?.coaster_id as string | undefined
+    const next = await crownSnapshotWithRetry(supabase)
+    if (next.error) throw new Error(`new top: ${next.error}`)
+    const newTopId = next.top?.coaster_id as string | undefined
 
     if (newTopId && newTopId !== prevTopId) {
       const { data: coaster } = await supabase
