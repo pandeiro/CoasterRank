@@ -619,7 +619,7 @@ export default function AdminPage() {
         </div>
         {/* Mobile gets a single sticky dropdown pinned under the topnav
             (top-16 = the header's min-h-16); sm+ keeps the pill row. */}
-        <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="sticky top-16 z-20 -mx-4 bg-canvas/95 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:mt-6 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
           <select
             aria-label="Admin section"
             value={activeTab}
