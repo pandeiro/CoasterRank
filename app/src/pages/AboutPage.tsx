@@ -1,9 +1,40 @@
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { Formula, MathDisclosure, Tex } from '../components/MathDisclosure'
 
+const META_TITLE = 'About — CoasterRank'
+const META_DESCRIPTION =
+  'CoasterRank is a free, open-source leaderboard for roller coasters, ranked live by the community with a Bradley-Terry model. Learn how the ranking works.'
+
 export default function AboutPage() {
+  const pageUrl = `${window.location.origin}/about`
   return (
     <div className="mx-auto max-w-[35rem] py-8">
+      <Helmet>
+        <title>{META_TITLE}</title>
+        <meta name="description" content={META_DESCRIPTION} />
+        <link rel="canonical" href={pageUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="CoasterRank" />
+        <meta property="og:title" content={META_TITLE} />
+        <meta property="og:description" content={META_DESCRIPTION} />
+        <meta property="og:url" content={pageUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={META_TITLE} />
+        <meta name="twitter:description" content={META_DESCRIPTION} />
+      </Helmet>
+      {/* Organization entity for crawlers that execute JS (Google indexes
+          client-rendered JSON-LD). */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'CoasterRank',
+          url: `${window.location.origin}/`,
+          logo: `${window.location.origin}/logo.svg`,
+          sameAs: ['https://github.com/pandeiro/CoasterRank'],
+        })}
+      </script>
       <h1 className="display-heading text-3xl text-ink">About</h1>
       <p className="mt-4 text-[17px] font-medium leading-relaxed text-ink">
         CoasterRank is a free, open-source leaderboard for roller coasters.

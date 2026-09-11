@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ParkDetailPage from './ParkDetailPage'
 import { useAllCoasters, usePark } from '../lib/coasters'
@@ -34,11 +35,13 @@ vi.mock('../components/admin/ParkEditModal', () => ({
 
 function renderPage(slug = 'cedar-point') {
   return render(
-    <MemoryRouter initialEntries={[`/parks/${slug}`]}>
-      <Routes>
-        <Route path="/parks/:slug" element={<ParkDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <HelmetProvider>
+      <MemoryRouter initialEntries={[`/parks/${slug}`]}>
+        <Routes>
+          <Route path="/parks/:slug" element={<ParkDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </HelmetProvider>,
   )
 }
 
@@ -53,6 +56,7 @@ const park = makePark({
 
 describe('ParkDetailPage', () => {
   beforeEach(() => {
+    document.title = ''
     vi.clearAllMocks()
     vi.mocked(useIsAdmin).mockReturnValue(false)
     vi.mocked(usePark).mockReturnValue({
@@ -191,5 +195,21 @@ describe('ParkDetailPage', () => {
     } as never)
     renderPage()
     expect(screen.getByRole('status', { name: 'Loading park details' })).toBeInTheDocument()
+  })
+
+  it('sets title, meta description, canonical, and AmusementPark JSON-LD', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(document.title).toBe('Cedar Point — CoasterRank')
+    })
+    const description = document.head.querySelector('meta[name="description"]')
+    expect(description?.getAttribute('content')).toContain('Cedar Point')
+    expect(description?.getAttribute('content')).toContain('Top: Steel Vengeance (#3 on the board)')
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toContain(
+      '/parks/cedar-point',
+    )
+    const jsonLd = document.querySelector('script[type="application/ld+json"]')
+    expect(jsonLd?.textContent).toContain('"@type":"AmusementPark"')
+    expect(jsonLd?.textContent).toContain('Steel Vengeance')
   })
 })

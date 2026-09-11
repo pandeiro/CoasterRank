@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import BoardSkeleton from '../components/BoardSkeleton'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
@@ -236,6 +237,49 @@ export default function BoardPage() {
 
   return (
     <>
+      <Helmet>
+        <title>CoasterRank — A live ranking of the world’s roller coasters</title>
+        <meta
+          name="description"
+          content="CoasterRank is a live, community-voted ranking of the world's roller coasters. Rank the coasters you've ridden and see how they stack up."
+        />
+        <link rel="canonical" href={`${window.location.origin}/`} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="CoasterRank" />
+        <meta
+          property="og:title"
+          content="CoasterRank — A live ranking of the world’s roller coasters"
+        />
+        <meta
+          property="og:description"
+          content="Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
+        />
+        <meta property="og:url" content={`${window.location.origin}/`} />
+        <meta property="og:image" content={`${window.location.origin}/og-default.png`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="CoasterRank — A live ranking of the world’s roller coasters"
+        />
+        <meta
+          name="twitter:description"
+          content="Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
+        />
+        <meta name="twitter:image" content={`${window.location.origin}/og-default.png`} />
+      </Helmet>
+      {/* WebSite entity for crawlers that execute JS (Google indexes
+          client-rendered JSON-LD; the bot-only worker prerender carries the
+          ItemList instead — see renderHomeHtml in worker.ts). */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'CoasterRank',
+          url: `${window.location.origin}/`,
+          description:
+            "A live, community-voted ranking of the world's roller coasters, scored with a Bradley-Terry model.",
+        })}
+      </script>
       <header data-board-hero className="relative min-h-[5.5rem] pb-3 sm:pb-4">
         {/* Masthead: lockup + status line. Mobile (§2.4) centers the lockup
             and drops the status line onto its own right-aligned row (the

@@ -200,6 +200,9 @@ const CSS = `
   .name{font-weight:600}
   .park{color:#4A4A5A;font-size:.75rem;margin-left:.5rem}
   .cta{background:#E85D75;color:#fff;text-decoration:none;border-radius:9999px;padding:.65rem 1.25rem;font-size:.875rem;display:inline-block;margin-top:.5rem}
+  .section{font-size:.8rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#4A4A5A;margin:1.75rem 0 0}
+  .meta a{color:#1A1A2E}
+  li .name{text-decoration:none;color:#1A1A2E}
   footer{margin-top:2rem;text-align:center;color:#4A4A5A;font-size:.8rem}
 `
 
@@ -325,6 +328,15 @@ export function renderRiderNotFoundHtml(origin: string): string {
 // back to title + description with no image. Crawlers hitting `/` get this
 // prerendered card instead; all URLs are computed from the request origin.
 
+// A board entry for the homepage prerender's top-10 list — the minimal shape
+// the /api/ranking payload already carries (rankings arrive in BT-score
+// order, so callers slice the first 10 without re-sorting).
+export type HomeTopCoaster = {
+  name: string
+  slug: string
+  park_name: string | null
+}
+
 export function homeMeta(origin: string) {
   const title = 'CoasterRank — A live ranking of the world’s roller coasters'
   const description =
@@ -337,8 +349,43 @@ export function homeMeta(origin: string) {
   }
 }
 
-export function renderHomeHtml(origin: string): string {
+export function renderHomeHtml(origin: string, top: HomeTopCoaster[] = []): string {
   const { title, description, url, image } = homeMeta(origin)
+  const topItems = top
+    .slice(0, 10)
+    .map(
+      (coaster, index) => `<li>
+        <span class="rank">${index + 1}</span>
+        <span><a class="name" href="${escapeHtml(`${origin}/coasters/${coaster.slug}`)}">${escapeHtml(coaster.name)}</a>${
+          coaster.park_name ? `<span class="park">${escapeHtml(coaster.park_name)}</span>` : ''
+        }</span>
+      </li>`,
+    )
+    .join('\n')
+  // WebSite always; the live top 10 rides as an ItemList so crawlers see the
+  // board's shape (positions link at the matching coaster URLs). Positions are
+  // the payload's BT-score order at prerender time.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'CoasterRank',
+    url: `${origin}/`,
+    description,
+    ...(top.length > 0
+      ? {
+          mainEntity: {
+            '@type': 'ItemList',
+            name: 'Top roller coasters',
+            itemListElement: top.slice(0, 10).map((coaster, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              url: `${origin}/coasters/${coaster.slug}`,
+              name: coaster.park_name ? `${coaster.name} at ${coaster.park_name}` : coaster.name,
+            })),
+          },
+        }
+      : {}),
+  }
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -360,6 +407,7 @@ export function renderHomeHtml(origin: string): string {
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
 <meta name="twitter:image" content="${escapeHtml(image)}">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
 <style>${CSS}</style>
 </head>
 <body>
@@ -368,9 +416,11 @@ export function renderHomeHtml(origin: string): string {
     <div>
       <p class="eyebrow">Live community ranking</p>
       <h1>CoasterRank</h1>
-      <p class="meta">Rank the coasters you've ridden — drag-sort your list and the community board updates.</p>
+      <p class="meta">Rank the coasters you've ridden — drag-sort your list and the community board updates. Every list feeds a Bradley–Terry refit of the whole board, recomputed every 15 minutes.</p>
     </div>
   </div>
+  ${topItems ? `<h2 class="section">Topping the board right now</h2><ol>${topItems}</ol>` : ''}
+  <p class="meta"><a href="${escapeHtml(`${origin}/about`)}">How the ranking works</a> · <a href="${escapeHtml(`${origin}/faq`)}">FAQ</a></p>
   <footer>
     <a class="cta" href="${escapeHtml(url)}">See the live board</a>
     <p>Bradley–Terry scored · recomputed every 15 minutes.</p>
@@ -663,6 +713,36 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
   })
 }
 
+// Homepage prerender's live top 10 — read from the edge-cached /api/ranking
+// payload (same entry the board endpoint fills), never from Supabase. A cache
+// miss or any parse failure degrades to the static card: crawlers still get
+// full OG meta, just without the list. Humans never touch this path (bot-UA
+// branch only), so board pageloads are unaffected.
+async function readCachedTopCoasters(origin: string): Promise<HomeTopCoaster[]> {
+  try {
+    const cache = getEdgeCache()
+    if (!cache) return []
+    const hit = await cache.match(rankingCacheKey(`${origin}/api/ranking`))
+    if (!hit) return []
+    const payload = (await hit.json()) as {
+      rankings?: Array<{ name?: unknown; slug?: unknown; park_name?: unknown }>
+    }
+    if (!payload || !Array.isArray(payload.rankings)) return []
+    return payload.rankings.slice(0, 10).flatMap((row) => {
+      if (typeof row.name !== 'string' || typeof row.slug !== 'string') return []
+      return [
+        {
+          name: row.name,
+          slug: row.slug,
+          park_name: typeof row.park_name === 'string' ? row.park_name : null,
+        },
+      ]
+    })
+  } catch {
+    return []
+  }
+}
+
 // /riders/:username/og.png — dynamic share card --------------------------------
 // Rendered on demand from the public rider RPC (top 5 + summary) and cached
 // at the edge for 5 minutes. Any UA may fetch (crawlers after reading the
@@ -717,6 +797,146 @@ export async function handleOgImageRequest(
   })
 }
 
+// /sitemap.xml — search-engine discovery -------------------------------------
+// Static pages plus every coaster/park slug, served to any user-agent.
+// Successes edge-cache for an hour (slugs change slowly); upstream failures
+// 502 without caching so crawlers retry against their held copy instead of
+// learning a shrunken sitemap. Missing env (fork without Supabase wired)
+// degrades to the three static URLs rather than erroring.
+
+const SITEMAP_EDGE_TTL_SECONDS = 3600
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+function sitemapCacheKey(requestUrl: string): Request {
+  const keyUrl = new URL(requestUrl)
+  keyUrl.pathname = '/sitemap.xml'
+  keyUrl.search = ''
+  keyUrl.hash = ''
+  return new Request(keyUrl.toString(), { method: 'GET' })
+}
+
+async function fetchSlugs(
+  supabaseUrl: string,
+  headers: Record<string, string>,
+  table: string,
+): Promise<string[]> {
+  const res = await fetch(`${supabaseUrl}/rest/v1/${table}?select=slug&order=slug&limit=10000`, {
+    headers,
+    signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+  })
+  if (!res.ok) throw new Error(`sitemap ${table} failed: ${res.status}`)
+  const rows = (await res.json()) as Array<{ slug?: unknown }>
+  if (!Array.isArray(rows)) throw new Error(`sitemap ${table} returned non-array`)
+  const slugs = new Set<string>()
+  for (const row of rows) {
+    if (typeof row.slug === 'string' && SLUG_RE.test(row.slug)) slugs.add(row.slug)
+  }
+  return [...slugs]
+}
+
+export function renderSitemap(origin: string, coasterSlugs: string[], parkSlugs: string[]): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const urls = [
+    `  <url><loc>${escapeHtml(`${origin}/`)}</loc><lastmod>${today}</lastmod></url>`,
+    `  <url><loc>${escapeHtml(`${origin}/about`)}</loc><lastmod>${today}</lastmod></url>`,
+    `  <url><loc>${escapeHtml(`${origin}/faq`)}</loc><lastmod>${today}</lastmod></url>`,
+    ...coasterSlugs.map(
+      (slug) => `  <url><loc>${escapeHtml(`${origin}/coasters/${slug}`)}</loc></url>`,
+    ),
+    ...parkSlugs.map((slug) => `  <url><loc>${escapeHtml(`${origin}/parks/${slug}`)}</loc></url>`),
+  ]
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`
+}
+
+export async function handleSitemapRequest(requestUrl: string, env: Env): Promise<Response> {
+  const origin = new URL(requestUrl).origin
+  const cache = getEdgeCache()
+  const cacheKey = sitemapCacheKey(requestUrl)
+  if (cache) {
+    const hit = await cache.match(cacheKey)
+    if (hit) {
+      const body = await hit.text()
+      return withSecurityHeaders(
+        new Response(body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Cache-Control': `public, max-age=${SITEMAP_EDGE_TTL_SECONDS}`,
+            'X-Sitemap-Cache': 'HIT',
+          },
+        }),
+      )
+    }
+  }
+
+  const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+  const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return withSecurityHeaders(
+      new Response(renderSitemap(origin, [], []), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+          'Cache-Control': `public, max-age=${SITEMAP_EDGE_TTL_SECONDS}`,
+          'X-Sitemap-Cache': 'BYPASS',
+        },
+      }),
+    )
+  }
+
+  let body: string | null = null
+  try {
+    const headers = {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+      Accept: 'application/json',
+    }
+    const [coasterSlugs, parkSlugs] = await Promise.all([
+      fetchSlugs(supabaseUrl, headers, 'v_coaster_rankings'),
+      fetchSlugs(supabaseUrl, headers, 'parks'),
+    ])
+    body = renderSitemap(origin, coasterSlugs, parkSlugs)
+  } catch {
+    body = null
+  }
+  if (!body) {
+    return withSecurityHeaders(
+      new Response('Upstream unavailable', {
+        status: 502,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      }),
+    )
+  }
+
+  if (cache) {
+    try {
+      await cache.put(
+        cacheKey,
+        new Response(body, {
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Cache-Control': `public, max-age=${SITEMAP_EDGE_TTL_SECONDS}`,
+          },
+        }),
+      )
+    } catch (error) {
+      console.error('[sitemap] cache.put failed:', error)
+    }
+  }
+  console.log(`[sitemap] cache fill: ${body.split('<url>').length - 1} urls`)
+  return withSecurityHeaders(
+    new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': `public, max-age=${SITEMAP_EDGE_TTL_SECONDS}`,
+        'X-Sitemap-Cache': cache ? 'MISS' : 'BYPASS',
+      },
+    }),
+  )
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -724,6 +944,14 @@ export default {
 
     if (pathname === '/api/ranking') {
       return withSecurityHeaders(await handleRankingRequest(request, env))
+    }
+
+    // Sitemap — any user-agent (crawlers + humans). Checked before the
+    // crawler gate so humans can inspect it too; requires the wrangler
+    // run_worker_first entry (the static-asset SPA fallback would otherwise
+    // answer with index.html).
+    if (pathname === '/sitemap.xml') {
+      return handleSitemapRequest(request.url, env)
     }
 
     // Dynamic share card — any user-agent (crawlers + in-app previews).
@@ -737,7 +965,7 @@ export default {
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {
       return withSecurityHeaders(
-        new Response(renderHomeHtml(url.origin), {
+        new Response(renderHomeHtml(url.origin, await readCachedTopCoasters(url.origin)), {
           status: 200,
           headers: {
             'Content-Type': 'text/html; charset=utf-8',

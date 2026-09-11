@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import BoardPage from './BoardPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PAGE_SIZE, useAllCoasters, useBoardMeta, type RankingBoardPayload } from '../lib/coasters'
@@ -53,14 +54,16 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false 
 
 function boardTree(initialEntries = ['/']) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries}>
-        <Routes>
-          <Route path="/" element={<BoardPage />} />
-        </Routes>
-        <LocationProbe />
-      </MemoryRouter>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/" element={<BoardPage />} />
+          </Routes>
+          <LocationProbe />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </HelmetProvider>
   )
 }
 
@@ -123,6 +126,22 @@ describe('BoardPage', () => {
   it('renders the board heading', () => {
     renderBoard()
     expect(screen.getByRole('heading', { name: /coasterrank/i })).toBeInTheDocument()
+  })
+
+  it('sets the board title, description, canonical, and WebSite JSON-LD', async () => {
+    renderBoard()
+    await waitFor(() => {
+      expect(document.title).toBe('CoasterRank — A live ranking of the world’s roller coasters')
+    })
+    expect(
+      document.head.querySelector('meta[name="description"]')?.getAttribute('content'),
+    ).toContain('community-voted')
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
+      `${window.location.origin}/`,
+    )
+    expect(document.querySelector('script[type="application/ld+json"]')?.textContent).toContain(
+      '"@type":"WebSite"',
+    )
   })
 
   it('shows the catalog size, country count, and live indicator', () => {

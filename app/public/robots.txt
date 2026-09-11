@@ -3,6 +3,9 @@ Allow: /
 Disallow: /me
 Disallow: /admin
 Disallow: /submit
-Disallow: /riders/
-Disallow: /@
 Disallow: /api/
+
+# Rider share pages carry a noindex meta tag (unfurl targets, not search
+# results) — deliberately NOT disallowed here so crawlers can see the tag.
+# A Disallow would hide the noindex and leave bare URLs indexed.
+Sitemap: https://coasterrank.app/sitemap.xml
