@@ -35,7 +35,8 @@ const pillCyan = `${pill} border-accent-dark/40 text-accent-ink`
  * link, or the profile-settings instructions when sharing isn't on (or the
  * username isn't claimed — rare: handle_new_user() falls back to NULL only on
  * signup unique-violation races). Eligibility is one-shot server-side (see
- * lib/share-nudge.ts); dismissal is session-local state only.
+ * lib/share-nudge.ts); dismissal hides via local state plus a cache write
+ * (dismissShareNudge) so remounts don't resurrect it.
  */
 export default function ShareNudgeBanner({
   userId,
