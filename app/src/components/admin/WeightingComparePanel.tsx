@@ -132,7 +132,7 @@ export default function WeightingComparePanel() {
   }
 
   return (
-    <Panel className="p-3 sm:p-6">
+    <Panel bleed className="p-3 sm:p-6">
       <div className="flex items-center gap-2">
         <FlaskConical size={18} className="text-accent-text" aria-hidden="true" />
         <h2 className="text-lg font-semibold text-ink">Weighting comparison</h2>

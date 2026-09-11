@@ -7,9 +7,9 @@ Captured 2026-09-11 against the PR build at localhost:5199.
 | File                            | Shows                                                                                                                                   |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `admin-submissions-desktop.png` | Submission queue on desktop (pill tabs unchanged, note wraps)                                                                           |
-| `admin-submissions-mobile.png`  | Sticky section dropdown under the topnav; single-column stat list with intact numbers; long-URL submitter note wrapping inside the card |
-| `admin-users-desktop.png`       | Users tab on desktop                                                                                                                    |
-| `admin-users-mobile.png`        | 3-column stat blocks; full-width user rows with a very long email/name fully wrapped; actions wrapped below the user info               |
+| `admin-submissions-mobile.png` | Sticky section dropdown under the topnav; queue panel as an edge-to-edge band (no gutters/radius); single-column stat list with intact numbers; long-URL submitter note wrapping inside the card |
+| `admin-users-desktop.png` | Users tab on desktop |
+| `admin-users-mobile.png` | 3-column stat blocks; filter + list panels as full-bleed white bands; user rows with a very long email/name fully wrapped; actions wrapped below the user info |
 | `admin-sharing-desktop.png`     | Sharing tab on desktop                                                                                                                  |
 | `admin-sharing-mobile.png`      | Compact stat grid, funnel table with hints hidden, stacked traffic cards                                                                |
 

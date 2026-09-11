@@ -94,7 +94,7 @@ export default function RankingsPanel() {
   })
 
   return (
-    <Panel className="p-3 sm:p-6">
+    <Panel bleed className="p-3 sm:p-6">
       <h2 className="text-lg font-semibold text-ink">Rankings</h2>
       <p className="mt-1 text-sm text-muted">
         Refits Bradley-Terry strengths from all ranked lists and upserts{' '}

@@ -151,7 +151,7 @@ export default function SharingPanel() {
         <StatBlock label="Sharing on" value={t.sharingOn} />
       </div>
 
-      <Panel className="p-3 sm:p-5">
+      <Panel bleed className="p-3 sm:p-5">
         <h2 className="display-heading text-lg text-ink">Funnel</h2>
         <p className="mt-1 text-xs leading-5 text-muted">
           Cumulative state, not a daily series — enable events are not stored (opt-ins only ping
@@ -184,7 +184,7 @@ export default function SharingPanel() {
         </table>
       </Panel>
 
-      <Panel className="p-3 sm:p-5">
+      <Panel bleed className="p-3 sm:p-5">
         <h2 className="display-heading text-lg text-ink">Current sharers</h2>
         {data.funnel.sharers.length === 0 ? (
           <p className="mt-2 text-sm text-muted">Nobody has sharing enabled yet.</p>
@@ -216,7 +216,7 @@ export default function SharingPanel() {
         )}
       </Panel>
 
-      <Panel className="p-3 sm:p-5">
+      <Panel bleed className="p-3 sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="display-heading text-lg text-ink">Shared-page traffic (30d)</h2>
           <p className="text-xs text-muted">
@@ -296,7 +296,7 @@ export default function SharingPanel() {
         )}
       </Panel>
 
-      <Panel className="p-3 text-xs leading-5 text-muted sm:p-5">
+      <Panel bleed className="p-3 text-xs leading-5 text-muted sm:p-5">
         <p className="font-semibold uppercase tracking-[0.1em] text-muted">Not visible here</p>
         <p className="mt-1">
           Copy clicks, nudge accepts/dismisses, and per-link attribution are not captured anywhere

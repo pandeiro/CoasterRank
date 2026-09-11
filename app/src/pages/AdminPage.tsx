@@ -602,7 +602,7 @@ export default function AdminPage() {
 
       <div className="space-y-4 sm:space-y-6">
         {activeTab === 'submissions' && (
-          <Panel className="p-3 sm:p-6">
+          <Panel bleed className="p-3 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold text-ink">Submission Queue</h2>
               <div className="flex gap-1 rounded-full bg-surface p-1 text-xs">
@@ -737,7 +737,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'coasters' && (
-          <Panel className="p-3 sm:p-6">
+          <Panel bleed className="p-3 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-ink">Coaster Management</h2>
               <Button variant="coral" size="sm" onClick={openAddForm}>
@@ -843,7 +843,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'parks' && (
-          <Panel className="p-3 sm:p-6">
+          <Panel bleed className="p-3 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-ink">Park Management</h2>
               <Button variant="coral" size="sm" onClick={openAddParkForm}>
@@ -950,7 +950,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'rehome' && (
-          <Panel className="p-3 sm:p-6">
+          <Panel bleed className="p-3 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Home size={20} className="text-ink" />
               <h2 className="text-lg font-semibold text-ink">Re-home Coasters</h2>
@@ -1053,7 +1053,7 @@ export default function AdminPage() {
         {activeTab === 'weighting' && <WeightingComparePanel />}
 
         {activeTab === 'control-panel' && (
-          <Panel className="p-3 sm:p-6">
+          <Panel bleed className="p-3 sm:p-6">
             <h2 className="text-lg font-semibold text-ink">Control Panel</h2>
             <p className="mt-1 text-sm text-muted">
               Toggle Telegram event notifications on or off in real-time without redeploying code.

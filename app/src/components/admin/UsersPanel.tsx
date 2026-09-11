@@ -186,7 +186,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
         </div>
       )}
 
-      <Panel className="p-3 sm:p-4">
+      <Panel bleed className="p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex shrink-0 self-start rounded-full bg-surface p-1">
             {FILTERS.map((f) => (
@@ -227,7 +227,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
         </p>
       </Panel>
 
-      <Panel className="p-3 sm:p-6">
+      <Panel bleed className="p-3 sm:p-6">
         <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-ink">Users</h2>
           <Button type="button" size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
