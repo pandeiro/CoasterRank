@@ -1,9 +1,11 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import {
+  serializeParkLocation,
   validateEditSubmission,
   validateNewSubmission,
   validationSummary,
+  type ParkLocationInput,
 } from './submission-validation'
 import type {
   CoasterMaterial,
@@ -426,10 +428,54 @@ export type SuggestedFields = {
   manufacturer_id?: string | null
   /** Proposed lineage (ordered id list); approval REPLACES the lineage. */
   manufacturer_ids?: string[] | null
+  /**
+   * Manufacturers NOT in the catalog yet, proposed by the submitter.
+   * position is the index in the MERGED lineage (0 = primary) — approval
+   * creates the rows and interleaves them with manufacturer_ids.
+   */
+  proposed_manufacturers?: ProposedManufacturer[] | null
+  /** Location metadata for a park that does not exist yet (park_id null). */
+  park_location?: ParkLocation | null
   status?: CoasterStatus | null
   model?: string | null
   type?: string | null
   opening_date?: string | null
+}
+
+/** Proposed new manufacturer: name + slot in the merged lineage (0 = primary). */
+export type ProposedManufacturer = { name: string; position: number }
+
+export type { ParkLocation } from './submission-validation'
+import type { ParkLocation } from './submission-validation'
+
+/** A lineage entry from the multi picker: an existing manufacturer (id) or a proposed one (id null). */
+export type ManufacturerPick = { id: string; name: string } | { id: null; name: string }
+
+/**
+ * Serialize the picker's merged ordered list into the two payload keys:
+ * existing picks → manufacturer_ids (relative order kept), proposed picks →
+ * proposed_manufacturers with their position in the merged list. Nulls mean
+ * "absent" per the payload CHECK.
+ */
+export function serializeManufacturerPicks(picks: ManufacturerPick[]): {
+  manufacturer_ids: string[] | null
+  proposed_manufacturers: ProposedManufacturer[] | null
+} {
+  const ids: string[] = []
+  const proposals: ProposedManufacturer[] = []
+  picks.forEach((pick, position) => {
+    // A pick without an id is a proposal (defensive: legacy callers may pass
+    // {name} without the id key).
+    if (pick.id === null || pick.id === undefined) {
+      proposals.push({ name: pick.name.trim(), position })
+    } else {
+      ids.push(pick.id)
+    }
+  })
+  return {
+    manufacturer_ids: ids.length > 0 ? ids : null,
+    proposed_manufacturers: proposals.length > 0 ? proposals : null,
+  }
 }
 
 export type SubmissionKind = 'new' | 'edit'
@@ -482,10 +528,9 @@ export function proposedLineageIds(fields: Record<string, unknown>): string[] | 
 // constraint and make the submission unapprovable (e.g. a stats-less
 // suggestion like Turbo Track). Descriptive values are re-validated so a
 // malformed payload degrades to "field not set" instead of failing (or
-// worse, poisoning) the coaster row. Manufacturer lineage rides separately
-// (manufacturerIds) because coaster_manufacturers is a junction table — the
-// coasters row itself no longer takes a manufacturer column (the primary
-// pointer is trigger-maintained).
+// worse, poisoning) the coaster row. Manufacturer lineage does NOT ride on
+// the row: it is resolved separately (resolveProposedLineage) into the
+// junction table — the primary pointer is trigger-maintained.
 function approvableStat(value: unknown, max: number, integer = false): number | null {
   if (value === null || value === undefined) return null
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
@@ -494,10 +539,7 @@ function approvableStat(value: unknown, max: number, integer = false): number | 
   return value
 }
 
-function approvableSuggestedFields(fields: SuggestedFields): {
-  row: Partial<SuggestedFields>
-  manufacturerIds: string[]
-} {
+function approvableSuggestedFields(fields: SuggestedFields): Partial<SuggestedFields> {
   const row: Partial<SuggestedFields> = {
     height_m: approvableStat(fields.height_m, 500),
     speed_kmh: approvableStat(fields.speed_kmh, 500),
@@ -515,8 +557,7 @@ function approvableSuggestedFields(fields: SuggestedFields): {
   if (fields.opening_date && ISO_DATE_RE.test(fields.opening_date)) {
     row.opening_date = fields.opening_date
   }
-  const manufacturerIds = proposedLineageIds(fields as unknown as Record<string, unknown>) ?? []
-  return { row, manufacturerIds }
+  return row
 }
 
 // Scalar fields a user may propose changing on an EXISTING coaster
@@ -535,6 +576,10 @@ export type EditSuggestedFields = {
   manufacturer_id?: string | null
   /** Proposed lineage (ordered id list); approval REPLACES the lineage. */
   manufacturer_ids?: string[] | null
+  /** Proposed new manufacturers — see SuggestedFields.proposed_manufacturers. */
+  proposed_manufacturers?: ProposedManufacturer[] | null
+  /** Location metadata for a new-park proposal (park_id null) — see SuggestedFields. */
+  park_location?: ParkLocation | null
   status?: CoasterStatus | null
   model?: string | null
   type?: string | null
@@ -562,19 +607,23 @@ export type EditableCoasterSnapshot = Pick<
   | 'opening_date'
 > & { manufacturer_ids?: string[] | null }
 
-// Raw edited values from the suggest-edit form. manufacturer_ids is the full
-// ordered lineage list from the multi picker (NOT a diff — the form always
-// knows the whole list); diffEditProposal reduces it to a change or nothing.
+// Raw edited values from the suggest-edit form. manufacturerPicks is the
+// full ordered lineage list from the multi picker (NOT a diff — the form
+// always knows the whole list; entries without an id are proposed new
+// manufacturers); diffEditProposal reduces it to a change or nothing.
+// park_id is null when the edit proposes a NEW park (parkLocation carries
+// its optional location metadata).
 export type EditProposalInput = {
   name: string
-  park_id: string
+  park_id: string | null
   status: string
   material: string
   height_m: string
   speed_kmh: string
   length_m: string
   inversions: string
-  manufacturer_ids: string[]
+  manufacturerPicks: ManufacturerPick[]
+  parkLocation: ParkLocationInput
   model: string
   type: string
   opening_date: string
@@ -614,16 +663,28 @@ export function diffEditProposal(
     if (proposed !== (current[key] ?? null)) diff[key] = proposed
   }
 
-  // Manufacturer lineage rides as an ordered id list from the multi picker.
-  // Order matters (it decides the primary), so any difference in ids OR
-  // sequence is a change. [] = "propose no manufacturers" (explicit clear).
-  const proposedIds = proposal.manufacturer_ids.filter((id) => Boolean(id))
+  // Manufacturer lineage rides as the ordered pick list from the multi
+  // picker (existing ids + proposed names). Order matters (it decides the
+  // primary), so any difference in ids OR sequence is a change; any proposed
+  // entry is a change by definition (current lineages never contain
+  // proposals). When proposals exist, the id list MUST ride along so
+  // approval can replace the lineage with the full merged list.
+  // [] = "propose no manufacturers" (explicit clear).
+  const serialized = serializeManufacturerPicks(proposal.manufacturerPicks)
+  const proposedIds = serialized.manufacturer_ids ?? []
   const currentIds = (current.manufacturer_ids ?? []).filter((id) => Boolean(id))
-  if (
-    proposedIds.length !== currentIds.length ||
-    proposedIds.some((id, i) => id !== currentIds[i])
-  ) {
+  const idsChanged =
+    proposedIds.length !== currentIds.length || proposedIds.some((id, i) => id !== currentIds[i])
+  const hasProposals = (serialized.proposed_manufacturers?.length ?? 0) > 0
+  if (idsChanged || hasProposals) {
     diff.manufacturer_ids = proposedIds
+    if (hasProposals) diff.proposed_manufacturers = serialized.proposed_manufacturers
+  }
+
+  // Location metadata only applies to a NEW park (park_id null).
+  if (proposal.park_id === null) {
+    const location = serializeParkLocation(proposal.parkLocation)
+    if (location) diff.park_location = location
   }
 
   const proposedName = proposal.name.trim()
@@ -675,6 +736,7 @@ export async function submitCoaster(data: {
   const errors = validateNewSubmission({
     coaster_name: data.coaster_name,
     park_name: data.park_name,
+    park_id: data.park_id,
     suggested_fields: data.suggested_fields as unknown as Record<string, unknown>,
     note: data.note ?? null,
   })
@@ -700,13 +762,14 @@ export async function submitCoaster(data: {
 
 // Suggest changes to an EXISTING coaster (kind='edit'). suggested_fields
 // carries only the changed scalar keys (see diffEditProposal); a park move
-// is expressed via park_id/park_name. The DB payload CHECK rejects anything
-// outside the edit allowlist.
+// is expressed via park_id/park_name — park_id is null together with a
+// park_location payload when the edit proposes a park that does not exist
+// yet. The DB payload CHECK rejects anything outside the edit allowlist.
 export async function submitEditSuggestion(data: {
   coaster_id: string
   coaster_name: string
   park_name: string
-  park_id: string
+  park_id: string | null
   suggested_fields: EditSuggestedFields
   note?: string | null
 }) {
@@ -877,6 +940,180 @@ async function findParkIdBySlug(slug: string): Promise<string | null> {
   return (data as { id: string } | null)?.id ?? null
 }
 
+// Sanitized park_location from a submission payload (defense in depth
+// mirroring the DB CHECK): null when absent or fully malformed, so a hostile
+// key can never reach the parks INSERT. Valid fields trim/clip individually.
+function proposedParkLocation(fields: Record<string, unknown>): ParkLocation | null {
+  const raw = fields.park_location
+  if (raw === null || raw === undefined || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null
+  }
+  const source = raw as Record<string, unknown>
+  const out: ParkLocation = {}
+  for (const key of ['city', 'region', 'country'] as const) {
+    const value = source[key]
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed.length >= 1 && trimmed.length <= 120) out[key] = trimmed
+    }
+  }
+  const lat = source.lat
+  if (typeof lat === 'number' && Number.isFinite(lat) && lat >= -90 && lat <= 90) out.lat = lat
+  const lng = source.lng
+  if (typeof lng === 'number' && Number.isFinite(lng) && lng >= -180 && lng <= 180) {
+    out.lng = lng
+  }
+  return Object.keys(out).length > 0 ? out : null
+}
+
+// Create-or-reuse the park a submission is homed to. park_id set → link as
+// is; free-text park name → reuse the community park a prior approval may
+// have already minted, else create it with the submitter's proposed location
+// metadata attached. Returns null when no park could be resolved.
+async function ensureParkForSubmission(submission: CoasterSubmission): Promise<string | null> {
+  if (submission.park_id) return submission.park_id
+  const parkSlug = slugify(submission.park_name)
+  const location = proposedParkLocation(
+    (submission.suggested_fields ?? {}) as unknown as Record<string, unknown>,
+  )
+  const existingId = await findParkIdBySlug(parkSlug)
+  if (existingId) return existingId
+  const { data: park, error: parkError } = await supabase
+    .from('parks')
+    .insert({
+      name: submission.park_name,
+      slug: parkSlug,
+      source: 'community',
+      ...(location ?? {}),
+    })
+    .select()
+    .single()
+  if (!parkError) return (park as { id: string }).id
+  if (parkError.code !== '23505') throw parkError
+  // Race: another approval created the park between our lookup and insert
+  // (e.g. two "Rowdy Bear" submissions in one queue) — resolve the winner
+  // by slug and reuse it.
+  return findParkIdBySlug(parkSlug)
+}
+
+// Create-or-reuse a manufacturer by slug (proposed by a submitter; approval
+// runs as an admin, which holds the manufacturers write grant).
+async function ensureManufacturerId(name: string): Promise<string> {
+  const trimmed = name.trim()
+  const slug = slugify(trimmed)
+  const { data: existing, error: fetchError } = await supabase
+    .from('manufacturers')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (fetchError) throw fetchError
+  if (existing) return (existing as { id: string }).id
+  const { data: created, error } = await supabase
+    .from('manufacturers')
+    .insert({ name: trimmed, slug })
+    .select('id')
+    .single()
+  if (!error) return (created as { id: string }).id
+  if (error.code !== '23505') throw error
+  // Race: another approval minted it first — resolve the winner by slug.
+  const winner = await supabase.from('manufacturers').select('id').eq('slug', slug).maybeSingle()
+  if (winner.error) throw winner.error
+  const id = (winner.data as { id: string } | null)?.id
+  if (!id) throw error
+  return id
+}
+
+// Defense-in-depth parse of a payload's proposed_manufacturers array
+// (mirrors the DB CHECK): well-formed {name, position} entries only.
+export function parseProposedManufacturers(
+  raw: unknown,
+): Array<{ name: string; position: number }> {
+  return (Array.isArray(raw) ? raw : [])
+    .filter(
+      (entry): entry is Record<string, unknown> =>
+        entry !== null && typeof entry === 'object' && !Array.isArray(entry),
+    )
+    .map((entry) => ({
+      name: typeof entry.name === 'string' ? entry.name.trim() : '',
+      position: typeof entry.position === 'number' ? entry.position : -1,
+    }))
+    .filter(
+      (p): p is { name: string; position: number } =>
+        p.name.length >= 1 &&
+        p.name.length <= 80 &&
+        Number.isInteger(p.position) &&
+        p.position >= 0 &&
+        p.position <= 9,
+    )
+}
+
+// Pure slot-merge shared by approval (resolveProposedLineage) and the admin
+// queue display: entries are manufacturer ids (existing rows) or proposed
+// names, each at its slot in the MERGED lineage. Extra slots (a proposal
+// positioned past the current count) are backfilled with the remaining ids.
+function mergeLineageSlots(
+  ids: string[],
+  proposals: Array<{ name: string; position: number }>,
+): Array<string | { name: string }> {
+  const total = ids.length + proposals.length
+  // Proposals positioned past the merged size are unplaceable — drop them
+  // (validators and the DB CHECK forbid this; defense in depth for rows
+  // written before the rule existed).
+  const usable = proposals.filter((p) => p.position < total)
+  const size = Math.max(total, ...usable.map((p) => p.position + 1), 0)
+  const slots: Array<string | { name: string } | null> = Array(size).fill(null)
+  // First proposal wins a disputed slot (the DB CHECK forbids duplicates —
+  // this is defense in depth for rows written before the rule existed).
+  for (const proposal of usable) {
+    if (slots[proposal.position] === null) slots[proposal.position] = { name: proposal.name }
+  }
+  let nextId = 0
+  return slots.map((slot) => {
+    if (slot) return slot
+    const id = ids[nextId++]
+    return id ?? ''
+  })
+}
+
+// Merge a submission's manufacturer payload into one ordered id list:
+// manufacturer_ids (existing rows, relative order kept) plus
+// proposed_manufacturers (created on demand) placed at their `position`
+// slots in the merged lineage — a proposal at position 0 becomes the
+// primary. Returns
+//   undefined  — the payload doesn't touch manufacturers (no lineage write)
+//   string[]   — the merged, ordered lineage for setCoasterLineage
+async function resolveProposedLineage(
+  fields: Record<string, unknown>,
+): Promise<string[] | undefined> {
+  const ids = proposedLineageIds(fields)
+  const proposals = parseProposedManufacturers(fields.proposed_manufacturers)
+  if (ids === undefined && proposals.length === 0) return undefined
+
+  const slots = mergeLineageSlots(ids ?? [], proposals)
+  const merged: string[] = []
+  for (const slot of slots) {
+    merged.push(typeof slot === 'string' ? slot : await ensureManufacturerId(slot.name))
+  }
+  return merged
+}
+
+// Merged lineage for DISPLAY (admin queue): existing ids resolved to names
+// via nameById, proposed entries rendered as "Name (new)". Returns null when
+// the payload doesn't touch manufacturers.
+export function mergedLineageDisplay(
+  fields: Record<string, unknown>,
+  nameById?: Map<string, string>,
+): string | null {
+  const ids = proposedLineageIds(fields)
+  const proposals = parseProposedManufacturers(fields.proposed_manufacturers)
+  if (ids === undefined && proposals.length === 0) return null
+  return mergeLineageSlots(ids ?? [], proposals)
+    .map((slot) =>
+      typeof slot === 'string' ? (nameById?.get(slot) ?? slot) : `${slot.name} (new)`,
+    )
+    .join(' · ')
+}
+
 export async function approveSubmission(id: string, submission: CoasterSubmission) {
   const {
     data: { user },
@@ -886,47 +1123,19 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
   if (!user) throw new Error('Not authenticated')
 
   // Logic to create/link park and manufacturer.
-  // 1. Handle Park
-  let parkId = submission.park_id
-  if (!parkId) {
-    const parkSlug = slugify(submission.park_name)
-    // Second submission for a brand-new park: a prior approval may have
-    // already created it — reuse that park instead of colliding with
-    // parks.slug UNIQUE (e.g. two "Rowdy Bear" submissions in one queue).
-    parkId = await findParkIdBySlug(parkSlug)
-    if (!parkId) {
-      const { data: park, error: parkError } = await supabase
-        .from('parks')
-        .insert({
-          name: submission.park_name,
-          slug: parkSlug,
-          source: 'community',
-        })
-        .select()
-        .single()
-      if (parkError) {
-        if (parkError.code !== '23505') throw parkError
-        // Race: another approval created the park between our lookup and
-        // insert — resolve the winner by slug and reuse it.
-        parkId = await findParkIdBySlug(parkSlug)
-        if (!parkId) {
-          throw new Error(`A park named "${submission.park_name}" already exists.`)
-        }
-      } else {
-        parkId = park.id
-      }
-    }
-  }
+  // 1. Park: existing link, else community mint (with proposed location).
+  const parkId = await ensureParkForSubmission(submission)
+  if (!parkId) throw new Error(`Could not create park "${submission.park_name}".`)
 
   // 2. Create Coaster — globally unique slug (park suffix fallback).
-  // Manufacturer lineage rides via coaster_manufacturers AFTER the row lands
-  // (the coasters row no longer carries a manufacturer column; the primary
-  // pointer is trigger-maintained).
+  // Manufacturer lineage (existing ids + proposed entries) rides via
+  // coaster_manufacturers AFTER the row lands (the coasters row no longer
+  // carries a manufacturer column; the primary pointer is trigger-maintained).
   const approved = approvableSuggestedFields(submission.suggested_fields)
   const baseSlug = slugify(submission.coaster_name)
-  if (!parkId) throw new Error('Missing park')
   let coasterSlug = await resolveUniqueCoasterSlug(baseSlug, parkId, null)
   let coasterError: { code?: string; message: string } | null = null
+  let createdCoasterId: string | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: created, error } = await supabase
       .from('coasters')
@@ -938,15 +1147,13 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
         // C-01: explicit allowlist — never spread the raw payload, so a
         // hostile key (park_id/name/slug/source/…) cannot override reviewed
         // columns.
-        ...approved.row,
+        ...approved,
       })
       .select('id')
       .single()
     if (!error) {
       coasterError = null
-      if (approved.manufacturerIds.length > 0) {
-        await setCoasterLineage(created.id, approved.manufacturerIds, 'submission')
-      }
+      createdCoasterId = (created as { id: string }).id
       break
     }
     if (error.code !== '23505') {
@@ -977,13 +1184,25 @@ export async function approveSubmission(id: string, submission: CoasterSubmissio
       : coasterError
   }
 
-  // 3. Update Submission Status
+  // 3. Lineage: existing ids + proposed manufacturers (minted on demand).
+  if (createdCoasterId) {
+    const lineage = await resolveProposedLineage(
+      (submission.suggested_fields ?? {}) as unknown as Record<string, unknown>,
+    )
+    if (lineage && lineage.length > 0) {
+      await setCoasterLineage(createdCoasterId, lineage, 'submission')
+    }
+  }
+
+  // 4. Update Submission Status
   await markSubmissionApproved(id, user.id)
 }
 
 // Approve an edit suggestion: apply the allowlisted diff onto the target
 // coaster row. Park moves come from the top-level park_id column (never the
-// payload — C-01); slug is deliberately untouched so detail URLs stay stable.
+// payload — C-01); a null park_id with a park_name is a NEW-park proposal,
+// which ensureParkForSubmission mints (with the proposed park_location).
+// Slug is deliberately untouched so detail URLs stay stable.
 // (last_verified_at was removed from coasters in
 // 20260823023126_remove_track_a_dedup_infrastructure.sql — do not write it.)
 export async function approveEditSubmission(id: string, submission: CoasterSubmission) {
@@ -994,7 +1213,6 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
   if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
   if (!submission.coaster_id) throw new Error('Edit submission is missing its coaster.')
-  if (!submission.park_id) throw new Error('Edit submission is missing its park.')
 
   // Defense in depth mirroring the DB CHECK: only allowlisted keys leave the
   // payload, and enum/text values are re-validated before the UPDATE.
@@ -1018,10 +1236,6 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
   if (typeof fields.status === 'string' && isCoasterStatus(fields.status)) {
     updates.status = fields.status
   }
-  // Manufacturer lineage is NOT part of the row update: the primary pointer
-  // (coasters.manufacturer_id) is trigger-maintained from the junction table.
-  // The proposed list (or legacy single id) replaces the lineage below.
-  const lineage = proposedLineageIds(fields)
   for (const key of ['model', 'type'] as const) {
     const raw = fields[key]
     if (raw === null) updates[key] = null
@@ -1036,14 +1250,19 @@ export async function approveEditSubmission(id: string, submission: CoasterSubmi
     updates.opening_date = null
   }
 
-  updates.park_id = submission.park_id
+  // Park move (existing id) or new-park proposal (null id + park_name).
+  const parkId = await ensureParkForSubmission(submission)
+  if (!parkId) throw new Error('Edit submission is missing its park.')
+  updates.park_id = parkId
 
   const { error } = await supabase.from('coasters').update(updates).eq('id', submission.coaster_id)
   if (error) throw error
 
   // An accepted manufacturer proposal REPLACES the whole lineage with the
-  // proposed list (decided 2026-09) — undefined means the payload didn't
-  // touch manufacturers, so leave it alone.
+  // merged list (decided 2026-09; existing ids + proposed entries) —
+  // undefined means the payload didn't touch manufacturers, so leave it
+  // alone.
+  const lineage = await resolveProposedLineage(fields)
   if (lineage !== undefined) {
     await setCoasterLineage(submission.coaster_id, lineage, 'submission')
   }

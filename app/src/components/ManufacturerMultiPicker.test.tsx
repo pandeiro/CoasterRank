@@ -26,15 +26,13 @@ function renderPicker(props: Partial<React.ComponentProps<typeof ManufacturerMul
 describe('ManufacturerMultiPicker', () => {
   it('adds a pick at the FRONT (newest wins) and clears the query', async () => {
     const user = userEvent.setup()
-    const { onChange } = renderPicker({
-      selected: [{ id: 'm1', name: 'Intamin', slug: 'intamin' }],
-    })
+    const { onChange } = renderPicker({ selected: [{ id: 'm1', name: 'Intamin' }] })
     const input = screen.getByPlaceholderText(/search for a manufacturer/i)
     await user.type(input, 'Zamperla')
     await user.click(screen.getByText('Zamperla'))
     expect(onChange).toHaveBeenCalledWith([
-      { id: 'm2', name: 'Zamperla', slug: 'zamperla' },
-      { id: 'm1', name: 'Intamin', slug: 'intamin' },
+      { id: 'm2', name: 'Zamperla' },
+      { id: 'm1', name: 'Intamin' },
     ])
   })
 
@@ -46,21 +44,68 @@ describe('ManufacturerMultiPicker', () => {
     expect(document.querySelectorAll('ul.absolute')).toHaveLength(0)
   })
 
-  it('removes a chip and reorders via the move buttons', async () => {
+  it('proposes a free-text manufacturer not in the catalog (id null)', async () => {
+    const user = userEvent.setup()
+    const { onChange } = renderPicker()
+    await user.type(screen.getByPlaceholderText(/search/i), 'Gerstlauer')
+    await user.click(screen.getByTestId('propose-option'))
+    expect(onChange).toHaveBeenCalledWith([{ id: null, name: 'Gerstlauer' }])
+  })
+
+  it('offers no proposal when the typed name matches the catalog (case-insensitive)', async () => {
+    const user = userEvent.setup()
+    renderPicker()
+    await user.type(screen.getByPlaceholderText(/search/i), 'intamin')
+    expect(screen.queryByTestId('propose-option')).not.toBeInTheDocument()
+    expect(screen.getByText('Intamin')).toBeInTheDocument()
+  })
+
+  it('offers no proposal when the name is already picked', async () => {
+    const user = userEvent.setup()
+    renderPicker({ selected: [{ id: null, name: 'Gerstlauer' }] })
+    await user.type(screen.getByPlaceholderText(/search/i), 'Gerstlauer')
+    expect(screen.queryByTestId('propose-option')).not.toBeInTheDocument()
+    expect(document.querySelectorAll('ul.absolute')).toHaveLength(0)
+  })
+
+  it('marks proposed chips as pending approval', () => {
+    renderPicker({
+      selected: [
+        { id: null, name: 'Gerstlauer' },
+        { id: 'm1', name: 'Intamin' },
+      ],
+    })
+    expect(screen.getByText(/new — pending approval/i)).toBeInTheDocument()
+    expect(screen.getByText(/· primary/)).toBeInTheDocument()
+  })
+
+  it('removes a chip (existing and proposed) and reorders via the move buttons', async () => {
     const user = userEvent.setup()
     const { onChange } = renderPicker({ selected: manufacturers })
     await user.click(screen.getByRole('button', { name: /remove zamperla/i }))
     expect(onChange).toHaveBeenCalledWith([
-      { id: 'm1', name: 'Intamin', slug: 'intamin' },
-      { id: 'm3', name: 'Rocky Mountain Construction', slug: 'rmc' },
+      { id: 'm1', name: 'Intamin' },
+      { id: 'm3', name: 'Rocky Mountain Construction' },
     ])
     onChange.mockClear()
     await user.click(screen.getByRole('button', { name: /move intamin down/i }))
     expect(onChange).toHaveBeenCalledWith([
-      { id: 'm2', name: 'Zamperla', slug: 'zamperla' },
-      { id: 'm1', name: 'Intamin', slug: 'intamin' },
-      { id: 'm3', name: 'Rocky Mountain Construction', slug: 'rmc' },
+      { id: 'm2', name: 'Zamperla' },
+      { id: 'm1', name: 'Intamin' },
+      { id: 'm3', name: 'Rocky Mountain Construction' },
     ])
+  })
+
+  it('removes a proposed chip by its slot (no id needed)', async () => {
+    const user = userEvent.setup()
+    const { onChange } = renderPicker({
+      selected: [
+        { id: null, name: 'Gerstlauer' },
+        { id: 'm1', name: 'Intamin' },
+      ],
+    })
+    await user.click(screen.getByRole('button', { name: /remove gerstlauer/i }))
+    expect(onChange).toHaveBeenCalledWith([{ id: 'm1', name: 'Intamin' }])
   })
 
   it('disables the up button on the primary and down on the last chip', () => {
@@ -69,10 +114,5 @@ describe('ManufacturerMultiPicker', () => {
     expect(
       screen.getByRole('button', { name: /move rocky mountain construction down/i }),
     ).toBeDisabled()
-  })
-
-  it('marks the first chip as primary', () => {
-    renderPicker({ selected: manufacturers })
-    expect(screen.getByText(/· primary/)).toBeInTheDocument()
   })
 })

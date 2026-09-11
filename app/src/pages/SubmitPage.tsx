@@ -11,19 +11,22 @@ import {
   COASTER_STATUSES,
   getMySubmissions,
   markMySubmissionsSeen,
+  serializeManufacturerPicks,
   SUBMISSION_PENDING_CAP,
   submitCoaster,
   useManufacturers,
   useParks,
   type CoasterSubmission,
-  type Manufacturer,
+  type ManufacturerPick,
   type Park,
   type SuggestedFields,
 } from '../lib/coasters'
 import {
   parseOptionalNumber,
+  serializeParkLocation,
   validateNewSubmission,
   validationSummary,
+  type ParkLocationInput,
   type SubmissionValidationErrors,
 } from '../lib/submission-validation'
 
@@ -46,8 +49,9 @@ export default function SubmitPage() {
   // Schema validation errors from the last submit attempt (cleared on the
   // next attempt / success). Keys match input names / suggested_fields keys.
   const [fieldErrors, setFieldErrors] = useState<SubmissionValidationErrors>({})
-  // Manufacturer lineage (multi): ordered list, index 0 = primary.
-  const [selectedLineage, setSelectedLineage] = useState<Manufacturer[]>([])
+  // Manufacturer lineage (multi): ordered list, index 0 = primary. Entries
+  // with id null are PROPOSED manufacturers (not yet in the catalog).
+  const [selectedLineage, setSelectedLineage] = useState<ManufacturerPick[]>([])
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(() => {
     const justSuggested = (location.state as { justSuggested?: string } | null)?.justSuggested
     return justSuggested
@@ -122,7 +126,7 @@ export default function SubmitPage() {
       length_m: parseOptionalNumber(text('length')),
       inversions: parseOptionalNumber(text('inversions')),
       material: (formData.get('material') as SuggestedFields['material']) || null,
-      manufacturer_ids: selectedLineage.length > 0 ? selectedLineage.map((m) => m.id) : null,
+      ...serializeManufacturerPicks(selectedLineage),
       status: (formData.get('status') as SuggestedFields['status']) || null,
       model: text('model').trim() || null,
       type: text('type').trim() || null,
@@ -130,6 +134,17 @@ export default function SubmitPage() {
     }
     const coaster_name = text('coaster_name').trim()
     const park_name = selectedPark ? selectedPark.name : text('park_name').trim()
+    const park_id = selectedPark?.id ?? null
+    // Location metadata only applies to a park that does not exist yet; the
+    // key is always present (null = absent) for a uniform payload shape.
+    const parkLocation: ParkLocationInput = {
+      city: text('park_city'),
+      region: text('park_region'),
+      country: text('park_country'),
+      lat: text('park_lat'),
+      lng: text('park_lng'),
+    }
+    suggested_fields.park_location = park_id ? null : serializeParkLocation(parkLocation)
     const note = text('note').trim() || null
 
     // Schema gate: invalid data never leaves the form, so it can never
@@ -137,6 +152,7 @@ export default function SubmitPage() {
     const errors = validateNewSubmission({
       coaster_name,
       park_name,
+      park_id,
       suggested_fields: suggested_fields as unknown as Record<string, unknown>,
       note,
     })
@@ -152,7 +168,7 @@ export default function SubmitPage() {
       {
         coaster_name,
         park_name,
-        park_id: selectedPark?.id ?? null,
+        park_id,
         suggested_fields,
         note,
       },
@@ -249,6 +265,57 @@ export default function SubmitPage() {
             </div>
           </div>
 
+          {!selectedPark && searchPark.trim() && (
+            <div className="rounded-xl border border-line bg-surface-bright p-4">
+              <p className="text-sm font-medium text-ink">
+                New park: <span className="font-semibold">{searchPark.trim()}</span>
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                Not in the catalog — it will be created if your submission is approved. Location
+                helps reviewers place it (all fields optional).
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {(
+                  [
+                    ['park_city', 'City'],
+                    ['park_region', 'Region / state'],
+                    ['park_country', 'Country'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key} className="flex flex-col gap-1">
+                    <label htmlFor={key} className="text-xs font-medium text-ink-soft">
+                      {label}
+                    </label>
+                    <input id={key} name={key} maxLength={120} className={fieldClassName} />
+                    {fieldError(`park_location.${key.replace('park_', '')}`)}
+                  </div>
+                ))}
+                {(
+                  [
+                    ['park_lat', 'Latitude', -90, 90],
+                    ['park_lng', 'Longitude', -180, 180],
+                  ] as const
+                ).map(([key, label, min, max]) => (
+                  <div key={key} className="flex flex-col gap-1">
+                    <label htmlFor={key} className="text-xs font-medium text-ink-soft">
+                      {label}
+                    </label>
+                    <input
+                      id={key}
+                      name={key}
+                      type="number"
+                      step="any"
+                      min={min}
+                      max={max}
+                      className={fieldClassName}
+                    />
+                    {fieldError(`park_location.${key.replace('park_', '')}`)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-line pt-6">
             <h3 className="mb-4 text-lg font-semibold text-ink">Suggested Stats (Optional)</h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -338,6 +405,7 @@ export default function SubmitPage() {
                   placeholder="Search for a manufacturer..."
                 />
                 {fieldError('manufacturer_ids')}
+                {fieldError('proposed_manufacturers')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="status" className="text-sm font-medium text-ink-soft">

@@ -161,6 +161,8 @@ describe('SubmitPage', () => {
           inversions: null,
           material: null,
           manufacturer_ids: null,
+          proposed_manufacturers: null,
+          park_location: null,
           status: null,
           model: null,
           type: null,
@@ -227,6 +229,91 @@ describe('SubmitPage', () => {
         }
       ).suggested_fields.manufacturer_ids,
     ).toEqual(['bbbbbbbb-2222-4222-8222-222222222222', 'aaaaaaaa-1111-4111-8111-111111111111'])
+  })
+
+  it('carries a proposed manufacturer into the payload with its merged position', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    vi.mocked(useManufacturers).mockReturnValue({
+      data: [
+        ...manufacturers,
+        { id: 'bbbbbbbb-2222-4222-8222-222222222222', name: 'Intamin', slug: 'intamin' },
+      ],
+    } as never)
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Mystery Coaster')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar Point')
+    // Newest pick leads, so the proposed entry lands at position 0 (primary)
+    // and the existing Intamin id backfills position 1.
+    await user.type(screen.getByLabelText(/manufacturers/i), 'Intamin')
+    await user.click(screen.getByText('Intamin'))
+    await user.type(screen.getByLabelText(/manufacturers/i), 'Gerstlauer')
+    await user.click(screen.getByTestId('propose-option'))
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
+    const payload = vi.mocked(submitCoaster).mock.calls[0][0] as {
+      park_id: string | null
+      suggested_fields: {
+        manufacturer_ids: string[]
+        proposed_manufacturers: Array<{ name: string; position: number }>
+      }
+    }
+    expect(payload.suggested_fields.manufacturer_ids).toEqual([
+      'bbbbbbbb-2222-4222-8222-222222222222',
+    ])
+    expect(payload.suggested_fields.proposed_manufacturers).toEqual([
+      { name: 'Gerstlauer', position: 0 },
+    ])
+  })
+
+  it('attaches park location only for a not-yet-existing park', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Blue Flash')
+    // Free text with no suggestion click → a new-park proposal.
+    await user.type(screen.getByLabelText(/park name/i), 'Indiana Beach')
+    expect(screen.getByText(/new park:/i)).toBeInTheDocument()
+    await user.type(screen.getByLabelText('City'), 'Monticello')
+    await user.type(screen.getByLabelText('Country'), 'USA')
+    await user.type(screen.getByLabelText('Latitude'), '40.77')
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
+    const payload = vi.mocked(submitCoaster).mock.calls[0][0] as {
+      park_id: string | null
+      suggested_fields: { park_location: Record<string, unknown> | null }
+    }
+    expect(payload.park_id).toBeNull()
+    expect(payload.suggested_fields.park_location).toEqual({
+      city: 'Monticello',
+      country: 'USA',
+      lat: 40.77,
+    })
+  })
+
+  it('hides the park location block once an existing park is selected', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Millennium Force')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar')
+    expect(screen.getByText(/new park:/i)).toBeInTheDocument()
+    await user.click(screen.getByText(/Cedar Point/))
+    expect(screen.queryByText(/new park:/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
+    const payload = vi.mocked(submitCoaster).mock.calls[0][0] as {
+      park_id: string | null
+      suggested_fields: { park_location: Record<string, unknown> | null }
+    }
+    expect(payload.park_id).toBe('p1')
+    expect(payload.suggested_fields.park_location).toBeNull()
   })
 
   it('shows an error toast when the insert fails', async () => {

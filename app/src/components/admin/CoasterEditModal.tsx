@@ -15,7 +15,7 @@ import {
   useParks,
   type AdminCoaster,
   type Coaster,
-  type Manufacturer,
+  type ManufacturerPick,
   type RankingRow,
   type Park,
 } from '../../lib/coasters'
@@ -69,7 +69,7 @@ export default function CoasterEditModal({
   const [formPark, setFormPark] = useState<Park | null>(null)
   const [formParkSearch, setFormParkSearch] = useState('')
   // Manufacturer lineage (multi): ordered list, index 0 = primary.
-  const [formLineage, setFormLineage] = useState<Manufacturer[]>([])
+  const [formLineage, setFormLineage] = useState<ManufacturerPick[]>([])
   const [copiedField, setCopiedField] = useState<string | null>(null)
   // Park/manufacturer pickers resolve the initial ids to display rows once the
   // (cached) reference lists arrive — same pattern the admin page used inline.
@@ -89,7 +89,12 @@ export default function CoasterEditModal({
     const seedIds = initialLineageIds(initial)
     if (seedIds.length > 0) {
       const byId = new Map(allManufacturers.map((m) => [m.id, m]))
-      setFormLineage(seedIds.map((id) => byId.get(id)).filter((m): m is Manufacturer => Boolean(m)))
+      setFormLineage(
+        seedIds.flatMap((id) => {
+          const m = byId.get(id)
+          return m ? [{ id: m.id, name: m.name }] : []
+        }),
+      )
     }
     setResolved(true)
   }, [resolved, allParks, allManufacturers, initial])
@@ -158,7 +163,7 @@ export default function CoasterEditModal({
     }
     saveCoaster.mutate({
       coaster: data,
-      lineage: formLineage.map((m) => m.id),
+      lineage: formLineage.filter((p) => p.id !== null).map((p) => p.id),
     })
   }
 
