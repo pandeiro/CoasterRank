@@ -7,8 +7,11 @@ const BARS = Array.from({ length: 8 }, (_, index) => index)
 // the §5.2 tight gutter and §7.2 vertical centering, so the cross-fade to the
 // table happens inside a reserved min-h slot with no layout jump.
 export default function BoardSkeleton() {
+  // Bleed matches CoasterTable: the skeleton cross-fades into the table,
+  // so both must be a band on mobile / a card on desktop — otherwise the
+  // load transition jumps in width.
   return (
-    <Panel className="overflow-hidden">
+    <Panel bleed className="overflow-hidden">
       <ul className="divide-y divide-line/70 sm:hidden">
         {BARS.map((index) => (
           <li key={index} className="flex min-h-[52px] items-center gap-2.5 px-4 py-2.5">
