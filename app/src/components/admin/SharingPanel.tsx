@@ -4,8 +4,9 @@
 // Funnel half = admin_sharing_funnel() via the admin-sharing-metrics Edge
 // Function (cumulative state, not a daily series — there are no enable-event
 // timestamps in the DB; share opt-ins only ping Telegram). Traffic half = CF
-// Web Analytics (RUM) pageviews on /riders/* + /@* over the last 30 days,
-// humans only (bot: 0), overlaid against daily signups.
+// Web Analytics (RUM) pageviews on /riders/* + the /@ alias (merged to the
+// canonical /riders/:username row, each annotated with live profile state)
+// over the last 30 days, humans only (bot: 0), overlaid against signups.
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -240,7 +241,22 @@ export default function SharingPanel() {
                   <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
                     Top pages
                   </h3>
+                  <p className="mt-1 text-xs leading-5 text-muted">
+                    /riders/* + /@ alias merged to canonical. Visits = entries from outside the site
+                    — in-app clicks add views only.
+                    {rum.sampleIntervalMax != null && rum.sampleIntervalMax > 1 && (
+                      <> Counts are ~×{rum.sampleIntervalMax}-sampled estimates.</>
+                    )}
+                  </p>
                   <table className="mt-2 w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-[0.1em] text-muted">
+                        <th className="pb-2 font-semibold">Page</th>
+                        <th className="pb-2 text-right font-semibold">Views</th>
+                        <th className="pb-2 text-right font-semibold">Visits</th>
+                        <th className="pb-2 text-right font-semibold">State</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-line/60">
                       {rum.topPaths.map((p) => (
                         <tr key={p.path}>
@@ -255,7 +271,35 @@ export default function SharingPanel() {
                           </td>
                           <td className="py-2 text-right tabular-nums text-ink">{p.pageviews}</td>
                           <td className="py-2 pl-3 text-right text-xs tabular-nums text-muted">
-                            {p.visits} visits
+                            {p.visits}
+                          </td>
+                          <td className="py-2 pl-3 text-right">
+                            {p.status == null ? (
+                              <span className="text-xs text-muted">—</span>
+                            ) : (
+                              <Badge
+                                tone={
+                                  p.status === 'sharing'
+                                    ? 'accent'
+                                    : p.status === 'private'
+                                      ? 'neutral'
+                                      : 'danger'
+                                }
+                                title={
+                                  p.status === 'sharing'
+                                    ? 'Profile is publicly shared'
+                                    : p.status === 'private'
+                                      ? 'Profile exists but sharing is off'
+                                      : 'No live profile — deleted or never shared (still inside the 30d window)'
+                                }
+                              >
+                                {p.status === 'sharing'
+                                  ? 'sharing'
+                                  : p.status === 'private'
+                                    ? 'private'
+                                    : 'gone'}
+                              </Badge>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -267,6 +311,12 @@ export default function SharingPanel() {
                     Referrer hosts
                   </h3>
                   <table className="mt-2 w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-[0.1em] text-muted">
+                        <th className="pb-2 font-semibold">Referrer</th>
+                        <th className="pb-2 text-right font-semibold">Views</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-line/60">
                       {rum.topReferrers.map((r) => (
                         <tr key={r.host}>

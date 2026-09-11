@@ -3,9 +3,14 @@
 // GET → one JSON payload combining:
 //   1. Funnel (admin_sharing_funnel RPC, service role): stage counts over
 //      non-synthetic users, current sharers, daily signups.
-//   2. Cloudflare Web Analytics (RUM) traffic on shared pages (/riders/* and
-//      /@*), last 30 days via the GraphQL Analytics API (one request, three
-//      aliased groups; `count` = pageviews, `sum.visits` = visits, bot: 0).
+//   2. Cloudflare Web Analytics (RUM) traffic on shared pages (/riders/*,
+//      the /@* vanity alias, and its /%40* %-encoded form), last 30 days via
+//      the GraphQL Analytics API (one request, three aliased groups; `count`
+//      = pageviews, `sum.visits` = entry visits from outside the site —
+//      in-app navigations add pageviews but not visits, so visits can be 0).
+//      Alias + case variants merge into canonical /riders/:username rows and
+//      each rider row is annotated with live profile state (sharing /
+//      private / unknown) so stale paths inside the 30d window read as stale.
 //      RUM secrets (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID) are optional:
 //      when absent or failing, `rum.available: false` degrades the panel —
 //      the funnel half must keep working.
@@ -50,7 +55,40 @@ interface FunnelPayload {
 interface RumGroup {
   count: number
   sum: { visits: number }
+  avg?: { sampleInterval?: number | null } | null
   dimensions: Record<string, string>
+}
+
+export type SharedPageStatus = 'sharing' | 'private' | 'unknown'
+
+interface RumTopPath {
+  path: string
+  pageviews: number
+  visits: number
+  /** Rider-page profile state, or null when the path isn't a /riders/:username page. */
+  status: SharedPageStatus | null
+}
+
+// Shared-page routes: /riders/:username (canonical) + the /@username vanity
+// alias (sometimes %-encoded as /%40username by chat apps — the worker's
+// run_worker_first covers both). RUM records the raw request path, so alias
+// hits arrive as /@u or /%40u rows; canonicalize + merge them so each rider
+// appears once under their canonical /riders/:username path.
+const RIDER_PATH_RE = /^\/riders\/([A-Za-z0-9_]{3,20})\/?$/
+const RIDER_ALIAS_RE = /^\/(?:@|%40)([A-Za-z0-9_]{3,20})\/?$/i
+
+function canonicalSharedPath(raw: string): { canonical: string; username: string } | null {
+  const rider = RIDER_PATH_RE.exec(raw)
+  if (rider) {
+    const username = rider[1].toLowerCase()
+    return { canonical: `/riders/${username}`, username }
+  }
+  const alias = RIDER_ALIAS_RE.exec(raw)
+  if (alias) {
+    const username = alias[1].toLowerCase()
+    return { canonical: `/riders/${username}`, username }
+  }
+  return null
 }
 
 function isoDaysAgo(days: number): string {
@@ -68,12 +106,18 @@ function rumUnavailable(reason: string) {
 async function fetchRumSharedPageTraffic(
   accountTag: string,
   apiToken: string,
+  // Service-role client for annotating top paths with profile state. Optional
+  // so RUM parsing stays testable without a DB handle — without it every
+  // rider path annotates as unknown.
+  admin?: { from: (table: string) => any },
 ): Promise<
   | {
       available: true
       daily: { day: string; pageviews: number; visits: number }[]
-      topPaths: { path: string; pageviews: number; visits: number }[]
+      topPaths: RumTopPath[]
       topReferrers: { host: string; pageviews: number; visits: number }[]
+      /** Max avg.sampleInterval across groups — >1 means CF kept 1-in-N events. */
+      sampleIntervalMax: number
     }
   | { available: false; reason: string }
 > {
@@ -83,7 +127,14 @@ async function fetchRumSharedPageTraffic(
     AND: [
       { datetime_geq: start.toISOString() },
       { datetime_leq: end.toISOString() },
-      { OR: [{ requestPath_like: '/riders%' }, { requestPath_like: '/@%' }] },
+      {
+        OR: [
+          { requestPath_like: '/riders%' },
+          { requestPath_like: '/@%' },
+          // Chat apps %-encode the alias (@ → %40); RUM stores the raw path.
+          { requestPath_like: '/%40%' },
+        ],
+      },
       { bot: 0 },
     ],
   }
@@ -93,16 +144,19 @@ async function fetchRumSharedPageTraffic(
         hourly: rumPageloadEventsAdaptiveGroups(limit: ${RUM_HOURLY_LIMIT}, orderBy: [datetimeHour_ASC], filter: $filter) {
           count
           sum { visits }
+          avg { sampleInterval }
           dimensions { datetimeHour }
         }
         topPaths: rumPageloadEventsAdaptiveGroups(limit: ${TOP_PATHS_LIMIT}, orderBy: [count_DESC], filter: $filter) {
           count
           sum { visits }
+          avg { sampleInterval }
           dimensions { requestPath }
         }
         topReferrers: rumPageloadEventsAdaptiveGroups(limit: ${TOP_REFERRERS_LIMIT}, orderBy: [count_DESC], filter: $filter) {
           count
           sum { visits }
+          avg { sampleInterval }
           dimensions { refererHost }
         }
       }
@@ -142,6 +196,13 @@ async function fetchRumSharedPageTraffic(
 
   // RUM buckets are hourly — roll up to UTC days for the overlay chart.
   const byDay = new Map<string, { pageviews: number; visits: number }>()
+  let sampleIntervalMax = 1
+  const trackSample = (g: RumGroup) => {
+    const s = g.avg?.sampleInterval
+    if (typeof s === 'number' && Number.isFinite(s) && s > sampleIntervalMax) {
+      sampleIntervalMax = s
+    }
+  }
   for (const g of account.hourly ?? []) {
     const day = toDay(g.dimensions['datetimeHour'] ?? '')
     if (!day) continue
@@ -149,22 +210,67 @@ async function fetchRumSharedPageTraffic(
     acc.pageviews += g.count
     acc.visits += g.sum?.visits ?? 0
     byDay.set(day, acc)
+    trackSample(g)
+  }
+  // Alias (/@u, /%40u) and case variants merge into the canonical
+  // /riders/:username row so each rider appears once with combined counts.
+  // Non-rider leftovers (e.g. /riders/x/og.png image hits) pass through.
+  const merged = new Map<string, { pageviews: number; visits: number; username: string | null }>()
+  for (const g of account.topPaths ?? []) {
+    trackSample(g)
+    const raw = g.dimensions['requestPath'] ?? ''
+    const hit = raw ? canonicalSharedPath(raw) : null
+    const key = hit ? hit.canonical : raw
+    const acc = merged.get(key) ?? { pageviews: 0, visits: 0, username: hit?.username ?? null }
+    acc.pageviews += g.count
+    acc.visits += g.sum?.visits ?? 0
+    if (acc.username == null) acc.username = hit?.username ?? null
+    merged.set(key, acc)
+  }
+  const topPaths: RumTopPath[] = [...merged.entries()]
+    .sort(([, a], [, b]) => b.pageviews - a.pageviews)
+    .slice(0, TOP_PATHS_LIMIT)
+    .map(([path, v]) => ({ path, pageviews: v.pageviews, visits: v.visits, status: null }))
+
+  // Annotate rider rows with live profile state so stale paths (deleted or
+  // never-shared usernames still inside the 30d RUM window) are visible as
+  // such instead of looking like live shared pages. Best-effort: any DB
+  // failure leaves statuses null rather than failing the whole payload.
+  try {
+    const names = [...new Set(topPaths.map((p) => merged.get(p.path)?.username).filter((u) => u != null))]
+    if (admin && names.length > 0) {
+      const { data: rows } = await admin.from('profiles').select('username, public_list').in('username', names)
+      const byName = new Map(
+        ((rows ?? []) as { username: string; public_list: boolean }[]).map((r) => [r.username, r.public_list]),
+      )
+      for (const p of topPaths) {
+        const username = merged.get(p.path)?.username
+        if (username == null) continue
+        p.status = !byName.has(username) ? 'unknown' : byName.get(username) ? 'sharing' : 'private'
+      }
+    } else {
+      for (const p of topPaths) {
+        if (merged.get(p.path)?.username != null) p.status = 'unknown'
+      }
+    }
+  } catch {
+    // statuses stay null — traffic counts are still valid
   }
   return {
     available: true,
     daily: [...byDay.entries()]
       .sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([day, v]) => ({ day, ...v })),
-    topPaths: (account.topPaths ?? []).map((g) => ({
-      path: g.dimensions['requestPath'] ?? '',
-      pageviews: g.count,
-      visits: g.sum?.visits ?? 0,
-    })),
-    topReferrers: (account.topReferrers ?? []).map((g) => ({
-      host: g.dimensions['refererHost'] ?? '',
-      pageviews: g.count,
-      visits: g.sum?.visits ?? 0,
-    })),
+    topPaths,
+    topReferrers: (account.topReferrers ?? []).map((g) => {
+      trackSample(g)
+      return {
+        host: g.dimensions['refererHost'] ?? '',
+        pageviews: g.count,
+        visits: g.sum?.visits ?? 0,
+      }
+    }),
+    sampleIntervalMax: Math.round(sampleIntervalMax * 10) / 10,
   }
 }
 
@@ -204,7 +310,7 @@ Deno.serve(async (req) => {
   const cfAccount = Deno.env.get('CLOUDFLARE_ACCOUNT_ID')
   const rum =
     cfToken && cfAccount
-      ? await fetchRumSharedPageTraffic(cfAccount, cfToken)
+      ? await fetchRumSharedPageTraffic(cfAccount, cfToken, admin)
       : rumUnavailable(
           'CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets not set (supabase secrets set)',
         )

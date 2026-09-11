@@ -23,13 +23,15 @@ const payload: SharingMetrics = {
   },
   rum: {
     available: true,
+    sampleIntervalMax: 10,
     daily: [
       { day: '2026-09-01', pageviews: 3, visits: 2 },
       { day: '2026-09-02', pageviews: 1, visits: 1 },
     ],
     topPaths: [
-      { path: '/riders/pibe4life', pageviews: 4, visits: 3 },
-      { path: '/riders/pandeiro', pageviews: 2, visits: 2 },
+      { path: '/riders/pibe4life', pageviews: 4, visits: 3, status: 'sharing' },
+      { path: '/riders/pandeiro', pageviews: 2, visits: 2, status: 'private' },
+      { path: '/riders/mock0001', pageviews: 10, visits: 0, status: 'unknown' },
     ],
     topReferrers: [
       { host: 'www.reddit.com', pageviews: 4, visits: 3 },
@@ -74,6 +76,15 @@ describe('SharingPanel', () => {
     // RUM paths + referrers, with "(direct)" for the empty host.
     expect(screen.getByRole('link', { name: '/riders/pandeiro' })).toBeInTheDocument()
     expect(screen.getByText('(direct)')).toBeInTheDocument()
+    // Column headers disambiguate views vs visits ("Views" appears in both
+    // the top-pages and referrer tables).
+    expect(screen.getAllByRole('columnheader', { name: 'Views' })).toHaveLength(2)
+    expect(screen.getByRole('columnheader', { name: 'Visits' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'State' })).toBeInTheDocument()
+    // Profile-state badges: stale paths read as gone, not as live traffic.
+    expect(screen.getByText('sharing')).toBeInTheDocument()
+    expect(screen.getByText('private')).toBeInTheDocument()
+    expect(screen.getByText('gone')).toBeInTheDocument()
     // Overlay chart is present.
     expect(screen.getByRole('img', { name: /vs/i })).toBeInTheDocument()
   })

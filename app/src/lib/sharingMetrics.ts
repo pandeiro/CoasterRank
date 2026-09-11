@@ -28,10 +28,14 @@ export interface RumDaily {
   visits: number
 }
 
+export type SharedPageStatus = 'sharing' | 'private' | 'unknown'
+
 export interface RumTopPath {
   path: string
   pageviews: number
   visits: number
+  /** Live profile state for /riders/:username rows; null for non-rider paths. */
+  status: SharedPageStatus | null
 }
 
 export interface RumTopReferrer {
@@ -46,6 +50,8 @@ export type RumSection =
       daily: RumDaily[]
       topPaths: RumTopPath[]
       topReferrers: RumTopReferrer[]
+      /** Max CF avg.sampleInterval across groups — >1 means 1-in-N sampling. */
+      sampleIntervalMax?: number
     }
   | { available: false; reason: string }
 
