@@ -154,6 +154,43 @@ describe('SuggestEditPage', () => {
     })
   })
 
+  it('proposes a new manufacturer alongside the existing lineage', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const manufacturer = await screen.findByLabelText(/manufacturers/i)
+    // The proposed entry leads (newest wins) → position 0 (primary);
+    // the seeded Zamperla id backfills position 1.
+    await user.type(manufacturer, 'Gerstlauer')
+    await user.click(screen.getByTestId('propose-option'))
+    await user.click(screen.getByRole('button', { name: /suggest edit/i }))
+    expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
+      suggested_fields: {
+        manufacturer_ids: [ZAMPERLA_ID],
+        proposed_manufacturers: [{ name: 'Gerstlauer', position: 0 }],
+      },
+    })
+  })
+
+  it('proposes a move to a NEW park with location metadata', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const park = await screen.findByLabelText(/park/i)
+    // Free text with no suggestion click → a new-park proposal.
+    await user.clear(park)
+    await user.type(park, 'Indiana Beach')
+    expect(screen.getByText(/new park “Indiana Beach”/i)).toBeInTheDocument()
+    await user.type(screen.getByLabelText('City'), 'Monticello')
+    // park_location + the park move count as two changes.
+    expect(await screen.findByText('2 changes proposed.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /suggest edit/i }))
+    const payload = vi.mocked(submitEditSuggestion).mock.calls[0][0]
+    expect(payload).toMatchObject({
+      park_id: null,
+      park_name: 'Indiana Beach',
+      suggested_fields: { park_location: { city: 'Monticello' } },
+    })
+  })
+
   it('navigates back to the coaster on cancel', async () => {
     const user = userEvent.setup()
     renderPage()

@@ -28,6 +28,7 @@ import {
   approveSubmission,
   getCoastersByIds,
   getSubmitterTrust,
+  mergedLineageDisplay,
   capitalize,
   type CoasterSubmission,
   type CoasterWithLineage,
@@ -90,6 +91,7 @@ const SUBMISSION_FIELD_LABELS: Record<string, string> = {
   type: 'Type',
   opening_date: 'Opening date',
   name: 'Name',
+  park_location: 'New park location',
 }
 
 function formatSubmissionValue(
@@ -110,8 +112,27 @@ function formatSubmissionValue(
   if (key === 'manufacturer_id' && typeof value === 'string') {
     return manufacturerNameById?.get(value) ?? value
   }
+  if (key === 'park_location') return formatParkLocation(value)
   if (key === 'material' || key === 'status') return capitalize(String(value))
   return String(value)
+}
+
+// New-park proposal location: "City, Region, Country (lat, lng)".
+function formatParkLocation(value: unknown): string {
+  if (value === null || value === undefined || typeof value !== 'object' || Array.isArray(value)) {
+    return '—'
+  }
+  const loc = value as Record<string, unknown>
+  const parts: string[] = []
+  for (const key of ['city', 'region', 'country']) {
+    if (typeof loc[key] === 'string' && loc[key]) parts.push(loc[key] as string)
+  }
+  let out = parts.join(', ')
+  const coords: string[] = []
+  if (typeof loc.lat === 'number') coords.push(`lat ${loc.lat}`)
+  if (typeof loc.lng === 'number') coords.push(`lng ${loc.lng}`)
+  if (coords.length > 0) out += ` (${coords.join(', ')})`
+  return out || '—'
 }
 
 // Submitter history chip: approved/rejected tallies so a reviewer can weigh
@@ -146,7 +167,11 @@ function NewSubmissionStats({
   manufacturerNameById: Map<string, string>
 }) {
   const fields = submission.suggested_fields as unknown as Record<string, unknown>
-  const extraKeys = ['manufacturer_ids', 'status', 'model', 'type', 'opening_date'].filter(
+  // Proposed manufacturers ride their own payload key — the Manufacturers
+  // row shows the MERGED lineage (existing names + proposed "Name (new)")
+  // instead of raw ids/proposals separately.
+  const merged = mergedLineageDisplay(fields, manufacturerNameById)
+  const extraKeys = ['status', 'model', 'type', 'opening_date', 'park_location'].filter(
     (key) => fields[key] !== null && fields[key] !== undefined,
   )
   return (
@@ -160,6 +185,12 @@ function NewSubmissionStats({
             </dd>
           </div>
         ),
+      )}
+      {merged !== null && (
+        <div className="flex justify-between gap-2">
+          <dt className="shrink-0 text-muted">Manufacturers</dt>
+          <dd className="min-w-0 text-right font-medium break-words text-ink">{merged}</dd>
+        </div>
       )}
     </dl>
   )
@@ -179,11 +210,18 @@ function EditSubmissionDiff({
   manufacturerNameById: Map<string, string>
 }) {
   const fields = submission.suggested_fields as unknown as Record<string, unknown>
-  const changedKeys = Object.keys(fields)
   const parkMoved = target && submission.park_id !== target.park_id
+  // Proposed manufacturers ride their own payload key; the Manufacturers row
+  // shows the MERGED lineage (existing names + proposed "Name (new)").
+  const merged = mergedLineageDisplay(fields, manufacturerNameById)
+  const changedKeys = Object.keys(fields).filter((key) => key !== 'proposed_manufacturers')
+  const beforeLineage = target
+    ? (target.manufacturer_ids ?? []).map((id) => manufacturerNameById.get(id) ?? id).join(' · ') ||
+      '—'
+    : '—'
   return (
     <div className="mt-2 space-y-1 rounded-lg border border-line bg-surface-bright p-2 text-xs">
-      {changedKeys.length === 0 && !parkMoved && (
+      {changedKeys.length === 0 && !parkMoved && merged === null && (
         <p className="text-muted">Park move only (no scalar changes).</p>
       )}
       {changedKeys.map((key) => (
@@ -203,6 +241,15 @@ function EditSubmissionDiff({
           </span>
         </div>
       ))}
+      {merged !== null && (
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="shrink-0 text-muted">Manufacturers</span>
+          <span className="min-w-0 text-right break-words">
+            <span className="text-muted line-through">{beforeLineage}</span>{' '}
+            <span className="font-medium text-ink">→ {merged}</span>
+          </span>
+        </div>
+      )}
       {target && (
         <div
           className={`flex items-baseline justify-between gap-2 rounded px-1 py-0.5 ${
@@ -213,7 +260,8 @@ function EditSubmissionDiff({
           <span className="min-w-0 text-right break-words">
             {parkMoved ? (
               <>
-                {parkNameById.get(target.park_id) ?? target.park_id} → {submission.park_name} ⚠
+                {parkNameById.get(target.park_id) ?? target.park_id} → {submission.park_name}
+                {submission.park_id === null && ' (new park — will be created)'} ⚠
               </>
             ) : (
               (parkNameById.get(target.park_id) ?? target.park_id)

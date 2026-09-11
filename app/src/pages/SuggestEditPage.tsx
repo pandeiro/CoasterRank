@@ -20,12 +20,13 @@ import {
   useManufacturers,
   useParks,
   type EditProposalInput,
-  type Manufacturer,
+  type ManufacturerPick,
   type Park,
 } from '../lib/coasters'
 import {
   validateEditSubmission,
   validationSummary,
+  type ParkLocationInput,
   type SubmissionValidationErrors,
 } from '../lib/submission-validation'
 
@@ -43,14 +44,18 @@ export default function SuggestEditPage() {
   const { data: manufacturers = [] } = useManufacturers()
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(null)
 
-  // Park picker (same typeahead pattern as /submit), seeded to the current park.
+  // Park picker (same typeahead pattern as /submit), seeded to the current
+  // park. Free text with no selection proposes a NEW park.
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
   const [parkTouched, setParkTouched] = useState(false)
+  // Optional location metadata for a NEW-park proposal (park does not exist).
+  const [parkLocationDraft, setParkLocationDraft] = useState<ParkLocationInput>({})
 
   // Manufacturer picker (multi) — seeded to the current lineage; the picker
-  // state is the FULL proposed list (order matters: first = primary).
-  const [lineageDraft, setLineageDraft] = useState<Manufacturer[] | null>(null)
+  // state is the FULL proposed list (order matters: first = primary). Entries
+  // with id null are proposed new manufacturers.
+  const [lineageDraft, setLineageDraft] = useState<ManufacturerPick[] | null>(null)
 
   // Free-text context for the reviewer (explanations, evidence links, …).
   const [note, setNote] = useState('')
@@ -72,15 +77,25 @@ export default function SuggestEditPage() {
     if (!coaster) return null
     return parks.find((p) => p.id === coaster.park_id) ?? null
   }, [coaster, parks])
+  // The park the edit proposes: an existing row (selectedPark), a NEW-park
+  // proposal (free text, id null), or the current park when untouched.
+  const proposedParkName = parkTouched && !selectedPark ? searchPark.trim() : ''
+  const isNewParkProposal = proposedParkName.length > 0
   const effectivePark = parkTouched ? selectedPark : (selectedPark ?? currentPark)
+  const effectiveParkId: string | null = selectedPark
+    ? selectedPark.id
+    : isNewParkProposal
+      ? null
+      : (currentPark?.id ?? coaster?.park_id ?? null)
 
   // Current lineage resolved to display rows; the draft (once touched) wins.
-  const seededLineage: Manufacturer[] = useMemo(() => {
+  const seededLineage: ManufacturerPick[] = useMemo(() => {
     if (!coaster) return []
     const byId = new Map(manufacturers.map((m) => [m.id, m]))
-    return lineageIds(coaster)
-      .map((id) => byId.get(id))
-      .filter((m): m is Manufacturer => Boolean(m))
+    return lineageIds(coaster).flatMap((id) => {
+      const m = byId.get(id)
+      return m ? [{ id: m.id, name: m.name }] : []
+    })
   }, [coaster, manufacturers])
   const effectiveLineage = lineageDraft ?? seededLineage
 
@@ -113,12 +128,14 @@ export default function SuggestEditPage() {
       speed_kmh: str(coaster.speed_kmh),
       length_m: str(coaster.length_m),
       inversions: str(coaster.inversions),
-      manufacturer_ids: lineageIds(coaster),
+      manufacturerPicks: seededLineage.map((m) => ({ id: m.id, name: m.name })),
+      parkLocation: {},
       model: coaster.model ?? '',
       type: coaster.type ?? '',
       opening_date: coaster.opening_date ?? '',
     }
-  }, [coaster])
+    // seededLineage is derived from coaster+manufacturers; both are deps.
+  }, [coaster, seededLineage])
 
   // Live change count so the submitter sees exactly what will be proposed.
   const [draft, setDraft] = useState<Partial<EditProposalInput>>({})
@@ -128,11 +145,12 @@ export default function SuggestEditPage() {
         ? {
             ...initial,
             ...draft,
-            park_id: effectivePark?.id ?? initial.park_id,
-            manufacturer_ids: effectiveLineage.map((m) => m.id),
+            park_id: effectiveParkId,
+            manufacturerPicks: effectiveLineage,
+            parkLocation: parkLocationDraft,
           }
         : null,
-    [initial, draft, effectivePark, effectiveLineage],
+    [initial, draft, effectiveParkId, effectiveLineage, parkLocationDraft],
   )
   const { diff, parkChanged } = useMemo(
     () =>
@@ -164,12 +182,12 @@ export default function SuggestEditPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (atCap || changeCount === 0 || !effectivePark) return
+    if (atCap || changeCount === 0) return
     // Schema gate: invalid values never leave the form, so they can never
     // become a pending row the admin queue cannot accept.
     const errors = validateEditSubmission({
       coaster_id: coaster.id,
-      park_id: effectivePark.id,
+      park_id: effectiveParkId,
       suggested_fields: diff as unknown as Record<string, unknown>,
       note: note.trim() || null,
     })
@@ -183,8 +201,8 @@ export default function SuggestEditPage() {
     mutation.mutate({
       coaster_id: coaster.id,
       coaster_name: coaster.name,
-      park_name: effectivePark.name,
-      park_id: effectivePark.id,
+      park_name: effectivePark?.name ?? proposedParkName,
+      park_id: effectiveParkId,
       suggested_fields: diff,
       note: note.trim() || null,
     })
@@ -272,7 +290,76 @@ export default function SuggestEditPage() {
                   ⚠ Moving to {effectivePark.name} — moderators check this carefully.
                 </p>
               )}
+              {isNewParkProposal && (
+                <p className="text-xs font-medium text-warning">
+                  ⚠ New park “{proposedParkName}” — it will be created if approved.
+                </p>
+              )}
             </div>
+
+            {isNewParkProposal && (
+              <div className="rounded-xl border border-line bg-surface-bright p-4 md:col-span-2">
+                <p className="text-xs font-medium text-ink-soft">
+                  Location for {proposedParkName} (helps reviewers place it — all optional)
+                </p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  {(
+                    [
+                      ['city', 'City'],
+                      ['region', 'Region / state'],
+                      ['country', 'Country'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key} className="flex flex-col gap-1">
+                      <label
+                        htmlFor={`edit-park-${key}`}
+                        className="text-xs font-medium text-muted"
+                      >
+                        {label}
+                      </label>
+                      <input
+                        id={`edit-park-${key}`}
+                        value={parkLocationDraft[key] ?? ''}
+                        onChange={(e) =>
+                          setParkLocationDraft((d) => ({ ...d, [key]: e.target.value }))
+                        }
+                        maxLength={120}
+                        className={fieldClassName}
+                      />
+                      {fieldError(`park_location.${key}`)}
+                    </div>
+                  ))}
+                  {(
+                    [
+                      ['lat', 'Latitude', -90, 90],
+                      ['lng', 'Longitude', -180, 180],
+                    ] as const
+                  ).map(([key, label, min, max]) => (
+                    <div key={key} className="flex flex-col gap-1">
+                      <label
+                        htmlFor={`edit-park-${key}`}
+                        className="text-xs font-medium text-muted"
+                      >
+                        {label}
+                      </label>
+                      <input
+                        id={`edit-park-${key}`}
+                        value={parkLocationDraft[key] ?? ''}
+                        onChange={(e) =>
+                          setParkLocationDraft((d) => ({ ...d, [key]: e.target.value }))
+                        }
+                        type="number"
+                        step="any"
+                        min={min}
+                        max={max}
+                        className={fieldClassName}
+                      />
+                      {fieldError(`park_location.${key}`)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <label htmlFor="edit-manufacturer" className="text-sm font-medium text-ink-soft">
@@ -287,6 +374,7 @@ export default function SuggestEditPage() {
               />
               {currentLine('manufacturers', lineageNames(coaster).join(' · '))}
               {fieldError('manufacturer_ids')}
+              {fieldError('proposed_manufacturers')}
             </div>
           </div>
 
@@ -445,7 +533,7 @@ export default function SuggestEditPage() {
               <Button
                 type="submit"
                 variant="coral"
-                disabled={mutation.isPending || atCap || changeCount === 0 || !effectivePark}
+                disabled={mutation.isPending || atCap || changeCount === 0}
               >
                 {mutation.isPending ? 'Sending…' : 'Suggest Edit'}
               </Button>
