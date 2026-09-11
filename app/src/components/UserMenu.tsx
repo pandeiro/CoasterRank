@@ -126,7 +126,11 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
           key={label}
           type="button"
           role="menuitem"
-          className={rowClass}
+          // w-full text-left: buttons shrink-to-fit even as flex containers,
+          // so without these the item paints narrower than the menu (the
+          // hover highlight gives it away). Same pattern as the sign-out
+          // buttons below.
+          className={`${rowClass} w-full text-left`}
           onClick={() => {
             action?.()
             closeAndReturnFocus()

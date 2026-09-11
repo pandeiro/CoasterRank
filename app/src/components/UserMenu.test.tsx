@@ -194,4 +194,16 @@ describe('UserMenu', () => {
     const backdrop = screen.getByTestId('user-menu-backdrop')
     expect(backdrop).toHaveClass('fixed', 'inset-0', 'motion-reduce:transition-none')
   })
+
+  it('renders action items full-width like the link items', async () => {
+    // Buttons shrink-to-fit even as flex containers, so action items (e.g.
+    // Feedback) need explicit w-full to fill the menu like the NavLinks do;
+    // otherwise the hover highlight paints a narrower box than the row.
+    const user = userEvent.setup()
+    renderMenu()
+    await openMenu(user)
+    for (const item of screen.getAllByRole('menuitem', { name: 'Feedback' })) {
+      expect(item).toHaveClass('w-full', 'text-left')
+    }
+  })
 })
