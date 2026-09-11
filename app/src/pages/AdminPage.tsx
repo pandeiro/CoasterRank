@@ -7,6 +7,7 @@ import Toast from '../components/Toast'
 import UsersPanel from '../components/admin/UsersPanel'
 import SharingPanel from '../components/admin/SharingPanel'
 import RankingsPanel from '../components/admin/RankingsPanel'
+import FeedbackPanel from '../components/admin/FeedbackPanel'
 import CoasterEditModal from '../components/admin/CoasterEditModal'
 import ParkEditModal from '../components/admin/ParkEditModal'
 import WeightingComparePanel from '../components/admin/WeightingComparePanel'
@@ -56,6 +57,7 @@ const ADMIN_TABS = [
   'parks',
   'rehome',
   'submissions',
+  'feedback',
   'users',
   'sharing',
   'rankings',
@@ -1045,6 +1047,8 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'users' && <UsersPanel notify={notify} />}
+
+        {activeTab === 'feedback' && <FeedbackPanel notify={notify} />}
 
         {activeTab === 'sharing' && <SharingPanel />}
 

@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LogOut, User, List, Share2, type LucideIcon } from 'lucide-react'
+import { LogOut, User, List, Share2, MessageSquarePlus, type LucideIcon } from 'lucide-react'
 import type { Profile } from '../lib/profile'
 import Avatar from './ui/Avatar'
+import { useFeedback } from './feedback-context'
 import { isCoarsePointer } from '../lib/use-media-query'
 
 interface UserMenuProps {
@@ -82,7 +83,14 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
     triggerRef.current?.focus()
   }
 
-  const itemDefs: { to: string; label: string; Icon: LucideIcon }[] = [
+  const { open: openFeedback } = useFeedback()
+
+  const itemDefs: Array<{
+    to?: string
+    label: string
+    Icon: LucideIcon
+    action?: () => void
+  }> = [
     { to: '/me', label: 'My Coasters', Icon: List },
     { to: '/me/profile', label: 'Profile', Icon: User },
   ]
@@ -93,17 +101,42 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
       Icon: Share2,
     })
   }
+  // Action item: opens the feedback modal in place — no navigation, so the
+  // page (scroll, filters, drag state) is untouched behind the overlay.
+  itemDefs.push({ label: 'Feedback', Icon: MessageSquarePlus, action: openFeedback })
 
   function renderItems(rowClass: string, iconSize: number) {
-    return itemDefs.map(({ to, label, Icon }) => (
-      // Close on click, not just on route change: navigating to the page we
-      // are already on leaves pathname untouched, so the pathname effect
-      // never fires and the menu would otherwise stay open.
-      <NavLink key={to} to={to} role="menuitem" className={rowClass} onClick={closeAndReturnFocus}>
-        <Icon size={iconSize} className="shrink-0 text-muted" />
-        {label}
-      </NavLink>
-    ))
+    return itemDefs.map(({ to, label, Icon, action }) =>
+      to ? (
+        // Close on click, not just on route change: navigating to the page we
+        // are already on leaves pathname untouched, so the pathname effect
+        // never fires and the menu would otherwise stay open.
+        <NavLink
+          key={to}
+          to={to}
+          role="menuitem"
+          className={rowClass}
+          onClick={closeAndReturnFocus}
+        >
+          <Icon size={iconSize} className="shrink-0 text-muted" />
+          {label}
+        </NavLink>
+      ) : (
+        <button
+          key={label}
+          type="button"
+          role="menuitem"
+          className={rowClass}
+          onClick={() => {
+            action?.()
+            closeAndReturnFocus()
+          }}
+        >
+          <Icon size={iconSize} className="shrink-0 text-muted" />
+          {label}
+        </button>
+      ),
+    )
   }
 
   return (

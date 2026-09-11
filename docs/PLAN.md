@@ -99,6 +99,18 @@ All tables live in the `public` schema (no prefix). Migrations under `supabase/m
   - `suggested_fields` is constrained to the reviewed stat keys (`height_m`, `speed_kmh`, `length_m`, `inversions`, `material`) at the database boundary; approval code applies the same allowlist.
   - Admin review marks `approved` → a coaster row is created; the submission is kept for audit.
 
+#### 4.2.1 User feedback (Sep 2026) — parallel to submissions, not an extension
+
+- **Decision**: feedback is a **separate pair of tables** (`user_feedback`, `user_feedback_replies`), not new kinds inside `coaster_submissions` — submissions are coaster-data-shaped (stat-payload CHECK + approve→creates-a-coaster); feedback is conversational (category + free text + threaded replies). RLS/cap/Telegram patterns are copied from submissions.
+- **`user_feedback`(id, category enum `bug|confusing|missing|idea`, message 1..2000 chars, context jsonb, submitted_by→auth.users, status, seen_by_submitter_at, created_at)**
+  - `context` (silent, not shown to the user): `page`, `user_agent`, `screen`, `language`, `coaster_slug` — captured client-side at submit time so reports are reproducible.
+  - `status` enum `open | replied | closed` maintained by the reply trigger (ping-pong): admin reply → `replied`; user reply → `open` (resurfaces under the Open filter in the admin queue); admin can close; admin reply on a closed thread reopens it. User replies are only allowed while `status = 'replied'` (enforced in the replies insert policy).
+- **`user_feedback_replies`(id, feedback_id→user_feedback CASCADE, author_id→auth.users, message 1..2000, created_at)** — one thread table for both directions; author identity (team vs user) is derived from the profiles embed.
+- RLS mirrors submissions: owner insert (email-verified + `feedback_within_cap()` = max 5 open threads), owner-or-admin select, admin update/delete. `mark_own_feedback_seen()` security-definer RPC drives the user-side "New" pill.
+- Telegram: inserts fire `send_telegram_event('feedback_events', …)` (new feedback + user replies; user replies nudge the admin that a thread resurfaced). Kill-switch seeded in `app_settings` → free toggle in the admin Control Panel.
+- UI: entry point is a **Feedback item in the UserMenu** → a portal modal (`FeedbackModal` via `FeedbackProvider` in Layout) — never navigates, so page/scroll/route state is untouched. Past threads + replies + reply box live in the same modal. Admin review lives in the **Admin → Feedback tab** (`FeedbackPanel`: status filters, context links, reply, close/reopen).
+
+
 ### 4.3 User tables — RLS: own rows only
 
 - **`profiles`(id→auth.users PK, username UNIQUE, display_name, avatar_url, is_admin bool default false)**
@@ -131,6 +143,7 @@ First-place votes are only shown once the data is meaningful and non-identifying
 - `parks(slug)`, `manufacturers(slug)`.
 - `user_rides(user_id, rank)` — the pairwise-win self-join's hot path.
 - `coaster_submissions(status)` for the admin queue.
+- `user_feedback(status)`, `user_feedback(submitted_by, created_at desc)`, `user_feedback_replies(feedback_id, created_at)` for the feedback modal + admin queue.
 - `profiles(username)` unique index.
 
 ### 4.6 Bootstrap / runbooks
