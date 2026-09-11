@@ -35,27 +35,35 @@ vi.mock('../components/ConfirmEmailGate', () => ({
   default: ({ email }: { email?: string }) => <div data-testid="confirm-gate">{email}</div>,
 }))
 
+// Fixture ids must be well-formed UUIDs: the form schema-gates ids the same
+// way the DB payload CHECK shapes manufacturer ids (existence stays the FK's
+// job, but shape is validated client-side).
+const COASTER_ID = 'cccccccc-1111-4111-8111-111111111111'
+const PARK_ID = 'dddddddd-1111-4111-8111-111111111111'
+const ZAMPERLA_ID = 'eeeeeeee-1111-4111-8111-111111111111'
+const INTAMIN_ID = 'ffffffff-1111-4111-8111-111111111111'
+
 const coaster = makeRankingRow({
-  id: 'c1',
+  id: COASTER_ID,
   name: 'Steel Vengeance',
   slug: 'steel-vengeance',
-  park_id: 'park-1',
+  park_id: PARK_ID,
   status: 'operating',
   material: 'hybrid',
   height_m: 62,
   speed_kmh: 119,
   length_m: 1700,
   inversions: 4,
-  manufacturer_id: 'mfg-zamperla',
-  manufacturer_ids: ['mfg-zamperla'],
+  manufacturer_id: ZAMPERLA_ID,
+  manufacturer_ids: [ZAMPERLA_ID],
   manufacturer_names: ['Zamperla'],
 })
 
-const parks = [makePark({ id: 'park-1', name: 'Cedar Point' })]
+const parks = [makePark({ id: PARK_ID, name: 'Cedar Point' })]
 
 const manufacturers = [
-  makeManufacturer({ id: 'mfg-zamperla', name: 'Zamperla', slug: 'zamperla' }),
-  makeManufacturer({ id: 'mfg-intamin', name: 'Intamin AG', slug: 'intamin' }),
+  makeManufacturer({ id: ZAMPERLA_ID, name: 'Zamperla', slug: 'zamperla' }),
+  makeManufacturer({ id: INTAMIN_ID, name: 'Intamin AG', slug: 'intamin' }),
 ]
 
 function renderPage() {
@@ -107,10 +115,10 @@ describe('SuggestEditPage', () => {
     expect(await screen.findByText('1 change proposed.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /suggest edit/i }))
     expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toEqual({
-      coaster_id: 'c1',
+      coaster_id: COASTER_ID,
       coaster_name: 'Steel Vengeance',
       park_name: 'Cedar Point',
-      park_id: 'park-1',
+      park_id: PARK_ID,
       suggested_fields: { height_m: 63 },
       note: null,
     })
@@ -127,7 +135,7 @@ describe('SuggestEditPage', () => {
     await user.type(screen.getByLabelText(/note \(optional\)/i), 'Per RCDB, built by Intamin.')
     await user.click(screen.getByRole('button', { name: /suggest edit/i }))
     expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
-      suggested_fields: { manufacturer_ids: ['mfg-intamin'] },
+      suggested_fields: { manufacturer_ids: [INTAMIN_ID] },
       note: 'Per RCDB, built by Intamin.',
     })
   })
@@ -142,7 +150,7 @@ describe('SuggestEditPage', () => {
     await user.click(screen.getByText('Intamin AG'))
     await user.click(screen.getByRole('button', { name: /suggest edit/i }))
     expect(vi.mocked(submitEditSuggestion).mock.calls[0][0]).toMatchObject({
-      suggested_fields: { manufacturer_ids: ['mfg-intamin', 'mfg-zamperla'] },
+      suggested_fields: { manufacturer_ids: [INTAMIN_ID, ZAMPERLA_ID] },
     })
   })
 
@@ -151,6 +159,18 @@ describe('SuggestEditPage', () => {
     renderPage()
     await user.click(await screen.findByRole('button', { name: /cancel/i }))
     expect(screen.getByTestId('coaster-detail')).toBeInTheDocument()
+  })
+
+  it('blocks out-of-range stats at the schema gate without calling submit', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const height = await screen.findByLabelText(/height \(m\)/i)
+    await user.clear(height)
+    await user.type(height, '9999')
+    await user.click(screen.getByRole('button', { name: /suggest edit/i }))
+    // The message renders both inline at the field and in the error toast.
+    expect(await screen.findAllByText(/height must be between 0 and 500/i)).not.toHaveLength(0)
+    expect(submitEditSuggestion).not.toHaveBeenCalled()
   })
 
   it('shows the email gate when not confirmed', async () => {

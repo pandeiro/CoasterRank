@@ -39,7 +39,11 @@ const parks = [
 ]
 
 const manufacturers = [
-  { id: 'mfg-rmc', name: 'Rocky Mountain Construction', slug: 'rocky-mountain-construction' },
+  {
+    id: 'aaaaaaaa-1111-4111-8111-111111111111',
+    name: 'Rocky Mountain Construction',
+    slug: 'rocky-mountain-construction',
+  },
 ]
 
 function renderPage() {
@@ -186,7 +190,7 @@ describe('SubmitPage', () => {
     expect(await screen.findByText(/submission received/i)).toBeInTheDocument()
     expect(vi.mocked(submitCoaster).mock.calls[0][0]).toMatchObject({
       suggested_fields: {
-        manufacturer_ids: ['mfg-rmc'],
+        manufacturer_ids: ['aaaaaaaa-1111-4111-8111-111111111111'],
         status: 'under_construction',
         model: 'RMC IBox Track',
         opening_date: '2027-05-01',
@@ -199,7 +203,10 @@ describe('SubmitPage', () => {
     const user = userEvent.setup()
     mockConfirmed()
     vi.mocked(useManufacturers).mockReturnValue({
-      data: [...manufacturers, { id: 'mfg-intamin', name: 'Intamin', slug: 'intamin' }],
+      data: [
+        ...manufacturers,
+        { id: 'bbbbbbbb-2222-4222-8222-222222222222', name: 'Intamin', slug: 'intamin' },
+      ],
     } as never)
     renderPage()
 
@@ -219,7 +226,7 @@ describe('SubmitPage', () => {
           suggested_fields: { manufacturer_ids: string[] }
         }
       ).suggested_fields.manufacturer_ids,
-    ).toEqual(['mfg-intamin', 'mfg-rmc'])
+    ).toEqual(['bbbbbbbb-2222-4222-8222-222222222222', 'aaaaaaaa-1111-4111-8111-111111111111'])
   })
 
   it('shows an error toast when the insert fails', async () => {
@@ -233,5 +240,37 @@ describe('SubmitPage', () => {
     await user.click(screen.getByRole('button', { name: /submit for review/i }))
 
     expect(await screen.findByText('too many pending submissions')).toBeInTheDocument()
+  })
+
+  it('blocks invalid stats at the schema gate without calling submit', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+
+    await user.type(await screen.findByLabelText(/coaster name/i), 'Millennium Force')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar Point')
+    // NB: '-5' is not typable in a jsdom number input (invalid keystrokes are
+    // dropped), so exercise the gate with a typable out-of-range value.
+    await user.type(screen.getByLabelText(/height \(m\)/i), '9999')
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    // The message renders both inline at the field and in the error toast.
+    expect(await screen.findAllByText(/height must be between 0 and 500/i)).not.toHaveLength(0)
+    expect(submitCoaster).not.toHaveBeenCalled()
+    expect(screen.queryByText(/submission received/i)).not.toBeInTheDocument()
+  })
+
+  it('blocks a blank coaster name at the schema gate', async () => {
+    const user = userEvent.setup()
+    mockConfirmed()
+    renderPage()
+
+    // Spaces satisfy the native `required` check but not the schema.
+    await user.type(await screen.findByLabelText(/coaster name/i), '   ')
+    await user.type(screen.getByLabelText(/park name/i), 'Cedar Point')
+    await user.click(screen.getByRole('button', { name: /submit for review/i }))
+
+    expect(await screen.findAllByText(/coaster name must be 1–120/i)).not.toHaveLength(0)
+    expect(submitCoaster).not.toHaveBeenCalled()
   })
 })

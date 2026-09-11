@@ -19,6 +19,8 @@ import {
   capitalize,
   manufacturerOptions,
   slugify,
+  submitCoaster,
+  submitEditSuggestion,
   yearFromDate,
   type CoasterSubmission,
   type EditableCoasterSnapshot,
@@ -778,7 +780,6 @@ describe('approveSubmission', () => {
       speed_kmh: null,
       length_m: null,
       inversions: null,
-      material: null,
       status: 'defunct',
       model: 'Ibox',
       opening_date: '2024-05-04',
@@ -847,6 +848,9 @@ describe('approveSubmission', () => {
       },
     } as unknown as CoasterSubmission
     await approveSubmission('s1', malformed)
+    // Null/absent material+status are OMITTED (not written as null) so the
+    // coasters defaults ('other'/'unknown') apply — writing explicit nulls
+    // violates NOT NULL and made stats-less submissions unapprovable.
     expect(coasterInsert).toHaveBeenCalledWith({
       park_id: 'p1',
       name: 'Test Coaster',
@@ -856,9 +860,115 @@ describe('approveSubmission', () => {
       speed_kmh: null,
       length_m: null,
       inversions: null,
-      material: null,
     })
     expect(lineageUpsert).not.toHaveBeenCalled()
+  })
+
+  it('omits null material/status so the coasters defaults apply (stats-less submissions stay approvable)', async () => {
+    // The Turbo Track shape: every suggested field null. The INSERT must not
+    // carry explicit nulls for the NOT NULL columns.
+    await approveSubmission('s1', { ...submission, park_id: 'p1' })
+    const insertArg = coasterInsert.mock.calls[0][0] as Record<string, unknown>
+    expect(insertArg).not.toHaveProperty('material')
+    expect(insertArg).not.toHaveProperty('status')
+    expect(insertArg).toMatchObject({
+      park_id: 'p1',
+      height_m: null,
+      speed_kmh: null,
+      length_m: null,
+      inversions: null,
+    })
+  })
+
+  it('sanitizes out-of-range stats to null instead of failing the INSERT', async () => {
+    await approveSubmission('s1', {
+      ...submission,
+      park_id: 'p1',
+      suggested_fields: {
+        ...submission.suggested_fields,
+        height_m: 9999,
+        inversions: 2.5,
+      },
+    } as unknown as CoasterSubmission)
+    expect(coasterInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ height_m: null, inversions: null }),
+    )
+  })
+})
+
+describe('submitCoaster / submitEditSuggestion schema chokepoints', () => {
+  const validFields = {
+    height_m: null,
+    speed_kmh: null,
+    length_m: null,
+    inversions: null,
+    material: null,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'u1' } } } as never)
+  })
+
+  it('rejects a new submission with a blank coaster name before touching the DB', async () => {
+    await expect(
+      submitCoaster({
+        coaster_name: '   ',
+        park_name: 'Cedar Point',
+        park_id: null,
+        suggested_fields: validFields,
+        note: null,
+      }),
+    ).rejects.toThrow(/coaster name/i)
+    expect(vi.mocked(supabase.from)).not.toHaveBeenCalled()
+  })
+
+  it('rejects out-of-range stats before touching the DB', async () => {
+    await expect(
+      submitCoaster({
+        coaster_name: 'Millennium Force',
+        park_name: 'Cedar Point',
+        park_id: null,
+        suggested_fields: { ...validFields, height_m: 9999 },
+        note: null,
+      }),
+    ).rejects.toThrow(/height/i)
+    expect(vi.mocked(supabase.from)).not.toHaveBeenCalled()
+  })
+
+  it('rejects an edit with an empty diff or bad target before touching the DB', async () => {
+    const coasterId = '11111111-2222-4333-8444-555555555555'
+    const parkId = '22222222-3333-4333-8444-555555555555'
+    const base = {
+      coaster_name: 'Steel Vengeance',
+      park_name: 'Cedar Point',
+      note: null,
+    }
+    await expect(
+      submitEditSuggestion({
+        ...base,
+        coaster_id: 'not-a-uuid',
+        park_id: parkId,
+        suggested_fields: { height_m: 63 },
+      }),
+    ).rejects.toThrow(/missing its coaster/)
+    await expect(
+      submitEditSuggestion({
+        ...base,
+        coaster_id: coasterId,
+        park_id: '',
+        suggested_fields: { height_m: 63 },
+      }),
+    ).rejects.toThrow(/park/i)
+    await expect(
+      submitEditSuggestion({
+        ...base,
+        coaster_id: coasterId,
+        park_id: parkId,
+        suggested_fields: {},
+      }),
+    ).rejects.toThrow(/at least one/)
+    expect(vi.mocked(supabase.from)).not.toHaveBeenCalled()
   })
 })
 

@@ -1,5 +1,10 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import {
+  validateEditSubmission,
+  validateNewSubmission,
+  validationSummary,
+} from './submission-validation'
 import type {
   CoasterMaterial,
   CoasterStatus,
@@ -470,24 +475,36 @@ export function proposedLineageIds(fields: Record<string, unknown>): string[] | 
   return undefined
 }
 
-// Builds the INSERT fragment for approving a NEW-coaster submission. The five
-// stats pass through (already null-normalized client-side); descriptive
-// values are re-validated here so a malformed payload degrades to "field not
-// set" instead of failing (or worse, poisoning) the coaster row. Manufacturer
-// lineage rides separately (manufacturerIds) because coaster_manufacturers is
-// a junction table — the coasters row itself no longer takes a manufacturer
-// column (the primary pointer is trigger-maintained).
+// Builds the INSERT fragment for approving a NEW-coaster submission. Stats
+// are sanitized to valid-or-null (nullable columns); material/status are
+// OMITTED when absent or malformed so the coasters defaults ('other' /
+// 'unknown') apply — writing an explicit null would violate the NOT NULL
+// constraint and make the submission unapprovable (e.g. a stats-less
+// suggestion like Turbo Track). Descriptive values are re-validated so a
+// malformed payload degrades to "field not set" instead of failing (or
+// worse, poisoning) the coaster row. Manufacturer lineage rides separately
+// (manufacturerIds) because coaster_manufacturers is a junction table — the
+// coasters row itself no longer takes a manufacturer column (the primary
+// pointer is trigger-maintained).
+function approvableStat(value: unknown, max: number, integer = false): number | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  if (value < 0 || value > max) return null
+  if (integer && !Number.isInteger(value)) return null
+  return value
+}
+
 function approvableSuggestedFields(fields: SuggestedFields): {
   row: Partial<SuggestedFields>
   manufacturerIds: string[]
 } {
   const row: Partial<SuggestedFields> = {
-    height_m: fields.height_m,
-    speed_kmh: fields.speed_kmh,
-    length_m: fields.length_m,
-    inversions: fields.inversions,
-    material: isCoasterMaterial(fields.material) ? fields.material : null,
+    height_m: approvableStat(fields.height_m, 500),
+    speed_kmh: approvableStat(fields.speed_kmh, 500),
+    length_m: approvableStat(fields.length_m, 10000),
+    inversions: approvableStat(fields.inversions, 30, true),
   }
+  if (isCoasterMaterial(fields.material)) row.material = fields.material
   if (fields.status && isCoasterStatus(fields.status)) row.status = fields.status
   if (typeof fields.model === 'string' && fields.model.length > 0 && fields.model.length <= 120) {
     row.model = fields.model
@@ -651,6 +668,19 @@ export async function submitCoaster(data: {
   if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
 
+  // Schema chokepoint (defense in depth behind the form-level validation in
+  // SubmitPage): invalid payloads never reach the DB CHECK as cryptic
+  // PostgREST errors, and can never become pending rows an admin cannot
+  // accept.
+  const errors = validateNewSubmission({
+    coaster_name: data.coaster_name,
+    park_name: data.park_name,
+    suggested_fields: data.suggested_fields as unknown as Record<string, unknown>,
+    note: data.note ?? null,
+  })
+  const summary = validationSummary(errors)
+  if (summary) throw new Error(summary)
+
   const { data: submission, error } = await supabase
     .from('coaster_submissions')
     .insert({
@@ -686,6 +716,17 @@ export async function submitEditSuggestion(data: {
   } = await supabase.auth.getUser()
   if (userError) throw userError
   if (!user) throw new Error('Not authenticated')
+
+  // Schema chokepoint (defense in depth behind the form-level validation in
+  // SuggestEditPage) — see submitCoaster above.
+  const errors = validateEditSubmission({
+    coaster_id: data.coaster_id,
+    park_id: data.park_id,
+    suggested_fields: data.suggested_fields as unknown as Record<string, unknown>,
+    note: data.note ?? null,
+  })
+  const summary = validationSummary(errors)
+  if (summary) throw new Error(summary)
 
   const { data: submission, error } = await supabase
     .from('coaster_submissions')

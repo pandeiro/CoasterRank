@@ -23,6 +23,11 @@ import {
   type Manufacturer,
   type Park,
 } from '../lib/coasters'
+import {
+  validateEditSubmission,
+  validationSummary,
+  type SubmissionValidationErrors,
+} from '../lib/submission-validation'
 
 function str(value: number | string | null | undefined): string {
   return value === null || value === undefined ? '' : String(value)
@@ -49,6 +54,8 @@ export default function SuggestEditPage() {
 
   // Free-text context for the reviewer (explanations, evidence links, …).
   const [note, setNote] = useState('')
+  // Schema validation errors from the last submit attempt.
+  const [fieldErrors, setFieldErrors] = useState<SubmissionValidationErrors>({})
 
   const { data: mySubmissions = [] } = useQuery({
     queryKey: ['my-submissions', user?.id],
@@ -158,6 +165,21 @@ export default function SuggestEditPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (atCap || changeCount === 0 || !effectivePark) return
+    // Schema gate: invalid values never leave the form, so they can never
+    // become a pending row the admin queue cannot accept.
+    const errors = validateEditSubmission({
+      coaster_id: coaster.id,
+      park_id: effectivePark.id,
+      suggested_fields: diff as unknown as Record<string, unknown>,
+      note: note.trim() || null,
+    })
+    const summary = validationSummary(errors)
+    if (summary) {
+      setFieldErrors(errors)
+      setToast({ message: summary, tone: 'error' })
+      return
+    }
+    setFieldErrors({})
     mutation.mutate({
       coaster_id: coaster.id,
       coaster_name: coaster.name,
@@ -167,6 +189,9 @@ export default function SuggestEditPage() {
       note: note.trim() || null,
     })
   }
+
+  const fieldError = (key: string) =>
+    fieldErrors[key] ? <p className="text-xs text-danger">{fieldErrors[key]}</p> : null
 
   const currentLine = (label: string, value: string) => (
     <p className="mt-1 text-xs text-muted">
@@ -206,6 +231,7 @@ export default function SuggestEditPage() {
                 maxLength={120}
                 className={fieldClassName}
               />
+              {fieldError('name')}
             </div>
 
             <div className="flex flex-col gap-2 relative">
@@ -260,6 +286,7 @@ export default function SuggestEditPage() {
                 placeholder="Unknown"
               />
               {currentLine('manufacturers', lineageNames(coaster).join(' · '))}
+              {fieldError('manufacturer_ids')}
             </div>
           </div>
 
@@ -325,6 +352,7 @@ export default function SuggestEditPage() {
                   className={fieldClassName}
                   placeholder="Unknown"
                 />
+                {fieldError(key)}
                 {currentLine('', str(coaster[key]))}
               </div>
             ))}
@@ -343,6 +371,7 @@ export default function SuggestEditPage() {
                 className={fieldClassName}
                 placeholder="Unknown"
               />
+              {fieldError('model')}
               {currentLine('', coaster.model ?? '')}
             </div>
             <div className="flex flex-col gap-2">
@@ -357,6 +386,7 @@ export default function SuggestEditPage() {
                 className={fieldClassName}
                 placeholder="Unknown"
               />
+              {fieldError('type')}
               {currentLine('', coaster.type ?? '')}
             </div>
             <div className="flex flex-col gap-2">
@@ -370,6 +400,7 @@ export default function SuggestEditPage() {
                 onChange={set('opening_date')}
                 className={fieldClassName}
               />
+              {fieldError('opening_date')}
               {currentLine('', coaster.opening_date ?? '')}
             </div>
           </div>
@@ -388,6 +419,7 @@ export default function SuggestEditPage() {
                 className={fieldClassName}
                 placeholder="Anything that helps the reviewer…"
               />
+              {fieldError('note')}
               <p className="text-xs text-muted">
                 Extra context for the reviewer — additional explanation, corrections, or evidence
                 links (RCDB, park site), etc.
