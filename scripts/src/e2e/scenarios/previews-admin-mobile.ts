@@ -211,8 +211,8 @@ const sharingPayload = {
     available: true,
     daily: last30Days().map((d) => ({ day: d.day, pageviews: d.count * 3, visits: d.count * 2 })),
     topPaths: [
-      { path: '/riders/coaster_fan_1999', pageviews: 42, visits: 30 },
-      { path: '/riders/magnum_xl', pageviews: 17, visits: 12 },
+      { path: '/riders/coaster_fan_1999', pageviews: 42, visits: 30, status: 'sharing' },
+      { path: '/riders/magnum_xl', pageviews: 17, visits: 12, status: 'sharing' },
     ],
     topReferrers: [
       { host: '', pageviews: 50, visits: 40 },
