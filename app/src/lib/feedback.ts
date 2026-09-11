@@ -115,19 +115,22 @@ export async function submitFeedback(data: {
   return feedback as UserFeedback
 }
 
+/** Admin-only view: profiles embeds resolve for admins (they can read all profiles). */
 const REPLY_EMBED = 'profiles:author_id(id, username, is_admin)'
 
 /**
  * The caller's own feedback threads with their reply histories (RLS filters
  * selects to submitted_by = uid for non-admins), newest first. Reply embeds
- * are ordered oldest→newest so threads read like a conversation.
+ * are ordered oldest→newest so threads read like a conversation. Deliberately
+ * NO profiles embed on replies: profiles have no public-select policy, so a
+ * submitter cannot read an admin's profile row (the embed would come back
+ * null) — reply authorship is derived client-side instead (see
+ * hasUnseenAdminReply / the modal's reply labels).
  */
 export async function getMyFeedback(): Promise<UserFeedback[]> {
   const { data, error } = await supabase
     .from('user_feedback')
-    .select(
-      `*, replies:user_feedback_replies(id, feedback_id, author_id, message, created_at, ${REPLY_EMBED})`,
-    )
+    .select('*, replies:user_feedback_replies(id, feedback_id, author_id, message, created_at)')
     .order('created_at', { ascending: false })
     .order('created_at', { referencedTable: 'user_feedback_replies', ascending: true })
     .range(0, 99)
@@ -188,10 +191,15 @@ export async function markMyFeedbackSeen() {
   if (error) throw error
 }
 
-/** True when the thread carries an admin reply the submitter hasn't seen. */
+/**
+ * True when the thread carries an admin reply the submitter hasn't seen.
+ * The replies insert policy guarantees every author other than the submitter
+ * is an admin, so authorship alone identifies team replies (no profiles
+ * embed needed — see getMyFeedback).
+ */
 export function hasUnseenAdminReply(feedback: UserFeedback): boolean {
   const seenAt = feedback.seen_by_submitter_at
   return (feedback.replies ?? []).some(
-    (reply) => reply.profiles?.is_admin && (!seenAt || reply.created_at > seenAt),
+    (reply) => reply.author_id !== feedback.submitted_by && (!seenAt || reply.created_at > seenAt),
   )
 }

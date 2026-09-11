@@ -68,10 +68,11 @@ describe('hasUnseenAdminReply', () => {
   const adminReply = {
     id: 'r1',
     feedback_id: 'f1',
+    // Any author other than the submitter ('u1') is an admin by construction
+    // (replies insert policy) — no profiles embed needed.
     author_id: 'admin1',
     message: 'Fixed',
     created_at: '2026-09-10T12:00:00Z',
-    profiles: { id: 'admin1', username: 'admin', is_admin: true },
   }
 
   it('flags threads with an unseen admin reply', () => {
@@ -86,14 +87,10 @@ describe('hasUnseenAdminReply', () => {
     ).toBe(false)
   })
 
-  it('ignores user replies and empty threads', () => {
-    expect(
-      hasUnseenAdminReply(
-        makeThread({
-          replies: [{ ...adminReply, profiles: { id: 'u1', username: 'me', is_admin: false } }],
-        }),
-      ),
-    ).toBe(false)
+  it('ignores replies the submitter authored themselves and empty threads', () => {
+    expect(hasUnseenAdminReply(makeThread({ replies: [{ ...adminReply, author_id: 'u1' }] }))).toBe(
+      false,
+    )
     expect(hasUnseenAdminReply(makeThread())).toBe(false)
   })
 })
