@@ -40,13 +40,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function replyAuthorLabel(
-  reply: { author_id: string; profiles?: { username: string | null; is_admin: boolean } | null },
-  viewerId: string,
-) {
-  if (reply.profiles?.is_admin) return 'CoasterRank Team'
-  if (reply.author_id === viewerId) return 'You'
-  return reply.profiles?.username ?? 'You'
+function replyAuthorLabel(reply: { author_id: string }, viewerId: string) {
+  // Invariant enforced by the replies insert policy: every author who is not
+  // the submitter is an admin (non-admins can only reply on their own threads
+  // as themselves). Profiles aren't readable cross-user, so no embed here.
+  return reply.author_id === viewerId ? 'You' : 'CoasterRank Team'
 }
 
 export default function FeedbackModal({
@@ -71,7 +69,11 @@ export default function FeedbackModal({
   // records its slug). Rendered nowhere — it lands in the admin panel only.
   const coasterSlug = matchPath('/coasters/:slug', location.pathname)?.params.slug ?? null
 
-  const { data: threads = [], isPending: threadsPending } = useQuery({
+  const {
+    data: threads = [],
+    isPending: threadsPending,
+    isError: threadsError,
+  } = useQuery({
     queryKey: ['my-feedback', user?.id],
     queryFn: getMyFeedback,
     enabled: Boolean(user) && isConfirmed && isOpen,
@@ -231,6 +233,10 @@ export default function FeedbackModal({
               <h3 className="mb-2 text-sm font-medium text-ink-soft">Your feedback</h3>
               {threadsPending ? (
                 <p className="text-sm text-muted">Loading…</p>
+              ) : threadsError ? (
+                <p className="rounded-xl border border-danger/20 bg-danger/5 px-3 py-4 text-sm text-danger-text">
+                  Couldn&apos;t load your feedback — your submissions are safe. Try again shortly.
+                </p>
               ) : threads.length === 0 ? (
                 <p className="rounded-xl border border-line bg-surface px-3 py-4 text-sm text-muted">
                   Nothing yet — anything you send shows up here with replies.

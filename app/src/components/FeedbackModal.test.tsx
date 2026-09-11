@@ -138,7 +138,6 @@ describe('FeedbackModal', () => {
             author_id: 'admin1',
             message: 'Fixed, thanks for the report!',
             created_at: '2026-09-10T12:00:00Z',
-            profiles: { id: 'admin1', username: 'admin', is_admin: true },
           },
         ],
       }),
@@ -161,6 +160,8 @@ describe('FeedbackModal', () => {
     // Fresh admin reply → "New" pill, auto-expanded thread, and a seen stamp.
     expect(screen.getByText('New')).toBeInTheDocument()
     expect(await screen.findByText('Fixed, thanks for the report!')).toBeInTheDocument()
+    // Team replies are labeled by the authorship invariant (no profiles embed).
+    expect(screen.getByText(/CoasterRank Team/)).toBeInTheDocument()
     expect(markMyFeedbackSeen).toHaveBeenCalledTimes(1)
   })
 
@@ -177,7 +178,6 @@ describe('FeedbackModal', () => {
             author_id: 'admin1',
             message: 'Looking into it',
             created_at: '2026-09-10T12:00:00Z',
-            profiles: { id: 'admin1', username: 'admin', is_admin: true },
           },
         ],
       }),
@@ -208,7 +208,6 @@ describe('FeedbackModal', () => {
             author_id: 'admin1',
             message: 'Looking into it',
             created_at: '2026-09-10T12:00:00Z',
-            profiles: { id: 'admin1', username: 'admin', is_admin: true },
           },
         ],
       }),
@@ -231,6 +230,17 @@ describe('FeedbackModal', () => {
     renderModal()
     expect(await screen.findByText(/5 open threads — the maximum/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /send it/i })).toBeDisabled()
+  })
+
+  it('shows an error state instead of an empty list when threads fail to load', async () => {
+    // Regression guard: a failing query used to render the "Nothing yet"
+    // empty state, making submitted feedback look silently lost.
+    vi.mocked(getMyFeedback).mockRejectedValue(new Error('relationship not found'))
+    renderModal()
+    expect(
+      await screen.findByText(/couldn't load your feedback — your submissions are safe/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/nothing yet/i)).not.toBeInTheDocument()
   })
 
   it('shows an error toast when submission fails', async () => {
