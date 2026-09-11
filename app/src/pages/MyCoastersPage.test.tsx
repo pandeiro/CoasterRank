@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useMyRides } from '../lib/rides'
 import { fetchProfile } from '../lib/profile'
 import { useAuth } from '../lib/auth-context'
-import { useShareNudge } from '../lib/share-nudge'
+import { dismissShareNudge, useShareNudge } from '../lib/share-nudge'
 import { readWelcomeDismissed } from '../lib/welcome'
 import MyCoastersPage from './MyCoastersPage'
 
@@ -100,6 +100,7 @@ vi.mock('../lib/welcome', () => ({
 
 vi.mock('../lib/share-nudge', () => ({
   useShareNudge: vi.fn(),
+  dismissShareNudge: vi.fn(),
 }))
 
 function renderPage(initialPath = '/me') {
@@ -313,13 +314,16 @@ describe('MyCoastersPage', () => {
 
   it('hides the share nudge for the rest of the session after dismissal', async () => {
     const user = userEvent.setup()
-    mockConfirmed(ridesWithRanks(9))
+    mockConfirmed(ridesWithRanks(9), 'u1')
     vi.mocked(useShareNudge).mockReturnValue({
       data: { eligible: true, ranked_count: 9 },
     } as never)
     renderPage()
     await user.click(await screen.findByRole('button', { name: /not right now/i }))
     expect(screen.queryByTestId('share-nudge-banner')).not.toBeInTheDocument()
+    // Dismissal must also reach the shareNudge cache: the staleTime Infinity
+    // verdict otherwise resurrects the banner on the next /me remount.
+    expect(vi.mocked(dismissShareNudge)).toHaveBeenCalledWith(expect.anything(), 'u1')
   })
 
   it('shows the welcome nudge on ?welcome=1 for users with nothing ranked', () => {

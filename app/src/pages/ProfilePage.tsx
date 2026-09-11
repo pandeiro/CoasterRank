@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { riderShareUrl } from '../lib/rider'
 import { fetchProfile, claimErrorMessage, type Profile } from '../lib/profile'
+import { dismissShareNudge } from '../lib/share-nudge'
 import { supabase } from '../lib/supabase'
 import { useAvatarUpload } from '../lib/use-avatar-upload'
 import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
@@ -82,6 +83,13 @@ export default function ProfilePage() {
     onError: (error, _next, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['profile', user?.id], ctx.previous)
       setFormError(claimErrorMessage(error))
+    },
+    onSuccess: () => {
+      // Whatever the toggle's direction, the nudge is moot for this session:
+      // a user who just turned sharing ON must not be re-nagged on their next
+      // /me visit (the staleTime Infinity cache would otherwise keep serving
+      // the pre-toggle eligible=true).
+      dismissShareNudge(queryClient, user!.id)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })

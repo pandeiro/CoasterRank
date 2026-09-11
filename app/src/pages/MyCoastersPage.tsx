@@ -17,7 +17,7 @@ import { Button, MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { applyImport, logImportEvent } from '../lib/import/apply'
 import { fetchProfile } from '../lib/profile'
-import { useShareNudge } from '../lib/share-nudge'
+import { dismissShareNudge, useShareNudge } from '../lib/share-nudge'
 import { startReplay, stopReplay } from '../lib/sentry'
 import { useMyRides } from '../lib/rides'
 import { isCoarsePointer } from '../lib/use-media-query'
@@ -135,6 +135,14 @@ export default function MyCoastersPage() {
   )
   const showShareNudge = nudge?.eligible === true && !nudgeDismissed
 
+  // Dismiss hides the banner now (local state) AND writes eligible=false into
+  // the shareNudge cache — the staleTime Infinity cache would otherwise keep
+  // serving the pre-dismiss eligible=true on every SPA remount of /me.
+  const handleNudgeDismiss = useCallback(() => {
+    setNudgeDismissed(true)
+    dismissShareNudge(qc, user?.id)
+  }, [qc, user?.id])
+
   const notify = useCallback(
     (
       message: string,
@@ -250,7 +258,7 @@ export default function MyCoastersPage() {
               rankedCount={nudge.ranked_count}
               parkCount={parkCount}
               topThree={topThree}
-              onDismiss={() => setNudgeDismissed(true)}
+              onDismiss={handleNudgeDismiss}
             />
           </div>
         )}
