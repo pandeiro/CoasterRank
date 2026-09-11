@@ -41,6 +41,11 @@ function formatDate(iso: string): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
 }
 
+/** Only linkify relative same-origin paths so hostile context cannot yank admins off-site. */
+function isSameAppPath(path: string): boolean {
+  return /^\/(?!\/)/.test(path)
+}
+
 // One feedback thread with its replies and the admin action row. Owns its
 // reply draft state so cards stay independent.
 function FeedbackCard({
@@ -50,7 +55,7 @@ function FeedbackCard({
   busy,
 }: {
   feedback: UserFeedback
-  onReply: (id: string, message: string) => void
+  onReply: (id: string, message: string, onSuccess: () => void) => void
   onSetStatus: (id: string, status: FeedbackStatus) => void
   busy: boolean
 }) {
@@ -58,7 +63,7 @@ function FeedbackCard({
   const meta = CATEGORY_META[feedback.category]
   const status = STATUS_PILL[feedback.status]
   const context = feedback.context ?? {}
-  const page = typeof context.page === 'string' ? context.page : null
+  const rawPage = typeof context.page === 'string' ? context.page : null
 
   return (
     <div className="rounded-xl border border-line bg-surface p-3 sm:p-4">
@@ -89,10 +94,14 @@ function FeedbackCard({
             <div className="flex items-baseline gap-2">
               <dt className="shrink-0 text-muted">Page</dt>
               <dd className="min-w-0 truncate">
-                {page ? (
-                  <Link to={page} className="text-accent-strong hover:underline">
-                    {page}
-                  </Link>
+                {rawPage ? (
+                  isSameAppPath(rawPage) ? (
+                    <Link to={rawPage} className="text-accent-strong hover:underline">
+                      {rawPage}
+                    </Link>
+                  ) : (
+                    <span>{rawPage}</span>
+                  )
                 ) : (
                   '—'
                 )}
@@ -156,6 +165,7 @@ function FeedbackCard({
               disabled={busy}
               className="rounded-full bg-surface-bright p-2 text-muted hover:bg-surface hover:text-ink disabled:opacity-50"
               title="Reopen"
+              aria-label="Reopen thread"
             >
               <RotateCcw size={16} />
             </button>
@@ -165,6 +175,7 @@ function FeedbackCard({
               disabled={busy}
               className="rounded-full bg-surface-bright p-2 text-muted hover:bg-surface hover:text-ink disabled:opacity-50"
               title="Close thread"
+              aria-label="Close thread"
             >
               <X size={16} />
             </button>
@@ -187,8 +198,7 @@ function FeedbackCard({
           size="sm"
           disabled={!draft.trim() || busy}
           onClick={() => {
-            onReply(feedback.id, draft)
-            setDraft('')
+            onReply(feedback.id, draft, () => setDraft(''))
           }}
         >
           Reply
@@ -215,9 +225,11 @@ export default function FeedbackPanel({ notify }: { notify: Notify }) {
   })
 
   const reply = useMutation({
-    mutationFn: ({ id, message }: { id: string; message: string }) => replyToFeedback(id, message),
-    onSuccess: () => {
+    mutationFn: ({ id, message }: { id: string; message: string; onSuccess?: () => void }) =>
+      replyToFeedback(id, message),
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })
+      vars.onSuccess?.()
       notify('Reply sent.')
     },
     onError: (error: Error) => notify(`Couldn't send reply: ${error.message}`, 'error'),
@@ -290,7 +302,7 @@ export default function FeedbackPanel({ notify }: { notify: Notify }) {
               key={t.id}
               feedback={t}
               busy={busy}
-              onReply={(id, message) => reply.mutate({ id, message })}
+              onReply={(id, message, onSuccess) => reply.mutate({ id, message, onSuccess })}
               onSetStatus={(id, status) => setStatus.mutate({ id, status })}
             />
           ))}

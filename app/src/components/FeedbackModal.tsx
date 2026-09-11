@@ -81,11 +81,15 @@ export default function FeedbackModal({
   const atCap = openCount >= FEEDBACK_OPEN_CAP
 
   // Opening the modal counts as seeing admin replies: stamp the rows so the
-  // "New" pills clear (mirrors the submit-page seen flow). Failures reset the
-  // guard for a retry on the next open.
+  // "New" pills clear (mirrors the submit-page seen flow). When closed, the
+  // guard resets so future admin replies in the same session can be seen.
   const seenMarked = useRef(false)
   useEffect(() => {
-    if (!isOpen || !user || !isConfirmed || seenMarked.current) return
+    if (!isOpen) {
+      seenMarked.current = false
+      return
+    }
+    if (!user || !isConfirmed || seenMarked.current) return
     if (!threads.some(hasUnseenAdminReply)) return
     seenMarked.current = true
     markMyFeedbackSeen()
