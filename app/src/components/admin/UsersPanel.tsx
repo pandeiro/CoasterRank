@@ -176,7 +176,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
   return (
     <>
       {stats && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-6">
           <StatBlock label="Users" value={stats.totalUsers} />
           <StatBlock label="Confirmed" value={stats.confirmedUsers} />
           <StatBlock label="Ranked" value={stats.rankedUsers} />
@@ -186,7 +186,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
         </div>
       )}
 
-      <Panel className="p-4">
+      <Panel bleed className="p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex shrink-0 self-start rounded-full bg-surface p-1">
             {FILTERS.map((f) => (
@@ -227,7 +227,7 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
         </p>
       </Panel>
 
-      <Panel className="p-6">
+      <Panel bleed className="p-3 sm:p-6">
         <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-ink">Users</h2>
           <Button type="button" size="sm" variant="outline" onClick={() => setInviteOpen(true)}>
@@ -260,23 +260,32 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
           <>
             <div className="space-y-2">
               {visible.map((u) => (
-                <div key={u.id} className="flex items-center gap-3 rounded-lg bg-surface p-3">
-                  <Avatar src={u.avatarUrl} userId={u.id} size={36} className="shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium text-ink">{userLabel(u)}</span>
-                      {u.synthetic && <Badge tone="coral">Test</Badge>}
-                      {u.isAdmin && <Badge tone="accent">Admin</Badge>}
-                      {u.invitedAt && <Badge tone="neutral">Invited</Badge>}
-                      {!u.confirmed && <Badge tone="warning">Unconfirmed</Badge>}
-                    </div>
-                    <div className="truncate text-xs text-muted">
-                      {u.email || 'no email'} · joined {formatDate(u.createdAt)} · {u.ridesRanked}/
-                      {u.ridesTotal} ranked
-                      {u.submissionsMade > 0 ? ` · ${u.submissionsMade} submission(s)` : ''}
+                <div
+                  key={u.id}
+                  className="flex flex-col gap-2 rounded-lg bg-surface p-3 sm:flex-row sm:items-center sm:gap-3"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <Avatar src={u.avatarUrl} userId={u.id} size={36} className="shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium break-words text-ink [overflow-wrap:anywhere]">
+                          {userLabel(u)}
+                        </span>
+                        {u.synthetic && <Badge tone="coral">Test</Badge>}
+                        {u.isAdmin && <Badge tone="accent">Admin</Badge>}
+                        {u.invitedAt && <Badge tone="neutral">Invited</Badge>}
+                        {!u.confirmed && <Badge tone="warning">Unconfirmed</Badge>}
+                      </div>
+                      <div className="text-xs break-words text-muted [overflow-wrap:anywhere]">
+                        {u.email || 'no email'} · joined {formatDate(u.createdAt)} · {u.ridesRanked}
+                        /{u.ridesTotal} ranked
+                        {u.submissionsMade > 0 ? ` · ${u.submissionsMade} submission(s)` : ''}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">{actionsFor(u)}</div>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
+                    {actionsFor(u)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -323,17 +332,21 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
               <Avatar src={detail.avatarUrl} userId={detail.id} size={48} />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate font-semibold text-ink">{userLabel(detail)}</span>
+                  <span className="font-semibold break-words text-ink [overflow-wrap:anywhere]">
+                    {userLabel(detail)}
+                  </span>
                   {detail.synthetic && <Badge tone="coral">Test</Badge>}
                   {detail.isAdmin && <Badge tone="accent">Admin</Badge>}
                   {detail.invitedAt && <Badge tone="neutral">Invited</Badge>}
                   {!detail.confirmed && <Badge tone="warning">Unconfirmed</Badge>}
                 </div>
-                <div className="truncate text-sm text-muted">{detail.email || 'no email'}</div>
+                <div className="text-sm break-words text-muted [overflow-wrap:anywhere]">
+                  {detail.email || 'no email'}
+                </div>
               </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-surface p-4 text-sm">
+            <dl className="grid grid-cols-1 gap-y-2 rounded-lg bg-surface p-3 text-sm sm:grid-cols-2 sm:gap-x-4 sm:p-4">
               <dt className="text-muted">Joined</dt>
               <dd className="text-ink">{formatDate(detail.createdAt)}</dd>
               <dt className="text-muted">Invited</dt>
@@ -364,8 +377,10 @@ export default function UsersPanel({ notify }: { notify: Notify }) {
                 )}
               </dd>
               <dt className="text-muted">User ID</dt>
-              <dd className="flex items-center gap-1.5">
-                <span className="truncate font-mono text-xs text-ink">{detail.id}</span>
+              <dd className="flex items-start gap-1.5">
+                <span className="min-w-0 flex-1 font-mono text-xs break-all text-ink">
+                  {detail.id}
+                </span>
                 <button
                   type="button"
                   onClick={() => void copyId(detail.id)}

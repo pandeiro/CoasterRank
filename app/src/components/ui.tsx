@@ -62,11 +62,27 @@ export function Badge({
   )
 }
 
-export function Panel({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
+export function Panel({
+  className = '',
+  bleed = false,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
+  /**
+   * Full-bleed band on mobile: edge-to-edge (cancels the page-container
+   * gutters), square corners, top/bottom hairlines only, no shadow — the
+   * section reads as a white band on canvas. Restores the floating card at
+   * sm+. Used by admin tab panels.
+   */
+  bleed?: boolean
+}) {
   return (
     <div
       {...props}
-      className={`rounded-xl border border-line bg-surface-bright shadow-panel ${className}`}
+      className={
+        bleed
+          ? `-mx-4 border-y border-line bg-surface-bright sm:mx-0 sm:rounded-xl sm:border sm:shadow-panel ${className}`
+          : `rounded-xl border border-line bg-surface-bright shadow-panel ${className}`
+      }
     />
   )
 }
