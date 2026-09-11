@@ -20,6 +20,17 @@ import {
   rejectSubmission,
   useParks,
 } from '../lib/coasters'
+import { getFeedbackThreads, type UserFeedback } from '../lib/feedback'
+
+vi.mock('../lib/feedback', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/feedback')>()
+  return {
+    ...actual,
+    getFeedbackThreads: vi.fn(),
+    replyToFeedback: vi.fn(),
+    setFeedbackStatus: vi.fn(),
+  }
+})
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -377,6 +388,34 @@ describe('AdminPage', () => {
       await userEvent.click(screen.getByRole('button', { name: /Edits \(1\)/ }))
       expect(screen.queryByText('New Coaster')).not.toBeInTheDocument()
       expect(screen.getByText('Old Coaster')).toBeInTheDocument()
+    })
+  })
+
+  describe('feedback tab', () => {
+    const thread: UserFeedback = {
+      id: 'f1',
+      category: 'bug',
+      message: 'The board drops my #1 coaster',
+      context: { page: '/me', user_agent: 'test', screen: '800x600', language: 'en' },
+      submitted_by: 'u1',
+      status: 'open',
+      seen_by_submitter_at: null,
+      created_at: '2026-09-10T00:00:00Z',
+      profiles: { id: 'u1', avatar_url: null, username: 'rider_one' },
+      replies: [],
+    }
+
+    it('renders the queue through the feedback lib', async () => {
+      vi.mocked(getFeedbackThreads).mockResolvedValue([thread])
+      renderPage('/admin/feedback')
+      expect(await screen.findByText('The board drops my #1 coaster')).toBeInTheDocument()
+      expect(screen.getByText('rider_one')).toBeInTheDocument()
+    })
+
+    it('shows the empty state', async () => {
+      vi.mocked(getFeedbackThreads).mockResolvedValue([])
+      renderPage('/admin/feedback')
+      expect(await screen.findByText('No open threads.')).toBeInTheDocument()
     })
   })
 

@@ -9,6 +9,12 @@ vi.mock('./ui/Avatar', () => ({
   default: () => <div data-testid="avatar" />,
 }))
 
+const openFeedback = vi.fn()
+
+vi.mock('./feedback-context', () => ({
+  useFeedback: () => ({ open: openFeedback }),
+}))
+
 const profile: Profile = {
   id: 'u1',
   username: 'coaster_fan',
@@ -47,6 +53,7 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   onSignOut.mockClear()
+  openFeedback.mockClear()
 })
 
 describe('UserMenu', () => {
@@ -132,6 +139,18 @@ describe('UserMenu', () => {
     const { dropdown } = await openMenu(user)
     await user.click(within(dropdown).getByRole('menuitem', { name: /sign out/i }))
     expect(onSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens the feedback modal in place via the Feedback item', async () => {
+    // The Feedback item is an action (not a NavLink): it opens the overlay
+    // without navigating, and still dismisses the menu like every other item.
+    const user = userEvent.setup()
+    renderMenu()
+    await openMenu(user)
+    await user.click(screen.getAllByRole('menuitem', { name: 'Feedback' })[0])
+    expect(openFeedback).toHaveBeenCalledTimes(1)
+    expect(trigger()).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger()).toHaveFocus()
   })
 
   it('links the account destinations, including the public page when shared', async () => {

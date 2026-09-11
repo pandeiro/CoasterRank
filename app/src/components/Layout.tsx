@@ -6,6 +6,7 @@ import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
+import FeedbackProvider from './FeedbackProvider'
 import { MessageState } from './ui'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
@@ -82,74 +83,76 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas">
-      <header
-        className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
-          showBrand ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
-        }`}
-      >
-        <div className="page-container flex min-h-16 items-center justify-between gap-6">
-          <Link
-            to="/"
-            aria-hidden={!showBrand}
-            className={`flex shrink-0 items-baseline gap-[0.14rem] text-ink transition-all duration-300 ease-out ${
-              showBrand
-                ? 'translate-y-0 opacity-100'
-                : 'pointer-events-none -translate-y-1 opacity-0'
-            }`}
-          >
-            <img
-              src="/logo.svg"
-              alt=""
-              width="1444"
-              height="1113"
-              fetchPriority="high"
-              decoding="async"
-              className="h-[2.3rem] w-auto shrink-0"
-            />
-            <span className="display-heading -translate-y-[0.12em] text-2xl leading-none tracking-wide">
-              Coaster<span className="text-coral">Rank</span>
-            </span>
-          </Link>
-          <nav className="flex items-center gap-3 text-sm sm:gap-5">
-            {isLoading ? null : user ? (
-              <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
-            ) : (
-              <>
-                <NavLink to="/login" className={navLinkClass}>
-                  Log in
-                </NavLink>
-                <Link
-                  to="/signup"
-                  className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
-                >
-                  Sign up
-                </Link>
-              </>
-            )}
-            {signOutError && (
-              <span role="alert" className="text-sm text-danger">
-                Couldn&apos;t sign out: {signOutError}
+    <FeedbackProvider>
+      <div className="flex min-h-dvh flex-col bg-canvas">
+        <header
+          className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
+            showBrand ? 'border-line/80 bg-canvas/95' : 'border-transparent bg-canvas/0'
+          }`}
+        >
+          <div className="page-container flex min-h-16 items-center justify-between gap-6">
+            <Link
+              to="/"
+              aria-hidden={!showBrand}
+              className={`flex shrink-0 items-baseline gap-[0.14rem] text-ink transition-all duration-300 ease-out ${
+                showBrand
+                  ? 'translate-y-0 opacity-100'
+                  : 'pointer-events-none -translate-y-1 opacity-0'
+              }`}
+            >
+              <img
+                src="/logo.svg"
+                alt=""
+                width="1444"
+                height="1113"
+                fetchPriority="high"
+                decoding="async"
+                className="h-[2.3rem] w-auto shrink-0"
+              />
+              <span className="display-heading -translate-y-[0.12em] text-2xl leading-none tracking-wide">
+                Coaster<span className="text-coral">Rank</span>
               </span>
-            )}
-          </nav>
-        </div>
-      </header>
-      {/* NO w-full here: it's a utilities-layer class and would override the
+            </Link>
+            <nav className="flex items-center gap-3 text-sm sm:gap-5">
+              {isLoading ? null : user ? (
+                <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
+              ) : (
+                <>
+                  <NavLink to="/login" className={navLinkClass}>
+                    Log in
+                  </NavLink>
+                  <Link
+                    to="/signup"
+                    className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+              {signOutError && (
+                <span role="alert" className="text-sm text-danger">
+                  Couldn&apos;t sign out: {signOutError}
+                </span>
+              )}
+            </nav>
+          </div>
+        </header>
+        {/* NO w-full here: it's a utilities-layer class and would override the
           components-layer .page-container width (width: min(100% - 2rem,
           72rem)), stretching main to the full viewport (the 2026-09-05
           regression). In a column flex container the explicit width wins over
           align-items:stretch, so flex-1 alone pins the footer to the bottom
           on short pages without touching the width. */}
-      <main className="page-container flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
-        {/* Lazy-route boundary lives here (not in App): header/footer chrome
+        <main className="page-container flex-1 pt-4 pb-8 sm:pt-6 sm:pb-10">
+          {/* Lazy-route boundary lives here (not in App): header/footer chrome
             persists while a split chunk loads instead of blanking the page. */}
-        <Suspense fallback={<MessageState>Loading…</MessageState>}>
-          <Outlet />
-        </Suspense>
-      </main>
-      <ImpersonationBanner />
-      <Footer />
-    </div>
+          <Suspense fallback={<MessageState>Loading…</MessageState>}>
+            <Outlet />
+          </Suspense>
+        </main>
+        <ImpersonationBanner />
+        <Footer />
+      </div>
+    </FeedbackProvider>
   )
 }
