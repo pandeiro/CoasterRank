@@ -1,5 +1,6 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import CoasterTable from '../components/CoasterTable'
 import ParkDetailSkeleton from '../components/ParkDetailSkeleton'
 import { MessageState, Panel } from '../components/ui'
@@ -43,8 +44,62 @@ export default function ParkDetailPage() {
   // best — the same "community ranking first" beat as the coaster detail page.
   const topCoaster = parkCoasters.find((c) => c.rank !== null)
 
+  // Rank-free title (ranks move weekly); the description carries the standing —
+  // same convention as CoasterDetailPage.
+  const pageUrl = `${window.location.origin}/parks/${park.data.slug}`
+  const title = `${park.data.name} — CoasterRank`
+  const metaDescription =
+    topCoaster && topCoaster.rank !== null
+      ? `${park.data.name}${location ? ` (${location})` : ''} — ${parkCoasters.length} coaster${parkCoasters.length === 1 ? '' : 's'} ranked by the CoasterRank community. Top: ${topCoaster.name} (#${topCoaster.rank} on the board).`
+      : `${park.data.name}${location ? ` (${location})` : ''} — ${parkCoasters.length} coaster${parkCoasters.length === 1 ? '' : 's'} on CoasterRank. Rank the ones you've ridden.`
+  // AmusementPark entity + the park's lineup as an ItemList (top 10 by
+  // community score — parkCoasters arrives in BT-score order). Client-rendered
+  // JSON-LD, like the coaster page; social unfurls still get the SPA shell.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'AmusementPark',
+    name: park.data.name,
+    url: pageUrl,
+    ...(location
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...(park.data.city ? { addressLocality: park.data.city } : {}),
+            ...(park.data.region ? { addressRegion: park.data.region } : {}),
+            ...(park.data.country ? { addressCountry: park.data.country } : {}),
+          },
+        }
+      : {}),
+    ...(parkCoasters.length > 0
+      ? {
+          containsPlace: parkCoasters.slice(0, 10).map((c) => ({
+            '@type': 'RollerCoaster',
+            name: c.name,
+            url: `${window.location.origin}/coasters/${c.slug}`,
+          })),
+        }
+      : {}),
+  }
+
   return (
     <div>
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={pageUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="CoasterRank" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={pageUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={metaDescription} />
+      </Helmet>
+      {/* JSON-LD lives in the body (valid for crawlers) rather than Helmet:
+          react-helmet-async drops script children, so head injection is
+          unreliable here. */}
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       <Panel className="p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">Park</p>
         <h1 className="display-heading mt-1 text-3xl text-ink sm:text-4xl">{park.data.name}</h1>

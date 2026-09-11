@@ -1,18 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter } from 'react-router-dom'
 import AboutPage from './AboutPage'
 
 const OPEN_LABEL = "OK, that's enough math for today"
 
-describe('AboutPage', () => {
-  it('renders with dek, section headings, and key links', () => {
-    render(
+function renderAbout() {
+  return render(
+    <HelmetProvider>
       <MemoryRouter>
         <AboutPage />
-      </MemoryRouter>,
-    )
+      </MemoryRouter>
+    </HelmetProvider>,
+  )
+}
+
+describe('AboutPage', () => {
+  it('renders with dek, section headings, and key links', () => {
+    renderAbout()
     expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
     expect(
       screen.getByText('CoasterRank is a free, open-source leaderboard for roller coasters.'),
@@ -53,11 +60,7 @@ describe('AboutPage', () => {
 
   it('swaps toggle copy and lazy-renders KaTeX when a disclosure is opened', async () => {
     const user = userEvent.setup()
-    const { container } = render(
-      <MemoryRouter>
-        <AboutPage />
-      </MemoryRouter>,
-    )
+    const { container } = renderAbout()
     await user.click(screen.getByRole('button', { name: 'Show me the math' }))
     // Open state shows the dismiss label.
     const openToggle = screen.getByRole('button', { name: OPEN_LABEL })
@@ -71,5 +74,21 @@ describe('AboutPage', () => {
     await user.click(screen.getByRole('button', { name: 'Show me the weighting' }))
     await waitFor(() => expect(screen.getAllByRole('button', { name: OPEN_LABEL })).toHaveLength(2))
     expect(container.querySelectorAll('.katex-display')).toHaveLength(4)
+  })
+
+  it('sets SEO meta and Organization JSON-LD', async () => {
+    renderAbout()
+    await waitFor(() => {
+      expect(document.title).toBe('About — CoasterRank')
+    })
+    expect(
+      document.head.querySelector('meta[name="description"]')?.getAttribute('content'),
+    ).toContain('free, open-source leaderboard')
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toContain(
+      '/about',
+    )
+    expect(document.querySelector('script[type="application/ld+json"]')?.textContent).toContain(
+      '"@type":"Organization"',
+    )
   })
 })

@@ -2,13 +2,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import worker, {
+  handleSitemapRequest,
   isSocialCrawler,
   escapeHtml,
   renderHomeHtml,
+  renderSitemap,
   homeMeta,
   renderRiderHtml,
   renderRiderNotFoundHtml,
   type Env,
+  type HomeTopCoaster,
   type WorkerRiderPage,
 } from './worker'
 
@@ -904,5 +907,221 @@ describe('worker: security headers', () => {
     expect(response.status).toBe(502)
     expectBaseHeaders(response)
     expectEnforcedCsp(response)
+  })
+})
+
+const homeTop: HomeTopCoaster[] = [
+  { name: 'Steel Vengeance', slug: 'steel-vengeance', park_name: 'Cedar Point' },
+  { name: 'Fury 325', slug: 'fury-325', park_name: 'Carowinds' },
+]
+
+describe('worker: home top 10', () => {
+  it('renders the cached top 10 with coaster links and ItemList JSON-LD', () => {
+    const html = renderHomeHtml('https://coasterrank.test', homeTop)
+    expect(html).toContain('Topping the board right now')
+    expect(html).toContain(
+      '<a class="name" href="https://coasterrank.test/coasters/steel-vengeance">Steel Vengeance</a>',
+    )
+    expect(html).toContain('<span class="park">Cedar Point</span>')
+    expect(html).toContain('"@type":"ItemList"')
+    expect(html).toContain('https://coasterrank.test/coasters/fury-325')
+    expect(html).toContain('/about')
+    expect(html).toContain('/faq')
+  })
+
+  it('omits the list and ItemList but keeps meta when the cache is cold', () => {
+    const html = renderHomeHtml('https://coasterrank.test')
+    expect(html).not.toContain('Topping the board right now')
+    expect(html).not.toContain('ItemList')
+    expect(html).toContain('property="og:type" content="website"')
+    expect(html).toContain('"@type":"WebSite"')
+  })
+
+  it('escapes coaster and park names in the prerendered list', () => {
+    const html = renderHomeHtml('https://coasterrank.test', [
+      { name: '<script>evil()</script>', slug: 'evil', park_name: 'A&B "Park"' },
+    ])
+    expect(html).not.toContain('<script>evil()</script>')
+    expect(html).toContain('&lt;script&gt;evil()&lt;/script&gt;')
+    expect(html).toContain('A&amp;B &quot;Park&quot;')
+  })
+
+  it('serves the top 10 from the edge-cached ranking payload without Supabase', async () => {
+    const env = makeEnv()
+    const put = vi.fn(async () => {})
+    const match = vi.fn(async (key: Request | string): Promise<Response | undefined> => {
+      if (String((key as Request).url ?? key).endsWith('/api/ranking')) {
+        return new Response(
+          JSON.stringify({
+            rankings: [
+              { name: 'Steel Vengeance', slug: 'steel-vengeance', park_name: 'Cedar Point' },
+              { name: 'Fury 325', slug: 'fury-325', park_name: 'Carowinds' },
+            ],
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return undefined
+    })
+    vi.stubGlobal('caches', { default: { match, put } })
+    const fetchMock = stubRankingUpstream()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      env,
+    )
+    const html = await response.text()
+    expect(html).toContain('Topping the board right now')
+    expect(html).toContain('Steel Vengeance')
+    expect(html).toContain('"@type":"ItemList"')
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('falls back to the static card when the edge cache is empty', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    stubRankingUpstream()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      env,
+    )
+    const html = await response.text()
+    expect(html).not.toContain('Topping the board right now')
+    expect(html).toContain('property="og:type" content="website"')
+    vi.unstubAllGlobals()
+  })
+})
+
+function stubSlugUpstream(status = 200) {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('v_coaster_rankings'))
+      return new Response(JSON.stringify([{ slug: 'steel-vengeance' }, { slug: 'fury-325' }]), {
+        status,
+      })
+    if (url.includes('/rest/v1/parks'))
+      return new Response(JSON.stringify([{ slug: 'cedar-point' }]), { status })
+    return new Response('unexpected', { status: 500 })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+describe('worker: /sitemap.xml', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders static plus detail URLs', () => {
+    const xml = renderSitemap('https://coasterrank.test', ['steel-vengeance'], ['cedar-point'])
+    expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>')
+    expect(xml).toContain('<loc>https://coasterrank.test/</loc>')
+    expect(xml).toContain('<loc>https://coasterrank.test/about</loc>')
+    expect(xml).toContain('<loc>https://coasterrank.test/faq</loc>')
+    expect(xml).toContain('<loc>https://coasterrank.test/coasters/steel-vengeance</loc>')
+    expect(xml).toContain('<loc>https://coasterrank.test/parks/cedar-point</loc>')
+  })
+
+  it('serves the full sitemap and caches it at the edge', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    const fetchMock = stubSlugUpstream()
+    const response = await worker.fetch(new Request('https://coasterrank.test/sitemap.xml'), env)
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toContain('application/xml')
+    expect(response.headers.get('Cache-Control')).toContain('max-age=3600')
+    expect(response.headers.get('X-Sitemap-Cache')).toBe('MISS')
+    expect(body).toContain('<loc>https://coasterrank.test/coasters/steel-vengeance</loc>')
+    expect(body).toContain('<loc>https://coasterrank.test/parks/cedar-point</loc>')
+    expect(cache.put).toHaveBeenCalledTimes(1)
+    const [putKey] = cache.put.mock.calls[0] as unknown as [Request]
+    expect(putKey.url).toBe('https://coasterrank.test/sitemap.xml')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(response.headers.get('Strict-Transport-Security')).toBeTruthy()
+  })
+
+  it('serves humans too — the route is not bot-gated', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    stubSlugUpstream()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/sitemap.xml', {
+        headers: { 'user-agent': 'Mozilla/5.0 Safari' },
+      }),
+      env,
+    )
+    expect(response.status).toBe(200)
+    expect((await response.text()).replace(/<\/?[^>]+>/g, '')).not.toBe('spa-shell')
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+    expect(response.headers.get('Content-Type')).toContain('application/xml')
+  })
+
+  it('serves a cache hit without touching Supabase', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    cache.match.mockResolvedValue(
+      new Response(renderSitemap('https://coasterrank.test', ['steel-vengeance'], []), {
+        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+      }),
+    )
+    const fetchMock = stubSlugUpstream()
+    const response = await handleSitemapRequest('https://coasterrank.test/sitemap.xml?utm=x', env)
+    expect(await response.text()).toContain('steel-vengeance')
+    expect(response.headers.get('X-Sitemap-Cache')).toBe('HIT')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(cache.put).not.toHaveBeenCalled()
+  })
+
+  it('dedupes slugs and drops non-slug values', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('v_coaster_rankings'))
+          return new Response(
+            JSON.stringify([
+              { slug: 'steel-vengeance' },
+              { slug: 'steel-vengeance' },
+              { slug: 'EVIL SPACE' },
+              { slug: null },
+              {},
+            ]),
+          )
+        return new Response(JSON.stringify([]))
+      }),
+    )
+    const body = await (
+      await worker.fetch(new Request('https://coasterrank.test/sitemap.xml'), env)
+    ).text()
+    expect(body.match(/coasters\/steel-vengeance/g)).toHaveLength(1)
+    expect(body).not.toContain('EVIL')
+  })
+
+  it('returns 502 without caching when Supabase fails', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    stubSlugUpstream(500)
+    const response = await worker.fetch(new Request('https://coasterrank.test/sitemap.xml'), env)
+    expect(response.status).toBe(502)
+    expect(response.headers.get('Cache-Control')).toContain('no-store')
+    expect(cache.put).not.toHaveBeenCalled()
+  })
+
+  it('serves the static-only sitemap when env vars are missing', async () => {
+    const env = makeEnv()
+    env.SUPABASE_URL = undefined
+    env.SUPABASE_ANON_KEY = undefined
+    makeCacheStub()
+    const fetchMock = stubSlugUpstream()
+    const response = await worker.fetch(new Request('https://coasterrank.test/sitemap.xml'), env)
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(body).toContain('<loc>https://coasterrank.test/</loc>')
+    expect(body).not.toContain('/coasters/')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
