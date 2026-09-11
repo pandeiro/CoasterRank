@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import worker, {
+  BING_SITE_VERIFICATION,
   handleSitemapRequest,
   isSocialCrawler,
   escapeHtml,
@@ -172,6 +173,14 @@ describe('worker: home unfurl', () => {
     expect(html).toContain('property="og:image:height" content="630"')
     expect(html).toContain('name="twitter:card" content="summary_large_image"')
     expect(html).toContain('rel="canonical" href="https://coasterrank.test/"')
+  })
+
+  it('carries the Bing site-verification token (bingbot hits this branch, not index.html)', () => {
+    const html = renderHomeHtml('https://coasterrank.test')
+    expect(
+      isSocialCrawler('Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'),
+    ).toBe(true)
+    expect(html).toContain(`<meta name="msvalidate.01" content="${BING_SITE_VERIFICATION}">`)
   })
 
   it('prerenders the home card for social crawlers on /', async () => {
