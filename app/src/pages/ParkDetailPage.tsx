@@ -45,7 +45,7 @@ export default function ParkDetailPage() {
 
   return (
     <div>
-      <Panel bleed className="p-5 sm:p-6">
+      <Panel className="p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">Park</p>
         <h1 className="display-heading mt-1 text-3xl text-ink sm:text-4xl">{park.data.name}</h1>
         <p className="mt-1 text-sm text-muted">
