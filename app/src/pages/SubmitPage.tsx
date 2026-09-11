@@ -20,6 +20,12 @@ import {
   type Park,
   type SuggestedFields,
 } from '../lib/coasters'
+import {
+  parseOptionalNumber,
+  validateNewSubmission,
+  validationSummary,
+  type SubmissionValidationErrors,
+} from '../lib/submission-validation'
 
 const STATUS_STYLES: Record<CoasterSubmission['status'], string> = {
   pending: 'bg-warning/15 text-warning-text',
@@ -37,6 +43,9 @@ export default function SubmitPage() {
 
   const [searchPark, setSearchPark] = useState('')
   const [selectedPark, setSelectedPark] = useState<Park | null>(null)
+  // Schema validation errors from the last submit attempt (cleared on the
+  // next attempt / success). Keys match input names / suggested_fields keys.
+  const [fieldErrors, setFieldErrors] = useState<SubmissionValidationErrors>({})
   // Manufacturer lineage (multi): ordered list, index 0 = primary.
   const [selectedLineage, setSelectedLineage] = useState<Manufacturer[]>([])
   const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' } | null>(() => {
@@ -102,25 +111,47 @@ export default function SubmitPage() {
     if (atCap) return
     const form = e.currentTarget
     const formData = new FormData(form)
+    const text = (key: string): string => {
+      const raw = formData.get(key)
+      return typeof raw === 'string' ? raw : ''
+    }
 
     const suggested_fields: SuggestedFields = {
-      height_m: formData.get('height') ? Number(formData.get('height')) : null,
-      speed_kmh: formData.get('speed') ? Number(formData.get('speed')) : null,
-      length_m: formData.get('length') ? Number(formData.get('length')) : null,
-      inversions: formData.get('inversions') ? Number(formData.get('inversions')) : null,
+      height_m: parseOptionalNumber(text('height')),
+      speed_kmh: parseOptionalNumber(text('speed')),
+      length_m: parseOptionalNumber(text('length')),
+      inversions: parseOptionalNumber(text('inversions')),
       material: (formData.get('material') as SuggestedFields['material']) || null,
       manufacturer_ids: selectedLineage.length > 0 ? selectedLineage.map((m) => m.id) : null,
       status: (formData.get('status') as SuggestedFields['status']) || null,
-      model: ((formData.get('model') as string) || '').trim() || null,
-      type: ((formData.get('type') as string) || '').trim() || null,
-      opening_date: (formData.get('opening_date') as string) || null,
+      model: text('model').trim() || null,
+      type: text('type').trim() || null,
+      opening_date: text('opening_date') || null,
     }
-    const note = ((formData.get('note') as string) || '').trim() || null
+    const coaster_name = text('coaster_name').trim()
+    const park_name = selectedPark ? selectedPark.name : text('park_name').trim()
+    const note = text('note').trim() || null
+
+    // Schema gate: invalid data never leaves the form, so it can never
+    // become a pending row the admin queue cannot accept.
+    const errors = validateNewSubmission({
+      coaster_name,
+      park_name,
+      suggested_fields: suggested_fields as unknown as Record<string, unknown>,
+      note,
+    })
+    const summary = validationSummary(errors)
+    if (summary) {
+      setFieldErrors(errors)
+      setToast({ message: summary, tone: 'error' })
+      return
+    }
+    setFieldErrors({})
 
     mutation.mutate(
       {
-        coaster_name: (formData.get('coaster_name') as string).trim(),
-        park_name: selectedPark ? selectedPark.name : (formData.get('park_name') as string).trim(),
+        coaster_name,
+        park_name,
         park_id: selectedPark?.id ?? null,
         suggested_fields,
         note,
@@ -135,6 +166,9 @@ export default function SubmitPage() {
       },
     )
   }
+
+  const fieldError = (key: string) =>
+    fieldErrors[key] ? <p className="text-xs text-danger">{fieldErrors[key]}</p> : null
 
   if (!isConfirmed) {
     return (
@@ -174,6 +208,7 @@ export default function SubmitPage() {
                 className={fieldClassName}
                 placeholder="e.g. Steel Vengeance"
               />
+              {fieldError('coaster_name')}
             </div>
 
             <div className="flex flex-col gap-2 relative">
@@ -193,6 +228,7 @@ export default function SubmitPage() {
                 className={fieldClassName}
                 placeholder="Search for a park..."
               />
+              {fieldError('park_name')}
 
               {searchPark && !selectedPark && filteredParks.length > 0 && (
                 <ul className="absolute top-full z-20 w-full overflow-hidden rounded-xl border border-line bg-surface-bright shadow-lift">
@@ -228,6 +264,7 @@ export default function SubmitPage() {
                   step="any"
                   className={fieldClassName}
                 />
+                {fieldError('height_m')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="speed" className="text-sm font-medium text-ink-soft">
@@ -241,6 +278,7 @@ export default function SubmitPage() {
                   step="any"
                   className={fieldClassName}
                 />
+                {fieldError('speed_kmh')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="length" className="text-sm font-medium text-ink-soft">
@@ -254,6 +292,7 @@ export default function SubmitPage() {
                   step="any"
                   className={fieldClassName}
                 />
+                {fieldError('length_m')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="inversions" className="text-sm font-medium text-ink-soft">
@@ -266,6 +305,7 @@ export default function SubmitPage() {
                   min="0"
                   className={fieldClassName}
                 />
+                {fieldError('inversions')}
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label htmlFor="material" className="text-sm font-medium text-ink-soft">
@@ -278,6 +318,7 @@ export default function SubmitPage() {
                   <option value="hybrid">Hybrid</option>
                   <option value="other">Other</option>
                 </select>
+                {fieldError('material')}
               </div>
             </div>
           </div>
@@ -296,6 +337,7 @@ export default function SubmitPage() {
                   onChange={setSelectedLineage}
                   placeholder="Search for a manufacturer..."
                 />
+                {fieldError('manufacturer_ids')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="status" className="text-sm font-medium text-ink-soft">
@@ -309,6 +351,7 @@ export default function SubmitPage() {
                     </option>
                   ))}
                 </select>
+                {fieldError('status')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="model" className="text-sm font-medium text-ink-soft">
@@ -321,6 +364,7 @@ export default function SubmitPage() {
                   className={fieldClassName}
                   placeholder="e.g. RMC IBox Track"
                 />
+                {fieldError('model')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="type" className="text-sm font-medium text-ink-soft">
@@ -333,6 +377,7 @@ export default function SubmitPage() {
                   className={fieldClassName}
                   placeholder="e.g. Hypercoaster"
                 />
+                {fieldError('type')}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="opening_date" className="text-sm font-medium text-ink-soft">
@@ -344,6 +389,7 @@ export default function SubmitPage() {
                   type="date"
                   className={fieldClassName}
                 />
+                {fieldError('opening_date')}
               </div>
             </div>
           </div>
@@ -361,6 +407,7 @@ export default function SubmitPage() {
                 className={fieldClassName}
                 placeholder="Anything that helps the reviewer…"
               />
+              {fieldError('note')}
               <p className="text-xs text-muted">
                 Extra context for the reviewer — additional explanation, corrections, or evidence
                 links (RCDB, park site), etc.
