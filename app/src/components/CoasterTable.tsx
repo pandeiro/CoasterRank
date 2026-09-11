@@ -403,7 +403,7 @@ export default function CoasterTable({
   const crossfade =
     Boolean(animatedTurnoverId) && (turnover?.movement.size ?? 0) > 0 && !prefersReducedMotion()
   return (
-    <Panel className="overflow-hidden">
+    <Panel bleed className="overflow-hidden">
       <ul
         key={animatedTurnoverId ?? 'board-list'}
         className={`divide-y divide-line/70 sm:hidden ${

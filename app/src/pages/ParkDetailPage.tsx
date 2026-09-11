@@ -80,7 +80,7 @@ export default function ParkDetailPage() {
           </p>
         )}
       </Panel>
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         {parkCoasters.length === 0 ? (
           <MessageState>No coasters from this park on the board yet.</MessageState>
         ) : (
