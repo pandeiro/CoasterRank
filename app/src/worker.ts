@@ -337,12 +337,6 @@ export type HomeTopCoaster = {
   park_name: string | null
 }
 
-// Bing Webmaster Tools site-verification token. Mirrored in app/index.html
-// (humans + JS-running crawlers get the shell) AND in the prerendered home
-// HTML below: bingbot matches the social-crawler gate, so Bing's verifier
-// fetches this branch, never index.html. Keep the two in sync.
-export const BING_SITE_VERIFICATION = '1917C66E5C4C30062DFEAE40CDF3233B'
-
 export function homeMeta(origin: string) {
   const title = 'CoasterRank — A live ranking of the world’s roller coasters'
   const description =
@@ -399,7 +393,6 @@ export function renderHomeHtml(origin: string, top: HomeTopCoaster[] = []): stri
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
-<meta name="msvalidate.01" content="${BING_SITE_VERIFICATION}">
 <link rel="canonical" href="${escapeHtml(url)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CoasterRank">
