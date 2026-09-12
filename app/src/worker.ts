@@ -59,14 +59,20 @@ export interface Env {
 
 const SECURITY_HEADERS: Record<string, string> = {
   // The SPA needs inline styles for its generated HTML and data URLs for the
-  // generated default avatar; scripts remain same-origin only.
-  // worker-src blob: — Sentry Replay (replaysOnErrorSampleRate 1.0) spawns its
+  // generated default avatar; scripts are same-origin plus the Cloudflare Web
+  // Analytics beacon. worker-src blob: — Sentry Replay (replaysOnErrorSampleRate 1.0) spawns its
   // compression worker from a same-origin-created blob URL at startup; without
   // this the worker is blocked on every page load (verified via live CSP test,
   // Sep 2026). font-src data: — KaTeX CSS embeds its fonts as data: URIs, so
   // math disclosures fall back to system fonts without it (same verification).
+  // script-src https://static.cloudflareinsights.com — RUM beacon auto-injected
+  // by Cloudflare's edge (auto_install); without this the beacon is blocked
+  // with a script-src 'self' violation (hit in prod Sep 2026). connect-src
+  // https://cloudflareinsights.com — covers the beacon's cross-origin send
+  // endpoint (auto-inject posts same-origin to /cdn-cgi/rum, already covered
+  // by 'self'; the host entry future-proofs a manual-snippet switch).
   'Content-Security-Policy':
-    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://cloudflareinsights.com",
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
