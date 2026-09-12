@@ -188,7 +188,7 @@ async function main(): Promise<void> {
           const handle = await mockSupabase(page, { tables: boardTables, rpcs })
           await seedGuest(page, [ID_SV, ID_MV, ID_MG])
           await page.goto(`${BASE}/rank`)
-          await waitForVisible(page, 'text=Unsaved Guest Ranking')
+          await waitForVisible(page, 'text=New Rider Ranking')
           await waitForVisible(page, 'text=Steel Vengeance')
           console.log(`[02 ${kind}] prod reads:`, JSON.stringify(handle.prodReads()))
           return page

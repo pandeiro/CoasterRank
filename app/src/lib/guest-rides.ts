@@ -7,10 +7,11 @@ import type { UserRide } from './rides'
 
 export const GUEST_RIDES_STORAGE_KEY = 'cr.guest-rides.v1'
 /**
- * Guest list cap (GUEST_UX.md §2.2). Keeps the signup-metadata payload far
+ * Guest list cap (GUEST_UX.md §2.2): enthusiasts commonly clear 100 rides;
+ * 150 is the rarer air. Keeps the signup-metadata payload ~6KB — still far
  * below GoTrue's undocumented raw_user_meta_data limits (supabase/auth#1776).
  */
-export const GUEST_RIDES_CAP = 100
+export const GUEST_RIDES_CAP = 150
 
 export interface GuestRideItem {
   coaster_id: string

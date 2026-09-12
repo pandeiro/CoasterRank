@@ -16,8 +16,13 @@ export const PENDING_GUEST_RIDES_KEY = 'pending_guest_rides'
  */
 export const GUEST_STALE_ERRCODE = 'PGRD1'
 
-/** Guest list ceiling: the RPC refuses > 200; the client caps at 100. */
-export const GUEST_PAYLOAD_CEILING = 200
+/**
+ * Ladder ceiling, aligned with apply_imported_rides (5000): the payload is
+ * the COMPLETE merged ladder, and a returning spreadsheet importer can
+ * legitimately rank thousands — the guest cap (150) only bounds the guest
+ * portion, never the whole payload.
+ */
+export const GUEST_PAYLOAD_CEILING = 5000
 
 export type GuestPromotionKind = 'materialize' | 'merge_append' | 'fast_add'
 

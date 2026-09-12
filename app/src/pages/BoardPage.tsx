@@ -278,7 +278,7 @@ export default function BoardPage() {
   const handleToggleSelect = useCallback((row: Parameters<typeof toggleGuestRide>[0]) => {
     const result = toggleGuestRide(row)
     if (result === 'capped') {
-      setCapToast('You can rank up to 100 coasters as a guest — sign up to go beyond that.')
+      setCapToast('You can rank up to 150 coasters as a guest — sign up to go beyond that.')
     }
   }, [])
 

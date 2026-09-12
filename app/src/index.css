@@ -133,3 +133,26 @@
     animation: none;
   }
 }
+
+/* Header CTA attention pulse (guest mark & rank): a soft accent halo that
+   breathes 3 times on initial pageload, then stops — understated, not spammy.
+   Box-shadow only, so it never shifts layout. */
+@keyframes cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgb(var(--color-accent) / 0);
+  }
+}
+
+.animate-cta-pulse {
+  animation: cta-pulse 1.6s ease-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cta-pulse {
+    animation: none;
+  }
+}

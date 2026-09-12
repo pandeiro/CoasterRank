@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
 import RankedCoasterList, {
@@ -150,6 +150,13 @@ export default function GuestRankPage() {
           <Button className="mt-6" onClick={handleAddMore}>
             Rank My Rides
           </Button>
+          <p className="mx-auto mt-4 max-w-xs text-xs text-muted">
+            Have a big list? You can also just import a spreadsheet once you{' '}
+            <Link to="/signup" className="link-brand">
+              Sign Up
+            </Link>
+            .
+          </p>
         </Panel>
       </div>
     )
@@ -161,10 +168,20 @@ export default function GuestRankPage() {
         <title>Rank Your Rides — CoasterRank</title>
       </Helmet>
       <div className="mb-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
-        <p className="font-semibold text-ink">Unsaved Guest Ranking</p>
+        <p className="font-semibold text-ink">New Rider Ranking</p>
         <p className="mt-0.5 text-muted">
-          Drag to order your favorites. Create a free account to join the global board and save your
+          Drag to re-order your lineup. Create a free account to join the global board and save your
           list.
+        </p>
+        {/* Power-user escape hatch (§3.3): someone with an existing
+            spreadsheet wants to jump straight to import after signup, not
+            toy-rank first. No import integration in the guest flow. */}
+        <p className="mt-1.5 text-xs text-muted">
+          Have a big list? You can also just import a spreadsheet once you{' '}
+          <Link to="/signup" className="link-brand">
+            Sign Up
+          </Link>
+          .
         </p>
       </div>
 
@@ -183,7 +200,9 @@ export default function GuestRankPage() {
           <Button variant="outline" size="sm" onClick={handleAddMore}>
             + Add More Coasters
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          {/* Coral: the brand "YES" pill tone (share banner precedent) — the
+              save action pops via color, no motion gimmicks. */}
+          <Button variant="coral" size="md" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save Ranking & Join Board'}
           </Button>
         </div>

@@ -85,10 +85,12 @@ begin
   if jsonb_array_length(p_rides) = 0 then
     raise exception 'Guest payload contains no rows';
   end if;
-  -- The client caps guests at 100; this ceiling is defense-in-depth against
-  -- metadata-stuffed payloads on secondary devices.
-  if jsonb_array_length(p_rides) > 200 then
-    raise exception 'Guest payload too large (max 200 rows)';
+  -- Ladder ceiling aligned with apply_imported_rides (max 5000): the payload
+  -- is the COMPLETE merged ladder, so a returning spreadsheet importer can
+  -- legitimately rank thousands. The 150-guest cap bounds the guest portion
+  -- of the payload (signup metadata), never this whole ladder.
+  if jsonb_array_length(p_rides) > 5000 then
+    raise exception 'Guest payload too large (max 5000 rows)';
   end if;
 
   -- Unknown-id validation (same "refresh and retry" contract as the import

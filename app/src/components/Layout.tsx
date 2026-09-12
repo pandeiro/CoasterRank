@@ -116,13 +116,13 @@ export default function Layout() {
                 height="1113"
                 fetchPriority="high"
                 decoding="async"
-                className="h-[2.3rem] w-auto shrink-0"
+                className="h-8 w-auto shrink-0 sm:h-[2.3rem]"
               />
-              <span className="display-heading -translate-y-[0.12em] text-2xl leading-none tracking-wide">
+              <span className="display-heading -translate-y-[0.12em] text-xl leading-none tracking-wide sm:text-2xl">
                 Coaster<span className="text-coral">Rank</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-3 text-sm sm:gap-5">
+            <nav className="flex items-center gap-2 whitespace-nowrap text-xs sm:gap-5 sm:text-sm">
               {isLoading ? null : user ? (
                 <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
               ) : (
@@ -130,10 +130,15 @@ export default function Layout() {
                   <NavLink to="/login" className={navLinkClass}>
                     Log in
                   </NavLink>
+                  {/* GUEST_UX.md §3.1: the primary funnel CTA — slightly larger
+                    than a plain nav item, with a finite accent halo on initial
+                    pageload (3 breaths, reduced-motion safe). Not a Link to
+                    /signup anymore: signup stays reachable via /login + the
+                    nudge card's secondary link. */}
                   <button
                     type="button"
                     onClick={onRankMyRides}
-                    className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
+                    className="animate-cta-pulse rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
                   >
                     Rank My Rides
                   </button>

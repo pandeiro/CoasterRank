@@ -24,6 +24,14 @@ Result of the pre-implementation technical review against the live schema and co
 5. **(E) Stale metadata recovery**: a coverage-guard failure on a secondary device means the account has progressed past the guest payload — the client treats that errcode as "stale", wipes `pending_guest_rides`, and continues (no recurring login errors).
 6. **(F) Editorial/a11y**: duplicate §4.3/§4.4 headings removed; selection rows use `aria-selected` + a real checkbox in the rank column (never `aria-pressed` on `<tr>`).
 
+### Changelog (v2.1 feedback pass 3)
+
+1. **Spreadsheet alternate path, not integration**: the `/rank` banner and empty state carry _"Have a big list? You can also just import a spreadsheet once you **Sign Up**."_ Import stays a post-signup surface (`/me`); no top-level Import button (it would split the primary funnel — power users self-select at `/rank` or via the Welcome modal).
+2. **Header CTA juice**: slightly larger pill + the finite `cta-pulse` accent halo on initial pageload (reduced-motion safe). Save stays pulse-free — it gets emphasis from color (coral brand pill) instead.
+3. **Guest cap 100 → 150** (~6KB metadata): enthusiasts commonly clear 100 rides. The RPC ladder ceiling is now **5000, aligned with `apply_imported_rides`** — merged ladders from returning spreadsheet importers are legitimately large, so the ceiling must bound ladders, not guest lists.
+4. **Mobile nav wrapping**: smaller wordmark (`h-8`/`text-xl`), nav text drops a tier (`text-xs`) with `whitespace-nowrap` so Log in / Rank My Rides never break lines. "Log in" stays visible.
+5. **Copy**: "Unsaved Guest Ranking" → **"New Rider Ranking"**; "Drag to order your favorites" → **"Drag to re-order your lineup."**
+
 ---
 
 ## Part I: Product Requirements Document (PRD)
@@ -61,7 +69,7 @@ Email verification is a load-bearing anti-abuse invariant protecting the public 
 - **No Cross-Device Local Sync**: Guest sessions are bound to their current browser until promoted to a confirmed account.
 - **No Pre-Auth Server Telemetry**: Guest events are never written server-side; funnel capture happens post-auth via `guest_promotions` (§5.1 spells out the measurement consequences).
 - **No `auth.users` Trigger in v1**: Materialization is client-side on the confirmed login path (§3.4); a server-side trigger is deferred hardening, not launch scope.
-- **Guest Cap: 100 Coasters**: Guests can mark at most 100 coasters (metadata-size safety, §2.2); power users rank beyond that after signup.
+- **Guest Cap: 150 Coasters**: Guests can mark at most 150 coasters (metadata-size safety, §2.2); power users rank beyond that after signup via import.
 
 ---
 
@@ -86,7 +94,7 @@ flowchart TD
 #### 3.1 Mode 1: The Browse Experience (Default)
 
 - The global board (`/`) loads in its clean, read-optimized table layout.
-- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`**.
+- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — slightly larger than a plain nav item, with a **finite accent-halo pulse on initial pageload** (3 breaths, box-shadow only, reduced-motion safe; never on the Save button — one motion accent per page).
 - The existing engagement-timed nudge (`SignupCta`) continues firing for passive browsers (after 16s engaged dwell + scroll, `SIGNUP_CTA_ENGAGED_SECONDS`), but its primary button now reads **`Rank My Rides`** — the same CTA as the header — triggering Mark Mode directly on the board rather than sending the user to a blank form.
 
 #### 3.2 Mode 2: "Mark Ridden" Mode (Board Focus / Selection Overlay)
@@ -127,12 +135,14 @@ When the user clicks **`Rank My Rides (N)`**, they transition to `/rank`:
    - Items can be deleted from the draft list via the standard swipe/trash affordance.
 3. **Status Banner & CTA Chrome**:
    - Top banner:
-     > **Unsaved Guest Ranking** · Drag to order your favorites. Create a free account to join the global board and save your list.
+     > **New Rider Ranking** · Drag to re-order your lineup. Create a free account to join the global board and save your list.
+     > _Have a big list? You can also just import a spreadsheet once you **Sign Up**._
    - Sticky footer action bar:
      - **`Save Ranking & Join Board`** (Prominent coral/accent button).
      - **`+ Add More Coasters`** (Navigates back to `/` with Mark Mode pre-activated and existing selections preserved).
 4. **Direct / Empty Visits**:
    - `/rank` hit directly (shared URL, back button) with no guest rides shows an empty state: brief explainer plus a **`Rank My Rides`** button returning to the board with Mark Mode pre-activated.
+   - The empty state also carries the spreadsheet line — _"Have a big list? You can also just import a spreadsheet once you Sign Up."_
    - A logged-in user with **0 rides** who reaches `/rank` (not redirected — see Part II §3.1) gets the same workbench in seed mode; saving materializes the list via `materialize_guest_rides` — no signup, no merge modal.
 5. **Order lifecycle (review round 2, D)** — seeding vs. manual order:
    - **Phase 1 (seed)**: while the guest list is unlocked (`orderLocked: false`), newly marked coasters are seeded into board-rank position.
@@ -291,8 +301,8 @@ export interface GuestRankingState {
 
 #### 2.2 Storage Limits & Sanitation
 
-- **Quota Safety**: Max 100 coasters stored locally (~4KB of IDs + snapshots; well under the 5MB browser quota). The 100 cap also keeps the signup-metadata payload far below GoTrue's undocumented `raw_user_meta_data` size limits, which can break auth sessions when exceeded (supabase/auth#1776).
-- **Cap Overflow UX**: Marking beyond 100 is a no-op: the row toggles back off, a toast explains ("You can rank up to 100 coasters as a guest"), and the dock counter stays at 100. The RPC enforces a generous server-side ceiling (200) as defense-in-depth.
+- **Quota Safety**: Max 150 coasters stored locally (~6KB of IDs + snapshots; well under the 5MB browser quota). 150 because enthusiasts commonly clear 100 rides and 150 keeps the signup-metadata payload far below GoTrue's undocumented `raw_user_meta_data` size limits, which can break auth sessions when exceeded (supabase/auth#1776).
+- **Cap Overflow UX**: Marking beyond 150 is a no-op: the row toggles back off, a toast explains ("You can rank up to 150 coasters as a guest"), and the dock counter stays at 150. The RPC enforces a 5000-row ladder ceiling aligned with the import contract (see §4.3).
 - **Catalog Drift Resilience**: Snapshots store `name` and `slug` so that if catalog data updates while offline, the user’s UI does not crash.
 - **Idempotency**: Adding an already-selected coaster is a no-op; removing a coaster deletes it from both `orderedIds` and `items`.
 
@@ -429,7 +439,7 @@ Semantics (mirrors the ranked-ladder half of `apply_imported_rides`, minus impor
 - **Ladder validation**: payload must be a JSON array of coaster UUIDs; any unknown ID raises (same "refresh and retry" contract as the import RPC). Duplicates are deduped, first occurrence wins.
 - **Coverage guard**: if the user has ranked rows absent from the payload, raise with the **dedicated errcode `PGRD1`** — the client uses it for stale-payload recovery (review round 2, E) rather than treating it as a generic failure. Clients always send the complete ladder — the full guest list for fresh accounts, the full merged list for merge-append — making "never silently drop part of a ladder" structurally impossible.
 - **Rewrite**: ranks are rewritten `1..n` gapless from array position; holding-pen rows (`rank = null`) not in the payload stay unranked. Idempotent by construction.
-- **Server-side ceiling**: reject payloads > 200 IDs (the client caps at 100; this is defense-in-depth).
+- **Server-side ceiling**: reject payloads > 5000 rows, aligned with `apply_imported_rides` (the payload is the complete merged ladder — a returning spreadsheet importer can legitimately rank thousands; the guest cap bounds only the guest portion).
 - **Telemetry**: when provided, inserts one `guest_promotions` row with `duration_ms = GREATEST(0, now() - p_started_at)` — the clamp guards against client device clock skew producing negative durations (review round 2, A).
 - **No side effects**: no Telegram notification, no `import_events` row, no profile stamping.
 

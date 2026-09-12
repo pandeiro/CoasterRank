@@ -94,7 +94,7 @@ describe('rpc wrappers', () => {
   })
 
   it('refuses oversized payloads client-side (RPC ceiling mirror)', async () => {
-    const ids = Array.from({ length: 201 }, (_, i) => `c${i}`)
+    const ids = Array.from({ length: 5001 }, (_, i) => `c${i}`)
     await expect(materializeGuestRides(ids, 'materialize', null)).rejects.toThrow(/too large/i)
     expect(supabase.rpc).not.toHaveBeenCalled()
   })
