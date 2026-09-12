@@ -342,8 +342,13 @@ export function toggleGuestRide(row: RankingRow): GuestToggleResult {
   return 'added'
 }
 
+/**
+ * Tears down the guest list entirely. Unconditional on purpose: callers
+ * (promotion gate, merge modal) may reach this on a page whose module store
+ * never loaded the state — the storage wipe must not depend on that sync.
+ */
 export function clearGuestRides(): void {
-  if (store.state) setState(null)
+  setState(null)
 }
 
 export function reorderGuestRideList(orderedIds: string[]): void {

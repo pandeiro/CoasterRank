@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import LoginPage from './LoginPage'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
@@ -13,7 +14,11 @@ vi.mock('../lib/supabase', () => ({
       signInWithOtp: vi.fn(),
       verifyOtp: vi.fn(),
       resend: vi.fn(),
+      updateUser: vi.fn(),
     },
+    rpc: vi.fn(),
+    // Not hit without guest state, but the guest-promotion lib imports it.
+    from: vi.fn(),
   },
 }))
 
@@ -23,13 +28,15 @@ vi.mock('../lib/auth-context', () => ({
 
 function renderLogin(initialPath = '/login') {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/me" element={<p>my coasters</p>} />
-        <Route path="/riders/:username" element={<p>rider page</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/me" element={<p>my coasters</p>} />
+          <Route path="/riders/:username" element={<p>rider page</p>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -247,5 +254,198 @@ describe('LoginPage', () => {
       options?: { emailRedirectTo?: string }
     }
     expect(arg.options?.emailRedirectTo).toContain(encodeURIComponent('/riders/ana'))
+  })
+})
+
+// ── Guest promotion gate (GUEST_UX.md §4.2/§4.4, review round 2 B/C/E)
+
+import { writeGuestRanking, type GuestRankingState } from '../lib/guest-rides'
+
+function seedGuestState(ids: string[], createdAt = 1_757_600_000_000) {
+  const state: GuestRankingState = {
+    version: 1,
+    orderedIds: ids,
+    items: Object.fromEntries(
+      ids.map((id) => [
+        id,
+        {
+          coaster_id: id,
+          name: `Coaster ${id}`,
+          slug: id,
+          park_id: null,
+          park_slug: null,
+          park_name: null,
+          park_country: null,
+          manufacturer_name: null,
+          material: 'steel',
+          status: 'operating',
+          board_rank: null,
+          added_at: createdAt,
+        },
+      ]),
+    ),
+    orderLocked: false,
+    createdAt,
+    updatedAt: createdAt,
+  }
+  writeGuestRanking(state)
+}
+
+function mockRidesQuery(rows: { coaster_id: string; rank: number | null }[]) {
+  vi.mocked(supabase.from).mockReturnValue({
+    select: () => ({
+      not: () => ({
+        order: () => ({
+          range: () => Promise.resolve({ data: rows, error: null }),
+        }),
+      }),
+    }),
+  } as never)
+}
+
+describe('LoginPage guest promotion gate', () => {
+  beforeEach(() => {
+    // Call counts accumulate across tests otherwise (shared module mocks).
+    vi.clearAllMocks()
+    window.localStorage.clear()
+    vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+      data: { user: {} },
+      error: null,
+    } as never)
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: 2, error: null } as never)
+  })
+
+  it('holds navigation while a pending payload materializes, then wipes it (review B)', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: {
+        id: 'u1',
+        user_metadata: {
+          pending_guest_rides: { ids: ['g1', 'g2'], started_at: '2026-09-11T00:00:00.000Z' },
+        },
+      },
+      isLoading: false,
+    } as never)
+    renderLogin('/login?confirmed=1')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    expect(supabase.rpc).toHaveBeenCalledWith('materialize_guest_rides', {
+      p_rides: ['g1', 'g2'],
+      p_kind: 'materialize',
+      p_started_at: '2026-09-11T00:00:00.000Z',
+    })
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({
+      data: { pending_guest_rides: null },
+    })
+    // The local list is consumed too.
+    expect(window.localStorage.getItem('cr.guest-rides.v1')).toBeNull()
+  })
+
+  it('treats the stale errcode as wipe-and-continue (review E)', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: {
+        id: 'u1',
+        user_metadata: {
+          pending_guest_rides: { ids: ['g1'], started_at: '2026-09-11T00:00:00.000Z' },
+        },
+      },
+      isLoading: false,
+    } as never)
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: 'PGRD1', message: 'stale' },
+    } as never)
+    renderLogin('/login?confirmed=1')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    // Materialize was attempted once; the wipe still ran; the user landed.
+    expect(supabase.rpc).toHaveBeenCalledTimes(1)
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({
+      data: { pending_guest_rides: null },
+    })
+  })
+
+  it('shows the merge modal for a local guest list and holds navigation (review C)', async () => {
+    seedGuestState(['g1', 'g2'])
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: { id: 'u1', user_metadata: {} },
+      isLoading: false,
+    } as never)
+    mockRidesQuery([{ coaster_id: 'r1', rank: 1 }])
+    renderLogin('/login')
+    const dialog = await screen.findByRole('dialog', { name: /merge your guest ranking/i })
+    expect(dialog).toBeInTheDocument()
+    // Navigation is held until a choice is made.
+    expect(screen.queryByText('my coasters')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /discard session/i }))
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    expect(supabase.rpc).toHaveBeenCalledWith('log_guest_merge_decision', {
+      p_kind: 'merge_discard',
+    })
+    expect(window.localStorage.getItem('cr.guest-rides.v1')).toBeNull()
+  })
+
+  it('append submits the COMPLETE merged ladder (review round 1, blocker 2)', async () => {
+    seedGuestState(['g1', 'g2'])
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: { id: 'u1', user_metadata: {} },
+      isLoading: false,
+    } as never)
+    mockRidesQuery([{ coaster_id: 'r1', rank: 1 }])
+    renderLogin('/login')
+    await screen.findByRole('dialog', { name: /merge your guest ranking/i })
+    await userEvent.click(screen.getByRole('button', { name: /add 2 to the bottom/i }))
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    expect(supabase.rpc).toHaveBeenCalledWith('materialize_guest_rides', {
+      p_rides: ['r1', 'g1', 'g2'],
+      p_kind: 'merge_append',
+      p_started_at: new Date(1_757_600_000_000).toISOString(),
+    })
+    expect(window.localStorage.getItem('cr.guest-rides.v1')).toBeNull()
+  })
+
+  it('silently clears a guest list that adds nothing new (§4.4 Rule 4)', async () => {
+    seedGuestState(['r1'])
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: { id: 'u1', user_metadata: {} },
+      isLoading: false,
+    } as never)
+    mockRidesQuery([{ coaster_id: 'r1', rank: 1 }])
+    renderLogin('/login')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(supabase.rpc).not.toHaveBeenCalledWith('materialize_guest_rides', expect.anything())
+    expect(window.localStorage.getItem('cr.guest-rides.v1')).toBeNull()
+  })
+
+  it('materializes directly when the account has zero ranked rides (seed mode)', async () => {
+    seedGuestState(['g1'])
+    vi.mocked(useAuth).mockReturnValue({
+      session: { access_token: 'tok' },
+      user: { id: 'u1', user_metadata: {} },
+      isLoading: false,
+    } as never)
+    mockRidesQuery([])
+    renderLogin('/login')
+    await waitFor(() => {
+      expect(screen.getByText('my coasters')).toBeInTheDocument()
+    })
+    expect(supabase.rpc).toHaveBeenCalledWith('materialize_guest_rides', {
+      p_rides: ['g1'],
+      p_kind: 'materialize',
+      p_started_at: new Date(1_757_600_000_000).toISOString(),
+    })
   })
 })

@@ -4,6 +4,7 @@ import { Upload } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
+import ExistingAccountMergeModal from '../components/ExistingAccountMergeModal'
 import ImportListModal, {
   IMPORT_UNDO_MS,
   type AppliedImport,
@@ -15,6 +16,13 @@ import WelcomeModal from '../components/WelcomeModal'
 import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
 import { Button, MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import { clearGuestRides, readGuestRanking } from '../lib/guest-rides'
+import {
+  fetchMyRankedRideIds,
+  logGuestMergeDecision,
+  materializeGuestRides,
+  triageGuestState,
+} from '../lib/guest-promotion'
 import { applyImport, logImportEvent } from '../lib/import/apply'
 import { fetchProfile } from '../lib/profile'
 import { dismissShareNudge, useShareNudge } from '../lib/share-nudge'
@@ -29,6 +37,13 @@ type ToastState = {
   tone: 'info' | 'error'
   action?: ToastAction
   durationMs?: number
+}
+
+type MergePromptState = {
+  remoteIds: string[]
+  guestOnlyIds: string[]
+  guestCount: number
+  remoteCount: number
 }
 
 // The sticky search bar only gets its backdrop once it has actually stuck to
@@ -187,6 +202,81 @@ export default function MyCoastersPage() {
   )
 
   const handleError = useCallback((message: string) => notify(message, 'error'), [notify])
+
+  // ── Guest reconciliation safety net (GUEST_UX.md §4.4, review round 2 C):
+  // a user with a live session can reach /me without visiting /login (left
+  // the tab days ago, direct deep link). Runs once per mount after the rides
+  // query settles; the login page normally consumes guest state first, so
+  // this is a no-op in the common path.
+  const reconciledRef = useRef(false)
+  const [mergePrompt, setMergePrompt] = useState<MergePromptState | null>(null)
+
+  useEffect(() => {
+    if (isPending || isError || !user || !isConfirmed) return
+    if (reconciledRef.current) return
+    reconciledRef.current = true
+    let cancelled = false
+    void (async () => {
+      const guest = readGuestRanking()
+      if (!guest || guest.orderedIds.length === 0) return
+      try {
+        const remoteIds = await fetchMyRankedRideIds()
+        if (cancelled) return
+        const verdict = triageGuestState(remoteIds)
+        if (verdict.action === 'silent_clear') {
+          clearGuestRides()
+          return
+        }
+        if (verdict.action === 'materialize') {
+          await materializeGuestRides(
+            guest.orderedIds,
+            'materialize',
+            new Date(guest.createdAt).toISOString(),
+          )
+          clearGuestRides()
+          await qc.invalidateQueries({ queryKey: ['myRides', user.id] })
+          notify('Your guest ranking was added to this account')
+          return
+        }
+        if (verdict.action === 'conflict') {
+          setMergePrompt({
+            remoteIds,
+            guestOnlyIds: verdict.guestOnlyIds,
+            guestCount: guest.orderedIds.length,
+            remoteCount: remoteIds.length,
+          })
+        }
+      } catch {
+        if (!cancelled) notify("Couldn't check your guest list — try reloading.", 'error')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isPending, isError, user, isConfirmed, qc, notify])
+
+  const handleMergeAppend = useCallback(async () => {
+    if (!mergePrompt) return
+    try {
+      // §4.4 Rule 3: the COMPLETE merged ladder, guest-only ids at the bottom.
+      await materializeGuestRides(
+        [...mergePrompt.remoteIds, ...mergePrompt.guestOnlyIds],
+        'merge_append',
+        null,
+      )
+      clearGuestRides()
+      setMergePrompt(null)
+      await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+    } catch {
+      notify("Couldn't save your guest coasters — try again or discard.", 'error')
+    }
+  }, [mergePrompt, qc, user?.id, notify])
+
+  const handleMergeDiscard = useCallback(async () => {
+    await logGuestMergeDecision().catch(() => {})
+    clearGuestRides()
+    setMergePrompt(null)
+  }, [])
 
   // Bulk-apply undo: restores the pre-import state in one RPC call —
   // replace mode re-inserts the prior ranked list AND re-unranks any
@@ -366,6 +456,16 @@ export default function MyCoastersPage() {
           durationMs={toast.durationMs}
           action={toast.action}
           onDismiss={dismissToast}
+        />
+      )}
+
+      {mergePrompt && (
+        <ExistingAccountMergeModal
+          guestCount={mergePrompt.guestCount}
+          remoteCount={mergePrompt.remoteCount}
+          busy={false}
+          onAppend={() => void handleMergeAppend()}
+          onDiscard={() => void handleMergeDiscard()}
         />
       )}
     </div>

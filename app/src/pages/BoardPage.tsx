@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { useQueryClient } from '@tanstack/react-query'
 import BoardSkeleton from '../components/BoardSkeleton'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
@@ -13,12 +14,16 @@ import Toast from '../components/Toast'
 import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import {
+  clearGuestRides,
   enterGuestMarkMode,
   exitGuestMarkMode,
+  readGuestRanking,
   resetGuestSelection,
   toggleGuestRide,
   useGuestRides,
 } from '../lib/guest-rides'
+import { fetchMyRankedRideIds, materializeGuestRides } from '../lib/guest-promotion'
+import { useRemoveRide } from '../lib/rides'
 import {
   countryOptions,
   filterCoasters,
@@ -62,8 +67,11 @@ function StatusPulse({ className }: { className: string }) {
 export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
   const [capToast, setCapToast] = useState<string | null>(null)
+  const [fastAdd, setFastAdd] = useState<{ message: string; appendedIds: string[] } | null>(null)
+  const [addBusy, setAddBusy] = useState(false)
 
   const coasters = useAllCoasters()
   // Board meta (real/ranked counts + last recompute) comes from the same
@@ -241,17 +249,18 @@ export default function BoardPage() {
     setCtaHidden(true)
   }, [ctaPreview])
 
-  // ── Mark Mode (GUEST_UX.md §3.2, guest-only in Phase 1–3; Mode 6 fast-add
-  // for authed users lands with the Phase 4 RPC). The ?mark=1 param is the
-  // cross-page entry (header CTA, /rank back-links); the store keeps the
-  // mode + selection across navigation, the param keeps it across reloads.
+  // ── Mark Mode (GUEST_UX.md §3.2 guests / §3.6 Mode 6 fast-add for authed
+  // users). The ?mark=1 param is the cross-page entry (header CTA, /rank
+  // back-links); the store keeps the mode + selection across navigation, the
+  // param keeps it across reloads.
   const guest = useGuestRides()
-  const markMode = !authLoading && !user && guest.markMode
+  const authed = !authLoading && Boolean(user)
+  const markMode = !authLoading && guest.markMode
   const markParam = searchParams.get('mark') === '1'
 
   useEffect(() => {
-    if (markParam && !authLoading && !user) enterGuestMarkMode()
-  }, [markParam, authLoading, user])
+    if (markParam && !authLoading) enterGuestMarkMode()
+  }, [markParam, authLoading])
 
   useEffect(() => {
     if (markMode === markParam) return
@@ -291,6 +300,45 @@ export default function BoardPage() {
   const handleMarkRank = useCallback(() => {
     navigate('/rank')
   }, [navigate])
+
+  // Mode 6 (§3.6): authed fast-add commits the selection by submitting the
+  // COMPLETE merged ladder (existing ranked ids + the new ones appended at
+  // the bottom) — the RPC's coverage guard makes partial payloads impossible.
+  const removeRide = useRemoveRide()
+  const commitFastAdd = useCallback(async () => {
+    const guestState = readGuestRanking()
+    if (!guestState || addBusy || !user) return
+    setAddBusy(true)
+    try {
+      const remoteIds = await fetchMyRankedRideIds()
+      const appended = guestState.orderedIds.filter((id) => !remoteIds.includes(id))
+      clearGuestRides()
+      exitGuestMarkMode()
+      if (appended.length === 0) return
+      await materializeGuestRides(
+        [...remoteIds, ...appended],
+        'fast_add',
+        new Date(guestState.createdAt).toISOString(),
+      )
+      await qc.invalidateQueries({ queryKey: ['myRides', user.id] })
+      setFastAdd({
+        message: `Added ${appended.length} coaster${appended.length === 1 ? '' : 's'} to your ranking`,
+        appendedIds: appended,
+      })
+    } catch {
+      setFastAdd({ message: "Couldn't add your coasters. Please try again.", appendedIds: [] })
+    } finally {
+      setAddBusy(false)
+    }
+  }, [addBusy, user, qc])
+
+  // Undo (§3.6): the toast window deletes exactly the appended rows.
+  const undoFastAdd = useCallback(() => {
+    setFastAdd((current) => {
+      for (const id of current?.appendedIds ?? []) removeRide.mutate(id)
+      return null
+    })
+  }, [removeRide])
 
   const showCta =
     !authLoading &&
@@ -420,7 +468,9 @@ export default function BoardPage() {
           </p>
         </div>
       </header>
-      {markMode && <MarkModeBanner selectedCount={guest.count} onExit={handleMarkExit} />}
+      {markMode && (
+        <MarkModeBanner authed={authed} selectedCount={guest.count} onExit={handleMarkExit} />
+      )}
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}
@@ -469,8 +519,9 @@ export default function BoardPage() {
       {showCta && <SignupCta onDismiss={handleCtaDismiss} onRankMyRides={handleMarkEnter} />}
       {markMode && guest.count > 0 && (
         <MarkModeDock
+          authed={authed}
           selectedCount={guest.count}
-          onRank={handleMarkRank}
+          onRank={authed ? () => void commitFastAdd() : handleMarkRank}
           onClear={handleMarkClear}
         />
       )}
@@ -480,6 +531,17 @@ export default function BoardPage() {
           tone="info"
           durationMs={6000}
           onDismiss={() => setCapToast(null)}
+        />
+      )}
+      {fastAdd && (
+        <Toast
+          message={fastAdd.message}
+          tone={fastAdd.appendedIds.length === 0 ? 'error' : 'info'}
+          durationMs={10000}
+          action={
+            fastAdd.appendedIds.length > 0 ? { label: 'Undo', onClick: undoFastAdd } : undefined
+          }
+          onDismiss={() => setFastAdd(null)}
         />
       )}
     </>

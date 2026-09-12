@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { useQueryClient } from '@tanstack/react-query'
 import RankedCoasterList, {
   REMOVE_UNDO_MS,
   type RankingStorageAdapter,
@@ -9,12 +10,14 @@ import Toast from '../components/Toast'
 import { Button, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import {
+  clearGuestRides,
   lockGuestOrderOnWorkbenchVisit,
   removeGuestRideById,
   reorderGuestRideList,
   useGuestRides,
   userRidesFromGuestState,
 } from '../lib/guest-rides'
+import { materializeGuestRides } from '../lib/guest-promotion'
 import { useMyRides } from '../lib/rides'
 
 type ToastAction = { label: string; onClick: () => void }
@@ -31,15 +34,17 @@ type ToastState = {
 export default function GuestRankPage() {
   const { user, isLoading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const guest = useGuestRides()
   const rides = useMemo(
     () => (guest.state ? userRidesFromGuestState(guest.state) : []),
     [guest.state],
   )
+  const [saving, setSaving] = useState(false)
 
   // §3.1 routing: a logged-in user with rides owns /me — send them there.
-  // (The logged-in zero-ride seed mode saves via materialize_guest_rides and
-  // lands with the Phase 4 RPC; until then authed visitors always redirect.)
+  // A logged-in user with ZERO rides gets the workbench in seed mode: Save
+  // materializes via materialize_guest_rides (no signup, no merge modal).
   const { data: myRides, isPending: ridesPending } = useMyRides()
   const authedHasRides = Boolean(user) && (myRides?.some((r) => r.rank !== null) ?? false)
   const authedRedirect = !authLoading && Boolean(user) && (authedHasRides || ridesPending)
@@ -93,11 +98,30 @@ export default function GuestRankPage() {
   const handleError = useCallback((message: string) => notify(message, 'error'), [notify])
 
   const handleSave = useCallback(() => {
-    // Phase 4 wires the signup payload; the route already exists so the CTA
-    // flow is testable end-to-end (the list persists in localStorage until
-    // the materialization hook consumes it).
-    navigate('/signup?from=guest')
-  }, [navigate])
+    const state = guest.state
+    if (!state || saving) return
+    if (!user) {
+      // Guest path: the signup payload rides auth metadata (§4.1); the
+      // confirmed login materializes it.
+      navigate('/signup?from=guest')
+      return
+    }
+    // Seed mode (§3.1): a zero-ride account adopts the guest ranking
+    // directly through the RPC.
+    setSaving(true)
+    void materializeGuestRides(
+      state.orderedIds,
+      'materialize',
+      new Date(state.createdAt).toISOString(),
+    )
+      .then(async () => {
+        clearGuestRides()
+        await qc.invalidateQueries({ queryKey: ['myRides', user.id] })
+        navigate('/me')
+      })
+      .catch(() => notify("Couldn't save your ranking. Please try again.", 'error'))
+      .finally(() => setSaving(false))
+  }, [guest.state, saving, user, navigate, qc, notify])
 
   const handleAddMore = useCallback(() => {
     navigate('/?mark=1')
@@ -159,8 +183,8 @@ export default function GuestRankPage() {
           <Button variant="outline" size="sm" onClick={handleAddMore}>
             + Add More Coasters
           </Button>
-          <Button size="sm" onClick={handleSave}>
-            Save Ranking &amp; Join Board
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Ranking & Join Board'}
           </Button>
         </div>
       </div>

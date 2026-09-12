@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { readGuestRanking } from '../lib/guest-rides'
+import { buildSignupMetadata } from '../lib/guest-promotion'
 import { persistWhyEmailDismissed, readWhyEmailDismissed } from '../lib/signup-cta'
 import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
@@ -44,12 +46,19 @@ export default function SignupPage() {
     }
     setSubmitting(true)
     // username/display_name go through raw_user_meta_data into the
-    // handle_new_user() trigger, which creates the profiles row.
+    // handle_new_user() trigger, which creates the profiles row. A guest
+    // ranking rides along as pending_guest_rides — the first login after
+    // email confirmation materializes it (GUEST_UX.md §4.1).
+    const guestState = readGuestRanking()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { username, display_name: username },
+        data: {
+          username,
+          display_name: username,
+          ...(guestState ? buildSignupMetadata(guestState) : {}),
+        },
         // The confirmation link lands on /login (public, so the PKCE code
         // exchange can't race a RequireAuth bounce) and forwards on to
         // /me?welcome=1 for the first-run nudge.
