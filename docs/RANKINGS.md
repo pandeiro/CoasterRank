@@ -166,6 +166,10 @@ flowchart TD
 
 The Edge Function detects trigger source from the bearer token and logs it as `trigger_source` in `cron_execution_logs`.
 
+**Idle-skip (cron only):** before touching the expensive aggregates, a pg_cron run reads the `recompute_idle_fingerprint()` RPC (newest eligible-ranked change timestamp + ranked-ride count, same admin/synthetic exclusions as the aggregates) and compares it to the fingerprint stored on the last `success` row. If both match — no inserts/re-ranks (timestamp) and no deletes/un-ranks (count) — the run logs `status = 'skipped'` and returns `200 { …, skipped: true }` without running MM or writing ratings. Manual triggers always run the full recompute. Skips count as healthy for the stale watchdog but do NOT move `public_board_meta().last_recomputed_at` (rank-turnover detection keys on it moving).
+
+**RPC retries:** the three aggregate RPCs (plus the crown snapshots) retry transient failures — `PGRST303` clock drift and 504-family gateway timeouts (code `PGRST504`, status 504, or `Gateway Timeout`/`Bad Gateway` message) — up to 3 times with exponential backoff (1s → 2s → 4s + jitter). Data errors are never retried.
+
 ## Observability
 
 ### Execution logging
@@ -174,13 +178,15 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 
 | Column | Description |
 |--------|-------------|
-| `status` | `success` or `error` |
+| `status` | `success`, `error`, or `skipped` (idle cron slot — no input change) |
 | `duration_ms` | Wall-clock time of the entire request |
 | `trigger_source` | `pg_cron` or `manual` |
+| `retries_used` | Max retries consumed across the aggregate RPCs |
 | `iterations` | MM iterations run (success only) |
 | `converged` | Whether ε threshold was reached (success only) |
 | `pairs` | Number of pairwise comparisons fed to MM |
 | `updated` | Number of coaster_ratings rows upserted |
+| `rpc_stats` | JSONB: per-RPC `{ ms, bytes, retries }` for `pairwise_wins` / `ranked_participants` / `first_place_counts`, plus the idle fingerprint (`rides_max_ts`, `ranked_count`) on success rows and the skip reason on `skipped` rows. Error rows carry partial timings — a 504 on one RPC still records the other two. |
 | `error_message` | Error text (failure only) |
 | `created_at` | Timestamp |
 

@@ -9,6 +9,7 @@ type RecomputeResponse = {
   durationMs: number
   iterations: number
   converged: boolean
+  skipped?: boolean
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -76,6 +77,23 @@ export default function RankingsPanel() {
     },
   })
 
+  // Last idle skip (pg_cron no-op: no user_rides change since last success).
+  // Expected on quiet communities — proves the pipeline is alive, not stuck.
+  const lastSkip = useQuery({
+    queryKey: ['cron-execution-logs', 'last-skip'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cron_execution_logs')
+        .select('created_at')
+        .eq('status', 'skipped')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return data as { created_at: string } | null
+    },
+  })
+
   const recompute = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke<RecomputeResponse>(
@@ -132,6 +150,13 @@ export default function RankingsPanel() {
 
       {lastRun.isError && (
         <div className="mt-4 text-sm text-danger">Couldn&apos;t load run history.</div>
+      )}
+
+      {/* Last idle skip — quiet communities produce these, not failures */}
+      {lastSkip.data && (
+        <div className="mt-3 text-sm text-muted">
+          Last idle skip: {formatTimeAgo(lastSkip.data.created_at)} (no ranking changes)
+        </div>
       )}
 
       {/* Last error */}

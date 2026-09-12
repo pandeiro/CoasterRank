@@ -119,9 +119,12 @@ cost *per iteration* grows, linearly in P.
 
 ```ts
 const UPSERT_CHUNK = 500                    // coaster_ratings, snapshots
-const RPC_MAX_RETRIES = 2                   // PGRST303 clock-drift only
-const RPC_RETRY_DELAY_MS = 300
+const RPC_MAX_RETRIES = 3                   // PGRST303 + 504-family, exponential 1s/2s/4s + jitter
+const RPC_RETRY_JITTER_MS = 250
 // Telegram sends: AbortSignal.timeout(5000)
+// Per-RPC wall-clock ms + JSON payload bytes → cron_execution_logs.rpc_stats
+// Idle-skip: pg_cron no-ops (status='skipped') when recompute_idle_fingerprint()
+// matches the last success row; manual triggers always run.
 ```
 
 Per run, after the 3 parallel RPCs: ~10 **sequential** PostgREST roundtrips
@@ -227,14 +230,8 @@ by 10–100×.**
 No new infrastructure assumed (Supabase Postgres + pg_cron/pg_net + Deno
 Edge Functions + Cloudflare SPA). Ordered cheap → structural:
 
-1. **Skip idle runs.** If `max(user_rides.updated_at)` predates the last
-   successful run, no-op before touching the RPCs. Kills most slots' cost
-   at any scale; a few lines in the Edge Function.
-2. **Harden the long pole.** Smaller/parallel fetches (paginate the pair
-   result via `.range()` instead of one giant response — the 1,000-row
-   default already forces pagination discipline elsewhere), compact row
-   encoding, and retry-with-backoff on 504 for the aggregate RPCs (today
-   only PGRST303 is retried).
+1. **Skip idle runs.** ✅ Shipped: if `recompute_idle_fingerprint()` (max eligible-ranked change ts + ranked count — count catches DELETEs, which leave no timestamp) matches the last success row's fingerprint, pg_cron slots log `skipped` before touching the RPCs. Manual triggers always run. `check_stale_recompute` treats skips as healthy; `last_recomputed_at` only moves on real recomputes.
+2. **Harden the long pole.** ✅ Partially shipped: retry-with-backoff on 504 for the aggregate RPCs (3 retries, 1s/2s/4s + jitter; previously PGRST303-only) plus per-RPC ms/bytes into `cron_execution_logs.rpc_stats` (§8 queries can now trend them). Still open: paginating the pair result via `.range()` and compact row encoding.
 3. **Incremental pair maintenance.** A materialized pair table kept fresh by
    a trigger on `user_rides`; recompute reads pre-aggregated rows instead
    of re-joining `O(U·n²)` every 15 min. Turns the per-run cost from
@@ -267,8 +264,9 @@ synthetic users in prod):
 
 ```sql
 -- scale census + list-length distribution (see §3)
--- last runs with duration trend
-SELECT created_at, status, duration_ms, pairs, updated, iterations, error_message
+-- last runs with duration trend (rpc_stats holds per-RPC ms/bytes)
+SELECT created_at, status, duration_ms, pairs, updated, iterations, error_message,
+       rpc_stats->'pairwise_wins' AS pairwise
 FROM cron_execution_logs ORDER BY created_at DESC LIMIT 15;
 -- failures in the last day
 SELECT created_at, error_message, duration_ms, trigger_source
