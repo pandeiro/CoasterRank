@@ -32,6 +32,12 @@ Result of the pre-implementation technical review against the live schema and co
 4. **Mobile nav wrapping**: smaller wordmark (`h-8`/`text-xl`), nav text drops a tier (`text-xs`) with `whitespace-nowrap` so Log in / Rank My Rides never break lines. "Log in" stays visible.
 5. **Copy**: "Unsaved Guest Ranking" → **"New Rider Ranking"**; "Drag to order your favorites" → **"Drag to re-order your lineup."**
 
+### Changelog (v2.1 feedback pass 4)
+
+1. **CTA pulse dwells 10s first** — the halo only fires for visitors still idle after 10 seconds; engaged visitors never see it.
+2. **Nudge card decluttered**: "or sign up" removed — Rank My Rides IS signing up at this point; only the soft dismiss remains beside the CTA.
+3. **Board fix (pre-existing)**: the status line's `<p>` wrapped `LiveStatusPopunder`'s `<div>` (validateDOMNesting error); the line is a `<div>` now.
+
 ---
 
 ## Part I: Product Requirements Document (PRD)
@@ -94,8 +100,8 @@ flowchart TD
 #### 3.1 Mode 1: The Browse Experience (Default)
 
 - The global board (`/`) loads in its clean, read-optimized table layout.
-- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — slightly larger than a plain nav item, with a **finite accent-halo pulse on initial pageload** (3 breaths, box-shadow only, reduced-motion safe; never on the Save button — one motion accent per page).
-- The existing engagement-timed nudge (`SignupCta`) continues firing for passive browsers (after 16s engaged dwell + scroll, `SIGNUP_CTA_ENGAGED_SECONDS`), but its primary button now reads **`Rank My Rides`** — the same CTA as the header — triggering Mark Mode directly on the board rather than sending the user to a blank form.
+- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — slightly larger than a plain nav item, with a **finite accent-halo pulse after a 10s dwell** (3 breaths, box-shadow only, reduced-motion safe; passive browsers only — engaged visitors are already marking). Never on the Save button — one motion accent per page.
+- The existing engagement-timed nudge (`SignupCta`) continues firing for passive browsers (after 16s engaged dwell + scroll, `SIGNUP_CTA_ENGAGED_SECONDS`), but its primary button now reads **`Rank My Rides`** — the same CTA as the header — triggering Mark Mode directly on the board rather than sending the user to a blank form. No secondary "or sign up" link: **Mark Mode IS the signup path now**; beside the CTA sits only the soft dismiss.
 
 #### 3.2 Mode 2: "Mark Ridden" Mode (Board Focus / Selection Overlay)
 

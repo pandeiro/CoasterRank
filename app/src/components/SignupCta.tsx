@@ -61,24 +61,15 @@ export default function SignupCta({ onDismiss, onRankMyRides }: Props) {
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {onRankMyRides ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={onRankMyRides}
-                    className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
-                  >
-                    Rank My Rides
-                  </button>
-                  {/* Direct signup stays reachable for visitors who just want
-                      an account; Mark Mode owns the primary CTA (§3.1). */}
-                  <Link
-                    to="/signup"
-                    onClick={onDismiss}
-                    className="text-[13px] font-medium text-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
-                  >
-                    or sign up
-                  </Link>
-                </>
+                // Mark Mode IS the signup path now (§3.1): one primary CTA,
+                // no secondary "or sign up" — that read as clutter.
+                <button
+                  type="button"
+                  onClick={onRankMyRides}
+                  className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
+                >
+                  Rank My Rides
+                </button>
               ) : (
                 <Link
                   to="/signup"

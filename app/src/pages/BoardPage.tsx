@@ -416,7 +416,9 @@ export default function BoardPage() {
               Coaster<span className="text-coral">Rank</span>
             </span>
           </h1>
-          <p className="flex min-h-6 w-full flex-wrap items-center justify-center gap-2 text-sm text-muted sm:w-auto sm:justify-end">
+          {/* A div, not a p: LiveStatusPopunder renders a positioned div and
+              div-in-p is invalid nesting (validateDOMNesting console error). */}
+          <div className="flex min-h-6 w-full flex-wrap items-center justify-center gap-2 text-sm text-muted sm:w-auto sm:justify-end">
             {rows ? (
               <>
                 <Link
@@ -465,7 +467,7 @@ export default function BoardPage() {
                 <StatusPulse className="w-12" />
               </>
             )}
-          </p>
+          </div>
         </div>
       </header>
       {markMode && (
