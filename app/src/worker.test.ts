@@ -854,6 +854,10 @@ describe('worker: security headers', () => {
     const csp = response.headers.get('content-security-policy')
     expect(csp).toContain("default-src 'self'")
     expect(csp).toContain("frame-ancestors 'none'")
+    // Cloudflare Web Analytics RUM beacon (auto-injected at the edge) — must
+    // stay allowlisted or prod logs a script-src violation on every page load.
+    expect(csp).toContain('https://static.cloudflareinsights.com')
+    expect(csp).toContain('https://cloudflareinsights.com')
     expect(response.headers.get('x-frame-options')).toBe('DENY')
     expect(response.headers.get('content-security-policy-report-only')).toBeNull()
   }
