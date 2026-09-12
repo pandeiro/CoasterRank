@@ -94,16 +94,19 @@ jobs:
           # Delegating to the live function cannot drift with schema evolution;
           # if a future migration renames/drops it, this psql call fails loudly
           # and the predicate must be updated with the schema — correct by
-          # construction.
+          # construction. That is not hypothetical: #202 added the park_id
+          # argument (20260912170000) and dropped the two-arg overload, which
+          # stranded THIS preflight on the next deploy (#204's, 2026-09-12) —
+          # #202's own preflight ran before its db push and passed.
           invalid_submission_rows=$(psql "$SUPABASE_DB_URL" -Atc "
             select count(*)
             from public.coaster_submissions
-            where not public.submission_payload_valid(kind, suggested_fields);
+            where not public.submission_payload_valid(kind, park_id, suggested_fields);
           ")
 
           if [ "$invalid_usernames" -ne 0 ] || [ "$duplicate_usernames" -ne 0 ] || [ "$invalid_submission_rows" -ne 0 ]; then
             echo "::error::migration preflight failed: invalid usernames=$invalid_usernames, case-insensitive duplicate usernames=$duplicate_usernames, invalid submission payload rows=$invalid_submission_rows"
-            echo "Existing rows must satisfy the live coaster_submissions_payload_check (submission_payload_valid(kind, suggested_fields)) and the username format/uniqueness rules before db push can run. Delete or correct the offending rows in prod, then re-run. No migration was attempted."
+            echo "Existing rows must satisfy the live coaster_submissions_payload_check (submission_payload_valid(kind, park_id, suggested_fields)) and the username format/uniqueness rules before db push can run. Delete or correct the offending rows in prod, then re-run. No migration was attempted."
             exit 1
           fi
           echo "Migration preflight passed: username and submission payload data are compatible."
