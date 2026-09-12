@@ -1,14 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { useQueryClient } from '@tanstack/react-query'
 import BoardSkeleton from '../components/BoardSkeleton'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
 import LiveStatusPopunder from '../components/LiveStatusPopunder'
+import MarkModeBanner from '../components/MarkModeBanner'
+import MarkModeDock from '../components/MarkModeDock'
 import ScrollSentinel from '../components/ScrollSentinel'
 import SignupCta from '../components/SignupCta'
+import Toast from '../components/Toast'
 import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import {
+  clearGuestRides,
+  enterGuestMarkMode,
+  exitGuestMarkMode,
+  readGuestRanking,
+  resetGuestSelection,
+  toggleGuestRide,
+  useGuestRides,
+} from '../lib/guest-rides'
+import { fetchMyRankedRideIds, materializeGuestRides } from '../lib/guest-promotion'
+import { useRemoveRide } from '../lib/rides'
 import {
   countryOptions,
   filterCoasters,
@@ -51,7 +66,12 @@ function StatusPulse({ className }: { className: string }) {
 
 export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
+  const [capToast, setCapToast] = useState<string | null>(null)
+  const [fastAdd, setFastAdd] = useState<{ message: string; appendedIds: string[] } | null>(null)
+  const [addBusy, setAddBusy] = useState(false)
 
   const coasters = useAllCoasters()
   // Board meta (real/ranked counts + last recompute) comes from the same
@@ -229,9 +249,101 @@ export default function BoardPage() {
     setCtaHidden(true)
   }, [ctaPreview])
 
+  // ── Mark Mode (GUEST_UX.md §3.2 guests / §3.6 Mode 6 fast-add for authed
+  // users). The ?mark=1 param is the cross-page entry (header CTA, /rank
+  // back-links); the store keeps the mode + selection across navigation, the
+  // param keeps it across reloads.
+  const guest = useGuestRides()
+  const authed = !authLoading && Boolean(user)
+  const markMode = !authLoading && guest.markMode
+  const markParam = searchParams.get('mark') === '1'
+
+  useEffect(() => {
+    if (markParam && !authLoading) enterGuestMarkMode()
+  }, [markParam, authLoading])
+
+  useEffect(() => {
+    if (markMode === markParam) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (markMode) next.set('mark', '1')
+        else next.delete('mark')
+        return next
+      },
+      { replace: true },
+    )
+  }, [markMode, markParam, setSearchParams])
+
+  const handleToggleSelect = useCallback((row: Parameters<typeof toggleGuestRide>[0]) => {
+    const result = toggleGuestRide(row)
+    if (result === 'capped') {
+      setCapToast('You can rank up to 150 coasters as a guest — sign up to go beyond that.')
+    }
+  }, [])
+
+  const handleMarkExit = useCallback(() => {
+    exitGuestMarkMode()
+  }, [])
+
+  const handleMarkClear = useCallback(() => {
+    resetGuestSelection()
+  }, [])
+
+  // CTA card → Mark Mode on the board (§3.1): engage without persisting a
+  // dismissal — Mark Mode suppression hides the card for this engagement.
+  const handleMarkEnter = useCallback(() => {
+    enterGuestMarkMode()
+    setCtaHidden(true)
+  }, [])
+
+  const handleMarkRank = useCallback(() => {
+    navigate('/rank')
+  }, [navigate])
+
+  // Mode 6 (§3.6): authed fast-add commits the selection by submitting the
+  // COMPLETE merged ladder (existing ranked ids + the new ones appended at
+  // the bottom) — the RPC's coverage guard makes partial payloads impossible.
+  const removeRide = useRemoveRide()
+  const commitFastAdd = useCallback(async () => {
+    const guestState = readGuestRanking()
+    if (!guestState || addBusy || !user) return
+    setAddBusy(true)
+    try {
+      const remoteIds = await fetchMyRankedRideIds()
+      const appended = guestState.orderedIds.filter((id) => !remoteIds.includes(id))
+      clearGuestRides()
+      exitGuestMarkMode()
+      if (appended.length === 0) return
+      await materializeGuestRides(
+        [...remoteIds, ...appended],
+        'fast_add',
+        new Date(guestState.createdAt).toISOString(),
+      )
+      await qc.invalidateQueries({ queryKey: ['myRides', user.id] })
+      setFastAdd({
+        message: `Added ${appended.length} coaster${appended.length === 1 ? '' : 's'} to your ranking`,
+        appendedIds: appended,
+      })
+    } catch {
+      setFastAdd({ message: "Couldn't add your coasters. Please try again.", appendedIds: [] })
+    } finally {
+      setAddBusy(false)
+    }
+  }, [addBusy, user, qc])
+
+  // Undo (§3.6): the toast window deletes exactly the appended rows.
+  const undoFastAdd = useCallback(() => {
+    setFastAdd((current) => {
+      for (const id of current?.appendedIds ?? []) removeRide.mutate(id)
+      return null
+    })
+  }, [removeRide])
+
   const showCta =
     !authLoading &&
     !user &&
+    !markMode &&
     !ctaHidden &&
     (ctaPreview === 'show' || (!ctaDismissed && ((dwellReady && scrollReady) || returnReady)))
 
@@ -304,7 +416,9 @@ export default function BoardPage() {
               Coaster<span className="text-coral">Rank</span>
             </span>
           </h1>
-          <p className="flex min-h-6 w-full flex-wrap items-center justify-center gap-2 text-sm text-muted sm:w-auto sm:justify-end">
+          {/* A div, not a p: LiveStatusPopunder renders a positioned div and
+              div-in-p is invalid nesting (validateDOMNesting console error). */}
+          <div className="flex min-h-6 w-full flex-wrap items-center justify-center gap-2 text-sm text-muted sm:w-auto sm:justify-end">
             {rows ? (
               <>
                 <Link
@@ -353,9 +467,12 @@ export default function BoardPage() {
                 <StatusPulse className="w-12" />
               </>
             )}
-          </p>
+          </div>
         </div>
       </header>
+      {markMode && (
+        <MarkModeBanner authed={authed} selectedCount={guest.count} onExit={handleMarkExit} />
+      )}
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}
@@ -386,6 +503,9 @@ export default function BoardPage() {
                   firstPlaceIds={firstPlaceIds}
                   variant="board"
                   turnover={{ movement, turnoverId: turnover.turnoverId }}
+                  selectionMode={markMode}
+                  selectedIds={guest.selectedIds}
+                  onToggleSelect={handleToggleSelect}
                 />
                 <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
                 {!hasNextPage && visibleRows.length > 0 && (
@@ -398,7 +518,35 @@ export default function BoardPage() {
           </>
         )}
       </div>
-      {showCta && <SignupCta onDismiss={handleCtaDismiss} />}
+      {showCta && <SignupCta onDismiss={handleCtaDismiss} onRankMyRides={handleMarkEnter} />}
+      {markMode && guest.count > 0 && (
+        <MarkModeDock
+          authed={authed}
+          selectedCount={guest.count}
+          pulse={!authed && guest.count >= 5}
+          onRank={authed ? () => void commitFastAdd() : handleMarkRank}
+          onClear={handleMarkClear}
+        />
+      )}
+      {capToast && (
+        <Toast
+          message={capToast}
+          tone="info"
+          durationMs={6000}
+          onDismiss={() => setCapToast(null)}
+        />
+      )}
+      {fastAdd && (
+        <Toast
+          message={fastAdd.message}
+          tone={fastAdd.appendedIds.length === 0 ? 'error' : 'info'}
+          durationMs={10000}
+          action={
+            fastAdd.appendedIds.length > 0 ? { label: 'Undo', onClick: undoFastAdd } : undefined
+          }
+          onDismiss={() => setFastAdd(null)}
+        />
+      )}
     </>
   )
 }

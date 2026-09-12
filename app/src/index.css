@@ -133,3 +133,142 @@
     animation: none;
   }
 }
+
+/* ── "Rank My Rides" coaster fill (guest mark & rank) ────────────────────────
+   Two translucent accent sine bands ("airtime hills") roll through the dark
+   pill at different speeds — an endless track under the label. Hover = business
+   time: the waves fade and the pill resolves to solid ink. Transform/opacity
+   only (compositor-safe), box-safe (absolute, clipped by the pill). Reduced
+   motion freezes the hills in a static frame instead of removing them. */
+@keyframes cta-wave-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Exactly one 50% tile: the hill pattern repeats every 60 viewBox units
+       across a 120-unit strip, so the loop is seamless. */
+    transform: translateX(-50%);
+  }
+}
+
+.cta-wave {
+  position: absolute;
+  inset: 0;
+  /* The pill clips its own waves so the button itself stays overflow-visible
+     for the halo rings (which paint outside the border box). */
+  overflow: hidden;
+  border-radius: inherit;
+  transition: opacity 0.3s ease-out;
+}
+
+.cta-wave svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 200%;
+  animation: cta-wave-scroll 7s linear infinite;
+}
+
+.cta-wave-back {
+  opacity: 0.45;
+  animation-duration: 11s;
+}
+
+/* Constant alternating ripple under the pill (coral / aqua, half-period
+   offset). Runs forever, paused + faded on hover (business time), disabled
+   under reduced motion. Pseudos hold box-shadows only; pointer-events none. */
+.cta-halo::before,
+.cta-halo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: cta-halo-coral 1.8s ease-out infinite;
+  transition: opacity 0.3s ease-out;
+}
+
+.cta-halo::after {
+  animation-name: cta-halo-aqua;
+  animation-delay: 0.9s;
+}
+
+@keyframes cta-halo-coral {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-coral) / 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(var(--color-coral) / 0);
+  }
+}
+
+@keyframes cta-halo-aqua {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(var(--color-accent) / 0);
+  }
+}
+
+.group:hover .cta-wave,
+.group:hover .cta-halo::before,
+.group:hover .cta-halo::after,
+/* Engaged visitors (Mark Mode active) get business time, not just hover. */
+.cta-still .cta-wave {
+  opacity: 0;
+}
+
+.group:hover .cta-halo::before,
+.group:hover .cta-halo::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-wave svg {
+    animation: none;
+  }
+
+  .cta-halo::before,
+  .cta-halo::after {
+    animation: none;
+  }
+
+  .dock-pulse::before {
+    animation: none;
+  }
+}
+
+/* Dock pulse (§3.2 pass 7): once a guest has ≥ 5 rides marked, a coral ring
+   breathes under the dock CTA — "you have enough to rank, go." Constant,
+   pauses + fades on hover, reduced-motion safe. */
+.dock-pulse::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: dock-pulse 2s ease-out infinite;
+  transition: opacity 0.3s ease-out;
+}
+
+@keyframes dock-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-coral) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(var(--color-coral) / 0);
+  }
+}
+
+.dock-pulse:hover::before {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cta-pulse {
+    animation: none;
+  }
+}

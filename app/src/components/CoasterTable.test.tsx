@@ -588,3 +588,91 @@ describe('CoasterTable', () => {
     }
   })
 })
+
+describe('CoasterTable selection mode (Mark Mode, GUEST_UX.md §3.2)', () => {
+  const rows = () =>
+    rowsFrom([{ id: 'row-1', name: 'Steel Vengeance', slug: 'steel-vengeance', rank: 1 }])
+
+  function renderSelection(
+    overrides: {
+      selectedIds?: Set<string>
+      onToggleSelect?: (row: RankingRow) => void
+    } = {},
+  ) {
+    const onToggleSelect = overrides.onToggleSelect ?? vi.fn()
+    const view = renderWithRoutes(
+      <CoasterTable
+        rows={rows()}
+        variant="board"
+        selectionMode
+        selectedIds={overrides.selectedIds ?? new Set()}
+        onToggleSelect={onToggleSelect}
+      />,
+    )
+    return { onToggleSelect, ...view }
+  }
+
+  it('replaces rank badges with checkboxes and announces selection state', () => {
+    renderSelection({ selectedIds: new Set(['row-1']) })
+    const boxes = screen.getAllByRole('checkbox', { name: 'Select Steel Vengeance' })
+    // One per layout (mobile list + desktop table); both reflect the state.
+    expect(boxes).toHaveLength(2)
+    for (const box of boxes) expect(box).toBeChecked()
+    // Rank badges are gone while marking.
+    expect(within(desktopTable()).queryByText('1')).not.toBeInTheDocument()
+    // The row mirrors selection for AT via aria-selected.
+    const tr = desktopTable().querySelector('tbody tr')!
+    expect(tr).toHaveAttribute('aria-selected', 'true')
+    expect(tr).toHaveAttribute('tabindex', '0')
+  })
+
+  it('toggles on row click instead of navigating (both layouts)', () => {
+    const { onToggleSelect } = renderSelection()
+    const tr = desktopTable().querySelector('tbody tr')!
+    fireEvent.click(tr)
+    expect(onToggleSelect).toHaveBeenCalledTimes(1)
+    fireEvent.click(mobileList().querySelector('li')!)
+    expect(onToggleSelect).toHaveBeenCalledTimes(2)
+    // No navigation happened — the catch-all probe never rendered.
+    expect(screen.queryByTestId('route-probe')).not.toBeInTheDocument()
+  })
+
+  it('renders names and parks as inert text — presses toggle, never navigate', () => {
+    const { onToggleSelect } = renderSelection()
+    // No coaster/park links exist in either layout while marking.
+    expect(within(desktopTable()).queryByRole('link', { name: 'Steel Vengeance' })).toBeNull()
+    expect(within(desktopTable()).queryByRole('link', { name: 'Test Park' })).toBeNull()
+    expect(
+      mobileList() && within(mobileList()).queryByRole('link', { name: 'Steel Vengeance' }),
+    ).toBeNull()
+    // The name renders as text, and pressing its area toggles the row.
+    expect(within(desktopTable()).getByText('Steel Vengeance')).toBeInTheDocument()
+    fireEvent.click(within(desktopTable()).getByText('Steel Vengeance'))
+    expect(onToggleSelect).toHaveBeenCalledTimes(1)
+    fireEvent.click(within(desktopTable()).getByText('Test Park'))
+    expect(onToggleSelect).toHaveBeenCalledTimes(2)
+  })
+
+  it('toggles via Space and Enter on a focused row', () => {
+    const { onToggleSelect } = renderSelection()
+    const tr = desktopTable().querySelector('tbody tr')!
+    fireEvent.keyDown(tr, { key: ' ' })
+    fireEvent.keyDown(tr, { key: 'Enter' })
+    expect(onToggleSelect).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not double-toggle when the checkbox itself is clicked', () => {
+    const { onToggleSelect } = renderSelection()
+    const box = within(desktopTable()).getByRole('checkbox', { name: 'Select Steel Vengeance' })
+    fireEvent.click(box)
+    expect(onToggleSelect).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps browse mode untouched when selectionMode is off', () => {
+    renderWithRoutes(<CoasterTable rows={rows()} variant="board" />)
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(within(desktopTable()).getByText('1')).toBeInTheDocument()
+    const tr = desktopTable().querySelector('tbody tr')!
+    expect(tr).not.toHaveAttribute('aria-selected')
+  })
+})

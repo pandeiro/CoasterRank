@@ -1,16 +1,38 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/auth-context'
+import * as Sentry from '@sentry/react'
+import { useQueryClient } from '@tanstack/react-query'
+import ExistingAccountMergeModal from '../components/ExistingAccountMergeModal'
 import { Button, fieldClassName, Panel } from '../components/ui'
+import { useAuth } from '../lib/auth-context'
+import { clearGuestRides, exitGuestMarkMode, readGuestRanking } from '../lib/guest-rides'
+import {
+  fetchMyRankedRideIds,
+  isGuestStaleError,
+  logGuestMergeDecision,
+  materializeGuestRides,
+  readPendingGuestPayload,
+  triageGuestState,
+  wipePendingGuestPayload,
+} from '../lib/guest-promotion'
+import { supabase } from '../lib/supabase'
 
 type LocationState = { from?: string }
+
+type MergePrompt = {
+  guestCount: number
+  remoteCount: number
+  remoteIds: string[]
+  guestOnlyIds: string[]
+  startedAtIso: string | null
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { session, isLoading } = useAuth()
+  const { session, user, isLoading } = useAuth()
+  const qc = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +48,17 @@ export default function LoginPage() {
   const [code, setCode] = useState('')
   const [magicError, setMagicError] = useState<string | null>(null)
   const [magicSubmitting, setMagicSubmitting] = useState(false)
+
+  // Guest promotion (GUEST_UX.md §4.2/§4.4): a session landing here may be
+  // carrying a pending guest ranking (fresh confirmation on any device) or a
+  // local guest list that must be merged before navigation continues.
+  const [hold, setHold] = useState<'materializing' | 'merging' | null>(null)
+  const [mergePrompt, setMergePrompt] = useState<MergePrompt | null>(null)
+  const [promoError, setPromoError] = useState<string | null>(null)
+  // Serialize the async session-effect: auth events (USER_UPDATED after the
+  // metadata wipe) re-enter the flow, and the effect must never run twice
+  // concurrently.
+  const busyRef = useRef(false)
 
   const emailNotConfirmed = error !== null && /not confirmed/i.test(error)
 
@@ -43,12 +76,157 @@ export default function LoginPage() {
       : (stateFrom ?? (confirmed || invited ? '/me?welcome=1' : '/me'))
 
   // The confirmation link signs the user in via the PKCE code exchange on
-  // this (public) page — no form submit needed. Forward them on.
-  useEffect(() => {
-    if (!isLoading && session) {
+  // this (public) page — no form submit needed. Navigation is GATED here:
+  // a pending guest payload (review round 2, B) must materialize and wipe
+  // before /me renders, and a local guest list (review round 2, C) must be
+  // triaged — otherwise the redirect wins the race and /me flashes empty.
+  // The same gate runs from the password/OTP submit handlers (the useAuth
+  // session update races them) — busyRef serializes every entry point.
+  const runGate = useCallback(async () => {
+    if (busyRef.current) return
+    // Cheap sync short-circuit: no pending payload AND no local guest list
+    // means plain navigation. (The RPCs are session-gated server-side; this
+    // only skips pointless work when the gate runs pre-context-update.)
+    const pendingEarly = readPendingGuestPayload(user)
+    const guestEarly = readGuestRanking()
+    if (!pendingEarly && !guestEarly) {
+      exitGuestMarkMode()
+      navigate(dest, { replace: true })
+      return
+    }
+    busyRef.current = true
+
+    const finish = () => {
+      exitGuestMarkMode()
       navigate(dest, { replace: true })
     }
-  }, [isLoading, session, dest, navigate])
+
+    try {
+      // 1. Pending metadata payload: fresh confirmation on ANY device.
+      const pending = readPendingGuestPayload(user)
+      if (pending) {
+        setHold('materializing')
+        try {
+          await materializeGuestRides(pending.ids, 'materialize', pending.started_at)
+          clearGuestRides()
+        } catch (err) {
+          if (isGuestStaleError(err)) {
+            // §4.2 (E): the account ladder progressed past the stored
+            // payload — wipe and continue; nothing is destroyed.
+            clearGuestRides()
+            await wipePendingGuestPayload().catch(() => {})
+          } else {
+            // Generic failure: keep the payload for the next login, stay
+            // on the form with an explanation.
+            Sentry.captureException(err, { extra: { flow: 'guest-materialize' } })
+            setPromoError(
+              "We couldn't restore your guest ranking. Sign in anyway — we'll try again next time.",
+            )
+            setHold(null)
+            return
+          }
+        }
+        // Wipe even after the stale path (idempotent; one-time marker).
+        await wipePendingGuestPayload().catch((err) =>
+          Sentry.captureException(err, { extra: { flow: 'guest-wipe' } }),
+        )
+        await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+        finish()
+        return
+      }
+
+      // 2. Local guest list on login (§4.4): silent no-op, seed mode, or
+      // the merge modal (navigation holds until a choice is made).
+      const guest = readGuestRanking()
+      if (guest && guest.orderedIds.length > 0) {
+        setHold('merging')
+        try {
+          const remoteIds = await fetchMyRankedRideIds()
+          const verdict = triageGuestState(remoteIds)
+          if (verdict.action === 'silent_clear') {
+            clearGuestRides()
+            setHold(null)
+            finish()
+            return
+          }
+          if (verdict.action === 'materialize') {
+            setHold('materializing')
+            await materializeGuestRides(
+              guest.orderedIds,
+              'materialize',
+              new Date(guest.createdAt).toISOString(),
+            )
+            clearGuestRides()
+            await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+            setHold(null)
+            finish()
+            return
+          }
+          if (verdict.action === 'conflict') {
+            setHold(null)
+            setMergePrompt({
+              guestCount: guest.orderedIds.length,
+              remoteCount: remoteIds.length,
+              remoteIds,
+              guestOnlyIds: verdict.guestOnlyIds,
+              startedAtIso: new Date(guest.createdAt).toISOString(),
+            })
+            return
+          }
+        } catch (err) {
+          // RPC unavailable (deploy skew: SPA before db push) or transient
+          // failure. This is an EXISTING user — never block their login:
+          // proceed, keep the guest state, and let the /me reconciliation
+          // retry (it surfaces its own toast).
+          Sentry.captureException(err, { extra: { flow: 'guest-triage' } })
+          setHold(null)
+          finish()
+          return
+        }
+      }
+
+      finish()
+    } finally {
+      busyRef.current = false
+    }
+  }, [user, dest, navigate, qc])
+
+  useEffect(() => {
+    if (isLoading || !session) return
+    void runGate()
+  }, [isLoading, session, runGate])
+
+  async function handleAppend() {
+    if (!mergePrompt) return
+    setHold('materializing')
+    try {
+      // §4.4 Rule 3: the COMPLETE merged ladder — existing ids (order
+      // unchanged) with the guest-only ids appended at the bottom.
+      await materializeGuestRides(
+        [...mergePrompt.remoteIds, ...mergePrompt.guestOnlyIds],
+        'merge_append',
+        mergePrompt.startedAtIso,
+      )
+      clearGuestRides()
+      setMergePrompt(null)
+      setHold(null)
+      await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+      navigate(dest, { replace: true })
+    } catch (err) {
+      Sentry.captureException(err, { extra: { flow: 'guest-merge-append' } })
+      setPromoError("Couldn't save your guest coasters. Try again, or discard to continue.")
+      setHold(null)
+    }
+  }
+
+  async function handleDiscard() {
+    if (!mergePrompt) return
+    // Telemetry-only failure is non-blocking.
+    await logGuestMergeDecision().catch(() => {})
+    clearGuestRides()
+    setMergePrompt(null)
+    navigate(dest, { replace: true })
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -68,7 +246,9 @@ export default function LoginPage() {
       )
       return
     }
-    navigate(dest, { replace: true })
+    // Navigation is owned by the guest-promotion gate (runGate), which the
+    // session update and this call both feed — busyRef serializes them.
+    void runGate()
   }
 
   async function resendConfirmation() {
@@ -130,7 +310,24 @@ export default function LoginPage() {
       )
       return
     }
-    navigate(dest, { replace: true })
+    // Navigation is owned by the guest-promotion gate (runGate), which the
+    // session update and this call both feed — busyRef serializes them.
+    void runGate()
+  }
+
+  // GUEST_UX.md §4.2 (B): hold navigation while the guest ranking
+  // materializes — /me must never flash an empty state before the rows land.
+  if (hold) {
+    return (
+      <div className="mx-auto max-w-md" role="status" aria-live="polite">
+        <Panel className="p-8 text-center">
+          <p className="display-heading text-2xl text-ink">Preparing your rankings…</p>
+          <p className="mt-2 text-sm text-muted">
+            Restoring the coasters you marked as a guest into your account.
+          </p>
+        </Panel>
+      </div>
+    )
   }
 
   if (magicSent) {
@@ -234,6 +431,11 @@ export default function LoginPage() {
             {resendError && <p className="mt-1">{resendError}</p>}
           </div>
         )}
+        {promoError && (
+          <p role="alert" className="text-sm text-danger">
+            {promoError}
+          </p>
+        )}
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Logging in…' : 'Log in'}
         </Button>
@@ -272,6 +474,14 @@ export default function LoginPage() {
           Sign up
         </Link>
       </p>
+      {mergePrompt && (
+        <ExistingAccountMergeModal
+          guestCount={mergePrompt.guestCount}
+          remoteCount={mergePrompt.remoteCount}
+          onAppend={() => void handleAppend()}
+          onDiscard={() => void handleDiscard()}
+        />
+      )}
     </div>
   )
 }

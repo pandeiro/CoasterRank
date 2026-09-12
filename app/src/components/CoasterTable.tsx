@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import {
   capitalize,
   firstPlaceLabel,
@@ -86,6 +87,11 @@ type Props = {
   /** Live rank movement from the latest board turnover (board variant only).
       Null/absent on first load — movement must be earned by a live turnover. */
   turnover?: RankTurnover
+  /** Mark Mode (GUEST_UX.md §3.2): rows toggle selection instead of
+      navigating; a checkbox in the rank column carries the ARIA semantics. */
+  selectionMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (row: RankingRow) => void
 }
 
 export default function CoasterTable({
@@ -94,8 +100,69 @@ export default function CoasterTable({
   firstPlaceIds = new Set(),
   variant = 'default',
   turnover,
+  selectionMode = false,
+  selectedIds = new Set(),
+  onToggleSelect,
 }: Props) {
   const navigate = useNavigate()
+
+  // Mark Mode: whole rows toggle selection; the inline coaster and park links
+  // keep their own navigation targets by stopping propagation (§3.2).
+  const handleRowClick = (row: RankingRow) => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect(row)
+      return
+    }
+    if (row.slug) navigate(`/coasters/${row.slug}`)
+  }
+  const handleRowKeyDown = (e: React.KeyboardEvent, row: RankingRow) => {
+    if (!selectionMode || !onToggleSelect) return
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      onToggleSelect(row)
+    }
+  }
+
+  // Selection tint replaces the podium tint while marking (§3.2).
+  const rowClasses = (row: RankingRow, position: number | null) => {
+    if (!selectionMode) return rowTint(position)
+    return selectedIds.has(row.id) ? 'bg-accent/10 hover:bg-accent/15' : 'hover:bg-canvas'
+  }
+
+  // Rank column swaps for a real checkbox in Mark Mode (review round 2, F):
+  // the native input carries keyboard + AT semantics (Space toggles, the
+  // label names the coaster); the row mirrors state via aria-selected.
+  const rankCell = (row: RankingRow, position: number | null, layout: 'mobile' | 'desktop') => {
+    if (!selectionMode) {
+      return position === null ? (
+        <span className={`${layout === 'mobile' ? 'text-base' : 'text-sm'} text-muted`}>—</span>
+      ) : (
+        <RankBadge position={position} />
+      )
+    }
+    const selected = selectedIds.has(row.id)
+    return (
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect?.(row)}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Select ${row.name}`}
+        className={`h-6 w-6 shrink-0 cursor-pointer accent-accent ${layout === 'desktop' ? '' : 'self-center'}`}
+      />
+    )
+  }
+
+  // Selected rows surface an animated checkmark beside the coaster name
+  // (§3.2: "a checkmark indicator replaces or sits alongside the rank badge").
+  const checkCell = (row: RankingRow) =>
+    selectionMode && selectedIds.has(row.id) ? (
+      <Check
+        aria-hidden="true"
+        className="h-4 w-4 shrink-0 text-accent-text animate-rank-pop"
+        strokeWidth={3}
+      />
+    ) : null
 
   // FLIP machinery (desktop): rowRefs tracks rendered <tr>s; topsRef always
   // holds each row's offsetTop as of the PREVIOUS commit — the "before"
@@ -179,6 +246,10 @@ export default function CoasterTable({
 
   function parkCell(row: RankingRow) {
     if (!showPark) return null
+    // Mark Mode: no navigation at all — the park name renders inert so any
+    // press on the row toggles (§3.2, review feedback).
+    if (selectionMode)
+      return row.park_name ? <span className="truncate">{row.park_name}</span> : '—'
     return row.park_name && row.park_slug ? (
       <Link to={`/parks/${row.park_slug}`} onClick={keepLinkTarget} className="hover:underline">
         {row.park_name}
@@ -187,6 +258,21 @@ export default function CoasterTable({
       '—'
     )
   }
+
+  // Coaster name: a Link in browse mode, inert text in Mark Mode so every
+  // press on the row toggles selection (§3.2).
+  const nameNode = (row: RankingRow) =>
+    selectionMode ? (
+      <span className="min-w-0 truncate font-semibold text-ink">{row.name}</span>
+    ) : (
+      <Link
+        to={`/coasters/${row.slug}`}
+        onClick={keepLinkTarget}
+        className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-text"
+      >
+        {row.name}
+      </Link>
+    )
 
   function badges(row: RankingRow, firstPlace: { votes: number; pct: number } | null) {
     const pill = statusPill(row.status)
@@ -226,25 +312,19 @@ export default function CoasterTable({
       return (
         <li
           key={row.id}
-          onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
-          className={`flex min-h-[52px] cursor-pointer items-center gap-2.5 px-4 py-2.5 transition-colors ${rowTint(position)}`}
+          onClick={() => handleRowClick(row)}
+          onKeyDown={(e) => handleRowKeyDown(e, row)}
+          aria-selected={selectionMode ? selectedIds.has(row.id) : undefined}
+          tabIndex={selectionMode ? 0 : undefined}
+          className={`flex cursor-pointer items-center gap-2.5 px-4 py-2.5 transition-colors ${selectionMode ? 'min-h-[54px]' : 'min-h-[52px]'} ${rowClasses(row, position)}`}
         >
-          <span className="w-10 shrink-0 self-center text-center">
-            {position === null ? (
-              <span className="text-base text-muted">—</span>
-            ) : (
-              <RankBadge position={position} />
-            )}
+          <span className="flex w-10 shrink-0 items-center justify-center self-center text-center">
+            {rankCell(row, position, 'mobile')}
           </span>
+          {checkCell(row)}
           <div className="min-w-0 flex-1">
             <div className="flex min-h-6 items-center gap-x-2">
-              <Link
-                to={`/coasters/${row.slug}`}
-                onClick={keepLinkTarget}
-                className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-text"
-              >
-                {row.name}
-              </Link>
+              {nameNode(row)}
               {badges(row, firstPlace)}
             </div>
             {showPark && row.park_name && row.park_slug && (
@@ -313,8 +393,11 @@ export default function CoasterTable({
                   if (el) rowRefs.current.set(row.id, el)
                   else rowRefs.current.delete(row.id)
                 }}
-                onClick={row.slug ? () => navigate(`/coasters/${row.slug}`) : undefined}
-                className={`group cursor-pointer transition-colors ${rowTint(position)}`}
+                onClick={() => handleRowClick(row)}
+                onKeyDown={(e) => handleRowKeyDown(e, row)}
+                aria-selected={selectionMode ? selectedIds.has(row.id) : undefined}
+                tabIndex={selectionMode ? 0 : undefined}
+                className={`group cursor-pointer transition-colors ${rowClasses(row, position)}`}
               >
                 {gutterActive && (
                   <td className="relative w-7 px-1 py-2.5">
@@ -326,23 +409,16 @@ export default function CoasterTable({
                   </td>
                 )}
                 <td className="px-3 py-2.5 text-right">
-                  {position === null ? (
-                    <span className="text-sm text-muted">—</span>
-                  ) : (
-                    <RankBadge position={position} />
-                  )}
+                  <span className="inline-flex items-center justify-end">
+                    {rankCell(row, position, 'desktop')}
+                  </span>
                 </td>
                 {/* §4.3: fixed-width column + truncation — badges can never
                     reflow Park/Manufacturer (table-fixed + nowrap). */}
                 <td className="py-2.5 pl-3 pr-4">
                   <div className="flex min-h-6 items-center gap-2">
-                    <Link
-                      to={`/coasters/${row.slug}`}
-                      onClick={keepLinkTarget}
-                      className="min-w-0 truncate font-semibold text-ink transition-colors ease-in hover:text-accent-text"
-                    >
-                      {row.name}
-                    </Link>
+                    {checkCell(row)}
+                    {nameNode(row)}
                     {badges(row, firstPlace)}
                   </div>
                 </td>

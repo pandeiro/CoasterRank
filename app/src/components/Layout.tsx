@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
 import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
+import { enterGuestMarkMode, useGuestRides } from '../lib/guest-rides'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
 import FeedbackProvider from './FeedbackProvider'
@@ -25,6 +26,18 @@ export default function Layout() {
   // The board leads with its own hero; everywhere else the sticky header is
   // the permanent chrome (logo links home to the global ranking).
   const showBrand = !isBoard || scrolledPastHero
+  // CTA motion gate (§3.1 pass 7): hills + ripple run until the visitor
+  // engages — once Mark Mode is active (or while hovering), the button goes
+  // business-time. Exiting Mark Mode resumes the idle attention loop.
+  const { markMode } = useGuestRides()
+
+  // Header CTA (GUEST_UX.md §3.1): logged-out visitors get "Rank My Rides" —
+  // Mark Mode pre-activated on the board — instead of a generic Sign up pill.
+  // Authed fast-add entry (Mode 6) lands with the Phase 4 RPC.
+  function onRankMyRides() {
+    enterGuestMarkMode()
+    navigate('/?mark=1')
+  }
 
   useEffect(() => {
     if (!isBoard) {
@@ -107,13 +120,13 @@ export default function Layout() {
                 height="1113"
                 fetchPriority="high"
                 decoding="async"
-                className="h-[2.3rem] w-auto shrink-0"
+                className="h-8 w-auto shrink-0 sm:h-[2.3rem]"
               />
-              <span className="display-heading -translate-y-[0.12em] text-2xl leading-none tracking-wide">
+              <span className="display-heading -translate-y-[0.12em] text-xl leading-none tracking-wide sm:text-2xl">
                 Coaster<span className="text-coral">Rank</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-3 text-sm sm:gap-5">
+            <nav className="flex items-center gap-2 whitespace-nowrap text-xs sm:gap-5 sm:text-sm">
               {isLoading ? null : user ? (
                 <UserMenu profile={profile} userId={user.id} onSignOut={onSignOut} />
               ) : (
@@ -121,12 +134,40 @@ export default function Layout() {
                   <NavLink to="/login" className={navLinkClass}>
                     Log in
                   </NavLink>
-                  <Link
-                    to="/signup"
-                    className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
+                  {/* GUEST_UX.md §3.1: the primary funnel CTA. Idle = rolling
+                    "airtime hills" of VARYING sizes (big arch, clipped valley,
+                    small arch, shallow dip — pattern period 60 so the -50%
+                    loop is seamless) in accent/coral at parallax speeds, plus
+                    a constant alternating coral/aqua ripple ring that pauses
+                    + fades on hover (business time). Label stays cream on
+                    near-black at every phase. Decorative: aria-hidden. */}
+                  <button
+                    type="button"
+                    onClick={onRankMyRides}
+                    className={`group relative rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2 ${
+                      markMode ? 'cta-still' : 'cta-halo'
+                    }`}
                   >
-                    Sign up
-                  </Link>
+                    <span aria-hidden="true" className="cta-wave">
+                      <svg viewBox="0 0 120 24" preserveAspectRatio="none">
+                        <path
+                          fill="rgb(var(--color-accent) / 0.28)"
+                          d="M0 24 L0 19 Q7.5 -7 15 19 Q22.5 29 30 19 Q37.5 15 45 19 Q52.5 23 60 19 Q67.5 -7 75 19 Q82.5 29 90 19 Q97.5 15 105 19 Q112.5 23 120 19 V24 Z"
+                        />
+                      </svg>
+                      <svg
+                        viewBox="0 0 120 24"
+                        preserveAspectRatio="none"
+                        className="cta-wave-back"
+                      >
+                        <path
+                          fill="rgb(var(--color-coral) / 0.32)"
+                          d="M0 24 L0 21 Q7.5 3 15 21 Q22.5 27 30 21 Q37.5 19 45 21 Q52.5 24 60 21 Q67.5 3 75 21 Q82.5 27 90 21 Q97.5 19 105 21 Q112.5 24 120 21 V24 Z"
+                        />
+                      </svg>
+                    </span>
+                    <span className="relative z-10">Rank My Rides</span>
+                  </button>
                 </>
               )}
               {signOutError && (

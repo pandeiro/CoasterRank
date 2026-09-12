@@ -427,7 +427,11 @@ describe('BoardPage signup CTA', () => {
     // ...but the same span WITH activity fires it.
     await engage(SIGNUP_CTA_ENGAGED_SECONDS)
     expect(ctaDialog()).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sign up free' })).toHaveAttribute('href', '/signup')
+    // §3.1: the CTA's primary button launches Mark Mode — Mark Mode IS the
+    // signup path now, so there is no secondary "or sign up" link (feedback
+    // pass 4); only the soft dismiss sits beside it.
+    expect(screen.getByRole('button', { name: 'Rank My Rides' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /sign up/i })).not.toBeInTheDocument()
   })
 
   it('never appears while auth is still loading', async () => {
