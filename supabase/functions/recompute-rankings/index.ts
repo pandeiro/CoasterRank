@@ -24,6 +24,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
 // Pure-TS MM implementation shared with the Vitest suite; bundled at deploy.
 import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
+// Pure retry/skip/instrumentation helpers (unit-tested in helpers_test.ts).
+import {
+  backoffDelayMs,
+  estimatePayloadBytes,
+  isRetryableRpcError,
+  shouldSkipRecompute,
+  type RidesFingerprint,
+} from './helpers.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,14 +49,46 @@ function json(body: unknown, status: number): Response {
 type PairRow = { winner: string; loser: string; weight: number; wins: number }
 type ParticipantRow = { coaster_id: string; participants: number }
 type FirstPlaceRow = { coaster_id: string; first_place_votes: number }
-type RecomputeResult = { updated: number; durationMs: number; iterations: number; converged: boolean }
+type FingerprintRow = { rides_max_ts: string | null; ranked_count: number | string }
+type LastSuccessRow = { created_at: string; rpc_stats: RpcStats | null }
+type RecomputeResult = {
+  updated: number
+  durationMs: number
+  iterations: number
+  converged: boolean
+  skipped?: boolean
+}
+
+// Per-RPC coarse instrumentation, stored as cron_execution_logs.rpc_stats:
+// wall-clock ms around each aggregate call + payload size (JSON length) +
+// retries consumed. Shared shape for success, error (partial), and skip rows
+// (which carry the idle fingerprint instead of timings).
+type RpcTiming = { ms: number; bytes: number; retries: number }
+type RpcStats = {
+  pairwise_wins?: RpcTiming
+  ranked_participants?: RpcTiming
+  first_place_counts?: RpcTiming
+  rides_max_ts?: string | null
+  ranked_count?: number
+  skipped?: boolean
+  skip_reason?: string
+}
 
 const UPSERT_CHUNK = 500
 const DELETE_CHUNK = 100
-const RPC_MAX_RETRIES = 2
-const RPC_RETRY_DELAY_MS = 300
+// 504s need the server to recover, so back off exponentially (1s/2s/4s,
+// helpers.backoffDelayMs) rather than the old fixed 300ms. Three retries cap
+// the added latency at ~7s + jitter, inside the function budget.
+const RPC_MAX_RETRIES = 3
+const RPC_RETRY_JITTER_MS = 250
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; ms: number }> {
+  const t0 = performance.now()
+  const value = await fn()
+  return { value, ms: Math.round(performance.now() - t0) }
+}
 
 // ISO week (UTC Monday) containing `d` — the weekly rank-movement baseline
 // key. Must match the view's
@@ -63,10 +103,16 @@ function weekStartUtc(d = new Date()): string {
   return monday.toISOString().slice(0, 10)
 }
 
-function isPgrst303(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null) return false
-  const e = err as Record<string, unknown>
-  return e.code === 'PGRST303'
+function fingerprintOf(row: FingerprintRow | null): RidesFingerprint {
+  return {
+    ridesMaxTs: row?.rides_max_ts ?? null,
+    rankedCount: Number(row?.ranked_count ?? 0),
+  }
+}
+
+function fingerprintFromStats(stats: RpcStats | null | undefined): RidesFingerprint | null {
+  if (!stats || stats.ranked_count === undefined) return null
+  return { ridesMaxTs: stats.rides_max_ts ?? null, rankedCount: stats.ranked_count }
 }
 
 type RpcResult<T> = {
@@ -84,11 +130,11 @@ async function rpcWithRetry<T>(
   let retriesUsed = 0
   for (let attempt = 0; attempt <= RPC_MAX_RETRIES; attempt++) {
     const res = await supabase.rpc(name, args as never)
-    if (!res.error || !isPgrst303(res.error)) return { ...res, retriesUsed }
+    if (!res.error || !isRetryableRpcError(res.error)) return { ...res, retriesUsed }
     lastError = res.error
     if (attempt < RPC_MAX_RETRIES) {
       retriesUsed++
-      await sleep(RPC_RETRY_DELAY_MS)
+      await sleep(backoffDelayMs(attempt) + Math.floor(Math.random() * RPC_RETRY_JITTER_MS))
     }
   }
   return {
@@ -141,7 +187,9 @@ async function crownSnapshotWithRetry(
       .maybeSingle()
     if (!error) return { top: (data ?? null) as TopRow | null, error: null }
     lastError = error.message
-    if (attempt < RPC_MAX_RETRIES) await sleep(RPC_RETRY_DELAY_MS)
+    if (attempt < RPC_MAX_RETRIES) {
+      await sleep(backoffDelayMs(attempt) + Math.floor(Math.random() * RPC_RETRY_JITTER_MS))
+    }
   }
   return { top: null, error: `${lastError} (after ${RPC_MAX_RETRIES + 1} attempts)` }
 }
@@ -183,7 +231,7 @@ function sendNumberOneEvent(newName: string, prevName: string | null) {
 
 // ── Execution logging ───────────────────────────────────────────────────
 type LogFields = {
-  status: 'success' | 'error'
+  status: 'success' | 'error' | 'skipped'
   duration_ms: number
   trigger_source: string
   retries_used: number
@@ -192,6 +240,7 @@ type LogFields = {
   pairs?: number
   updated?: number
   error_message?: string
+  rpc_stats?: RpcStats
 }
 
 function logExecution(supabase: ReturnType<typeof createClient>, fields: LogFields) {
@@ -215,6 +264,9 @@ Deno.serve(async (req) => {
   const started = Date.now()
   let triggerSource = 'manual'
   let retriesUsed = 0
+  // Partial instrumentation for the error path: assigned once the aggregate
+  // RPCs settle, so a 504 failure still logs the timings/sizes it got.
+  let rpcStats: RpcStats | undefined
 
   try {
     if (!token) return json({ error: 'missing bearer token' }, 401)
@@ -239,14 +291,90 @@ Deno.serve(async (req) => {
       if (!profile?.is_admin) return json({ error: 'admin access required' }, 403)
     }
 
+    // Idle-skip (SCALE §6.1): pg_cron slots with no eligible-ranked
+    // user_rides change since the last success no-op before touching the
+    // expensive aggregates. Manual triggers (admin button / ops curl) always
+    // run. The skip logs status='skipped' — deliberately NOT 'success', so
+    // public_board_meta().last_recomputed_at only moves on real recomputes.
+    // The fingerprint is read on every run (cheap single aggregate) and
+    // stored on success rows, so the next cron slot always has something
+    // to compare against regardless of which trigger produced it.
+    let currentFp: RidesFingerprint | null = null
+    {
+      const { data: fpRow, error: fpError } = await supabase
+        .rpc('recompute_idle_fingerprint')
+        .maybeSingle()
+      if (!fpError) currentFp = fingerprintOf((fpRow ?? null) as FingerprintRow | null)
+    }
+    if (triggerSource === 'pg_cron' && currentFp) {
+      const { data: lastSuccess } = await supabase
+        .from('cron_execution_logs')
+        .select('created_at, rpc_stats')
+        .eq('status', 'success')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (
+        lastSuccess &&
+        shouldSkipRecompute(
+          currentFp,
+          fingerprintFromStats((lastSuccess as LastSuccessRow).rpc_stats),
+        )
+      ) {
+        const durationMs = Date.now() - started
+        await logExecution(supabase, {
+          status: 'skipped',
+          duration_ms: durationMs,
+          trigger_source: triggerSource,
+          retries_used: 0,
+          rpc_stats: {
+            skipped: true,
+            skip_reason: 'no user_rides change since last success',
+            rides_max_ts: currentFp.ridesMaxTs,
+            ranked_count: currentFp.rankedCount,
+          },
+        })
+        const result: RecomputeResult = {
+          updated: 0,
+          durationMs,
+          iterations: 0,
+          converged: true,
+          skipped: true,
+        }
+        return json(result, 200)
+      }
+      // A fingerprint failure (currentFp null) must never block the
+      // recompute — fall through and do the full run.
+    }
+
     // Aggregated pairwise wins (per-user normalized, PLAN §5.1) + participant
     // counts + first-place votes, via the RPCs installed by the Phase 6 /
-    // rankings-view-v2 migrations.
-    const [pairsRes, participantsRes, firstPlaceRes] = await Promise.all([
-      rpcWithRetry<PairRow>(supabase, 'pairwise_wins'),
-      rpcWithRetry<ParticipantRow>(supabase, 'ranked_participants'),
-      rpcWithRetry<FirstPlaceRow>(supabase, 'first_place_counts'),
+    // rankings-view-v2 migrations. Each call is timed for rpc_stats.
+    const [pairsT, participantsT, firstPlaceT] = await Promise.all([
+      timed(() => rpcWithRetry<PairRow>(supabase, 'pairwise_wins')),
+      timed(() => rpcWithRetry<ParticipantRow>(supabase, 'ranked_participants')),
+      timed(() => rpcWithRetry<FirstPlaceRow>(supabase, 'first_place_counts')),
     ])
+    const pairsRes = pairsT.value
+    const participantsRes = participantsT.value
+    const firstPlaceRes = firstPlaceT.value
+    rpcStats = {
+      pairwise_wins: {
+        ms: pairsT.ms,
+        bytes: estimatePayloadBytes(pairsRes.data),
+        retries: pairsRes.retriesUsed,
+      },
+      ranked_participants: {
+        ms: participantsT.ms,
+        bytes: estimatePayloadBytes(participantsRes.data),
+        retries: participantsRes.retriesUsed,
+      },
+      first_place_counts: {
+        ms: firstPlaceT.ms,
+        bytes: estimatePayloadBytes(firstPlaceRes.data),
+        retries: firstPlaceRes.retriesUsed,
+      },
+    }
     if (pairsRes.error) throw new Error(`pairwise_wins: ${pairsRes.error.message}`)
     if (participantsRes.error) {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
@@ -298,6 +426,11 @@ Deno.serve(async (req) => {
         converged: true,
         pairs: 0,
         updated: 0,
+        rpc_stats: {
+          ...rpcStats,
+          rides_max_ts: currentFp?.ridesMaxTs ?? null,
+          ranked_count: currentFp?.rankedCount ?? 0,
+        },
       })
 
       const result: RecomputeResult = {
@@ -445,6 +578,11 @@ Deno.serve(async (req) => {
       converged,
       pairs: pairs.length,
       updated: upserts.length,
+      rpc_stats: {
+        ...rpcStats,
+        rides_max_ts: currentFp?.ridesMaxTs ?? null,
+        ranked_count: currentFp?.rankedCount ?? 0,
+      },
     })
 
     const result: RecomputeResult = {
@@ -465,6 +603,9 @@ Deno.serve(async (req) => {
         trigger_source: triggerSource,
         retries_used: retriesUsed,
         error_message: message,
+        // Partial timings survive failures — a 504 on pairwise_wins still
+        // records the other two RPCs' ms/bytes for diagnosis.
+        ...(rpcStats ? { rpc_stats: rpcStats } : {}),
       })
       await sendFailureAlert(message, durationMs, triggerSource)
     } catch {

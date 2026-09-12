@@ -208,6 +208,8 @@ where `n(i,j)` = total weighted comparisons between `i` and `j`, `wins(i,j)` = w
 ### 5.4 Triggering
 
 - **Scheduled**: `pg_cron` every 15 minutes calls a `recompute_rankings_cron()` SQL function, which reads the Edge Function URL + shared secret from **Supabase Vault** (no environment values in migrations; one-time bootstrap in AGENTS.md) and POSTs via `pg_net`.
+- **Idle-skip**: cron slots with no eligible-ranked `user_rides` change since the last success (checked via the `recompute_idle_fingerprint()` RPC — newest change ts + ranked count, so DELETEs can't slip through) log `status = 'skipped'` and no-op before the aggregates. Manual triggers always run; skips satisfy the stale watchdog but don't move `last_recomputed_at`.
+- **RPC resilience**: the aggregate RPCs retry 504-family gateway timeouts (up to 3, exponential 1s/2s/4s + jitter) on top of the original PGRST303 clock-drift retry, and log per-RPC ms/bytes into `cron_execution_logs.rpc_stats`.
 - **Manual**: admin "Recompute now" button on `/admin/rankings` calls the same function via `supabase.functions.invoke` — the user's JWT travels as the Bearer token and the function checks `profiles.is_admin` server-side. No secret ships to the browser.
 - **Aggregation**: the function reads pairwise wins via two security-definer RPCs (`pairwise_wins()`, `ranked_participants()`); `EXECUTE` is revoked from anon/authenticated, so only the service_role (or the cron job, in-database) reaches them.
 - **Ad-hoc comparison**: admins can refit the board in memory under alternative weightings via the `compare-weightings` Edge Function (POST `{variants, topN}`; service-role key or admin JWT) backed by `pairwise_wins_custom(gamma, floor_pairs, ramp_k)`. Entirely read-only — it never touches `coaster_ratings` / `rank_weekly_snapshots`, and deliberately does not write `cron_execution_logs` (the stale-recompute watchdog alerts on any recent success row).
@@ -218,7 +220,7 @@ where `n(i,j)` = total weighted comparisons between `i` and `j`, `wins(i,j)` = w
 ```
 POST /functions/v1/recompute-rankings
 Authorization: Bearer <RECOMPUTE_AUTH_SECRET | SERVICE_ROLE_KEY | admin user JWT>
-→ 200 { updated: <int>, durationMs: <int>, iterations: <int>, converged: <bool> }
+→ 200 { updated: <int>, durationMs: <int>, iterations: <int>, converged: <bool>, skipped?: <bool> }
 ```
 
 Admin JWTs are validated against GoTrue (`/auth/v1/user`) and then checked against `profiles.is_admin`. Reads aggregated pairwise wins, participant counts, and first-place votes from PostgREST RPCs, runs MM in memory (`packages/bt`), upserts scores + `first_place_votes`. Stateless and idempotent.
