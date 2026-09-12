@@ -669,7 +669,7 @@ describe('approveSubmission', () => {
       error: { code: '23505', message: 'duplicate key' },
     })
     await expect(approveSubmission('s1', submission)).rejects.toThrow(
-      'A park named "Test Park" already exists.',
+      'Could not create park "Test Park".',
     )
     expect(coasterInsert).not.toHaveBeenCalled()
   })
@@ -831,6 +831,127 @@ describe('approveSubmission', () => {
         },
       ],
       { onConflict: 'coaster_id,manufacturer_id' },
+    )
+  })
+
+  it('creates proposed manufacturers and interleaves them by position', async () => {
+    const manuInsertSingle = vi.fn()
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'parks') {
+        return {
+          select: vi.fn().mockReturnValue(makeParkSelectMock({ slug: 'test-park' })),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coasters') {
+        return {
+          insert: coasterInsert,
+          select: vi.fn().mockReturnValue(makeCoasterSelectMock(['test-coaster'])),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'manufacturers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+          }),
+          insert: () => ({ select: () => ({ single: manuInsertSingle }) }),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coaster_manufacturers') {
+        return {
+          select: () => ({ eq: () => ({ range: lineageRange }) }),
+          delete: () => ({ eq: () => ({ in: lineageDeleteIn }) }),
+          upsert: lineageUpsert,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
+    }) as never)
+    manuInsertSingle.mockResolvedValue({
+      data: { id: '77777777-6666-4555-8444-333333333333' },
+      error: null,
+    })
+    await approveSubmission('s1', {
+      ...submission,
+      park_id: 'p1',
+      suggested_fields: {
+        ...submission.suggested_fields,
+        manufacturer_ids: ['11111111-2222-4333-8444-555555555555'],
+        proposed_manufacturers: [{ name: 'Gerstlauer', position: 0 }],
+      },
+    } as unknown as CoasterSubmission)
+    // The proposed entry takes slot 0 (becomes the primary); the existing id
+    // backfills slot 1.
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c9',
+          manufacturer_id: '77777777-6666-4555-8444-333333333333',
+          position: 0,
+          source: 'submission',
+        },
+        {
+          coaster_id: 'c9',
+          manufacturer_id: '11111111-2222-4333-8444-555555555555',
+          position: 1,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
+  })
+
+  it('writes the proposed park location onto the community park', async () => {
+    const parksInsert = vi.fn().mockReturnValue({ select: () => ({ single: insertSingle }) })
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'parks') {
+        return {
+          insert: parksInsert,
+          select: vi.fn().mockReturnValue(makeParkSelectMock({ slug: 'test-park' })),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coasters') {
+        return {
+          insert: coasterInsert,
+          select: vi.fn().mockReturnValue(makeCoasterSelectMock()),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coaster_manufacturers') {
+        return {
+          select: () => ({ eq: () => ({ range: lineageRange }) }),
+          delete: () => ({ eq: () => ({ in: lineageDeleteIn }) }),
+          upsert: lineageUpsert,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
+    }) as never)
+    await approveSubmission('s1', {
+      ...submission,
+      park_id: null,
+      suggested_fields: {
+        ...submission.suggested_fields,
+        park_location: {
+          city: 'Sandusky',
+          region: 'Ohio',
+          country: 'USA',
+          lat: 41.47,
+          lng: -82.68,
+        },
+      },
+    } as unknown as CoasterSubmission)
+    expect(parksInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Test Park',
+        slug: 'test-park',
+        source: 'community',
+        city: 'Sandusky',
+        region: 'Ohio',
+        country: 'USA',
+        lat: 41.47,
+        lng: -82.68,
+      }),
     )
   })
 
@@ -999,7 +1120,11 @@ describe('diffEditProposal', () => {
       speed_kmh: '119',
       length_m: '1700',
       inversions: '4',
-      manufacturer_ids: ['mfg-1', 'mfg-2'],
+      manufacturerPicks: [
+        { id: 'mfg-1', name: 'Intamin' },
+        { id: 'mfg-2', name: 'Zamperla' },
+      ],
+      parkLocation: {},
       model: '',
       type: 'Hybrid Coaster',
       opening_date: '2018-04-28',
@@ -1051,18 +1176,97 @@ describe('diffEditProposal', () => {
   it('picks up manufacturer lineage swaps, clears and reorders', () => {
     // Same ids, different order → a change (order decides the primary).
     expect(
-      diffEditProposal(current, proposal({ manufacturer_ids: ['mfg-2', 'mfg-1'] })).diff,
+      diffEditProposal(
+        current,
+        proposal({
+          manufacturerPicks: [
+            { id: 'mfg-2', name: 'Zamperla' },
+            { id: 'mfg-1', name: 'Intamin' },
+          ],
+        }),
+      ).diff,
     ).toEqual({ manufacturer_ids: ['mfg-2', 'mfg-1'] })
     // Shrink to one → a change.
-    expect(diffEditProposal(current, proposal({ manufacturer_ids: ['mfg-1'] })).diff).toEqual({
-      manufacturer_ids: ['mfg-1'],
-    })
+    expect(
+      diffEditProposal(current, proposal({ manufacturerPicks: [{ id: 'mfg-1', name: 'Intamin' }] }))
+        .diff,
+    ).toEqual({ manufacturer_ids: ['mfg-1'] })
     // Explicit clear → empty list.
-    expect(diffEditProposal(current, proposal({ manufacturer_ids: [] })).diff).toEqual({
+    expect(diffEditProposal(current, proposal({ manufacturerPicks: [] })).diff).toEqual({
       manufacturer_ids: [],
     })
     // Identical list → no diff.
     expect(diffEditProposal(current, proposal()).diff).toEqual({})
+  })
+
+  it('carries proposed manufacturers with their merged-lineage position', () => {
+    // A proposed entry interleaves with existing ids (position 1 here);
+    // the id list always rides along so approval can replace the lineage.
+    expect(
+      diffEditProposal(
+        current,
+        proposal({
+          manufacturerPicks: [
+            { id: 'mfg-2', name: 'Zamperla' },
+            { id: null, name: 'Gerstlauer' },
+          ],
+        }),
+      ).diff,
+    ).toEqual({
+      manufacturer_ids: ['mfg-2'],
+      proposed_manufacturers: [{ name: 'Gerstlauer', position: 1 }],
+    })
+    // A proposals-only edit still sends the (unchanged) id list.
+    expect(
+      diffEditProposal(current, proposal({ manufacturerPicks: [{ id: null, name: 'Gerstlauer' }] }))
+        .diff,
+    ).toEqual({
+      manufacturer_ids: [],
+      proposed_manufacturers: [{ name: 'Gerstlauer', position: 0 }],
+    })
+    // Proposals are a change even when the ids are untouched.
+    expect(
+      diffEditProposal(
+        current,
+        proposal({
+          manufacturerPicks: [
+            { id: 'mfg-1', name: 'Intamin' },
+            { id: 'mfg-2', name: 'Zamperla' },
+            { id: null, name: 'Gerstlauer' },
+          ],
+        }),
+      ).diff,
+    ).toEqual({
+      manufacturer_ids: ['mfg-1', 'mfg-2'],
+      proposed_manufacturers: [{ name: 'Gerstlauer', position: 2 }],
+    })
+  })
+
+  it('attaches park_location only for a new-park proposal (park_id null)', () => {
+    expect(
+      diffEditProposal(
+        current,
+        proposal({
+          park_id: null,
+          parkLocation: { city: 'Sandusky', country: 'USA', lat: '41.4', lng: '-82.7' },
+        }),
+      ),
+    ).toEqual({
+      diff: { park_location: { city: 'Sandusky', country: 'USA', lat: 41.4, lng: -82.7 } },
+      parkChanged: true,
+    })
+    // Moving to an EXISTING park ignores the location draft.
+    expect(
+      diffEditProposal(
+        current,
+        proposal({
+          park_id: 'park-2',
+          parkLocation: { city: 'Sandusky' },
+        }),
+      ),
+    ).toEqual({ diff: {}, parkChanged: true })
+    // A new-park proposal with an empty location carries none.
+    expect(diffEditProposal(current, proposal({ park_id: null })).diff).toEqual({})
   })
 })
 
@@ -1247,6 +1451,55 @@ describe('approveEditSubmission', () => {
     await approveEditSubmission('e1', editSubmission)
     expect(lineageUpsert).not.toHaveBeenCalled()
     expect(lineageDeleteIn).not.toHaveBeenCalled()
+  })
+
+  it('creates proposed manufacturers on edit approval', async () => {
+    const manuInsertSingle = vi.fn()
+    vi.mocked(supabase.from).mockImplementation(((table: string) => {
+      if (table === 'coasters') {
+        return {
+          update: vi.fn().mockReturnValue({ eq: coasterUpdateEq }),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'manufacturers') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+          }),
+          insert: () => ({ select: () => ({ single: manuInsertSingle }) }),
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      if (table === 'coaster_manufacturers') {
+        return {
+          select: () => ({ eq: () => ({ range: lineageRange }) }),
+          delete: () => ({ eq: () => ({ in: lineageDeleteIn }) }),
+          upsert: lineageUpsert,
+        } as unknown as ReturnType<typeof supabase.from>
+      }
+      return { update: () => ({ eq: submissionUpdateEq }) } as unknown as ReturnType<
+        typeof supabase.from
+      >
+    }) as never)
+    coasterUpdateEq.mockResolvedValue({ error: null })
+    manuInsertSingle.mockResolvedValue({
+      data: { id: '77777777-6666-4555-8444-333333333333' },
+      error: null,
+    })
+    await approveEditSubmission('e1', {
+      ...editSubmission,
+      suggested_fields: { proposed_manufacturers: [{ name: 'Gerstlauer', position: 0 }] },
+    } as unknown as CoasterSubmission)
+    expect(lineageUpsert).toHaveBeenCalledWith(
+      [
+        {
+          coaster_id: 'c1',
+          manufacturer_id: '77777777-6666-4555-8444-333333333333',
+          position: 0,
+          source: 'submission',
+        },
+      ],
+      { onConflict: 'coaster_id,manufacturer_id' },
+    )
   })
 
   it('ignores malformed manufacturer ids instead of applying them', async () => {

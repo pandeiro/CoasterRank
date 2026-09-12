@@ -18,8 +18,20 @@ import {
   getSubmitterTrust,
   moveCoasterToPark,
   rejectSubmission,
+  useManufacturers,
   useParks,
 } from '../lib/coasters'
+import { getFeedbackThreads, type UserFeedback } from '../lib/feedback'
+
+vi.mock('../lib/feedback', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/feedback')>()
+  return {
+    ...actual,
+    getFeedbackThreads: vi.fn(),
+    replyToFeedback: vi.fn(),
+    setFeedbackStatus: vi.fn(),
+  }
+})
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -34,6 +46,7 @@ vi.mock('../lib/coasters', async (importOriginal) => {
   return {
     ...actual,
     useParks: vi.fn(),
+    useManufacturers: vi.fn(),
     getPendingSubmissions: vi.fn(),
     getCoastersByIds: vi.fn(),
     getSubmitterTrust: vi.fn(),
@@ -80,6 +93,7 @@ function renderPage(initialEntry = '/admin/coasters') {
 
 function mockBase() {
   vi.mocked(useParks).mockReturnValue({ data: parks } as never)
+  vi.mocked(useManufacturers).mockReturnValue({ data: [] } as never)
   vi.mocked(getPendingSubmissions).mockResolvedValue([])
   vi.mocked(getCoastersByIds).mockResolvedValue([])
   vi.mocked(getSubmitterTrust).mockResolvedValue(new Map())
@@ -311,6 +325,80 @@ describe('AdminPage', () => {
       expect(screen.getByText('historybuff')).toBeInTheDocument()
     })
 
+    it('renders proposed manufacturers and the new-park location in the queue', async () => {
+      vi.mocked(getPendingSubmissions).mockResolvedValue([
+        {
+          id: 's1',
+          kind: 'new',
+          coaster_id: null,
+          coaster_name: 'Blue Flash',
+          park_name: 'Indiana Beach',
+          park_id: null,
+          suggested_fields: {
+            height_m: 20,
+            speed_kmh: 60,
+            length_m: 300,
+            inversions: 0,
+            material: 'steel',
+            proposed_manufacturers: [{ name: 'Sandbox Rides', position: 0 }],
+            park_location: { city: 'Monticello', country: 'USA', lat: 40.77 },
+          },
+          submitted_by: 'u1',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+        },
+      ] as never)
+      renderPage('/admin/submissions')
+      expect(await screen.findByText('Blue Flash')).toBeInTheDocument()
+      // The proposed manufacturer is flagged as new (no existing ids here).
+      expect(screen.getByText('Sandbox Rides (new)')).toBeInTheDocument()
+      // The proposed park's location renders for the reviewer.
+      expect(screen.getByText('Monticello, USA (lat 40.77)')).toBeInTheDocument()
+    })
+
+    it('renders a proposed manufacturer in the edit diff as a merged lineage', async () => {
+      vi.mocked(useManufacturers).mockReturnValue({
+        data: [{ id: 'eeeeeeee-1111-4111-8111-111111111111', name: 'Zamperla', slug: 'zamperla' }],
+      } as never)
+      vi.mocked(getPendingSubmissions).mockResolvedValue([
+        {
+          id: 'e1',
+          kind: 'edit',
+          coaster_id: 'c1',
+          coaster_name: 'Steel Vengeance',
+          park_name: 'Cedar Point',
+          park_id: 'p1',
+          suggested_fields: {
+            manufacturer_ids: ['eeeeeeee-1111-4111-8111-111111111111'],
+            proposed_manufacturers: [{ name: 'Gerstlauer', position: 1 }],
+          },
+          submitted_by: 'u1',
+          status: 'pending',
+          reviewer_note: null,
+          reviewed_by: null,
+          created_at: '',
+          reviewed_at: null,
+          seen_by_submitter_at: null,
+        },
+      ] as never)
+      vi.mocked(getCoastersByIds).mockResolvedValue([
+        {
+          id: 'c1',
+          park_id: 'p1',
+          name: 'Steel Vengeance',
+          height_m: 62,
+          status: 'operating',
+          manufacturer_ids: ['eeeeeeee-1111-4111-8111-111111111111'],
+        },
+      ] as never)
+      renderPage('/admin/submissions')
+      expect(await screen.findByText(/Zamperla · Gerstlauer \(new\)/)).toBeInTheDocument()
+    })
+
     it('routes edit approvals to the edit path', async () => {
       vi.mocked(getPendingSubmissions).mockResolvedValue([
         {
@@ -377,6 +465,34 @@ describe('AdminPage', () => {
       await userEvent.click(screen.getByRole('button', { name: /Edits \(1\)/ }))
       expect(screen.queryByText('New Coaster')).not.toBeInTheDocument()
       expect(screen.getByText('Old Coaster')).toBeInTheDocument()
+    })
+  })
+
+  describe('feedback tab', () => {
+    const thread: UserFeedback = {
+      id: 'f1',
+      category: 'bug',
+      message: 'The board drops my #1 coaster',
+      context: { page: '/me', user_agent: 'test', screen: '800x600', language: 'en' },
+      submitted_by: 'u1',
+      status: 'open',
+      seen_by_submitter_at: null,
+      created_at: '2026-09-10T00:00:00Z',
+      profiles: { id: 'u1', avatar_url: null, username: 'rider_one' },
+      replies: [],
+    }
+
+    it('renders the queue through the feedback lib', async () => {
+      vi.mocked(getFeedbackThreads).mockResolvedValue([thread])
+      renderPage('/admin/feedback')
+      expect(await screen.findByText('The board drops my #1 coaster')).toBeInTheDocument()
+      expect(screen.getByText('rider_one')).toBeInTheDocument()
+    })
+
+    it('shows the empty state', async () => {
+      vi.mocked(getFeedbackThreads).mockResolvedValue([])
+      renderPage('/admin/feedback')
+      expect(await screen.findByText('No open threads.')).toBeInTheDocument()
     })
   })
 

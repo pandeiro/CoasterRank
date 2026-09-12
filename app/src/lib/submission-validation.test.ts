@@ -37,6 +37,118 @@ describe('validateSuggestedFields', () => {
     expect(validateSuggestedFields('edit', { source: 'admin' }).source).toMatch(/cannot/i)
   })
 
+  it('accepts well-formed proposed manufacturers (interleaved positions)', () => {
+    const fields = newFields({
+      manufacturer_ids: [UUID],
+      proposed_manufacturers: [{ name: 'Gerstlauer', position: 0 }],
+    })
+    expect(validateSuggestedFields('new', fields)).toEqual({})
+    expect(
+      validateSuggestedFields('edit', {
+        proposed_manufacturers: [
+          { name: 'Vekoma', position: 1 },
+          { name: 'Zamperla', position: 0 },
+        ],
+      }),
+    ).toEqual({})
+  })
+
+  it('rejects malformed proposed manufacturers', () => {
+    const errs = (fields: Record<string, unknown>) =>
+      validateSuggestedFields('new', newFields(fields))
+    // Empty array — the key must be absent (or null), not an empty list.
+    expect(errs({ proposed_manufacturers: [] }).proposed_manufacturers).toBeDefined()
+    // Non-object entry / missing keys.
+    expect(errs({ proposed_manufacturers: ['Vekoma'] }).proposed_manufacturers).toBeDefined()
+    expect(errs({ proposed_manufacturers: [{}] }).proposed_manufacturers).toBeDefined()
+    // Extra keys.
+    expect(
+      errs({
+        proposed_manufacturers: [{ name: 'X', position: 0, country: 'DE' }],
+      }).proposed_manufacturers,
+    ).toBeDefined()
+    // Blank or over-long names.
+    expect(
+      errs({ proposed_manufacturers: [{ name: '   ', position: 0 }] }).proposed_manufacturers,
+    ).toBeDefined()
+    expect(
+      errs({
+        proposed_manufacturers: [{ name: 'x'.repeat(81), position: 0 }],
+      }).proposed_manufacturers,
+    ).toBeDefined()
+    // Non-integer / out-of-range positions.
+    expect(
+      errs({ proposed_manufacturers: [{ name: 'X', position: 1.5 }] }).proposed_manufacturers,
+    ).toBeDefined()
+    expect(
+      errs({ proposed_manufacturers: [{ name: 'X', position: 10 }] }).proposed_manufacturers,
+    ).toBeDefined()
+    // A position past the merged size (0 ids + 1 proposal → only slot 0).
+    expect(
+      errs({
+        manufacturer_ids: [],
+        proposed_manufacturers: [{ name: 'X', position: 1 }],
+      }).proposed_manufacturers,
+    ).toBeDefined()
+    // Duplicate positions.
+    expect(
+      errs({
+        proposed_manufacturers: [
+          { name: 'A', position: 0 },
+          { name: 'B', position: 0 },
+        ],
+      }).proposed_manufacturers,
+    ).toMatch(/same slot/)
+    // Combined lineage over the cap: 5 existing + 6 proposed = 11.
+    expect(
+      errs({
+        manufacturer_ids: Array(5).fill(UUID),
+        proposed_manufacturers: [
+          { name: 'A', position: 5 },
+          { name: 'B', position: 6 },
+          { name: 'C', position: 7 },
+          { name: 'D', position: 8 },
+          { name: 'E', position: 9 },
+          { name: 'F', position: 10 },
+        ],
+      }).proposed_manufacturers,
+    ).toBeDefined()
+  })
+
+  it('only allows park_location on a new-park proposal (park_id null)', () => {
+    const location = { city: 'Sandusky', country: 'USA', lat: 41.47, lng: -82.68 }
+    expect(validateSuggestedFields('new', newFields({ park_location: location }))).toEqual({})
+    expect(validateSuggestedFields('new', newFields({ park_location: location }), null)).toEqual({})
+    expect(
+      validateSuggestedFields('new', newFields({ park_location: location }), UUID).park_location,
+    ).toMatch(/does not exist yet/)
+    expect(validateSuggestedFields('edit', { park_location: { city: 'Sandusky' } })).toEqual({})
+    expect(
+      validateSuggestedFields('edit', { park_location: { city: 'Sandusky' } }, UUID).park_location,
+    ).toBeDefined()
+  })
+
+  it('rejects malformed park_location values', () => {
+    const errs = (park_location: unknown) =>
+      validateSuggestedFields('new', newFields({ park_location }))
+    expect(errs('Sandusky').park_location).toBeDefined()
+    expect(errs({}).park_location).toBeDefined()
+    expect(errs({ zip: '44870' }).park_location).toBeDefined()
+    // Whitespace-only text is rejected (mirrors the DB btrim rule) — the
+    // error lands on the nested per-field key (flat dotted error keys).
+    const nested = (park_location: Record<string, unknown>) =>
+      validateSuggestedFields('new', newFields({ park_location })) as unknown as Record<
+        string,
+        unknown
+      >
+    expect(nested({ city: '' })['park_location.city']).toBeDefined()
+    expect(nested({ region: '   ' })['park_location.region']).toBeDefined()
+    expect(nested({ city: 'x'.repeat(121) })['park_location.city']).toBeDefined()
+    expect(nested({ lat: 91 })['park_location.lat']).toBeDefined()
+    expect(nested({ lng: -181 })['park_location.lng']).toBeDefined()
+    expect(nested({ lat: '41' })['park_location.lat']).toBeDefined()
+  })
+
   it('rejects out-of-range and non-finite stats', () => {
     expect(validateSuggestedFields('new', newFields({ height_m: -1 })).height_m).toMatch(
       /between 0 and 500/,
