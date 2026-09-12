@@ -130,17 +130,36 @@ export default function Layout() {
                   <NavLink to="/login" className={navLinkClass}>
                     Log in
                   </NavLink>
-                  {/* GUEST_UX.md §3.1: the primary funnel CTA — slightly larger
-                    than a plain nav item, with a finite accent halo on initial
-                    pageload (3 breaths, reduced-motion safe). Not a Link to
-                    /signup anymore: signup stays reachable via /login + the
-                    nudge card's secondary link. */}
+                  {/* GUEST_UX.md §3.1: the primary funnel CTA. Idle = rolling
+                    "airtime hills" (two translucent accent sine bands at
+                    parallax speeds, clipped by the pill); hover = business
+                    time (waves fade, solid ink). Label stays cream on near-
+                    black at every phase, so legibility never depends on the
+                    animation. Waves are decorative (aria-hidden). */}
                   <button
                     type="button"
                     onClick={onRankMyRides}
-                    className="animate-cta-pulse rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
+                    className="group relative overflow-hidden rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
                   >
-                    Rank My Rides
+                    <span aria-hidden="true" className="cta-wave">
+                      <svg viewBox="0 0 120 24" preserveAspectRatio="none">
+                        <path
+                          fill="rgb(var(--color-accent) / 0.28)"
+                          d="M0 24 V19 Q7.5 10 15 19 T30 19 T45 19 T60 19 T75 19 T90 19 T105 19 T120 19 V24 Z"
+                        />
+                      </svg>
+                      <svg
+                        viewBox="0 0 120 24"
+                        preserveAspectRatio="none"
+                        className="cta-wave-back"
+                      >
+                        <path
+                          fill="rgb(var(--color-coral) / 0.32)"
+                          d="M0 24 V21 Q7.5 14 15 21 T30 21 T45 21 T60 21 T75 21 T90 21 T105 21 T120 21 V24 Z"
+                        />
+                      </svg>
+                    </span>
+                    <span className="relative z-10">Rank My Rides</span>
                   </button>
                 </>
               )}

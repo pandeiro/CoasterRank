@@ -134,24 +134,51 @@
   }
 }
 
-/* Header CTA attention pulse (guest mark & rank): after a 10s dwell (passive
-   browsers only — engaged visitors have already started marking), a soft
-   accent halo breathes 3 times and stops. Understated, not spammy.
-   Box-shadow only, so it never shifts layout. */
-@keyframes cta-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.5);
+/* ── "Rank My Rides" coaster fill (guest mark & rank) ────────────────────────
+   Two translucent accent sine bands ("airtime hills") roll through the dark
+   pill at different speeds — an endless track under the label. Hover = business
+   time: the waves fade and the pill resolves to solid ink. Transform/opacity
+   only (compositor-safe), box-safe (absolute, clipped by the pill). Reduced
+   motion freezes the hills in a static frame instead of removing them. */
+@keyframes cta-wave-scroll {
+  from {
+    transform: translateX(0);
   }
-  50% {
-    box-shadow: 0 0 0 9px rgb(var(--color-accent) / 0);
+  to {
+    /* Exactly one 50% tile: the hill pattern repeats every 60 viewBox units
+       across a 120-unit strip, so the loop is seamless. */
+    transform: translateX(-50%);
   }
 }
 
-.animate-cta-pulse {
-  animation: cta-pulse 1.6s ease-out 3;
-  animation-delay: 10s;
-  animation-fill-mode: backwards;
+.cta-wave {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.cta-wave svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 200%;
+  animation: cta-wave-scroll 7s linear infinite;
+}
+
+.cta-wave-back {
+  opacity: 0.45;
+  animation-duration: 11s;
+}
+
+.group:hover .cta-wave {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-wave svg {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
