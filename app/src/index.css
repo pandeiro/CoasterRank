@@ -214,7 +214,9 @@
 
 .group:hover .cta-wave,
 .group:hover .cta-halo::before,
-.group:hover .cta-halo::after {
+.group:hover .cta-halo::after,
+/* Engaged visitors (Mark Mode active) get business time, not just hover. */
+.cta-still .cta-wave {
   opacity: 0;
 }
 
@@ -232,6 +234,37 @@
   .cta-halo::after {
     animation: none;
   }
+
+  .dock-pulse::before {
+    animation: none;
+  }
+}
+
+/* Dock pulse (§3.2 pass 7): once a guest has ≥ 5 rides marked, a coral ring
+   breathes under the dock CTA — "you have enough to rank, go." Constant,
+   pauses + fades on hover, reduced-motion safe. */
+.dock-pulse::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: dock-pulse 2s ease-out infinite;
+  transition: opacity 0.3s ease-out;
+}
+
+@keyframes dock-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-coral) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(var(--color-coral) / 0);
+  }
+}
+
+.dock-pulse:hover::before {
+  animation-play-state: paused;
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

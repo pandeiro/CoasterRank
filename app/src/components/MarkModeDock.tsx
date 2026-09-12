@@ -5,13 +5,21 @@ type Props = {
   selectedCount: number
   /** Authenticated flow commits the append directly (Mode 6) — Phase 4. */
   authed?: boolean
+  /** Coral attention ripple (guests with ≥ 5 rides marked, §3.2 pass 7). */
+  pulse?: boolean
   onRank: () => void
   onClear: () => void
 }
 
 // GUEST_UX.md §3.2: floating dock, bottom-center with safe-area insets.
 // Slides up once ≥ 1 coaster is marked; count changes announced politely.
-export default function MarkModeDock({ selectedCount, authed = false, onRank, onClear }: Props) {
+export default function MarkModeDock({
+  selectedCount,
+  authed = false,
+  pulse = false,
+  onRank,
+  onClear,
+}: Props) {
   const [entered, setEntered] = useState(false)
   useEffect(() => {
     const raf = requestAnimationFrame(() => setEntered(true))
@@ -37,7 +45,7 @@ export default function MarkModeDock({ selectedCount, authed = false, onRank, on
         <button
           type="button"
           onClick={onRank}
-          className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-strong"
+          className={`relative flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-strong ${pulse ? 'dock-pulse' : ''}`}
         >
           {label}
           {!authed && <ArrowRight className="h-4 w-4" aria-hidden="true" />}

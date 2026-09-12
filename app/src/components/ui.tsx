@@ -1,10 +1,14 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
 
-type ButtonVariant = 'primary' | 'coral' | 'outline' | 'ghost' | 'danger'
+type ButtonVariant = 'primary' | 'coral' | 'coralVivid' | 'outline' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: 'bg-ink text-canvas hover:bg-ink-soft',
+  // Vivid logo coral (hearts/mark) with ink text — bright CTAs like the
+  // guest workbench save; the darker coral-text variant stays for the
+  // submit/admin flows that predate it.
+  coralVivid: 'bg-coral text-ink hover:bg-coral/85',
   coral: 'bg-coral-text text-white hover:bg-coral-text/90',
   outline:
     'border border-line bg-surface-bright text-ink hover:border-accent-text hover:bg-surface',

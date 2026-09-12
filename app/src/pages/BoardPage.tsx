@@ -523,6 +523,7 @@ export default function BoardPage() {
         <MarkModeDock
           authed={authed}
           selectedCount={guest.count}
+          pulse={!authed && guest.count >= 5}
           onRank={authed ? () => void commitFastAdd() : handleMarkRank}
           onClear={handleMarkClear}
         />

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
 import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
-import { enterGuestMarkMode } from '../lib/guest-rides'
+import { enterGuestMarkMode, useGuestRides } from '../lib/guest-rides'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
 import FeedbackProvider from './FeedbackProvider'
@@ -26,6 +26,10 @@ export default function Layout() {
   // The board leads with its own hero; everywhere else the sticky header is
   // the permanent chrome (logo links home to the global ranking).
   const showBrand = !isBoard || scrolledPastHero
+  // CTA motion gate (§3.1 pass 7): hills + ripple run until the visitor
+  // engages — once Mark Mode is active (or while hovering), the button goes
+  // business-time. Exiting Mark Mode resumes the idle attention loop.
+  const { markMode } = useGuestRides()
 
   // Header CTA (GUEST_UX.md §3.1): logged-out visitors get "Rank My Rides" —
   // Mark Mode pre-activated on the board — instead of a generic Sign up pill.
@@ -140,13 +144,15 @@ export default function Layout() {
                   <button
                     type="button"
                     onClick={onRankMyRides}
-                    className="cta-halo group relative rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
+                    className={`group relative rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2 ${
+                      markMode ? 'cta-still' : 'cta-halo'
+                    }`}
                   >
                     <span aria-hidden="true" className="cta-wave">
                       <svg viewBox="0 0 120 24" preserveAspectRatio="none">
                         <path
                           fill="rgb(var(--color-accent) / 0.28)"
-                          d="M0 24 L0 19 Q7.5 9 15 19 Q22.5 29 30 19 Q37.5 15 45 19 Q52.5 23 60 19 Q67.5 9 75 19 Q82.5 29 90 19 Q97.5 15 105 19 Q112.5 23 120 19 V24 Z"
+                          d="M0 24 L0 19 Q7.5 -7 15 19 Q22.5 29 30 19 Q37.5 15 45 19 Q52.5 23 60 19 Q67.5 -7 75 19 Q82.5 29 90 19 Q97.5 15 105 19 Q112.5 23 120 19 V24 Z"
                         />
                       </svg>
                       <svg
@@ -156,7 +162,7 @@ export default function Layout() {
                       >
                         <path
                           fill="rgb(var(--color-coral) / 0.32)"
-                          d="M0 24 L0 21 Q7.5 14 15 21 Q22.5 27 30 21 Q37.5 18 45 21 Q52.5 24 60 21 Q67.5 14 75 21 Q82.5 27 90 21 Q97.5 18 105 21 Q112.5 24 120 21 V24 Z"
+                          d="M0 24 L0 21 Q7.5 3 15 21 Q22.5 27 30 21 Q37.5 19 45 21 Q52.5 24 60 21 Q67.5 3 75 21 Q82.5 27 90 21 Q97.5 19 105 21 Q112.5 24 120 21 V24 Z"
                         />
                       </svg>
                     </span>

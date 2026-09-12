@@ -169,10 +169,7 @@ export default function GuestRankPage() {
       </Helmet>
       <div className="mb-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
         <p className="font-semibold text-ink">New Rider Ranking</p>
-        <p className="mt-0.5 text-muted">
-          Drag to re-order your lineup. Create a free account to join the global board and save your
-          list.
-        </p>
+        <p className="mt-0.5 text-muted">Drag to re-order your lineup.</p>
         {/* Power-user escape hatch (§3.3): someone with an existing
             spreadsheet wants to jump straight to import after signup, not
             toy-rank first. No import integration in the guest flow. */}
@@ -200,9 +197,9 @@ export default function GuestRankPage() {
           <Button variant="outline" size="sm" onClick={handleAddMore}>
             + Add More Coasters
           </Button>
-          {/* Coral: the brand "YES" pill tone (share banner precedent) — the
-              save action pops via color, no motion gimmicks. */}
-          <Button variant="coral" size="md" onClick={handleSave} disabled={saving}>
+          {/* Vivid logo coral (coralVivid): the save action pops via brand
+              color, no motion gimmicks. */}
+          <Button variant="coralVivid" size="md" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save Ranking & Join Board'}
           </Button>
         </div>

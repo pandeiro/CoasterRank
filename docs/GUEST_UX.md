@@ -47,6 +47,14 @@ Result of the pre-implementation technical review against the live schema and co
 - **Hills vary in height** (uniform rhythm: one tall hill, one short — amplitude variation, identical halves keep the loop seamless).
 - **Constant alternating ripple ring** returns under the pill — coral/aqua via two half-period-offset pseudo rings, no timer: runs forever, pauses + fades on hover, disabled under reduced motion. (Waves moved their clipping to the wave span so the ring can paint outside the pill.)
 
+### Changelog (v2.1 feedback pass 7)
+
+1. **Hill geometry**: the tall hill is now taller AND steeper — crest reaches ~75% of the button height (front control point −7 on the 24-unit strip), the short hill keeps the light rhythm; valleys still clip below the pill.
+2. **Motion stops on engagement**: once Mark Mode is active (`cta-still`), hills and ripple go solid ink — the click already did its job; hover was only ever the early stop. Exiting Mark Mode resumes the idle loop.
+3. **Dock pulse**: with ≥ 5 rides marked, a coral ring breathes under `Rank My Rides (N) →` (constant, pauses + fades on hover, reduced-motion safe) — same "go rank" semantics.
+4. **Save button color**: new `coralVivid` variant — vivid logo coral with ink text (contrast ≈ 5.3:1); the darker `coral` variant stays for the submit/admin flows.
+5. **Banner copy**: "Create a free account to join the global board and save your list." removed — the Save CTA carries that job.
+
 ---
 
 ## Part I: Product Requirements Document (PRD)
@@ -150,10 +158,10 @@ When the user clicks **`Rank My Rides (N)`**, they transition to `/rank`:
    - Items can be deleted from the draft list via the standard swipe/trash affordance.
 3. **Status Banner & CTA Chrome**:
    - Top banner:
-     > **New Rider Ranking** · Drag to re-order your lineup. Create a free account to join the global board and save your list.
+     > **New Rider Ranking** · Drag to re-order your lineup.
      > _Have a big list? You can also just import a spreadsheet once you **Sign Up**._
    - Sticky footer action bar:
-     - **`Save Ranking & Join Board`** (Prominent coral/accent button).
+     - **`Save Ranking & Join Board`** (Prominent button in the vivid logo coral — `coralVivid`).
      - **`+ Add More Coasters`** (Navigates back to `/` with Mark Mode pre-activated and existing selections preserved).
 4. **Direct / Empty Visits**:
    - `/rank` hit directly (shared URL, back button) with no guest rides shows an empty state: brief explainer plus a **`Rank My Rides`** button returning to the board with Mark Mode pre-activated.
