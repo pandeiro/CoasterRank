@@ -526,9 +526,18 @@ describe('approveSubmission', () => {
   const lineageDeleteIn = vi.fn()
   const lineageUpsert = vi.fn()
   const submissionUpdateEq = vi.fn()
-  // Queued results for approveSubmission's park-by-slug lookups (select 'id'):
-  // each findParkIdBySlug call shifts one value; empty queue → no park found.
-  let parkIdLookups: (string | null)[]
+  const parksUpdate = vi.fn()
+  const parksUpdateEq = vi.fn()
+  // Queued results for approveSubmission's park-by-slug lookups (select
+  // 'id, city, …'): each findParkBySlug call shifts one entry — a string is
+  // shorthand for { id }, an object the full row; empty queue → no park found.
+  let parkIdLookups: (string | Record<string, unknown> | null)[]
+
+  const shiftParkLookup = (): Record<string, unknown> | null => {
+    const entry = parkIdLookups.shift()
+    if (entry === undefined || entry === null) return null
+    return typeof entry === 'string' ? { id: entry } : entry
+  }
 
   const submission = {
     id: 's1',
@@ -586,15 +595,12 @@ describe('approveSubmission', () => {
         // resolver requests the slug.
         return Object.assign(() => insertMock, {
           insert: insertMock.insert,
+          update: parksUpdate,
           select: vi
             .fn()
             .mockImplementation((columns: string) =>
               makeParkSelectMock(
-                columns.includes('id')
-                  ? parkIdLookups.length > 0
-                    ? { id: parkIdLookups.shift()! }
-                    : null
-                  : { slug: 'test-park' },
+                columns.includes('id') ? shiftParkLookup() : { slug: 'test-park' },
               ),
             ),
         }) as unknown as ReturnType<typeof supabase.from>
@@ -624,6 +630,8 @@ describe('approveSubmission', () => {
       >
     }) as never)
     insertSingle.mockResolvedValue({ data: { id: 'p9' }, error: null })
+    parksUpdate.mockReturnValue({ eq: parksUpdateEq })
+    parksUpdateEq.mockResolvedValue({ error: null })
     // The coaster insert is always followed by .select('id').single() so the
     // lineage write can target the new row.
     coasterInsert.mockImplementation(() => ({ select: () => ({ single: coasterSingle }) }))
@@ -683,6 +691,56 @@ describe('approveSubmission', () => {
     expect(submissionUpdateEq).toHaveBeenCalledWith('id', 's1')
   })
 
+  it('backfills the proposed location when reusing a park minted without one', async () => {
+    // A pre-park_location approval minted the park name+slug only; a
+    // re-submission carrying park_location must not have it silently
+    // dropped on reuse (Shepard's Adventure Park incident, 2026-09-12).
+    parkIdLookups.push({ id: 'p7', city: null, region: null, country: null, lat: null, lng: null })
+    await approveSubmission('s1', {
+      ...submission,
+      suggested_fields: {
+        ...submission.suggested_fields,
+        park_location: {
+          city: 'Branson',
+          region: 'Missouri',
+          country: 'United States',
+          lat: 36.667415,
+          lng: 93.30673,
+        },
+      },
+    } as unknown as CoasterSubmission)
+    expect(parksUpdate).toHaveBeenCalledTimes(1)
+    expect(parksUpdate).toHaveBeenCalledWith({
+      city: 'Branson',
+      region: 'Missouri',
+      country: 'United States',
+      lat: 36.667415,
+      lng: 93.30673,
+    })
+    expect(parksUpdateEq).toHaveBeenCalledWith('id', 'p7')
+    expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p7' }))
+  })
+
+  it('does not overwrite location data on a reused park that already has it', async () => {
+    parkIdLookups.push({
+      id: 'p7',
+      city: 'Somewhere',
+      region: null,
+      country: 'USA',
+      lat: 40,
+      lng: -80,
+    })
+    await approveSubmission('s1', {
+      ...submission,
+      suggested_fields: {
+        ...submission.suggested_fields,
+        park_location: { city: 'Branson', country: 'United States', lat: 36.67, lng: 93.31 },
+      },
+    } as unknown as CoasterSubmission)
+    expect(parksUpdate).not.toHaveBeenCalled()
+    expect(coasterInsert).toHaveBeenCalledWith(expect.objectContaining({ park_id: 'p7' }))
+  })
+
   it('links to the park a concurrent approval created when the insert hits a slug collision', async () => {
     // Lookup misses, insert races a 23505, re-lookup finds the winner.
     parkIdLookups.push(null, 'p7')
@@ -704,7 +762,13 @@ describe('approveSubmission', () => {
     // make the global slug check see existing base slug
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
-        const sel = vi.fn().mockReturnValue(makeParkSelectMock({ slug: 'test-park' }))
+        // The by-slug park lookup (columns include 'id') must MISS so the
+        // insert path runs; the slug collision retry selects 'slug' by id.
+        const sel = vi
+          .fn()
+          .mockImplementation((columns: string) =>
+            makeParkSelectMock(columns.includes('id') ? null : { slug: 'test-park' }),
+          )
         return {
           insert: () => ({ select: () => ({ single: insertSingle }) }),
           select: sel,
@@ -905,9 +969,15 @@ describe('approveSubmission', () => {
     const parksInsert = vi.fn().mockReturnValue({ select: () => ({ single: insertSingle }) })
     vi.mocked(supabase.from).mockImplementation(((table: string) => {
       if (table === 'parks') {
+        // The by-slug park lookup (columns include 'id') must MISS so the
+        // mint path runs; this test exercises the insert-with-location branch.
         return {
           insert: parksInsert,
-          select: vi.fn().mockReturnValue(makeParkSelectMock({ slug: 'test-park' })),
+          select: vi
+            .fn()
+            .mockImplementation((columns: string) =>
+              makeParkSelectMock(columns.includes('id') ? null : { slug: 'test-park' }),
+            ),
         } as unknown as ReturnType<typeof supabase.from>
       }
       if (table === 'coasters') {

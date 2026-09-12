@@ -5,6 +5,7 @@ import {
   validateEditSubmission,
   validateNewSubmission,
   validationSummary,
+  type ParkLocation,
   type ParkLocationInput,
 } from './submission-validation'
 import type {
@@ -446,7 +447,6 @@ export type SuggestedFields = {
 export type ProposedManufacturer = { name: string; position: number }
 
 export type { ParkLocation } from './submission-validation'
-import type { ParkLocation } from './submission-validation'
 
 /** A lineage entry from the multi picker: an existing manufacturer (id) or a proposed one (id null). */
 export type ManufacturerPick = { id: string; name: string } | { id: null; name: string }
@@ -931,13 +931,31 @@ export async function rejectSubmission(id: string, note: string) {
   if (error) throw error
 }
 
+// Park row shape needed to reuse-or-backfill by slug: the location columns
+// tell whether a prior approval minted the park with location metadata.
+type ParkSlugRow = {
+  id: string
+  city: string | null
+  region: string | null
+  country: string | null
+  lat: number | null
+  lng: number | null
+}
+
+const parkHasNoLocation = (park: ParkSlugRow): boolean =>
+  [park.city, park.region, park.country, park.lat, park.lng].every((v) => (v ?? null) === null)
+
 // Reuse an existing park by slug: a new-park submission for a park that a
 // prior approval already created (parks.slug is UNIQUE) must link to it
 // rather than fail. Returns null when no park has that slug.
-async function findParkIdBySlug(slug: string): Promise<string | null> {
-  const { data, error } = await supabase.from('parks').select('id').eq('slug', slug).maybeSingle()
+async function findParkBySlug(slug: string): Promise<ParkSlugRow | null> {
+  const { data, error } = await supabase
+    .from('parks')
+    .select('id, city, region, country, lat, lng')
+    .eq('slug', slug)
+    .maybeSingle()
   if (error) throw error
-  return (data as { id: string } | null)?.id ?? null
+  return (data as ParkSlugRow | null) ?? null
 }
 
 // Sanitized park_location from a submission payload (defense in depth
@@ -966,18 +984,34 @@ function proposedParkLocation(fields: Record<string, unknown>): ParkLocation | n
   return Object.keys(out).length > 0 ? out : null
 }
 
+// A prior approval may have minted the park before this submitter's proposed
+// location could ride along (pre-park_location mints carry name+slug only).
+// Backfill the proposal onto a location-less park; never overwrite data.
+async function backfillParkLocation(
+  park: ParkSlugRow,
+  location: ParkLocation | null,
+): Promise<void> {
+  if (!location || !parkHasNoLocation(park)) return
+  const { error } = await supabase.from('parks').update(location).eq('id', park.id)
+  if (error) throw error
+}
+
 // Create-or-reuse the park a submission is homed to. park_id set → link as
 // is; free-text park name → reuse the community park a prior approval may
-// have already minted, else create it with the submitter's proposed location
-// metadata attached. Returns null when no park could be resolved.
+// have already minted (backfilling the submitter's proposed location if the
+// reused park has none), else create it with that location attached.
+// Returns null when no park could be resolved.
 async function ensureParkForSubmission(submission: CoasterSubmission): Promise<string | null> {
   if (submission.park_id) return submission.park_id
   const parkSlug = slugify(submission.park_name)
   const location = proposedParkLocation(
     (submission.suggested_fields ?? {}) as unknown as Record<string, unknown>,
   )
-  const existingId = await findParkIdBySlug(parkSlug)
-  if (existingId) return existingId
+  const existing = await findParkBySlug(parkSlug)
+  if (existing) {
+    await backfillParkLocation(existing, location)
+    return existing.id
+  }
   const { data: park, error: parkError } = await supabase
     .from('parks')
     .insert({
@@ -993,7 +1027,10 @@ async function ensureParkForSubmission(submission: CoasterSubmission): Promise<s
   // Race: another approval created the park between our lookup and insert
   // (e.g. two "Rowdy Bear" submissions in one queue) — resolve the winner
   // by slug and reuse it.
-  return findParkIdBySlug(parkSlug)
+  const winner = await findParkBySlug(parkSlug)
+  if (!winner) return null
+  await backfillParkLocation(winner, location)
+  return winner.id
 }
 
 // Create-or-reuse a manufacturer by slug (proposed by a submitter; approval
