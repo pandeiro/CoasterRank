@@ -140,36 +140,47 @@ export default function LoginPage() {
       const guest = readGuestRanking()
       if (guest && guest.orderedIds.length > 0) {
         setHold('merging')
-        const remoteIds = await fetchMyRankedRideIds()
-        const verdict = triageGuestState(remoteIds)
-        if (verdict.action === 'silent_clear') {
-          clearGuestRides()
+        try {
+          const remoteIds = await fetchMyRankedRideIds()
+          const verdict = triageGuestState(remoteIds)
+          if (verdict.action === 'silent_clear') {
+            clearGuestRides()
+            setHold(null)
+            finish()
+            return
+          }
+          if (verdict.action === 'materialize') {
+            setHold('materializing')
+            await materializeGuestRides(
+              guest.orderedIds,
+              'materialize',
+              new Date(guest.createdAt).toISOString(),
+            )
+            clearGuestRides()
+            await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
+            setHold(null)
+            finish()
+            return
+          }
+          if (verdict.action === 'conflict') {
+            setHold(null)
+            setMergePrompt({
+              guestCount: guest.orderedIds.length,
+              remoteCount: remoteIds.length,
+              remoteIds,
+              guestOnlyIds: verdict.guestOnlyIds,
+              startedAtIso: new Date(guest.createdAt).toISOString(),
+            })
+            return
+          }
+        } catch (err) {
+          // RPC unavailable (deploy skew: SPA before db push) or transient
+          // failure. This is an EXISTING user — never block their login:
+          // proceed, keep the guest state, and let the /me reconciliation
+          // retry (it surfaces its own toast).
+          Sentry.captureException(err, { extra: { flow: 'guest-triage' } })
           setHold(null)
           finish()
-          return
-        }
-        if (verdict.action === 'materialize') {
-          setHold('materializing')
-          await materializeGuestRides(
-            guest.orderedIds,
-            'materialize',
-            new Date(guest.createdAt).toISOString(),
-          )
-          clearGuestRides()
-          await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
-          setHold(null)
-          finish()
-          return
-        }
-        if (verdict.action === 'conflict') {
-          setHold(null)
-          setMergePrompt({
-            guestCount: guest.orderedIds.length,
-            remoteCount: remoteIds.length,
-            remoteIds,
-            guestOnlyIds: verdict.guestOnlyIds,
-            startedAtIso: new Date(guest.createdAt).toISOString(),
-          })
           return
         }
       }

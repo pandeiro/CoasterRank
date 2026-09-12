@@ -449,3 +449,26 @@ describe('LoginPage guest promotion gate', () => {
     })
   })
 })
+
+it('never blocks login when the promotion RPC is unavailable (deploy skew)', async () => {
+  seedGuestState(['g1'])
+  vi.mocked(useAuth).mockReturnValue({
+    session: { access_token: 'tok' },
+    user: { id: 'u1', user_metadata: {} },
+    isLoading: false,
+  } as never)
+  // The ranked-ids read succeeds, but the RPC is missing (SPA deployed
+  // before db push) — the user must still land on /me, guest state kept
+  // for the /me reconciliation to retry.
+  mockRidesQuery([])
+  vi.mocked(supabase.rpc).mockRejectedValue({
+    code: '404',
+    message: 'Could not find the function materialize_guest_rides',
+  })
+  renderLogin('/login')
+  await waitFor(() => {
+    expect(screen.getByText('my coasters')).toBeInTheDocument()
+  })
+  // Guest state survives for a later retry.
+  expect(window.localStorage.getItem('cr.guest-rides.v1')).not.toBeNull()
+})
