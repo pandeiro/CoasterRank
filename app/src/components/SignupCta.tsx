@@ -4,12 +4,15 @@ import { SIGNUP_CTA_HEADLINES } from '../lib/signup-cta'
 
 type Props = {
   onDismiss: () => void
+  /** Mark Mode entry (GUEST_UX.md §3.1): the primary CTA launches selection
+   *  on the board instead of routing to the signup form. */
+  onRankMyRides?: () => void
 }
 
 // Floating signup footer for the board. Compact card on all viewports
 // (deliberately no drag-to-expand sheet — see PLAN decision log): centered,
 // above the footer chrome, clear of most of the viewing surface.
-export default function SignupCta({ onDismiss }: Props) {
+export default function SignupCta({ onDismiss, onRankMyRides }: Props) {
   // Entrance: a half-second rise with a slight overshoot (custom bezier —
   // the card travels a touch past rest, then settles back). Transform +
   // opacity only, so it stays on the compositor at 60fps; no layout, no
@@ -57,13 +60,34 @@ export default function SignupCta({ onDismiss }: Props) {
               Free · No ads or trackers · Private by default
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <Link
-                to="/signup"
-                onClick={onDismiss}
-                className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
-              >
-                Sign up free
-              </Link>
+              {onRankMyRides ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onRankMyRides}
+                    className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
+                  >
+                    Rank My Rides
+                  </button>
+                  {/* Direct signup stays reachable for visitors who just want
+                      an account; Mark Mode owns the primary CTA (§3.1). */}
+                  <Link
+                    to="/signup"
+                    onClick={onDismiss}
+                    className="text-[13px] font-medium text-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+                  >
+                    or sign up
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/signup"
+                  onClick={onDismiss}
+                  className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
+                >
+                  Sign up free
+                </Link>
+              )}
               {/* Soft dismiss: no Log in link — this card only ever renders
                   for logged-out visitors, and regulars know where login lives. */}
               <button

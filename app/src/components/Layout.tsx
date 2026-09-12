@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import Footer from './Footer'
 import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
+import { enterGuestMarkMode } from '../lib/guest-rides'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
 import { MessageState } from './ui'
@@ -24,6 +25,14 @@ export default function Layout() {
   // The board leads with its own hero; everywhere else the sticky header is
   // the permanent chrome (logo links home to the global ranking).
   const showBrand = !isBoard || scrolledPastHero
+
+  // Header CTA (GUEST_UX.md §3.1): logged-out visitors get "Rank My Rides" —
+  // Mark Mode pre-activated on the board — instead of a generic Sign up pill.
+  // Authed fast-add entry (Mode 6) lands with the Phase 4 RPC.
+  function onRankMyRides() {
+    enterGuestMarkMode()
+    navigate('/?mark=1')
+  }
 
   useEffect(() => {
     if (!isBoard) {
@@ -119,12 +128,13 @@ export default function Layout() {
                 <NavLink to="/login" className={navLinkClass}>
                   Log in
                 </NavLink>
-                <Link
-                  to="/signup"
+                <button
+                  type="button"
+                  onClick={onRankMyRides}
                   className="rounded-full bg-ink px-3.5 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft"
                 >
-                  Sign up
-                </Link>
+                  Rank My Rides
+                </button>
               </>
             )}
             {signOutError && (

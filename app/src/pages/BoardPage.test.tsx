@@ -427,7 +427,10 @@ describe('BoardPage signup CTA', () => {
     // ...but the same span WITH activity fires it.
     await engage(SIGNUP_CTA_ENGAGED_SECONDS)
     expect(ctaDialog()).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sign up free' })).toHaveAttribute('href', '/signup')
+    // §3.1: the CTA's primary button now launches Mark Mode on the board;
+    // direct signup demoted to a secondary link.
+    expect(screen.getByRole('button', { name: 'Rank My Rides' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'or sign up' })).toHaveAttribute('href', '/signup')
   })
 
   it('never appears while auth is still loading', async () => {

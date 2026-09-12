@@ -15,6 +15,15 @@ Result of the pre-implementation technical review against the live schema and co
 4. **Telemetry redesign.** Pre-auth events are unmeasurable (no anon-writable tables), and v2's +35% conversion metric had no denominator. Replaced with server-authoritative metrics via a new `guest_promotions` table written by the materialization/merge RPCs (§5.1).
 5. Smaller: logged-in zero-ride `/rank` behavior defined; `/rank` empty state; merge-modal silent no-op edge; copy hierarchy consolidated; a11y row-focus notes.
 
+### Changelog (v2.1 review round 2)
+
+1. **(A) Timestamp wire format**: `started_at` is sent as `new Date(createdAt).toISOString()`, never a raw epoch integer (PostgREST rejects `timestamptz` numeric input). The RPC clamps duration with `GREATEST(0, …)` against client clock skew.
+2. **(B) Login redirect race**: `LoginPage` currently navigates on any session change (LoginPage.tsx:47) — a background materialization would lose that race and `/me` would flash empty. Confirmed-login navigation now **holds** until materialization + metadata wipe complete (spinner state), then invalidates the `['myRides']` cache and navigates to `/me?welcome=1`.
+3. **(C) Merge modal interception**: same race for the merge modal — `LoginPage` inspects `readGuestRanking()` before navigating away. A reconciliation check on `/me` is the safety net for the "session already active, landed directly on `/me`" path, so guest state is never silently orphaned.
+4. **(D) Order lifecycle**: seeding by board rank happens only while the guest list is "unlocked"; the first `/rank` visit (or any drag) locks the order and subsequent adds **append to the bottom** — manual positioning can never be re-sorted away. `GuestRankingState.orderLocked` expresses this.
+5. **(E) Stale metadata recovery**: a coverage-guard failure on a secondary device means the account has progressed past the guest payload — the client treats that errcode as "stale", wipes `pending_guest_rides`, and continues (no recurring login errors).
+6. **(F) Editorial/a11y**: duplicate §4.3/§4.4 headings removed; selection rows use `aria-selected` + a real checkbox in the rank column (never `aria-pressed` on `<tr>`).
+
 ---
 
 ## Part I: Product Requirements Document (PRD)
@@ -85,10 +94,11 @@ Activated when the visitor clicks **`Rank My Rides`** in the header or board her
 2. **Row Interaction Shift**:
    - In standard browse mode, tapping a row navigates to `/coasters/:slug`.
    - In **Mark Mode**, tapping anywhere on a row toggles its selected state (check/uncheck).
+   - Coaster and park names render as **inert text** while Mark Mode is active — no click, tap, or press navigates to `/coasters/:slug` or `/parks/:slug`; every press toggles. Detail-page navigation resumes when Mark Mode is exited.
    - Selected rows immediately update visually:
      - Subtle accent/teal background tint (`bg-accent/10`).
      - A checkmark indicator replaces or sits alongside the rank badge.
-   - Coaster and Park name links continue to allow opening details in a new tab without toggling selection (`e.stopPropagation()`).
+   - Coaster and park names render as **inert text** while Mark Mode is active (supersedes v2's "open in new tab" — any press must toggle, never navigate).
 3. **Multi-Filter Persistence**:
    - Selections are stored globally in the session selection set.
    - A user can search "Cedar Point", select 4 coasters, clear the filter, search "Kings Island", and select 3 coasters. The running selection count accurately reflects all 7 coasters.
@@ -116,6 +126,9 @@ When the user clicks **`Rank My Rides (N)`**, they transition to `/rank`:
 4. **Direct / Empty Visits**:
    - `/rank` hit directly (shared URL, back button) with no guest rides shows an empty state: brief explainer plus a **`Rank My Rides`** button returning to the board with Mark Mode pre-activated.
    - A logged-in user with **0 rides** who reaches `/rank` (not redirected — see Part II §3.1) gets the same workbench in seed mode; saving materializes the list via `materialize_guest_rides` — no signup, no merge modal.
+5. **Order lifecycle (review round 2, D)** — seeding vs. manual order:
+   - **Phase 1 (seed)**: while the guest list is unlocked (`orderLocked: false`), newly marked coasters are seeded into board-rank position.
+   - **Phase 2 (locked)**: the first `/rank` visit — or any manual drag — locks the order. From then on, "+ Add More Coasters" selections **append to the bottom**; the user's manual positioning is never re-sorted away (selecting coaster #6 after dragging #1 to the top must not reshuffle the list).
 
 #### 3.4 Mode 4: Promotion to Verified Account & Cross-Device Resilience
 1. User clicks **`Save Ranking & Join Board`** on `/rank`.
@@ -229,8 +242,11 @@ export interface GuestRideItem {
   coaster_id: string
   name: string
   slug: string
+  park_id: string | null
+  park_slug: string | null
   park_name: string | null
   park_country: string | null
+  manufacturer_name: string | null
   material: string
   status: string
   board_rank: number | null
@@ -243,9 +259,16 @@ export interface GuestRankingState {
   orderedIds: string[]
   /** Snapshot dictionary to render cards without re-querying the network */
   items: Record<string, GuestRideItem>
-  /** Timestamp when mark mode was first engaged */
+  /**
+   * Order lifecycle (review round 2, D): while false, newly marked coasters
+   * are seeded into board-rank position. The first /rank visit (or any drag)
+   * flips this to true; after that, new marks append to the bottom and the
+   * user's manual order is never re-sorted away.
+   */
+  orderLocked: boolean
+  /** Epoch ms when mark mode was first engaged (sent as ISO at promotion) */
   createdAt: number
-  /** Timestamp of most recent edit */
+  /** Epoch ms of most recent edit */
   updatedAt: number
 }
 ```
@@ -334,8 +357,10 @@ const { error } = await supabase.auth.signUp({
   password,
   options: {
     data: {
+      // ISO string, never a raw epoch integer — PostgREST rejects numeric
+      // input for timestamptz (review round 2, A).
       pending_guest_rides: guestState
-        ? { ids: guestState.orderedIds, started_at: guestState.createdAt }
+        ? { ids: guestState.orderedIds, started_at: new Date(guestState.createdAt).toISOString() }
         : undefined
     }
   }
@@ -346,10 +371,12 @@ const { error } = await supabase.auth.signUp({
 When the user verifies their email (regardless of which device or browser opens the email link):
 1. Supabase Auth marks `auth.users.email_confirmed_at = now()`; the verification link redirects to `/login?confirmed=1`, where the PKCE exchange establishes the session (existing behavior).
 2. A `SIGNED_IN` listener (the guest-promotion hook) checks `user.user_metadata.pending_guest_rides`:
-   - If present, calls `materialize_guest_rides(p_rides, p_started_at)` with the full ordered list.
+   - If present, calls `materialize_guest_rides(p_rides, p_started_at)` with the full ordered list (`started_at` = ISO string, review round 2 A).
    - On success, wipes the payload via `supabase.auth.updateUser({ data: { pending_guest_rides: null } })`, then clears `cr.guest-rides.v1`.
    - The RPC is idempotent (it rewrites the ladder from array position), so a retry after a failed wipe is safe.
-3. The user lands on `/me` with the list already in `user_rides`.
+   - **Stale payload recovery (review round 2, E)**: a coverage-guard failure (dedicated errcode, §4.3) on any device means the account ladder has progressed past the stored guest payload (e.g. Device A materialized but its metadata wipe failed, then added rides; Device B logs in a week later with the stale 10-coaster payload). The client catches that errcode, wipes `pending_guest_rides`, clears `cr.guest-rides.v1`, and continues login normally — no recurring errors, nothing destroyed.
+3. **Navigation hold (review round 2, B)**: `LoginPage` navigates the moment a session exists; a background materialization would lose that race and `/me` would flash an empty state. When a session lands while `pending_guest_rides` is present, the login page **holds navigation**, shows a brief "Preparing your rankings…" state, awaits materialization + metadata wipe, invalidates the `['myRides']` query cache, then navigates to `/me?welcome=1`. The password/OTP submit paths route through the same gate.
+4. The user lands on `/me` with the list already in `user_rides`.
 
 This deliberately replaces v2's server-side trigger: Supabase has no native on-confirmation hook, and an `AFTER UPDATE ON auth.users` trigger runs as `supabase_auth_admin` (no user JWT), so `auth.uid()`-based RPCs are unusable from it. Client-side materialization is cross-device by construction and behaves identically when confirmation is disabled (dev), where `signUp` returns a session immediately.
 
@@ -365,10 +392,10 @@ returns integer
 Semantics (mirrors the ranked-ladder half of `apply_imported_rides`, minus import provenance):
 - **Security invoker** — runs as the authenticated user; the target is `auth.uid()`. (A client call always has a JWT — unlike the rejected trigger path.)
 - **Ladder validation**: payload must be a JSON array of coaster UUIDs; any unknown ID raises (same "refresh and retry" contract as the import RPC). Duplicates are deduped, first occurrence wins.
-- **Coverage guard**: if the user has ranked rows absent from the payload, raise. Clients always send the complete ladder — the full guest list for fresh accounts, the full merged list for merge-append — making "never silently drop part of a ladder" structurally impossible.
+- **Coverage guard**: if the user has ranked rows absent from the payload, raise with a **dedicated errcode** (`guest_stale`) — the client uses it for stale-payload recovery (review round 2, E) rather than treating it as a generic failure. Clients always send the complete ladder — the full guest list for fresh accounts, the full merged list for merge-append — making "never silently drop part of a ladder" structurally impossible.
 - **Rewrite**: ranks are rewritten `1..n` gapless from array position; holding-pen rows (`rank = null`) not in the payload stay unranked. Idempotent by construction.
 - **Server-side ceiling**: reject payloads > 200 IDs (the client caps at 100; this is defense-in-depth).
-- **Telemetry**: when provided, inserts one `guest_promotions` row with server-computed `duration_ms`.
+- **Telemetry**: when provided, inserts one `guest_promotions` row with `duration_ms = GREATEST(0, now() - p_started_at)` — the clamp guards against client device clock skew producing negative durations (review round 2, A).
 - **No side effects**: no Telegram notification, no `import_events` row, no profile stamping.
 
 Companion table (RLS: `select` for `user_id = auth.uid()`; inserts only via the RPCs, which run as the invoker):
@@ -387,8 +414,6 @@ create table public.guest_promotions (
 A tiny sibling RPC `log_guest_merge_decision(p_kind text)` records `merge_discard` (which materializes nothing). `merge_append` and `fast_add` are logged by their `materialize_guest_rides` calls themselves.
 
 #### 4.4 Existing Account Merge Modal (`ExistingAccountMergeModal.tsx`)
-
-#### 4.3 Existing Account Merge Modal (`ExistingAccountMergeModal.tsx`)
 If a returning user logs in with an active guest ranking in `localStorage`:
 ```typescript
 // If remote account has rides:
@@ -406,6 +431,8 @@ Options presented:
    - Leaves the remote list untouched.
    - Logs `log_guest_merge_decision('merge_discard')`, clears `cr.guest-rides.v1`.
 3. **Silent no-op**: if `guestOnlyIds` is empty, skip the modal — clear guest state and continue to `/me` without prompting.
+
+**Interception (review round 2, C)**: `LoginPage` must inspect `readGuestRanking()` **before** its session-driven `navigate(dest)` runs — otherwise the modal never renders because the redirect wins the race. While a merge decision is pending, navigation holds. **Safety net**: a user with an active guest session who returns days later already has a live session and lands directly on `/me` without visiting `/login`; `/me` therefore runs a lightweight reconciliation on mount — if localStorage guest state exists, run the same three-way logic (silent no-op / modal / nothing) so guest rides are never silently orphaned.
 
 ---
 
@@ -432,7 +459,7 @@ Options presented:
 
 - **Touch Targets**: On mobile, row heights in selection mode provide a minimum touch target of 54px.
 - **Keyboard Navigation**:
-  - `Space` and `Enter` toggle selection when a row is focused in Mark Mode. Implementation care: `<tr>` elements are not focusable by default — Mark Mode rows get `tabIndex={0}` with button-like semantics (or a visually-integrated checkbox input, which carries native keyboard behavior), and `aria-pressed` reflects selection state.
+  - `Space` and `Enter` toggle selection when a row is focused in Mark Mode. Implementation care (review round 2, F): `<tr>` elements are not focusable and must not carry `aria-pressed` — selection state lives on a **real checkbox in the rank column** (`role="checkbox"` semantics via the native input, `aria-label="Select {name}"`), which carries native keyboard behavior; the row's selection state is conveyed with `aria-selected` on the row element.
   - Drag-and-drop on `/rank` fully supports `@dnd-kit` keyboard sorting coordinates.
 - **Screen Reader Announcements**:
   - Dock count changes are wrapped in an `aria-live="polite"` live region (`"X coasters selected"`).

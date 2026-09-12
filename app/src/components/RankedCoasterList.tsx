@@ -27,6 +27,17 @@ import { MessageState } from './ui'
 
 export type PendingAdd = { id: string; name: string }
 
+/**
+ * Storage strategy for the list (GUEST_UX.md §3.2): /me persists through
+ * Supabase mutations (default, when no adapter is passed); the guest
+ * workbench (/rank) persists through the localStorage guest store.
+ */
+export interface RankingStorageAdapter {
+  isLocal: boolean
+  saveRanks: (orderedIds: string[]) => Promise<void>
+  removeRide: (coasterId: string) => Promise<void>
+}
+
 /** How long a removed row can be undone before the server delete commits. */
 export const REMOVE_UNDO_MS = 5000
 /** How long the dissolve-out animation runs before the row stops rendering. */
@@ -41,6 +52,8 @@ type Props = {
   /** One-shot desktop shortcut: insert the pendingAdd at 'top'/'bottom'
    *  without scrolling to a divider. Cleared via onPendingClear. */
   quickInsert?: 'top' | 'bottom' | null
+  /** Guest mode: persist through this adapter instead of Supabase. */
+  storage?: RankingStorageAdapter
   onPendingClear?: () => void
   onInserted?: (coasterId: string, coasterName: string, rank: number) => void
   /** A row entered the undo window; `undo()` cancels the pending removal. */
@@ -146,6 +159,7 @@ export default function RankedCoasterList({
   pendingAdd,
   instantAdd = false,
   quickInsert = null,
+  storage,
   onPendingClear,
   onInserted,
   onRemoved,
@@ -154,9 +168,35 @@ export default function RankedCoasterList({
   const parks = useParks()
   const coasters = useAllCoasters()
   const parkMap = useMemo(() => buildParkMap(parks.data ?? []), [parks.data])
-  const removeRide = useRemoveRide()
-  const saveRanks = useSaveRanks()
+  const supabaseRemove = useRemoveRide()
+  const supabaseSave = useSaveRanks()
   const isTouch = useMediaQuery('(pointer: coarse)')
+
+  // Storage routing (§3.2): the adapter (guest mode) gets the plain ordered
+  // id list and does its own renumbering-free persistence; the Supabase
+  // default upserts gapless 1..n ranks. Mutation-style opts so the commit
+  // paths below stay identical for both strategies.
+  type CommitOpts = { onSuccess?: () => void; onError?: () => void }
+  const saveRanks = useCallback(
+    (orderedIds: string[], opts: CommitOpts = {}) => {
+      if (storage) {
+        storage.saveRanks(orderedIds).then(opts.onSuccess, opts.onError)
+      } else {
+        supabaseSave.mutate(renumberRanks(orderedIds), opts)
+      }
+    },
+    [storage, supabaseSave],
+  )
+  const removeRide = useCallback(
+    (coasterId: string, opts: CommitOpts = {}) => {
+      if (storage) {
+        storage.removeRide(coasterId).then(opts.onSuccess, opts.onError)
+      } else {
+        supabaseRemove.mutate(coasterId, opts)
+      }
+    },
+    [storage, supabaseRemove],
+  )
 
   // Optimistic rides awaiting the server echo; real rides take precedence.
   const [pendingRides, setPendingRides] = useState<UserRide[]>([])
@@ -232,7 +272,7 @@ export default function RankedCoasterList({
   const commitRanks = useCallback(
     (next: string[], snapshot: string[], failureMessage: string, onSuccess?: () => void) => {
       setItems(next)
-      saveRanks.mutate(renumberRanks(next), {
+      saveRanks(next, {
         onSuccess: () => onSuccess?.(),
         onError: () => {
           setItems(snapshot)
@@ -316,15 +356,18 @@ export default function RankedCoasterList({
       const name = entry.ride.coaster.name
       const wasRanked = entry.index !== null
       setItems((prev) => prev.filter((id) => id !== coasterId))
-      removeRide.mutate(coasterId, {
+      removeRide(coasterId, {
         onSuccess: () => {
           if (wasRanked) {
-            saveRanks.mutate(renumberRanks(itemsRef.current.filter((id) => id !== coasterId)), {
-              onError: () =>
-                onError?.(
-                  `Removed ${name}, but couldn't renumber your ranks. They'll tidy up on your next change.`,
-                ),
-            })
+            saveRanks(
+              itemsRef.current.filter((id) => id !== coasterId),
+              {
+                onError: () =>
+                  onError?.(
+                    `Removed ${name}, but couldn't renumber your ranks. They'll tidy up on your next change.`,
+                  ),
+              },
+            )
           }
         },
         onError: () => {

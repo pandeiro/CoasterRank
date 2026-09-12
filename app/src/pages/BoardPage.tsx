@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import BoardSkeleton from '../components/BoardSkeleton'
 import CoasterTable from '../components/CoasterTable'
 import FilterBar from '../components/FilterBar'
 import LiveStatusPopunder from '../components/LiveStatusPopunder'
+import MarkModeBanner from '../components/MarkModeBanner'
+import MarkModeDock from '../components/MarkModeDock'
 import ScrollSentinel from '../components/ScrollSentinel'
 import SignupCta from '../components/SignupCta'
+import Toast from '../components/Toast'
 import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import {
+  enterGuestMarkMode,
+  exitGuestMarkMode,
+  resetGuestSelection,
+  toggleGuestRide,
+  useGuestRides,
+} from '../lib/guest-rides'
 import {
   countryOptions,
   filterCoasters,
@@ -51,7 +61,9 @@ function StatusPulse({ className }: { className: string }) {
 
 export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
+  const [capToast, setCapToast] = useState<string | null>(null)
 
   const coasters = useAllCoasters()
   // Board meta (real/ranked counts + last recompute) comes from the same
@@ -229,9 +241,61 @@ export default function BoardPage() {
     setCtaHidden(true)
   }, [ctaPreview])
 
+  // ── Mark Mode (GUEST_UX.md §3.2, guest-only in Phase 1–3; Mode 6 fast-add
+  // for authed users lands with the Phase 4 RPC). The ?mark=1 param is the
+  // cross-page entry (header CTA, /rank back-links); the store keeps the
+  // mode + selection across navigation, the param keeps it across reloads.
+  const guest = useGuestRides()
+  const markMode = !authLoading && !user && guest.markMode
+  const markParam = searchParams.get('mark') === '1'
+
+  useEffect(() => {
+    if (markParam && !authLoading && !user) enterGuestMarkMode()
+  }, [markParam, authLoading, user])
+
+  useEffect(() => {
+    if (markMode === markParam) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (markMode) next.set('mark', '1')
+        else next.delete('mark')
+        return next
+      },
+      { replace: true },
+    )
+  }, [markMode, markParam, setSearchParams])
+
+  const handleToggleSelect = useCallback((row: Parameters<typeof toggleGuestRide>[0]) => {
+    const result = toggleGuestRide(row)
+    if (result === 'capped') {
+      setCapToast('You can rank up to 100 coasters as a guest — sign up to go beyond that.')
+    }
+  }, [])
+
+  const handleMarkExit = useCallback(() => {
+    exitGuestMarkMode()
+  }, [])
+
+  const handleMarkClear = useCallback(() => {
+    resetGuestSelection()
+  }, [])
+
+  // CTA card → Mark Mode on the board (§3.1): engage without persisting a
+  // dismissal — Mark Mode suppression hides the card for this engagement.
+  const handleMarkEnter = useCallback(() => {
+    enterGuestMarkMode()
+    setCtaHidden(true)
+  }, [])
+
+  const handleMarkRank = useCallback(() => {
+    navigate('/rank')
+  }, [navigate])
+
   const showCta =
     !authLoading &&
     !user &&
+    !markMode &&
     !ctaHidden &&
     (ctaPreview === 'show' || (!ctaDismissed && ((dwellReady && scrollReady) || returnReady)))
 
@@ -356,6 +420,7 @@ export default function BoardPage() {
           </p>
         </div>
       </header>
+      {markMode && <MarkModeBanner selectedCount={guest.count} onExit={handleMarkExit} />}
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}
@@ -386,6 +451,9 @@ export default function BoardPage() {
                   firstPlaceIds={firstPlaceIds}
                   variant="board"
                   turnover={{ movement, turnoverId: turnover.turnoverId }}
+                  selectionMode={markMode}
+                  selectedIds={guest.selectedIds}
+                  onToggleSelect={handleToggleSelect}
                 />
                 <ScrollSentinel onLoadMore={onLoadMore} enabled={hasNextPage} />
                 {!hasNextPage && visibleRows.length > 0 && (
@@ -398,7 +466,22 @@ export default function BoardPage() {
           </>
         )}
       </div>
-      {showCta && <SignupCta onDismiss={handleCtaDismiss} />}
+      {showCta && <SignupCta onDismiss={handleCtaDismiss} onRankMyRides={handleMarkEnter} />}
+      {markMode && guest.count > 0 && (
+        <MarkModeDock
+          selectedCount={guest.count}
+          onRank={handleMarkRank}
+          onClear={handleMarkClear}
+        />
+      )}
+      {capToast && (
+        <Toast
+          message={capToast}
+          tone="info"
+          durationMs={6000}
+          onDismiss={() => setCapToast(null)}
+        />
+      )}
     </>
   )
 }

@@ -24,6 +24,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const FaqPage = lazy(() => import('./pages/FaqPage'))
 const CoasterDetailPage = lazy(() => import('./pages/CoasterDetailPage'))
+const GuestRankPage = lazy(() => import('./pages/GuestRankPage'))
 const MyCoastersPage = lazy(() => import('./pages/MyCoastersPage'))
 const ParkDetailPage = lazy(() => import('./pages/ParkDetailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
@@ -103,6 +104,9 @@ export default function App() {
                 <Route path="/" element={<BoardPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/faq" element={<FaqPage />} />
+                {/* Guest workbench (GUEST_UX.md §3.3): public — no auth gate.
+                    dnd-kit rides the lazy chunk, same as /me. */}
+                <Route path="/rank" element={<GuestRankPage />} />
                 <Route path="/coasters/:slug" element={<CoasterDetailPage />} />
                 <Route path="/parks/:slug" element={<ParkDetailPage />} />
                 <Route path="/riders/:username" element={<RiderPage />} />
