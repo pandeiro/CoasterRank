@@ -42,6 +42,11 @@ Result of the pre-implementation technical review against the live schema and co
 
 - **CTA "airtime hills" fill**: the header pill carries a two-layer parallax sine-wave fill (accent back band 11s, coral front band 7s, seamless −50% loop) clipped to the pill; hover fades the waves to solid ink ("business time"); `prefers-reduced-motion` freezes a static frame. Legibility is independent of the animation (label is cream on near-black). Replaces the pulse halo.
 
+### Changelog (v2.1 feedback pass 6)
+
+- **Hills vary in height** (uniform rhythm: one tall hill, one short — amplitude variation, identical halves keep the loop seamless).
+- **Constant alternating ripple ring** returns under the pill — coral/aqua via two half-period-offset pseudo rings, no timer: runs forever, pauses + fades on hover, disabled under reduced motion. (Waves moved their clipping to the wave span so the ring can paint outside the pill.)
+
 ---
 
 ## Part I: Product Requirements Document (PRD)
@@ -104,7 +109,7 @@ flowchart TD
 #### 3.1 Mode 1: The Browse Experience (Default)
 
 - The global board (`/`) loads in its clean, read-optimized table layout.
-- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — a dark pill with **rolling "airtime hills"**: two translucent sine-wave bands (accent + coral) scroll through the pill at parallax speeds (7s/11s, seamless loop, transform-only), clipped by the pill shape; the label stays cream on near-black at every phase. **Hover = business time**: waves fade and the pill resolves to solid ink. Reduced motion freezes the hills in a static frame. (Supersedes the pass-3/4 pulse halo — with the hills always rolling, a second motion accent would be busy; the halo is trivially restorable.)
+- The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — a dark pill with **rolling "airtime hills" of varying sizes** (big arch → clipped valley → small arch → shallow dip, accent front / coral back, pattern period 60 for a seamless −50% loop, 7s/11s parallax), plus a **constant alternating coral/aqua ripple ring** under the pill (two half-period-offset pseudo rings; runs forever, pauses + fades on hover, disabled under reduced motion). **Hover = business time**: waves and ripple fade, solid ink. Label stays cream on near-black at every phase.
 - The existing engagement-timed nudge (`SignupCta`) continues firing for passive browsers (after 16s engaged dwell + scroll, `SIGNUP_CTA_ENGAGED_SECONDS`), but its primary button now reads **`Rank My Rides`** — the same CTA as the header — triggering Mark Mode directly on the board rather than sending the user to a blank form. No secondary "or sign up" link: **Mark Mode IS the signup path now**; beside the CTA sits only the soft dismiss.
 
 #### 3.2 Mode 2: "Mark Ridden" Mode (Board Focus / Selection Overlay)

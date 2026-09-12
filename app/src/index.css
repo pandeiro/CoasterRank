@@ -154,6 +154,10 @@
 .cta-wave {
   position: absolute;
   inset: 0;
+  /* The pill clips its own waves so the button itself stays overflow-visible
+     for the halo rings (which paint outside the border box). */
+  overflow: hidden;
+  border-radius: inherit;
   transition: opacity 0.3s ease-out;
 }
 
@@ -171,12 +175,61 @@
   animation-duration: 11s;
 }
 
-.group:hover .cta-wave {
+/* Constant alternating ripple under the pill (coral / aqua, half-period
+   offset). Runs forever, paused + faded on hover (business time), disabled
+   under reduced motion. Pseudos hold box-shadows only; pointer-events none. */
+.cta-halo::before,
+.cta-halo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: cta-halo-coral 1.8s ease-out infinite;
+  transition: opacity 0.3s ease-out;
+}
+
+.cta-halo::after {
+  animation-name: cta-halo-aqua;
+  animation-delay: 0.9s;
+}
+
+@keyframes cta-halo-coral {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-coral) / 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(var(--color-coral) / 0);
+  }
+}
+
+@keyframes cta-halo-aqua {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(var(--color-accent) / 0);
+  }
+}
+
+.group:hover .cta-wave,
+.group:hover .cta-halo::before,
+.group:hover .cta-halo::after {
   opacity: 0;
+}
+
+.group:hover .cta-halo::before,
+.group:hover .cta-halo::after {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cta-wave svg {
+    animation: none;
+  }
+
+  .cta-halo::before,
+  .cta-halo::after {
     animation: none;
   }
 }

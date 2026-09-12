@@ -131,21 +131,22 @@ export default function Layout() {
                     Log in
                   </NavLink>
                   {/* GUEST_UX.md §3.1: the primary funnel CTA. Idle = rolling
-                    "airtime hills" (two translucent accent sine bands at
-                    parallax speeds, clipped by the pill); hover = business
-                    time (waves fade, solid ink). Label stays cream on near-
-                    black at every phase, so legibility never depends on the
-                    animation. Waves are decorative (aria-hidden). */}
+                    "airtime hills" of VARYING sizes (big arch, clipped valley,
+                    small arch, shallow dip — pattern period 60 so the -50%
+                    loop is seamless) in accent/coral at parallax speeds, plus
+                    a constant alternating coral/aqua ripple ring that pauses
+                    + fades on hover (business time). Label stays cream on
+                    near-black at every phase. Decorative: aria-hidden. */}
                   <button
                     type="button"
                     onClick={onRankMyRides}
-                    className="group relative overflow-hidden rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
+                    className="cta-halo group relative rounded-full bg-ink px-4 py-1.5 font-medium text-canvas transition-colors hover:bg-ink-soft sm:px-5 sm:py-2"
                   >
                     <span aria-hidden="true" className="cta-wave">
                       <svg viewBox="0 0 120 24" preserveAspectRatio="none">
                         <path
                           fill="rgb(var(--color-accent) / 0.28)"
-                          d="M0 24 V19 Q7.5 10 15 19 T30 19 T45 19 T60 19 T75 19 T90 19 T105 19 T120 19 V24 Z"
+                          d="M0 24 L0 19 Q7.5 9 15 19 Q22.5 29 30 19 Q37.5 15 45 19 Q52.5 23 60 19 Q67.5 9 75 19 Q82.5 29 90 19 Q97.5 15 105 19 Q112.5 23 120 19 V24 Z"
                         />
                       </svg>
                       <svg
@@ -155,7 +156,7 @@ export default function Layout() {
                       >
                         <path
                           fill="rgb(var(--color-coral) / 0.32)"
-                          d="M0 24 V21 Q7.5 14 15 21 T30 21 T45 21 T60 21 T75 21 T90 21 T105 21 T120 21 V24 Z"
+                          d="M0 24 L0 21 Q7.5 14 15 21 Q22.5 27 30 21 Q37.5 18 45 21 Q52.5 24 60 21 Q67.5 14 75 21 Q82.5 27 90 21 Q97.5 18 105 21 Q112.5 24 120 21 V24 Z"
                         />
                       </svg>
                     </span>
