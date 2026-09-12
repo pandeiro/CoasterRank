@@ -94,7 +94,8 @@ reference:
   `testride-password`).
 - **Commands**: `testride:seed` (dry-run unless `--apply`), `testride:report`, `testride:cleanup`
   (preview unless `--yes`), `testride:confirm`, `testride:recompute`. All target prod (`.env`) by
-  default; other projects via `--db-url / --supabase-url / --service-key`.
+  default; other projects via `--db-url / --supabase-url / --service-key`. Every command
+  requires `--prod` when the target is (or may be) production — including read-only `report`.
 - **Cleanup inverse map**: `profiles`/`user_rides`/their submissions FK-cascade from `auth.users`;
   avatar storage files are removed first via the service-role API (no cascade); derived
   `coaster_ratings` are restored by the next recompute. Un-undoable residue: Telegram pings and

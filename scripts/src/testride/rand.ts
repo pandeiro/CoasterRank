@@ -5,6 +5,7 @@
 export interface Rng {
   float: () => number
   int: (min: number, max: number) => number
+  gaussian: (mean: number, std: number) => number
   pick: <T>(arr: readonly T[]) => T
   shuffle: <T>(arr: readonly T[]) => T[]
 }
@@ -19,9 +20,18 @@ export function makeRng(seed: number): Rng {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
   const int = (min: number, max: number): number => min + Math.floor(next() * (max - min + 1))
+  // Box-Muller transform: exact Normal(mean, std) draws from the uniform stream.
+  const gaussian = (mean: number, std: number): number => {
+    let u = 0
+    while (u === 0) u = next()
+    const v = next()
+    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+    return mean + std * z
+  }
   return {
     float: next,
     int,
+    gaussian,
     pick: <T>(arr: readonly T[]): T => {
       if (arr.length === 0) throw new Error('pick() from empty array')
       return arr[int(0, arr.length - 1)] as T

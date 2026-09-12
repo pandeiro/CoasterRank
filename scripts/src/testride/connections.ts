@@ -14,6 +14,7 @@ export interface ConnOptions {
   dbUrl?: string
   supabaseUrl?: string
   serviceKey?: string
+  prod?: boolean
 }
 
 export interface Connections {
@@ -68,7 +69,9 @@ export function parseProjectRef(dbUrl?: string, supabaseUrl?: string): string | 
   const sources = [supabaseUrl, dbUrl]
   for (const raw of sources) {
     if (!raw) continue
-    const userMatch = raw.match(/postgres\.([a-z0-9]{20})@/i)
+    // Pooler URLs carry the ref as the username: postgres.<ref>:<password>@host
+    // (or passwordless postgres.<ref>@host).
+    const userMatch = raw.match(/postgres\.([a-z0-9]{20})[:@]/i)
     if (userMatch?.[1]) return userMatch[1].toLowerCase()
     try {
       const host = new URL(raw).host
@@ -107,4 +110,53 @@ export function printBanner(label: string, conns: Connections): string | null {
   if (isProdRef(ref)) console.log('   ⚠️  This is the PRODUCTION project.')
   console.log()
   return ref
+}
+
+export interface TargetInfo {
+  ref: string | null
+  prodRef: string | null
+  /** True when the target is production — or cannot be proven otherwise. */
+  isProd: boolean
+  /** True when the target could not be positively identified (fail-closed). */
+  unknown: boolean
+}
+
+// Resolves whether a connection target is production. Fail-closed: when
+// $PROJECT_REF is unset or the target ref is unparseable, the target is
+// treated as production (unknown: true) so callers demand --prod.
+export function resolveTarget(conns: Connections): TargetInfo {
+  const ref = parseProjectRef(conns.dbUrl, conns.supabaseUrl)
+  const rawProd = process.env.PROJECT_REF?.toLowerCase() ?? ''
+  const prodRef = rawProd.length > 0 ? rawProd : null
+  if (!prodRef || !ref) {
+    return { ref, prodRef, isProd: true, unknown: true }
+  }
+  return { ref, prodRef, isProd: ref === prodRef, unknown: false }
+}
+
+// Every testride command (including read-only `report`) must pass this before
+// touching the target: when the target is (or may be) production, the run is
+// refused unless the operator passed --prod. Exits the process on refusal.
+export function requireProdConsent(
+  conns: Connections,
+  prodFlag: boolean | undefined,
+  cmdName: string,
+): TargetInfo {
+  const target = resolveTarget(conns)
+  if (target.isProd && !prodFlag) {
+    if (target.unknown) {
+      console.error(
+        `Error: cannot verify testride ${cmdName} target is NOT production ` +
+          `(target ref: ${target.ref ?? 'unknown'}; $PROJECT_REF ${target.prodRef ? 'is set' : 'is NOT set'}). ` +
+          `Pass --prod to acknowledge the target, or retarget with --db-url / --supabase-url.`,
+      )
+    } else {
+      console.error(
+        `Error: testride ${cmdName} targets PRODUCTION (${target.ref}). ` +
+          `Pass --prod to acknowledge, or retarget with --db-url / --supabase-url.`,
+      )
+    }
+    process.exit(1)
+  }
+  return target
 }
