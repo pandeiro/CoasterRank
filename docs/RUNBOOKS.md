@@ -509,6 +509,58 @@ docker rm -f coasterrank-restore-drill   # scratch instance
 # keep the dump + logs as long as useful; /tmp is ephemeral anyway
 ```
 
+## Disposable benchmark / staging projects
+
+Procedure for standing up (and tearing down) a throwaway hosted Supabase
+project for benchmarks or staging — first used 2026-09-12 for the
+`pairwise_wins` scale benchmark (`docs/spikes/2026-09-pairwise-bench/`).
+Work happens in a dedicated worktree so the prod checkout's `.env` and CLI
+link state are untouched.
+
+### Provision
+
+1. Create the project in the CoasterRank org dashboard (same region as prod —
+   Oregon; compute size comparable for benchmark fidelity).
+2. In the worktree: `.env` points at the new project (`PROJECT_REF`,
+   `SUPABASE_URL`, `SUPABASE_DB_URL`, anon/service keys — account-level
+   `SUPABASE_ACCESS_TOKEN` is shared with prod; note hosted anon keys can lag
+   behind new projects — use the classic JWT anon key if a publishable key 401s).
+3. `supabase link --project-ref <ref>` (per-worktree link state, gitignored).
+4. Restore the newest backup from the CoasterRankBackups repo (`git pull`
+   there first) in **tolerant mode**, then triage the error log against the
+   drill table above. Known hosted-only denials (platform-owned tables —
+   `cron.job`, `vault.*`, `graphql.schema_migrations`, storage internals) are
+   acceptable; **watch for FK-order failures in public data** — the dump's
+   data order is not dependency-safe across the public/auth boundary. Re-apply
+   the failed `COPY` blocks (extract "Data for Name: X" sections in FK order)
+   and verify counts vs prod (expect only same-day drift).
+5. Converge migrations: `supabase db push` (the dump carries
+   `supabase_migrations` history, so push applies only the delta).
+6. Deploy the functions you need (`supabase functions deploy
+   recompute-rankings`) and set only safe secrets (`APP_ENV=bench`). **Never
+   set the Telegram token secrets** — alerts/events dispatch no-ops silently.
+7. Disable automation: restored cron schedules don't survive the restore
+   (denied); verify `select count(*) from cron.job` = 0. If any exist,
+   `select cron.unschedule(jobid)` for each.
+8. For benchmarking pair RPCs: raise PostgREST max-rows via the management
+   API (`PATCH https://api.supabase.com/v1/projects/{ref}/postgrest`,
+   `{"max_rows": 1000000}`) + `NOTIFY pgrst, 'reload config';` — otherwise
+   results are silently truncated at the cap.
+9. Sanity anchor: trigger one manual recompute on the restored data and
+   compare `cron_execution_logs` against prod's recent runs before trusting
+   any measurement.
+
+### Teardown (or mothball)
+
+- **Delete** (Dashboard → Project Settings → General → Delete project) once
+  the spike's findings are committed; free plan slots are limited.
+- **Pause** (Dashboard → pause project) to mothball for later grid re-runs —
+  paused projects count against plan limits but keep storage; a paused
+  project restores on demand.
+- Record the decision (ref, dates, findings link) in the spike's README
+  before deleting so the environment fingerprint in the raw data stays
+  interpretable.
+
 
 ## Data curation: coaster identity & status rubric
 

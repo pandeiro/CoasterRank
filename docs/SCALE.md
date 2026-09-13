@@ -7,7 +7,9 @@ this doc is about how they *scale*.
 
 Status: informational. No code changes were made alongside this analysis
 (2026-09-09). Figures marked "measured" come from prod `cron_execution_logs`
-and prod table counts that day.
+and prod table counts that day. **§9 (2026-09-13) supersedes §4's projections
+with measured results** from a disposable staging project; raw data:
+[`docs/spikes/2026-09-pairwise-bench/`](spikes/2026-09-pairwise-bench/RESULTS.md).
 
 ## 1. App context
 
@@ -231,17 +233,19 @@ No new infrastructure assumed (Supabase Postgres + pg_cron/pg_net + Deno
 Edge Functions + Cloudflare SPA). Ordered cheap → structural:
 
 1. **Skip idle runs.** ✅ Shipped: if `recompute_idle_fingerprint()` (max eligible-ranked change ts + ranked count — count catches DELETEs, which leave no timestamp) matches the last success row's fingerprint, pg_cron slots log `skipped` before touching the RPCs. Manual triggers always run. `check_stale_recompute` treats skips as healthy; `last_recomputed_at` only moves on real recomputes.
-2. **Harden the long pole.** ✅ Partially shipped: retry-with-backoff on 504 for the aggregate RPCs (3 retries, 1s/2s/4s + jitter; previously PGRST303-only) plus per-RPC ms/bytes into `cron_execution_logs.rpc_stats` (§8 queries can now trend them). Still open: paginating the pair result via `.range()` and compact row encoding.
+2. **Harden the long pole.** ✅ Partially shipped: retry-with-backoff on 504 for the aggregate RPCs (3 retries, 1s/2s/4s + jitter; previously PGRST303-only) plus per-RPC ms/bytes into `cron_execution_logs.rpc_stats` (§8 queries can now trend them). **Still open (and now the top prod fix, §9): paginating the pair result via `.range()` — the un-paginated RPC is silently truncated at the PostgREST max-rows cap, so the live board is fitted on a 10k-row prefix of its ~50k pairs.**
 3. **Incremental pair maintenance.** A materialized pair table kept fresh by
    a trigger on `user_rides`; recompute reads pre-aggregated rows instead
    of re-joining `O(U·n²)` every 15 min. Turns the per-run cost from
-   quadratic-in-lists to linear-in-rated-coasters.
+   quadratic-in-lists to linear-in-rated-coasters. **Measured 2026-09-13 (§9): moves per-run SQL cost but not the pair payload — the edge-function memory cliff stays put; pair with the in-DB fit.**
 4. **Warm-start MM** from previous scores (12 iters → 2–3) once runs are
    frequent relative to data change. Only pays off combined with 1–3.
 5. **Slow the cadence / split the lanes** (1k+ users). Hourly full
    recompute + cheap incremental top-up, or run the fit where the data
    lives (PL/pgSQL or `pg_background`) so no pair payload crosses the
-   gateway at all.
+   gateway at all. **Measured 2026-09-13 (§9, b-plpgsql): the in-DB fit works
+   and collapses the payload ~60×; per-run aggregation is the remaining wall,
+   so combine with §6.3.**
 6. **Bound the inputs.** Cap ranked-list length that feeds the fit and/or
    sample pairs per user (the per-user normalization already makes each
    user ~1 unit of influence — sampling preserves that while capping R).
@@ -259,6 +263,115 @@ synthetic users in prod):
    the current shape.
 3. Re-run after each §6 mitigation; promote the option that moves the knee
    past 10× current scale per unit of complexity.
+
+✅ **Executed 2026-09-13** — see §9 for the measured results; the harness
+(`scripts/src/bench/`) is permanent and re-runs the identical grid against
+any candidate fix.
+
+## 9. Measured load tolerance (2026-09-13 spike)
+
+Full method, environment, and raw data:
+[`docs/spikes/2026-09-pairwise-bench/`](spikes/2026-09-pairwise-bench/README.md).
+Disposable staging project from the nightly prod dump + migrations; PostgREST
+max-rows raised to 1M so nothing truncates; pg_cron disabled; every recompute
+manual; grid seeded with bench-*eligible* synthetic users (testride's
+`synthetic` marker would be excluded by the eligibility CTE) using the shared-
+popularity ride model (P/R ≈ prod's). R measured from the DB, not nominal.
+
+### Baseline (production shape, 50 runs)
+
+| R (raw pair rows) | point | passed | what happens |
+|---|---|---|---|
+| 61k | 50×50 | 5/5 | run 3.5s, rpc 1.1s, **7.2MB payload** |
+| 106k | 60×60 | 1/5 | **HTTP 546 `WORKER_RESOURCE_LIMIT`** — edge-function OOM |
+| 253k+ | 80×80 … 200×250 | 0/… | OOM on every run |
+| 1.7M+ | 150×150, 200×250 | 0/… | (also) platform statement timeout on the SQL |
+
+The binding wall is **edge-function memory** (the pair JSON loads into the
+Deno worker), not the ~7s gateway — that never even gets a chance to fire.
+The cliff sits at **~2× today's prod load** (prod R ≈ 50k, 10 ranking users
+on 2026-09-13).
+
+### Prod defects found while measuring
+
+1. **The board is fitted on truncated pair data.** PostgREST max-rows caps
+   the RPC at 10,000 rows; the true distinct-pair count is ~50k (2026-09-13).
+   `pairs` in `cron_execution_logs` reads exactly 10,000 on every prod run —
+   the signature went unnoticed because nothing compared rows-returned to
+   DB truth. A silently capped aggregate looks like a successful run.
+2. **Prod sits between knee and cliff already**: rpc 4.5–12.3s, totals
+   7.7–26.4s, and two gateway-504 errors on 2026-09-12 (§3's 06:30 incident
+   pattern, recurring).
+
+### Fix + guardrails
+
+- **Immediate**: paginate the pair RPC in the Edge Function (`.range()` loop
+  until exhausted — truncation becomes structurally impossible) and re-verify
+  with the DB-truth check. PR through CI (functions deploy is CI-run).
+- **Never-again guardrails**: the recompute should log `pairs` alongside a
+  DB-truth count (or drain pages so the cap can't hide); the health-check
+  script can assert `logged pairs == SQL truth` weekly; and this harness's
+  `bench parity` command pins score equality between any refactor of the fit
+  and the reference MM.
+- **Structural (measured below)**: one of the two prototypes.
+
+### Variant results (same grid, same seeds)
+
+| variant | reliable through R | cliff | wall |
+|---|---|---|---|
+| baseline | 61k | 106k | edge-function OOM (payload ~12MB) |
+| a-dirty (§6.3: trigger-maintained pair table) | 61k | 106k | **unchanged** — payload identical, memory wall untouched |
+| b-plpgsql (agg + MM in-DB, warm-start) | **495k** | 1.7M | aggregation statement vs ~8s platform statement timeout |
+
+- **a-dirty** moves per-run SQL cost (O(join) → O(read) + incremental
+  maintenance) but ships the same pair payload — the OOM cliff doesn't move.
+- **b-plpgsql** collapses the payload to board-size (~0.1MB vs 7.2MB) and
+  survives 4× past the baseline cliff; warm-start (§6.4) converges the
+  steady-state in 1–3 iterations (cold fits after a board rebuild run 80–160
+  iterations across resumable `fit_step` calls). Its wall: the per-run pair
+  aggregation statement outgrows the ~8s per-statement timeout at R ≈ 1.7M.
+- **a+b combined removes both walls** (no per-run aggregation, no payload
+  transfer) and is the recommended promotion shape; measured separately here,
+  the combination is their union of wins. Bulk-import bursts add nothing at
+  survivable scales (cold stats at 50×50 measured within noise of baseline).
+
+### Growth simulation (accumulation + churn, 2026-09-13)
+
+The grid measures full rebuilds; real growth is incremental — users
+accumulate and each cron slot processes only the **dirty set** (new users +
+existing users who edited rankings). `bench churn` walks epochs of
+`{totalUsers, editors}` from 10 users toward 1,000 (uniform 50-ride lists,
+plus bulk-import burst users with 220 rides at 100/350/750), keeping state
+between epochs, two runs per epoch (apply = after changes, idle = unchanged
+floor). Raw data: `spikes/2026-09-pairwise-bench/` (churn section in
+RESULTS.md).
+
+| variant | died at | wall |
+|---|---|---|
+| baseline | 100 users (+burst; R ≈ 147k) | payload OOM — nothing about churn changes it |
+| ab-combined | 350–500 users (R ≈ 475–660k) | `bench_fit_agg` O(R) scan vs ~8s statement timeout |
+
+Two-axis break points measured for ab-combined:
+
+- **Dirty axis**: one `bench_fit_maintain` call exceeded the statement
+  timeout at ~200 dirty users in a single epoch; 100+ dirty users made apply
+  slow (60–80s) but survivable. Refinement: batch the maintain call across
+  RPCs (the same adaptive pattern `fit_step` already uses).
+- **Total axis**: the per-run O(R) aggregation scan + the warm fit's O(P)
+  iteration set the floor — idle runs grew 1.7s (R=12k) → 9.2s (R=268k), and
+  `fit_agg` broke at R ≈ 475k. Refinements: two-level incremental pair
+  totals (maintain the global aggregate by delta, never re-scan) and
+  per-coaster-batch fit iterations.
+- **Bloat**: delete+rewrite of dirty users' pair rows degrades the
+  aggregation between vacuums — later epochs measured slower than fresh
+  ones. A production promotion needs an autovacuum story for the pair table.
+
+Verdict: the combined shape rides ~4–5× further up the growth ladder than
+the current shape, and its breaks are refinable statement boundaries rather
+than hard memory walls. Its steady-state floor is the warm 1–3-iteration
+in-DB fit plus a board-sized payload.
+
+
 
 ## 8. Ops queries
 

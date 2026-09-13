@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" font-family="ui-monospace, monospace" font-size="13">
+<rect width="900" height="560" fill="#fdfdfb"/>
+<line x1="418.64749885449794" y1="30" x2="418.64749885449794" y2="480" stroke="#e4e4dc"/>
+<text x="418.64749885449794" y="502" text-anchor="middle" fill="#666">1k</text>
+<line x1="528.8633318059972" y1="30" x2="528.8633318059972" y2="480" stroke="#e4e4dc"/>
+<text x="528.8633318059972" y="502" text-anchor="middle" fill="#666">10k</text>
+<line x1="639.0791647574965" y1="30" x2="639.0791647574965" y2="480" stroke="#e4e4dc"/>
+<text x="639.0791647574965" y="502" text-anchor="middle" fill="#666">100k</text>
+<line x1="749.2949977089959" y1="30" x2="749.2949977089959" y2="480" stroke="#e4e4dc"/>
+<text x="749.2949977089959" y="502" text-anchor="middle" fill="#666">1.0M</text>
+<line x1="859.5108306604951" y1="30" x2="859.5108306604951" y2="480" stroke="#e4e4dc"/>
+<text x="859.5108306604951" y="502" text-anchor="middle" fill="#666">10.0M</text>
+<line x1="856.2297730768082" y1="30" x2="856.2297730768082" y2="480" stroke="#e4e4dc"/>
+<text x="856.2297730768082" y="502" text-anchor="middle" fill="#666">9.3M</text>
+<line x1="88" y1="227.24748167876976" x2="870" y2="227.24748167876976" stroke="#e4e4dc"/>
+<text x="78" y="231.24748167876976" text-anchor="end" fill="#666">1s</text>
+<line x1="88" y1="142.9966422383597" x2="870" y2="142.9966422383597" stroke="#e4e4dc"/>
+<text x="78" y="146.9966422383597" text-anchor="end" fill="#666">10s</text>
+<line x1="88" y1="58.74580279794958" x2="870" y2="58.74580279794958" stroke="#e4e4dc"/>
+<text x="78" y="62.74580279794958" text-anchor="end" fill="#666">100s</text>
+<line x1="88" y1="40.52619343787359" x2="870" y2="40.52619343787359" stroke="#e4e4dc"/>
+<text x="78" y="44.52619343787359" text-anchor="end" fill="#666">164.5335s</text>
+<line x1="88" y1="168.3586720697931" x2="870" y2="168.3586720697931" stroke="#d97706" stroke-dasharray="6 4"/>
+<text x="866" y="162.3586720697931" text-anchor="end" fill="#d97706">p95 danger line (5s)</text>
+<line x1="88" y1="156.04726239812334" x2="870" y2="156.04726239812334" stroke="#dc2626" stroke-dasharray="6 4"/>
+<text x="866" y="150.04726239812334" text-anchor="end" fill="#dc2626">empirical gateway kill (~7s)</text>
+<polyline points="615.6148854712231,168.97115848921715" fill="none" stroke="#1d4ed8" stroke-width="2" opacity="1"/>
+<circle cx="615.6148854712231" cy="168.97115848921715" r="3.5" fill="#1d4ed8" opacity="1"><title>a-dirty 50x50: total run duration p95 = 4917ms</title></circle>
+<polyline points="615.6148854712231,198.36483514600206" fill="none" stroke="#b91c1c" stroke-width="2" opacity="0.75"/>
+<circle cx="615.6148854712231" cy="198.36483514600206" r="3.5" fill="#b91c1c" opacity="0.75"><title>a-dirty 50x50: pairwise_wins RPC p95 = 2202ms</title></circle>
+<polyline points="615.6148854712231,228.36197417117947" fill="none" stroke="#059669" stroke-width="2" opacity="0.5"/>
+<circle cx="615.6148854712231" cy="228.36197417117947" r="3.5" fill="#059669" opacity="0.5"><title>a-dirty 50x50: pairwise_wins RPC p50 = 970ms</title></circle>
+<polyline points="418.64749885449794,213.15085577330382 615.6148854712231,124.31594539786545 641.9585001310517,116.78291539481341 683.471574978365,78.75423847556095 715.6356553304017,55.362029831433404" fill="none" stroke="#1d4ed8" stroke-width="2" opacity="1"/>
+<circle cx="418.64749885449794" cy="213.15085577330382" r="3.5" fill="#1d4ed8" opacity="1"><title>b-plpgsql 20x10: total run duration p95 = 1470ms</title></circle>
+<circle cx="615.6148854712231" cy="124.31594539786545" r="3.5" fill="#1d4ed8" opacity="1"><title>b-plpgsql 50x50: total run duration p95 = 16662ms</title></circle>
+<circle cx="641.9585001310517" cy="116.78291539481341" r="3.5" fill="#1d4ed8" opacity="1"><title>b-plpgsql 60x60: total run duration p95 = 20471ms</title></circle>
+<circle cx="683.471574978365" cy="78.75423847556095" r="3.5" fill="#1d4ed8" opacity="1"><title>b-plpgsql 80x80: total run duration p95 = 57878ms</title></circle>
+<circle cx="715.6356553304017" cy="55.362029831433404" r="3.5" fill="#1d4ed8" opacity="1"><title>b-plpgsql 100x100: total run duration p95 = 109689ms</title></circle>
+<polyline points="418.64749885449794,260.8658501766373 615.6148854712231,128.61982431976833 641.9585001310517,119.69095394115669 683.471574978365,80.2807640698432 715.6356553304017,56.268143162106185" fill="none" stroke="#b91c1c" stroke-width="2" opacity="0.75"/>
+<circle cx="418.64749885449794" cy="260.8658501766373" r="3.5" fill="#b91c1c" opacity="0.75"><title>b-plpgsql 20x10: pairwise_wins RPC p95 = 399ms</title></circle>
+<circle cx="615.6148854712231" cy="128.61982431976833" r="3.5" fill="#b91c1c" opacity="0.75"><title>b-plpgsql 50x50: pairwise_wins RPC p95 = 14813ms</title></circle>
+<circle cx="641.9585001310517" cy="119.69095394115669" r="3.5" fill="#b91c1c" opacity="0.75"><title>b-plpgsql 60x60: pairwise_wins RPC p95 = 18907ms</title></circle>
+<circle cx="683.471574978365" cy="80.2807640698432" r="3.5" fill="#b91c1c" opacity="0.75"><title>b-plpgsql 80x80: pairwise_wins RPC p95 = 55513ms</title></circle>
+<circle cx="715.6356553304017" cy="56.268143162106185" r="3.5" fill="#b91c1c" opacity="0.75"><title>b-plpgsql 100x100: pairwise_wins RPC p95 = 107006ms</title></circle>
+<polyline points="418.64749885449794,268.82484695827725 615.6148854712231,227.91209545465517 641.9585001310517,205.69992621319028 683.471574978365,161.16685665797166 715.6356553304017,149.8894004454533" fill="none" stroke="#059669" stroke-width="2" opacity="0.5"/>
+<circle cx="418.64749885449794" cy="268.82484695827725" r="3.5" fill="#059669" opacity="0.5"><title>b-plpgsql 20x10: pairwise_wins RPC p50 = 321ms</title></circle>
+<circle cx="615.6148854712231" cy="227.91209545465517" r="3.5" fill="#059669" opacity="0.5"><title>b-plpgsql 50x50: pairwise_wins RPC p50 = 982ms</title></circle>
+<circle cx="641.9585001310517" cy="205.69992621319028" r="3.5" fill="#059669" opacity="0.5"><title>b-plpgsql 60x60: pairwise_wins RPC p50 = 1802ms</title></circle>
+<circle cx="683.471574978365" cy="161.16685665797166" r="3.5" fill="#059669" opacity="0.5"><title>b-plpgsql 80x80: pairwise_wins RPC p50 = 6086ms</title></circle>
+<circle cx="715.6356553304017" cy="149.8894004454533" r="3.5" fill="#059669" opacity="0.5"><title>b-plpgsql 100x100: pairwise_wins RPC p50 = 8283ms</title></circle>
+<polyline points="418.64749885449794,212.7055398344637 615.6148854712231,178.79715549843218 641.9585001310517,170.81781835569683" fill="none" stroke="#1d4ed8" stroke-width="2" opacity="1"/>
+<circle cx="418.64749885449794" cy="212.7055398344637" r="3.5" fill="#1d4ed8" opacity="1"><title>baseline 20x10: total run duration p95 = 1488ms</title></circle>
+<circle cx="615.6148854712231" cy="178.79715549843218" r="3.5" fill="#1d4ed8" opacity="1"><title>baseline 50x50: total run duration p95 = 3759ms</title></circle>
+<circle cx="641.9585001310517" cy="170.81781835569683" r="3.5" fill="#1d4ed8" opacity="1"><title>baseline 60x60: total run duration p95 = 4675ms</title></circle>
+<polyline points="418.64749885449794,272.28942522347893 615.6148854712231,219.8219422207539 641.9585001310517,203.83936889462308" fill="none" stroke="#b91c1c" stroke-width="2" opacity="0.75"/>
+<circle cx="418.64749885449794" cy="272.28942522347893" r="3.5" fill="#b91c1c" opacity="0.75"><title>baseline 20x10: pairwise_wins RPC p95 = 292ms</title></circle>
+<circle cx="615.6148854712231" cy="219.8219422207539" r="3.5" fill="#b91c1c" opacity="0.75"><title>baseline 50x50: pairwise_wins RPC p95 = 1225ms</title></circle>
+<circle cx="641.9585001310517" cy="203.83936889462308" r="3.5" fill="#b91c1c" opacity="0.75"><title>baseline 60x60: pairwise_wins RPC p95 = 1896ms</title></circle>
+<polyline points="418.64749885449794,289.38659649734075 615.6148854712231,223.5610755018368 641.9585001310517,203.83936889462308" fill="none" stroke="#059669" stroke-width="2" opacity="0.5"/>
+<circle cx="418.64749885449794" cy="289.38659649734075" r="3.5" fill="#059669" opacity="0.5"><title>baseline 20x10: pairwise_wins RPC p50 = 183ms</title></circle>
+<circle cx="615.6148854712231" cy="223.5610755018368" r="3.5" fill="#059669" opacity="0.5"><title>baseline 50x50: pairwise_wins RPC p50 = 1106ms</title></circle>
+<circle cx="641.9585001310517" cy="203.83936889462308" r="3.5" fill="#059669" opacity="0.5"><title>baseline 60x60: pairwise_wins RPC p50 = 1896ms</title></circle>
+<polyline points="615.6148854712231,174.1676961075034" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-dasharray="2 3" opacity="1"/>
+<circle cx="615.6148854712231" cy="174.1676961075034" r="3.5" fill="#1d4ed8" opacity="1"><title>burst 50x50: total run duration p95 = 4266ms</title></circle>
+<polyline points="615.6148854712231,210.09596749630413" fill="none" stroke="#b91c1c" stroke-width="2" stroke-dasharray="2 3" opacity="0.75"/>
+<circle cx="615.6148854712231" cy="210.09596749630413" r="3.5" fill="#b91c1c" opacity="0.75"><title>burst 50x50: pairwise_wins RPC p95 = 1598ms</title></circle>
+<polyline points="615.6148854712231,221.56536556061212" fill="none" stroke="#059669" stroke-width="2" stroke-dasharray="2 3" opacity="0.5"/>
+<circle cx="615.6148854712231" cy="221.56536556061212" r="3.5" fill="#059669" opacity="0.5"><title>burst 50x50: pairwise_wins RPC p50 = 1168ms</title></circle>
+<rect x="100" y="29" width="24" height="3.5" fill="#1d4ed8"/>
+<text x="132" y="35" fill="#333">total run duration p95</text>
+<rect x="100" y="49" width="24" height="3.5" fill="#b91c1c"/>
+<text x="132" y="55" fill="#333">pairwise_wins RPC p95</text>
+<rect x="100" y="69" width="24" height="3.5" fill="#059669"/>
+<text x="132" y="75" fill="#333">pairwise_wins RPC p50</text>
+<text x="132" y="95" fill="#333">dashed = bulk-import burst variant</text>
+<text x="450" y="534" text-anchor="middle" fill="#333">R = raw pair rows (Σ n(n−1)/2) — log scale</text>
+<text x="18" y="280" text-anchor="middle" fill="#333" transform="rotate(-90 18 280)">latency — log scale</text>
+</svg>

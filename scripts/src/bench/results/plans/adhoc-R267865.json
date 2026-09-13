@@ -1,0 +1,44 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Function Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Function Name": "pairwise_wins",
+      "Alias": "pairwise_wins",
+      "Startup Cost": 0.25,
+      "Total Cost": 10.25,
+      "Plan Rows": 1000,
+      "Plan Width": 48,
+      "Actual Startup Time": 719.227,
+      "Actual Total Time": 753.272,
+      "Actual Rows": 227900,
+      "Actual Loops": 1,
+      "Shared Hit Blocks": 554,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 5092,
+      "Temp Written Blocks": 6806
+    },
+    "Planning": {
+      "Shared Hit Blocks": 0,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0
+    },
+    "Planning Time": 0.035,
+    "Triggers": [],
+    "Execution Time": 770.305
+  }
+]
