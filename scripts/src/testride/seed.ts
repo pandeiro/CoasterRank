@@ -244,7 +244,7 @@ export function assignQualities(rng: Rng, coasterIds: readonly string[]): Map<st
   return qualities
 }
 
-function popularityWeights(qualities: ReadonlyMap<string, number>): Map<string, number> {
+export function popularityWeights(qualities: ReadonlyMap<string, number>): Map<string, number> {
   const weights = new Map<string, number>()
   for (const [id, q] of qualities) weights.set(id, Math.exp(q / POPULARITY_TEMPERATURE))
   return weights
