@@ -1,6 +1,6 @@
 # `pairwise_wins()` scale benchmark — results
 
-_Generated `2026-09-13T14:04:54.303Z` from 50 recorded recompute runs on the disposable staging project — a restore of the prod backup (2026-09-12 dump) plus migrations. PostgREST max-rows was raised to 1M so nothing is truncated; pg_cron is disabled there; every run was triggered manually, exactly like the admin "Recompute now" button does._
+_Generated `2026-09-13T15:48:14.754Z` from 50 recorded recompute runs on the disposable staging project — a restore of the prod backup (2026-09-12 dump) plus migrations. PostgREST max-rows was raised to 1M so nothing is truncated; pg_cron is disabled there; every run was triggered manually, exactly like the admin "Recompute now" button does._
 
 ## TL;DR
 
@@ -21,7 +21,7 @@ Failure modes observed (a failed run only reports the first wall it hits):
 - 13× edge-function OOM (WORKER_RESOURCE_LIMIT)
 - 5× SQL statement timeout
 
-**What this means:** the baseline's binding constraint is _edge-function memory_ — the pair JSON payload loads into the Deno worker and dies (HTTP 546 `WORKER_RESOURCE_LIMIT`) past ~12MB, only ~2× today's prod load. Variant **a-dirty** (trigger-maintained pair table) speeds up the SQL a little but ships the same payload, so the memory wall does not move. Variant **b-plpgsql** (aggregation + MM fit in-database, warm-started from the previous board) collapses the payload to board-size (~0.1MB) and survives four times past the baseline's cliff — its own wall is the _aggregation statement_ vs the platform's ~8s per-statement timeout at R ≈ 1.7M. **Combining them removes both walls**: the maintained pair table eliminates the per-run aggregation statement, and the in-DB fit eliminates the payload — which is the recommended promotion shape. Independent of variants, prod itself already shows `pairwise_wins` calls at 4.5–12s with two gateway-504 errors on 2026-09-12, and its board is fitted on a max-rows-truncated 10k-row prefix of its 50k pairs.
+**What this means:** the baseline's binding constraint is _edge-function memory_ — the pair JSON payload loads into the Deno worker and dies (HTTP 546 `WORKER_RESOURCE_LIMIT`) past ~12MB, only ~2× today's prod load. Variant **a-dirty** (trigger-maintained pair table) speeds up the SQL a little but ships the same payload, so the memory wall does not move. Variant **b-plpgsql** (aggregation + MM fit in-database, warm-started from the previous board) collapses the payload to board-size (~0.1MB) and survives four times past the baseline's cliff — its own wall is the _aggregation statement_ vs the platform's ~8s per-statement timeout at R ≈ 1.7M. **Combining them removes both walls**: the maintained pair table eliminates the per-run aggregation statement, and the in-DB fit eliminates the payload — the epic-ready promotion design (app-set dirty flags + reconciliation sweep, two-level delta-maintained totals, batch temp tables, temp_buffers, vacuum strategy) is spec'd in [PROMOTION.md](PROMOTION.md). Independent of variants, prod itself already shows `pairwise_wins` calls at 4.5–12s with two gateway-504 errors on 2026-09-12, and its board is fitted on a max-rows-truncated 10k-row prefix of its 50k pairs.
 
 ## How to read this
 

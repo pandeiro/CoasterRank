@@ -371,6 +371,17 @@ the current shape, and its breaks are refinable statement boundaries rather
 than hard memory walls. Its steady-state floor is the warm 1–3-iteration
 in-DB fit plus a board-sized payload.
 
+**Promotion spec:** the epic-ready design — app-set dirty flags (same
+transaction as ride writes) + hourly reconciliation sweep instead of DB
+triggers (trigger-based pair maintenance is a measured trap: O(n²) write
+amplification, bloat, lock contention), dedicated dirty-state table,
+two-level delta-maintained pair totals with batch temp-table aggregation,
+`SET LOCAL temp_buffers` in the fit functions, single-writer deadlock
+avoidance, and a vacuum strategy for the pair tables — is
+[`spikes/2026-09-pairwise-bench/PROMOTION.md`](spikes/2026-09-pairwise-bench/PROMOTION.md).
+The trigger-based variant SQL in `scripts/src/bench/sql/` is the measured
+prototype, deliberately superseded by that spec for production.
+
 
 
 ## 8. Ops queries

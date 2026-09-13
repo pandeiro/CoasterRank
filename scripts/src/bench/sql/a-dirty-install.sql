@@ -1,4 +1,8 @@
--- BENCH-ONLY (staging project) — Approach A: dirty-tracking / incremental pair
+-- BENCH-ONLY (staging project) — MEASURED PROTOTYPE.
+-- NOTE: DB triggers maintaining pair permutations are deliberately SUPERSEDED for
+-- production by app-set dirty flags + a reconciliation sweep (write amplification,
+-- bloat, lock contention) — see docs/spikes/2026-09-pairwise-bench/PROMOTION.md §1.
+-- This file exists to reproduce the measured variant, not as a promotion artifact. — Approach A: dirty-tracking / incremental pair
 -- maintenance. NOT a migration; applied by the bench harness via psql.
 --
 -- Replaces the body of public.pairwise_wins() (same name/signature, so the

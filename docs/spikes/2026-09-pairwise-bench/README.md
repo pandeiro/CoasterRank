@@ -68,10 +68,11 @@ See [RESULTS.md](RESULTS.md) for numbers. Short version:
 ~~Re-run the identical grid against the incremental pair maintenance / dirty
 tracking prototype~~ **Done 2026-09-13** — both variants + the combined
 shape measured (see RESULTS.md), plus a growth simulation (`bench churn`)
-covering accumulation + dirty-set churn to 1,000 users. Remaining refinements
-if the combined shape needs to go further: batched maintain calls, two-level
-incremental pair totals, per-coaster-batch fit iterations, vacuum strategy
-for the pair table.
+covering accumulation + dirty-set churn to 1,000 users. The epic-ready
+implementation design (app-set dirty flags + reconciliation sweep, two-level
+delta-maintained pair totals, batch temp tables, temp_buffers, vacuum
+strategy) is spec'd in **[PROMOTION.md](PROMOTION.md)** — that doc is the
+direct input for the prod-implementation epic.
 
 ## Teardown
 

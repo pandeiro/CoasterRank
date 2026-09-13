@@ -151,8 +151,14 @@ type TopRow = { coaster_id: string }
 type TopSnapshotClient = {
   from: (table: string) => {
     select: (columns: string) => {
-      order: (column: string, options: { ascending: boolean }) => {
-        order: (column: string, options: { ascending: boolean }) => {
+      order: (
+        column: string,
+        options: { ascending: boolean },
+      ) => {
+        order: (
+          column: string,
+          options: { ascending: boolean },
+        ) => {
           limit: (count: number) => {
             maybeSingle: () => PromiseLike<{
               data: TopRow | null
@@ -347,7 +353,8 @@ Deno.serve(async (req) => {
     // All timing is summed into the 'pairwise_wins' rpc_stats key so the bench
     // harness reads it unchanged.
     const maintainT = await timed(() => rpcWithRetry<unknown>(supabase, 'bench_fit_maintain'))
-    if (maintainT.value.error) throw new Error(`bench_fit_maintain: ${maintainT.value.error.message}`)
+    if (maintainT.value.error)
+      throw new Error(`bench_fit_maintain: ${maintainT.value.error.message}`)
     const aggT = await timed(() => rpcWithRetry<unknown>(supabase, 'bench_fit_agg'))
     if (aggT.value.error) throw new Error(`bench_fit_agg: ${aggT.value.error.message}`)
     let stepMs = 0
@@ -390,7 +397,12 @@ Deno.serve(async (req) => {
       pairwise_wins: {
         ms: maintainT.ms + aggT.ms + stepMs + rowsT.ms,
         bytes: estimatePayloadBytes(rowsT.value.data),
-        retries: Math.max(maintainT.value.retriesUsed, aggT.value.retriesUsed, stepRetries, rowsT.value.retriesUsed),
+        retries: Math.max(
+          maintainT.value.retriesUsed,
+          aggT.value.retriesUsed,
+          stepRetries,
+          rowsT.value.retriesUsed,
+        ),
       },
       ranked_participants: {
         ms: participantsT.ms,
@@ -407,18 +419,12 @@ Deno.serve(async (req) => {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
     }
     if (firstPlaceRes.error) throw new Error(`first_place_counts: ${firstPlaceRes.error.message}`)
-    retriesUsed = Math.max(
-      participantsRes.retriesUsed,
-      firstPlaceRes.retriesUsed,
-    )
+    retriesUsed = Math.max(participantsRes.retriesUsed, firstPlaceRes.retriesUsed)
     const fitted = (rowsT.value.data ?? []) as FittedRow[]
     const fitIterations = fitted[0]?.iterations ?? 0
     const fitConverged = fitted[0]?.converged ?? true
     const participants = new Map(
-      ((participantsRes.data ?? []) as ParticipantRow[]).map((r) => [
-        r.coaster_id,
-        r.participants,
-      ]),
+      ((participantsRes.data ?? []) as ParticipantRow[]).map((r) => [r.coaster_id, r.participants]),
     )
     const firstPlace = new Map(
       ((firstPlaceRes.data ?? []) as FirstPlaceRow[]).map((r) => [
@@ -537,9 +543,7 @@ Deno.serve(async (req) => {
     // weeks older than that and keep the table bounded (~2 rows per ranked
     // coaster). Strictly older than the previous week, so the frozen
     // baseline survives a week-boundary roll.
-    const retentionCutoff = new Date(
-      Date.parse(`${weekStart}T00:00:00Z`) - 14 * 86_400_000,
-    )
+    const retentionCutoff = new Date(Date.parse(`${weekStart}T00:00:00Z`) - 14 * 86_400_000)
       .toISOString()
       .slice(0, 10)
     const { error: retentionError } = await supabase
