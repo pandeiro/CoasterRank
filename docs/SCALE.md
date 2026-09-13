@@ -381,6 +381,14 @@ avoidance, and a vacuum strategy for the pair tables — is
 [`spikes/2026-09-pairwise-bench/PROMOTION.md`](spikes/2026-09-pairwise-bench/PROMOTION.md).
 The trigger-based variant SQL in `scripts/src/bench/sql/` is the measured
 prototype, deliberately superseded by that spec for production.
+**Shipped 2026-09-13** (shadow rollout; per-run floor + dirty-queue timing
+are first-class observables — see RANKINGS.md "Pair pipeline: per-run floor
+& dirty-queue timing" and PLAN §5.6): one deviation from the spec — the
+dirty flags are set by a tiny flag-only *statement* trigger on `user_rides`
+(transition tables, O(1) distinct rows per ride-write statement) instead of
+per-path app code, which makes the marking atomic with every write path
+(RPCs, CLI, cascades) while still avoiding the measured O(n²) pair-mutation
+trigger trap §1 rejects; the reconciliation sweep is unchanged.
 
 
 
@@ -402,4 +410,19 @@ SELECT date_trunc('hour', created_at), AVG(duration_ms), COUNT(*)
 FROM cron_execution_logs
 WHERE status = 'success' AND created_at > now() - interval '24 hours'
 GROUP BY 1 ORDER BY 1 DESC;
+-- pair pipeline: per-run floor + dirty-queue timing (RANKINGS.md has the full guide)
+SELECT created_at, status, duration_ms,
+       rpc_stats->'fit'->>'dirty_processed'  AS dirty,
+       rpc_stats->'fit'->>'dirty_remaining'  AS left_,
+       rpc_stats->'fit'->>'maintain_ms'      AS maintain_ms,
+       rpc_stats->'fit'->>'step_ms'          AS fit_ms,
+       rpc_stats->'fit'->>'db_pairs'         AS db_pairs,
+       rpc_stats->'parity'->>'max_log_delta' AS parity_delta
+FROM cron_execution_logs ORDER BY created_at DESC LIMIT 15;
+-- live dirty queue (healthy steady state: depth 0)
+SELECT count(*) AS depth, min(marked_at) AS oldest_marked FROM pair_dirty_users;
+-- pair-layer growth + bloat watch (vacuum is a first-class concern, PROMOTION §3)
+SELECT relname, n_live_tup, n_dead_tup, last_autovacuum, last_analyze
+FROM pg_stat_user_tables
+WHERE relname IN ('user_pairs', 'pair_totals', 'pair_dirty_users', 'pair_user_state');
 ```

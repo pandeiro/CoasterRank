@@ -66,6 +66,17 @@ w = (P + c)^(−γ)      where P = n(n−1)/2, production: γ = 0.5, c = 28
 
 ## Data flow
 
+> **2026-09-13 — pair maintenance + in-DB fit (shadow rollout).** The
+> pipeline below gained a maintained pair layer (`user_pairs` →
+> `pair_totals`) so recomputes no longer re-aggregate `user_rides` from
+> scratch, and the MM fit can run **inside Postgres** (board-size payload —
+> no pair rows over the gateway). During the shadow period the JS fit still
+> serves the board while the in-DB fit logs per-run parity; the flip
+> (`BT_FIT_MODE=indb`) is an env change. Steps 1-2 below are the
+> shadow/legacy shape; see [PLAN §5.6](PLAN.md#56-pair-maintenance--in-db-fit-2026-09-13-shadow)
+> and [PROMOTION.md](spikes/2026-09-pairwise-bench/PROMOTION.md) for the
+> promoted pipeline.
+
 ### Step 1: Pairwise aggregation (SQL RPCs)
 
 Two security-definer RPCs run inside Postgres and are called by the Edge Function via PostgREST with the service-role key. EXECUTE is revoked from anon/authenticated — they are not public APIs.
@@ -184,9 +195,9 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 | `retries_used` | Max retries consumed across the aggregate RPCs |
 | `iterations` | MM iterations run (success only) |
 | `converged` | Whether ε threshold was reached (success only) |
-| `pairs` | Number of pairwise comparisons fed to MM |
+| `pairs` | Number of pairwise comparisons fed to MM (the DB-truth pair_totals count is in `rpc_stats.fit.db_pairs`) |
 | `updated` | Number of coaster_ratings rows upserted |
-| `rpc_stats` | JSONB: per-RPC `{ ms, bytes, retries }` for `pairwise_wins` / `ranked_participants` / `first_place_counts`, plus the idle fingerprint (`rides_max_ts`, `ranked_count`) on success rows and the skip reason on `skipped` rows. Error rows carry partial timings — a 504 on one RPC still records the other two. |
+| `rpc_stats` | JSONB: per-RPC `{ ms, bytes, retries }` for `pairwise_wins` / `ranked_participants` / `first_place_counts`, plus the idle fingerprint (`rides_max_ts`, `ranked_count`) on success rows and the skip reason on `skipped` rows. Error rows carry partial timings — a 504 on one RPC still records the other two. When the in-DB pipeline runs (shadow/indb), also `fit` (mode, maintain/agg/step/rows ms + call counts, dirty `processed`/`remaining`/`oldest`, DB-truth `db_pairs`/`db_contributors`) and — in shadow — `parity` (`max_log_delta` between the served JS board and the in-DB board; `board_match`). |
 | `error_message` | Error text (failure only) |
 | `created_at` | Timestamp |
 
@@ -196,6 +207,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 |-----|---------|---------|
 | CoasterRankAlerts | System failures | Edge Function catch block (immediate) |
 | CoasterRankAlerts | Stale detection | `check_stale_recompute` hourly (no success in 1h) |
+| CoasterRankAlerts | Dirty queue stuck | `check_stale_recompute` hourly (depth > 1000 or oldest entry > 2h) |
 | CoasterRankAlerts | Health regression | `health-check.yml` 30m smoke (homepage / `/api/ranking` / Supabase / board render) |
 | CoasterRankEvents | Business milestones | Global #1 coaster changes |
 
@@ -207,6 +219,9 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 | Edge Function returns error | `cron_execution_logs` error row | Telegram (immediate) |
 | Edge Function unreachable | `check_stale_recompute` (hourly) | Telegram (within 1h) |
 | pg_cron stopped firing | `check_stale_recompute` (hourly) | Telegram (within 1h) |
+| Ride changes not reaching the board (missed dirty flag / stuck maintenance) | `check_stale_recompute` queue watchdog (hourly); live depth + oldest on `/admin/rankings`; `rpc_stats.fit.dirty_remaining` on every run | Telegram (within 1h) |
+| In-DB fit diverges from the served JS fit (maintenance bug signature) | `rpc_stats.parity.board_match = false` on shadow runs | `/admin/rankings` (read the soak before flipping `BT_FIT_MODE=indb`) |
+| Board fitted on truncated pair data (max-rows cap) | Pair RPCs drained page-by-page (#211) + `pairs` vs `rpc_stats.fit.db_pairs` on every run | `/admin/rankings` |
 | Homepage / API 5xx, stale board, empty catalog, board not rendering | `health-check.yml` (30m) — `scripts/src/health-check.ts` | Telegram (within 30m) |
 | Global #1 changes | Edge Function post-recompute check | Telegram (event) |
 
@@ -215,8 +230,46 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 The `/admin/rankings` tab shows:
 
 - **Last successful run**: time ago, duration, pairs → coasters, iterations
+- **Fit mode + per-run floor**: when the in-DB pipeline runs — maintain/agg/iteration timings, dirty counters as the run saw them, DB-truth pair_totals stats, and the shadow parity delta
+- **Live dirty queue**: waiting users + oldest entry age (should be empty between cron slots)
 - **Last error** (red card): error message, time ago, trigger source
 - **Recompute now** button: triggers manual recompute, auto-refreshes the widget via React Query
+
+### Pair pipeline: per-run floor & dirty-queue timing
+
+The steady state to expect (the "fixed per-run floor"): with nothing dirty,
+every slot is a warm 1–3 iteration in-DB fit + board write, and the dirty
+queue drains to 0 within one slot. Watch those two numbers directly:
+
+```sql
+-- Per-run floor + dirty-queue timing, last 15 slots
+SELECT created_at, status, duration_ms,
+       rpc_stats->'fit'->>'mode'              AS mode,
+       rpc_stats->'fit'->>'dirty_processed'   AS dirty,
+       rpc_stats->'fit'->>'dirty_remaining'   AS left_,
+       rpc_stats->'fit'->>'maintain_ms'       AS maintain_ms,
+       rpc_stats->'fit'->>'step_ms'           AS fit_ms,
+       rpc_stats->'fit'->>'db_iterations'     AS db_iters,
+       rpc_stats->'parity'->>'max_log_delta'  AS parity_delta
+FROM cron_execution_logs
+ORDER BY created_at DESC
+LIMIT 15;
+```
+
+Idle runs (`status = 'skipped'`) are the true floor: the queue was empty AND
+no rides changed. The worst healthy case is a `success` row with small
+`maintain_ms`/`dirty` and `parity_delta` < 1e-6.
+
+```sql
+-- Live queue (also on /admin/rankings): depth + oldest entry age
+SELECT count(*) AS depth, min(marked_at) AS oldest_marked
+FROM pair_dirty_users;
+```
+
+An empty result row (depth 0) is the healthy steady state. A depth that
+never returns to 0 across slots, or an oldest entry older than ~1h (the
+sweep's self-heal cadence), means ride changes are being missed — the
+watchdog alerts at depth > 1000 or oldest > 2h.
 
 ## Operational queries
 
