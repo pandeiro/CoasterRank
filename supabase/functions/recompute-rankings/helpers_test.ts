@@ -48,54 +48,79 @@ Deno.test('backoffDelayMs grows exponentially and caps', () => {
   assertEquals(backoffDelayMs(10), 8000, 'cap')
 })
 
-Deno.test('shouldSkipRecompute skips only on identical fingerprints', () => {
+Deno.test('shouldSkipRecompute skips only on identical fingerprints + empty queue', () => {
   const prev = { ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }
-  assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }, prev),
-    true,
-    'identical',
-  )
+  const cur = { ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }
+  assertEquals(shouldSkipRecompute(cur, prev, 0), true, 'identical + drained queue')
   // Older-or-equal current ts with same count still skips: nothing is newer
   // than what the last success already fitted (timestamps only move on
   // user_rides writes, so current can never legitimately lag prev unless
   // nothing changed).
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T09:00:00.000Z', rankedCount: 183 }, prev),
+    shouldSkipRecompute(
+      { ridesMaxTs: '2026-09-12T09:00:00.000Z', rankedCount: 183 },
+      prev,
+      0,
+    ),
     true,
     'older ts, same count',
   )
+})
+
+Deno.test('shouldSkipRecompute never skips on a non-empty or unknown queue', () => {
+  const prev = { ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }
+  const cur = { ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }
+  // State changed without touching user_rides: the migration's backfill
+  // seed, sweep re-marks (eligibility flips, missed-flag races). The queue
+  // is the only signal that sees them — skipping here starves the backfill
+  // and strands re-marks (PR #213 review).
+  assertEquals(shouldSkipRecompute(cur, prev, 1), false, 'seeded/swept queue blocks the skip')
+  assertEquals(shouldSkipRecompute(cur, prev, null), false, 'unknown queue fails open to a run')
+  assertEquals(shouldSkipRecompute(cur, prev, undefined), false, 'no queue read → run')
 })
 
 Deno.test('shouldSkipRecompute detects every input change class', () => {
   const prev = { ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }
   // Insert / re-rank: newer timestamp.
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:15:00.000Z', rankedCount: 184 }, prev),
+    shouldSkipRecompute(
+      { ridesMaxTs: '2026-09-12T10:15:00.000Z', rankedCount: 184 },
+      prev,
+      0,
+    ),
     false,
     'insert',
   )
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:15:00.000Z', rankedCount: 183 }, prev),
+    shouldSkipRecompute(
+      { ridesMaxTs: '2026-09-12T10:15:00.000Z', rankedCount: 183 },
+      prev,
+      0,
+    ),
     false,
     're-rank bumps ts',
   )
   // Delete / un-rank: count drops even if max ts is unchanged or older.
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 182 }, prev),
+    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 182 }, prev, 0),
     false,
     'delete changes count',
   )
   // Missing previous fingerprint (pre-instrumentation rows): never skip.
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }, null),
+    shouldSkipRecompute({ ridesMaxTs: '2026-09-12T10:00:00.000Z', rankedCount: 183 }, null, 0),
     false,
     'no previous',
   )
   // Empty board on both sides: skip (already wiped, nothing to do).
-  assertEquals(shouldSkipRecompute({ ridesMaxTs: null, rankedCount: 0 }, { ridesMaxTs: null, rankedCount: 0 }), true, 'empty stable')
+  assertEquals(
+    shouldSkipRecompute({ ridesMaxTs: null, rankedCount: 0 }, { ridesMaxTs: null, rankedCount: 0 }, 0),
+    true,
+    'empty stable',
+  )
   // Board wiped since last success: recompute to clear ratings.
   assertEquals(
-    shouldSkipRecompute({ ridesMaxTs: null, rankedCount: 0 }, prev),
+    shouldSkipRecompute({ ridesMaxTs: null, rankedCount: 0 }, prev, 0),
     false,
     'wiped since success',
   )

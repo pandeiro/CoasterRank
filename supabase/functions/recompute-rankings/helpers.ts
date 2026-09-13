@@ -50,15 +50,21 @@ export type RidesFingerprint = {
 // Skip iff the eligible ranked input is unchanged since the fingerprint
 // stored on the last success row: same count (catches DELETEs / un-ranks,
 // which leave no timestamp) AND no newer change timestamp (catches
-// inserts / re-ranks). A missing previous fingerprint (pre-instrumentation
-// success rows) never skips — one full run stores it.
+// inserts / re-ranks) AND the dirty queue is empty. The queue check matters
+// because state changes that DON'T touch user_rides — the migration's
+// backfill seed, sweep re-marks (eligibility flips, missed-flag races) —
+// leave the fingerprint untouched; skipping on fingerprint alone would
+// starve the backfill and strand sweep re-marks. A failed/unknown queue
+// read (null/undefined) never skips — fail-open to a full run.
 export function shouldSkipRecompute(
   current: RidesFingerprint,
   previous: RidesFingerprint | null | undefined,
+  queueDepth: number | null | undefined,
 ): boolean {
   if (!previous) return false
   if (current.rankedCount !== previous.rankedCount) return false
-  return (current.ridesMaxTs ?? '') <= (previous.ridesMaxTs ?? '')
+  if ((current.ridesMaxTs ?? '') > (previous.ridesMaxTs ?? '')) return false
+  return queueDepth === 0
 }
 
 // Coarse payload-size estimate for rpc_stats instrumentation: UTF-16 code

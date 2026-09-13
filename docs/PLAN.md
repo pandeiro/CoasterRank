@@ -257,6 +257,20 @@ promotion (`docs/spikes/2026-09-pairwise-bench/PROMOTION.md`) replaces both:
   runs + logs parity), then `indb` (payload collapses to board size) after a
   clean soak; `legacy` rolls back. Pair tables start empty; the schema
   migration seeds the dirty queue so the first recompute backfills cold.
+  **Failure policy (deliberate)**: shadow/legacy fail OPEN on in-DB pipeline
+  errors — the JS path still serves the board, `rpc_stats.fit.error` records
+  the failure, and the queue re-processes next slot (a shadow-only bug must
+  neither stall the board nor page oncall). `indb` fails closed (error row +
+  Telegram) because the in-DB fit IS the serving path. **`legacy` keeps
+  draining the dirty queue** (maintain loop only) — the trigger keeps
+  flagging during a rollback, and an undrained queue would age the watchdog
+  into false STUCK pages and leave a backlog on re-flip.
+- **Idle-skip gate** — pg_cron slots skip only when the rides fingerprint is
+  unchanged AND the dirty queue is empty (one head count). The backfill
+  seed and the sweep's re-marks change neither fingerprint nor `user_rides`,
+  so a fingerprint-only gate would starve the first cold backfill and strand
+  re-marks until the next ride write (PR #213 review); a failed queue read
+  fails open to a full run.
 - **Monitoring** — `rpc_stats.fit` (mode, per-phase ms, dirty counters, DB
   truth), `rpc_stats.parity` (shadow), live queue state on `/admin/rankings`
   (admin RLS), and queue-depth/oldest-entry alerts in

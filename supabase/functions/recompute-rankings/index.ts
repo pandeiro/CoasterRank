@@ -6,14 +6,20 @@
 // selected by the BT_FIT_MODE function secret, default 'shadow':
 //
 //   legacy — paged pairwise_wins over the gateway + JS MM fit (pre-promotion
-//            shape; rollback mode).
+//            shape; rollback mode). Still drains the dirty queue (the
+//            trigger keeps flagging during rollback), skips the fit.
 //   shadow — the in-DB pipeline runs alongside (pair_maintain_step batches →
 //            pair_fit_agg → pair_fit_step loop → pair_fit_rows), parity vs
 //            the JS fit is logged per run, but the JS fit still SERVES the
-//            board. The flip decision reads this soak.
+//            board. In-DB failures fail open (logged, JS keeps serving).
+//            The flip decision reads this soak.
 //   indb   — the in-DB fit serves; pair rows never cross the gateway
 //            (payload collapses to board-size; the edge-function memory
-//            wall disappears).
+//            wall disappears). In-DB failures fail closed (error + alert).
+//
+// Idle-skip gate: pg_cron runs skip only when BOTH the rides fingerprint is
+// unchanged AND the dirty queue is empty — the backfill seed and sweep
+// re-marks change neither fingerprint nor user_rides (PR #213 review).
 //
 // Authentication — exactly one of:
 //   1. Bearer <RECOMPUTE_AUTH_SECRET>     — the pg_cron job (secret kept in
@@ -118,6 +124,8 @@ type FitStats = {
   dirty_processed: number
   dirty_remaining: number
   dirty_oldest: string | null
+  /** Present on fail-open shadow/legacy runs whose in-DB pipeline threw. */
+  error?: string
 }
 type ParityStats = {
   max_log_delta: number
@@ -406,8 +414,14 @@ Deno.serve(async (req) => {
     }
 
     // Idle-skip (SCALE §6.1): pg_cron slots with no eligible-ranked
-    // user_rides change since the last success no-op before touching the
-    // expensive aggregates. Manual triggers (admin button / ops curl) always
+    // user_rides change since the last success AND an empty dirty queue
+    // no-op before touching the expensive aggregates. The queue check is
+    // what lets the pipeline see state changes that never touch user_rides:
+    // the migration's backfill seed and the sweep's re-marks (eligibility
+    // flips, missed-flag races) — skipping on the fingerprint alone would
+    // starve the first cold backfill and strand re-marks until the next
+    // ride write (PR #213 review). A failed queue read never skips (fail
+    // open to a full run). Manual triggers (admin button / ops curl) always
     // run. The skip logs status='skipped' — deliberately NOT 'success', so
     // public_board_meta().last_recomputed_at only moves on real recomputes.
     // The fingerprint is read on every run (cheap single aggregate) and
@@ -419,6 +433,16 @@ Deno.serve(async (req) => {
         .rpc('recompute_idle_fingerprint')
         .maybeSingle()
       if (!fpError) currentFp = fingerprintOf((fpRow ?? null) as FingerprintRow | null)
+    }
+    // Live dirty-queue depth: one head count on a tiny table. null = the
+    // read failed (transient PostgREST trouble) — treated as unknown, which
+    // blocks the skip rather than risking starvation.
+    let queueDepth: number | null = null
+    {
+      const { count, error: queueError } = await supabase
+        .from('pair_dirty_users')
+        .select('user_id', { count: 'exact', head: true })
+      if (!queueError) queueDepth = count ?? 0
     }
     if (triggerSource === 'pg_cron' && currentFp) {
       const { data: lastSuccess } = await supabase
@@ -433,6 +457,7 @@ Deno.serve(async (req) => {
         shouldSkipRecompute(
           currentFp,
           fingerprintFromStats((lastSuccess as LastSuccessRow).rpc_stats),
+          queueDepth,
         )
       ) {
         const durationMs = Date.now() - started
@@ -443,7 +468,8 @@ Deno.serve(async (req) => {
           retries_used: 0,
           rpc_stats: {
             skipped: true,
-            skip_reason: 'no user_rides change since last success',
+            skip_reason: 'no user_rides change since last success and dirty queue empty',
+            dirty_queue: queueDepth,
             rides_max_ts: currentFp.ridesMaxTs,
             ranked_count: currentFp.rankedCount,
           },
@@ -461,14 +487,24 @@ Deno.serve(async (req) => {
       // recompute — fall through and do the full run.
     }
 
-    // ── In-DB pipeline (shadow + indb): dirty maintenance + fit ──────────
+    // ── In-DB pipeline ───────────────────────────────────────────────────
     // pair_maintain_step claims + processes bounded dirty-user batches
     // (adaptive halving on statement timeouts) until the queue drains or the
     // per-run call budget is exhausted (a deeper queue drains across cron
-    // slots — the watchdog watches for that). The fit then aggregates
-    // pair_totals (no O(R) rides scan) and MM-fits in-DB, warm-started and
-    // resumable. Everything below is statement-bounded: no single statement
-    // nears the ~8s platform timeout.
+    // slots — the watchdog watches for that). Runs in EVERY mode: legacy
+    // rollback must keep draining the queue, or the trigger keeps flagging
+    // while nothing processes it — the queue ages, the watchdog false-pages
+    // through the whole rollback window, and a re-flip starts on a backlog.
+    // shadow + indb then aggregate pair_totals (no O(R) rides scan) and
+    // MM-fit in-DB, warm-started and resumable. Everything is
+    // statement-bounded: no single statement nears the ~8s platform timeout.
+    //
+    // Failure policy (deliberate): in shadow/legacy the JS fit serves the
+    // board, so an in-DB failure fails OPEN — record rpc_stats.fit.error and
+    // keep serving (a shadow-only bug must neither stall the board nor page
+    // oncall; the soak surfaces it). In indb the in-DB fit IS the serving
+    // path — fail closed (error row + Telegram), same as any serving
+    // failure.
     let maintainMs = 0
     let maintainCalls = 0
     let maintainBatch = MAINTAIN_BATCH
@@ -486,8 +522,9 @@ Deno.serve(async (req) => {
     let fitted: FittedRow[] = []
     let dbIterations = 0
     let dbConverged = true
+    let fitError: string | null = null
 
-    if (fitMode !== 'legacy') {
+    try {
       for (let call = 0; call < MAX_MAINTAIN_CALLS; call++) {
         const t = await timed(() =>
           rpcWithRetry<MaintainRow>(supabase, 'pair_maintain_step', {
@@ -513,41 +550,48 @@ Deno.serve(async (req) => {
         if (dirtyRemaining === 0) break
       }
 
-      const aggT = await timed(() => rpcWithRetry<AggRow>(supabase, 'pair_fit_agg'))
-      aggMs = aggT.ms
-      if (aggT.value.error) throw new Error(`pair_fit_agg: ${aggT.value.error.message}`)
-      inDbRetries = Math.max(inDbRetries, aggT.value.retriesUsed)
-      dbPairs = Number(aggT.value.data?.[0]?.pairs ?? 0)
-      dbContributors = Number(aggT.value.data?.[0]?.contributors ?? 0)
+      if (fitMode !== 'legacy') {
+        const aggT = await timed(() => rpcWithRetry<AggRow>(supabase, 'pair_fit_agg'))
+        aggMs = aggT.ms
+        if (aggT.value.error) throw new Error(`pair_fit_agg: ${aggT.value.error.message}`)
+        inDbRetries = Math.max(inDbRetries, aggT.value.retriesUsed)
+        dbPairs = Number(aggT.value.data?.[0]?.pairs ?? 0)
+        dbContributors = Number(aggT.value.data?.[0]?.contributors ?? 0)
 
-      // Warm-started MM, resumable across calls; halve p_max on statement
-      // timeouts rather than retrying blind (a step that broke once will
-      // break again at the same size).
-      let done = false
-      while (!done && stepCalls < MAX_STEP_CALLS) {
-        const t = await timed(() =>
-          rpcWithRetry<{ done: boolean }>(supabase, 'pair_fit_step', { p_max: stepPMax }),
-        )
-        stepMs += t.ms
-        stepCalls++
-        if (t.value.error) {
-          if (isStatementTimeoutMessage(t.value.error.message) && stepPMax > 1) {
-            stepPMax = Math.max(1, Math.floor(stepPMax / 2))
-            continue
+        // Warm-started MM, resumable across calls; halve p_max on statement
+        // timeouts rather than retrying blind (a step that broke once will
+        // break again at the same size).
+        let done = false
+        while (!done && stepCalls < MAX_STEP_CALLS) {
+          const t = await timed(() =>
+            rpcWithRetry<{ done: boolean }>(supabase, 'pair_fit_step', { p_max: stepPMax }),
+          )
+          stepMs += t.ms
+          stepCalls++
+          if (t.value.error) {
+            if (isStatementTimeoutMessage(t.value.error.message) && stepPMax > 1) {
+              stepPMax = Math.max(1, Math.floor(stepPMax / 2))
+              continue
+            }
+            throw new Error(`pair_fit_step: ${t.value.error.message}`)
           }
-          throw new Error(`pair_fit_step: ${t.value.error.message}`)
+          inDbRetries = Math.max(inDbRetries, t.value.retriesUsed)
+          done = t.value.data?.[0]?.done === true
         }
-        inDbRetries = Math.max(inDbRetries, t.value.retriesUsed)
-        done = t.value.data?.[0]?.done === true
-      }
 
-      const rowsT = await timed(() => rpcWithRetry<FittedRow>(supabase, 'pair_fit_rows'))
-      rowsMs = rowsT.ms
-      if (rowsT.value.error) throw new Error(`pair_fit_rows: ${rowsT.value.error.message}`)
-      inDbRetries = Math.max(inDbRetries, rowsT.value.retriesUsed)
-      fitted = (rowsT.value.data ?? []) as FittedRow[]
-      dbIterations = fitted[0]?.iterations ?? 0
-      dbConverged = fitted[0]?.converged ?? true
+        const rowsT = await timed(() => rpcWithRetry<FittedRow>(supabase, 'pair_fit_rows'))
+        rowsMs = rowsT.ms
+        if (rowsT.value.error) throw new Error(`pair_fit_rows: ${rowsT.value.error.message}`)
+        inDbRetries = Math.max(inDbRetries, rowsT.value.retriesUsed)
+        fitted = (rowsT.value.data ?? []) as FittedRow[]
+        dbIterations = fitted[0]?.iterations ?? 0
+        dbConverged = fitted[0]?.converged ?? true
+      }
+    } catch (err) {
+      if (fitMode === 'indb') throw err
+      // Fail open: the JS path below still serves the board; the queue
+      // state is left as-is (remaining users re-process next slot).
+      fitError = err instanceof Error ? err.message : 'in-DB pipeline failed'
     }
 
     // ── Aggregates + served fit ──────────────────────────────────────────
@@ -661,7 +705,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (fitMode !== 'legacy') {
+    // Fit telemetry: every mode runs the maintain drain now, so the block
+    // is emitted unconditionally (legacy rows show maintain-only stats;
+    // fitError marks a fail-open shadow/legacy in-DB failure).
+    {
       const fitStats: FitStats = {
         mode: fitMode,
         maintain_ms: maintainMs,
@@ -679,6 +726,7 @@ Deno.serve(async (req) => {
         dirty_processed: dirtyProcessed,
         dirty_remaining: dirtyRemaining,
         dirty_oldest: dirtyOldest,
+        ...(fitError ? { error: fitError } : {}),
       }
       rpcStats = { ...rpcStats, fit: fitStats }
       if (parity) {
