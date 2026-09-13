@@ -3,6 +3,7 @@
 // (dependency-free: plain Deno.test + throws, no network imports).
 import {
   backoffDelayMs,
+  drainPages,
   estimatePayloadBytes,
   isRetryableRpcError,
   shouldSkipRecompute,
@@ -102,4 +103,54 @@ Deno.test('estimatePayloadBytes measures JSON length, never throws', () => {
   const circular: Record<string, unknown> = {}
   circular.self = circular
   assertEquals(estimatePayloadBytes(circular), 0, 'circular -> 0')
+})
+
+Deno.test('drainPages collects a single short page without extra fetches', async () => {
+  let calls = 0
+  const result = await drainPages((_start, _end) => {
+    calls++
+    return Promise.resolve({ data: [{ i: 1 }, { i: 2 }], error: null })
+  }, 10_000)
+  assertEquals(calls, 1, 'short page ends the drain')
+  assertEquals(result.data.length, 2, 'rows collected')
+  assertEquals(result.pages, 1, 'page count')
+  assertEquals(result.error, null, 'no error')
+})
+
+Deno.test('drainPages drains full pages until exhaustion', async () => {
+  const pages: number[][] = []
+  const result = await drainPages((start, end) => {
+    pages.push([start, end])
+    if (start === 0) return Promise.resolve({ data: Array.from({ length: 3 }, (_, i) => i), error: null })
+    return Promise.resolve({ data: [], error: null })
+  }, 3)
+  assertEquals(pages.length, 2, 'one empty page fetched after a full page')
+  assertEquals(pages[1]![0], 3, 'second page starts at pageSize')
+  assertEquals(result.data.length, 3, 'only real rows collected')
+  assertEquals(result.pages, 2, 'page count')
+})
+
+Deno.test('drainPages stops when a page is short, not when it is exact', async () => {
+  const result = await drainPages((start) => {
+    if (start === 0) return Promise.resolve({ data: [1, 2, 3], error: null })
+    return Promise.resolve({ data: [4], error: null })
+  }, 3)
+  assertEquals(result.data.length, 4, 'all rows from both pages')
+  assertEquals(result.pages, 2, 'short page terminated the drain')
+})
+
+Deno.test('drainPages propagates page errors (no partial data)', async () => {
+  const result = await drainPages((start) => {
+    if (start === 0) return Promise.resolve({ data: [1, 2, 3], error: null })
+    return Promise.resolve({ data: null, error: { message: 'Gateway Timeout' } })
+  }, 3)
+  assertEquals(result.data.length, 0, 'no partial rows returned')
+  assertEquals(result.error?.message, 'Gateway Timeout', 'error surfaced')
+  assertEquals(result.pages, 1, 'one successful page before the error')
+})
+
+Deno.test('drainPages treats null data as an empty page', async () => {
+  const result = await drainPages(() => Promise.resolve({ data: null, error: null }), 5)
+  assertEquals(result.data.length, 0, 'null page = empty')
+  assertEquals(result.pages, 1, 'terminates immediately')
 })

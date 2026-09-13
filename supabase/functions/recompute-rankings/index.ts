@@ -27,6 +27,7 @@ import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
 // Pure retry/skip/instrumentation helpers (unit-tested in helpers_test.ts).
 import {
   backoffDelayMs,
+  drainPages,
   estimatePayloadBytes,
   isRetryableRpcError,
   shouldSkipRecompute,
@@ -142,6 +143,38 @@ async function rpcWithRetry<T>(
     error: { message: `${lastError!.message} (after ${retriesUsed + 1} attempts)` },
     retriesUsed,
   }
+}
+
+// Aggregate RPCs are drained page-by-page (helpers.drainPages): PostgREST
+// caps responses at the platform max-rows, and a silently capped pair set
+// means the board gets fitted on a truncated prefix (SCALE §9). Each page
+// retries independently with the same backoff semantics as rpcWithRetry.
+async function rpcPagedWithRetry<T>(
+  supabase: ReturnType<typeof createClient>,
+  name: string,
+): Promise<RpcResult<T>> {
+  let retriesUsed = 0
+  const drained = await drainPages((start, end) => {
+    let lastError: { message: string } | null = null
+    let attemptsUsed = 0
+    const attempt = async (): Promise<{ data: T[] | null; error: { message: string } | null }> => {
+      for (let i = 0; i <= RPC_MAX_RETRIES; i++) {
+        const res = await supabase.rpc(name).range(start, end)
+        if (!res.error || !isRetryableRpcError(res.error)) return res
+        lastError = res.error
+        if (i < RPC_MAX_RETRIES) {
+          attemptsUsed++
+          await sleep(backoffDelayMs(i) + Math.floor(Math.random() * RPC_RETRY_JITTER_MS))
+        }
+      }
+      return { data: null, error: { message: `${lastError!.message} (after ${attemptsUsed + 1} attempts)` } }
+    }
+    return attempt().then((res) => {
+      retriesUsed += attemptsUsed
+      return res
+    })
+  })
+  return { data: drained.error ? null : drained.data, error: drained.error, retriesUsed }
 }
 
 // The crown snapshot (read-only) can transiently fail the same way the pairs
@@ -349,11 +382,12 @@ Deno.serve(async (req) => {
 
     // Aggregated pairwise wins (per-user normalized, PLAN §5.1) + participant
     // counts + first-place votes, via the RPCs installed by the Phase 6 /
-    // rankings-view-v2 migrations. Each call is timed for rpc_stats.
+    // rankings-view-v2 migrations. Each drained page-by-page (max-rows cap —
+    // SCALE §9) and timed for rpc_stats.
     const [pairsT, participantsT, firstPlaceT] = await Promise.all([
-      timed(() => rpcWithRetry<PairRow>(supabase, 'pairwise_wins')),
-      timed(() => rpcWithRetry<ParticipantRow>(supabase, 'ranked_participants')),
-      timed(() => rpcWithRetry<FirstPlaceRow>(supabase, 'first_place_counts')),
+      timed(() => rpcPagedWithRetry<PairRow>(supabase, 'pairwise_wins')),
+      timed(() => rpcPagedWithRetry<ParticipantRow>(supabase, 'ranked_participants')),
+      timed(() => rpcPagedWithRetry<FirstPlaceRow>(supabase, 'first_place_counts')),
     ])
     const pairsRes = pairsT.value
     const participantsRes = participantsT.value

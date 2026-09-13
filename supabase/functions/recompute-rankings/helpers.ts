@@ -69,3 +69,42 @@ export function estimatePayloadBytes(data: unknown): number {
     return 0
   }
 }
+
+// PostgREST caps every response at the platform max-rows (10,000 on prod).
+// A capped aggregate RPC logs as success — the only symptom is a silently
+// wrong board fitted on a truncated prefix of its pairs (found 2026-09-13:
+// prod shipped 10k of ~50k pair rows; SCALE §9). Draining every aggregate
+// page-by-page until a SHORT page proves exhaustion makes truncation
+// structurally impossible. Page size matches the platform cap, so a full
+// page costs the same as today's single capped request.
+export const RPC_PAGE_SIZE = 10_000
+
+export type PageFetch<T> = (
+  start: number,
+  end: number,
+) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+
+export type DrainResult<T> = {
+  data: T[]
+  error: { message: string } | null
+  pages: number
+}
+
+// Fetches range-batched pages until one comes back short. Pure: the caller
+// supplies the page fetcher (with its own retry semantics), so tests can
+// inject page boundaries and errors without a live PostgREST.
+export async function drainPages<T>(
+  fetchPage: PageFetch<T>,
+  pageSize: number = RPC_PAGE_SIZE,
+): Promise<DrainResult<T>> {
+  const all: T[] = []
+  let pages = 0
+  for (let start = 0; ; start += pageSize) {
+    const res = await fetchPage(start, start + pageSize - 1)
+    if (res.error) return { data: [], error: res.error, pages }
+    pages++
+    const rows = res.data ?? []
+    all.push(...rows)
+    if (rows.length < pageSize) return { data: all, error: null, pages }
+  }
+}
