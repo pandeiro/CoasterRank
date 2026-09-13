@@ -47,6 +47,7 @@ A multi-user webapp where users rank the roller coasters they've ridden, and eve
 | Submission proposals: new manufacturers + new-park location (2026-09-11) | Submitters can now propose what doesn't exist yet, riding the established `suggested_fields` jsonb + `submission_payload_valid()` widening pattern (`20260912170000`). **`proposed_manufacturers`**: `[{name, position}]` — catalog-missing manufacturers proposed by the submitter; `position` is the slot in the MERGED lineage (0 = primary) interleaved with the existing `manufacturer_ids`, so a proposed entry can be primary without admin fix-up. Rules (both kinds): entries ≤ ids+proposals ≤ 10, names trimmed 1–80 chars, positions 0–9, unique, `< ids+proposals`. **`park_location`**: `{city, region, country, lat, lng}` (all optional, text 1–120 trimmed, coords within the parks check ranges) — valid ONLY when `park_id IS NULL` (the free-text new-park path; the CHECK now takes `park_id` as a 3rd arg and the constraint was re-bound, old 2-arg function dropped; strictly additive so restored old rows keep passing). Approval auto-creates: `ensureManufacturerId` (slugified, 23505 race-reuse like community parks) mints proposed manufacturers and `resolveProposedLineage` interleaves them with the ids (`mergeLineageSlots` — first proposal wins a disputed slot as defense in depth); `ensureParkForSubmission` (extracted from `approveSubmission`, shared by `approveEditSubmission`, which no longer throws on null `park_id`) writes the location onto the community park it mints — previously new parks were name+slug only. Client mirror (`submission-validation.ts`), `ManufacturerMultiPicker` (free-text "Propose X — new — pending approval" chips, id-null entries, normalized `{id,name}` emits), `/submit` (location block only for free-text parks), `/suggest-edit` (free-text park + location + proposals), and the admin queue (merged `mergedLineageDisplay` "X (new)" rows, `New park location` row, "new park — will be created" park-move label) all updated; migration behavior verified against a throwaway local postgres (23/23 checks). Deliberately NOT done: manufacturer country/HQ metadata on proposals (admin enriches), separate vetting queue for proposed manufacturers (approval is the vetting), Telegram notification payload changes. | Submitters homing coasters to parks outside the seeded CSV produced bare parks (name+slug, no location) and could not credit builders missing from the catalog; both forced admin fix-up after approval or blocked legitimate submissions entirely. |
 
 | `pairwise_wins` scale benchmark on a disposable staging project (2026-09-13) | Stood up the throwaway Supabase project (`jsvgzvkrgodaxdutqcok`, "TestRide") per the brief in SCALE.md §7: newest nightly dump restored, migrations converged, `recompute-rankings` deployed (no Telegram, no cron), PostgREST max-rows raised to 1M, and a measurement harness (`scripts/src/bench/`, gitignored `.env.bench`, prod-ref tripwire) running an R-sweep (R = Σ n(n−1)/2) with bench-*eligible* synthetic users (not testride's `synthetic` marker — the eligibility CTE excludes those). **Findings:** reliable through R ≈ 61k; first edge-function OOM failures (HTTP 546 `WORKER_RESOURCE_LIMIT` — memory, not the ~7s gateway) at R ≈ 106k (~12MB pair payload); 100% failure from R ≈ 253k; platform statement-timeout kills the SQL at R ≥ ~1.7M; bulk-import bursts add nothing at survivable scales. **Two live-prod defects surfaced:** (1) prod's `pairwise_wins` is silently truncated to the max-rows cap (10k rows; true P = 50,345 on 2026-09-13) so the board is fitted on ~20% of pair data; (2) prod rpc at 4.5–12s with gateway-504s on 2026-09-12 — prod sits between knee and cliff at 10 users. Report + chart + raw data: `docs/spikes/2026-09-pairwise-bench/`. Next: re-run the identical grid against the dirty-tracking/incremental prototype and compare knees (same seeds); promotion path decided then. | The board's correctness and the cron's reliability now both hinge on the pair-payload wall; measuring before redesigning (SCALE.md §7) turned "should be fine for months" into "cliff is ~2× current load", and the truncation bug is silently degrading ranking quality today. |
+| Incremental pair maintenance + in-DB fit: promoted (2026-09-13) | Implements the epic-ready design spec'd in `docs/spikes/2026-09-pairwise-bench/PROMOTION.md` after the measured OOM wall (RESULTS.md/SCALE.md §9). **Dirty tracking**: a tiny flag-only statement trigger on `user_rides` (transition tables, rank-relevant changes only — NOT the measured O(n²) pair-permutation trap §1 rejects) inserts into `pair_dirty_users` atomically with every ride write (ranking UI upserts/deletes, import RPC, guest materialization, CLI/ops writes, FK cascades — one O(1) distinct row per statement); an hourly `pair-reconcile-sweep` cron re-derives dirtiness from ride timestamps vs `pair_user_state.last_maintained_at` so any missed flag self-heals within the hour. **Two-level pair storage**: `user_pairs` (per-user contributions, the delta source) + `pair_totals` (global aggregate the fit reads) — maintenance claims bounded batches (25 users, FOR UPDATE SKIP LOCKED + `processing_until` expiry; adaptive batch-halving on the ~8s statement timeout; 40 calls/run ⇒ 1000-user/run budget) and applies signed deltas set-based via batch temp tables (`temp_buffers=16MB`), ordered by `(winner, loser)`; the flag is deleted only after the contribution is durable. **In-DB fit**: `pair_fit_agg` rebuilds only the O(P) opponent structure + warm-started per-coaster aggregates from `pair_totals` (the O(R) per-run aggregation scan is gone), `pair_fit_step` runs Hunter-2004 MM iterations resumably under the statement timeout, `pair_fit_rows` returns the board-size payload. The plpgsql port is parity-checked against `packages/bt/src/mm.ts` (bench-measured max |Δ log score| 5.6e-9). **Rollout**: `BT_FIT_MODE=shadow` (default) runs the in-DB pipeline alongside the JS fit, logs per-run parity + fit/dirty telemetry into `cron_execution_logs.rpc_stats` (fit/dirty/parity blocks; `pairs` = served pair truth, DB-truth `db_pairs` next to it), and keeps serving the JS board; flip to `indb` is an env change after a clean soak (parity board_match + payload ~0.1MB); `legacy` = rollback. **Monitoring**: `/admin/rankings` shows fit mode, per-run floor breakdown (maintain/agg/iters ms), dirty-queue depth + oldest entry live (admin RLS on `pair_dirty_users`), and shadow parity; `check_stale_recompute` also alerts when the queue exceeds one run's budget (>1000) or its oldest entry ages past 2h. Pair tables start empty; the migration seeds the queue for a measured cold-fit backfill on the first recompute. | Removes both measured walls before they strand the growing community: the edge-function pair-payload OOM (~2× prod load) and the O(R) per-slot aggregation (statement timeout at R≈475k in growth simulation). Prod was already between knee and cliff (rpc 4.5–12s, gateway-504s) with the board fitted on a max-rows-truncated pair prefix. The per-run floor becomes O(P) warm fit + O(dirty) maintenance instead of a full O(R) recompute, and dirty-queue timing + floor are first-class observables. |
 
 ## 3. Architecture
 
@@ -226,6 +227,56 @@ Authorization: Bearer <RECOMPUTE_AUTH_SECRET | SERVICE_ROLE_KEY | admin user JWT
 ```
 
 Admin JWTs are validated against GoTrue (`/auth/v1/user`) and then checked against `profiles.is_admin`. Reads aggregated pairwise wins, participant counts, and first-place votes from PostgREST RPCs, runs MM in memory (`packages/bt`), upserts scores + `first_place_votes`. Stateless and idempotent.
+
+### 5.6 Pair maintenance + in-DB fit (2026-09-13, shadow)
+
+The 2026-09-13 benchmark (§2 decision log + SCALE.md §9) measured the §5.1-5.5
+shape dying at ~2× prod load (edge-function OOM on the pair payload) and the
+per-run O(R) aggregation breaking at R ≈ 475k in growth simulation. The
+promotion (`docs/spikes/2026-09-pairwise-bench/PROMOTION.md`) replaces both:
+
+- **Dirty tracking** — a flag-only statement trigger on `user_rides`
+  (transition tables; marks only rank-relevant changes, mirroring the
+  `user_rides_updated_at` condition) inserts into `pair_dirty_users` in the
+  same statement as every ride write. Not the measured pair-permutation
+  trigger trap — O(1) distinct rows per statement. An hourly
+  `pair-reconcile-sweep` re-marks any eligible user whose ride timestamps
+  moved past `pair_user_state.last_maintained_at` (self-healing backstop;
+  queue depth + oldest entry are table counts, i.e. directly observable).
+- **Two-level pair storage** — `user_pairs` (per-user contributions) is
+  rewritten per dirty user in bounded claimed batches
+  (`pair_maintain_step`: 25 users/call, FOR UPDATE SKIP LOCKED,
+  `processing_until` expiry, adaptive halving on statement timeouts);
+  `pair_totals` (the global aggregate) is maintained by signed set-based
+  deltas over batch temp tables. The fit never re-scans `user_rides`.
+- **In-DB fit** — `pair_fit_agg` (O(P) rebuild + warm start from the
+  previous board), `pair_fit_step` (resumable MM iterations),
+  `pair_fit_rows` (board-size payload). Parity with the TS reference is a
+  gate (`bench parity` on staging; per-run shadow parity in prod logs).
+- **Rollout** — `BT_FIT_MODE=shadow` (JS fit still serves; in-DB pipeline
+  runs + logs parity), then `indb` (payload collapses to board size) after a
+  clean soak; `legacy` rolls back. Pair tables start empty; the schema
+  migration seeds the dirty queue so the first recompute backfills cold.
+  **Failure policy (deliberate)**: shadow/legacy fail OPEN on in-DB pipeline
+  errors — the JS path still serves the board, `rpc_stats.fit.error` records
+  the failure, and the queue re-processes next slot (a shadow-only bug must
+  neither stall the board nor page oncall). `indb` fails closed (error row +
+  Telegram) because the in-DB fit IS the serving path. **`legacy` keeps
+  draining the dirty queue** (maintain loop only) — the trigger keeps
+  flagging during a rollback, and an undrained queue would age the watchdog
+  into false STUCK pages and leave a backlog on re-flip.
+- **Idle-skip gate** — pg_cron slots skip only when the rides fingerprint is
+  unchanged AND the dirty queue is empty (one head count). The backfill
+  seed and the sweep's re-marks change neither fingerprint nor `user_rides`,
+  so a fingerprint-only gate would starve the first cold backfill and strand
+  re-marks until the next ride write (PR #213 review); a failed queue read
+  fails open to a full run.
+- **Monitoring** — `rpc_stats.fit` (mode, per-phase ms, dirty counters, DB
+  truth), `rpc_stats.parity` (shadow), live queue state on `/admin/rankings`
+  (admin RLS), and queue-depth/oldest-entry alerts in
+  `check_stale_recompute`. The steady-state per-run floor is the warm 1-3
+  iteration fit + O(dirty) maintenance; idle slots with empty queues skip
+  exactly as before.
 
 ## 6. SPA routes
 

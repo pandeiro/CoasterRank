@@ -6,6 +6,8 @@
 //   * backoffDelayMs      — exponential backoff base (caller adds jitter)
 //   * shouldSkipRecompute — idle-skip decision from fingerprints
 //   * estimatePayloadBytes — coarse payload-size instrumentation
+//   * parseFitMode / isStatementTimeoutMessage / computeParity — the
+//     in-DB fit pipeline (PROMOTION §4-§5)
 
 // Structural slice of a PostgREST/supabase-js error; extra fields ignored.
 export type RpcErrorLike = {
@@ -48,15 +50,21 @@ export type RidesFingerprint = {
 // Skip iff the eligible ranked input is unchanged since the fingerprint
 // stored on the last success row: same count (catches DELETEs / un-ranks,
 // which leave no timestamp) AND no newer change timestamp (catches
-// inserts / re-ranks). A missing previous fingerprint (pre-instrumentation
-// success rows) never skips — one full run stores it.
+// inserts / re-ranks) AND the dirty queue is empty. The queue check matters
+// because state changes that DON'T touch user_rides — the migration's
+// backfill seed, sweep re-marks (eligibility flips, missed-flag races) —
+// leave the fingerprint untouched; skipping on fingerprint alone would
+// starve the backfill and strand sweep re-marks. A failed/unknown queue
+// read (null/undefined) never skips — fail-open to a full run.
 export function shouldSkipRecompute(
   current: RidesFingerprint,
   previous: RidesFingerprint | null | undefined,
+  queueDepth: number | null | undefined,
 ): boolean {
   if (!previous) return false
   if (current.rankedCount !== previous.rankedCount) return false
-  return (current.ridesMaxTs ?? '') <= (previous.ridesMaxTs ?? '')
+  if ((current.ridesMaxTs ?? '') > (previous.ridesMaxTs ?? '')) return false
+  return queueDepth === 0
 }
 
 // Coarse payload-size estimate for rpc_stats instrumentation: UTF-16 code
@@ -107,4 +115,76 @@ export async function drainPages<T>(
     all.push(...rows)
     if (rows.length < pageSize) return { data: all, error: null, pages }
   }
+}
+
+// ── In-DB fit pipeline (PROMOTION §4-§5) ────────────────────────────────
+
+// Which pipeline serves the board, via the BT_FIT_MODE function secret:
+//   legacy — today's shape: paged pairwise_wins over the gateway + JS MM fit.
+//   shadow — the in-DB fit (maintain batches + pair_totals + pair_fit_step)
+//            runs alongside, parity is logged per run, but the JS fit still
+//            SERVES the board. Default: the flip decision reads the soak.
+//   indb   — the in-DB fit serves; pair rows never cross the gateway
+//            (payload collapses to board-size; the memory wall disappears).
+export type FitMode = 'shadow' | 'indb' | 'legacy'
+
+export const DEFAULT_FIT_MODE: FitMode = 'shadow'
+
+// Unknown/unset values fall back to shadow: the served board never changes
+// by accident, and the misconfiguration shows up in rpc_stats.fit.mode.
+export function parseFitMode(value: string | null | undefined): FitMode {
+  const v = (value ?? '').trim().toLowerCase()
+  if (v === 'shadow' || v === 'indb' || v === 'legacy') return v
+  return DEFAULT_FIT_MODE
+}
+
+// Postgres statement timeouts (the ~8s platform per-statement limit) surface
+// through PostgREST as 57014 "canceling statement due to statement timeout".
+// NOT retried by isRetryableRpcError — they mean the statement is too big;
+// the pipeline responds by halving its batch size instead of retrying blind.
+export function isStatementTimeoutMessage(message: string): boolean {
+  return /canceling statement due to statement timeout|statement timeout/i.test(message)
+}
+
+// Parity check between the served (JS) fit and the in-DB fit: max |Δ log
+// score| over coaster ids present in BOTH boards (log-space so a 1.03 vs
+// 1.04 wobble weighs the same as a 500 vs 503 move), plus board-membership
+// mismatches — which would mean the maintained pair totals diverged from the
+// live aggregation (a maintenance bug signature, not a fit bug).
+export type ScoreRowLike = { id: string; score: number }
+
+export type ParityResult = {
+  maxLogDelta: number
+  common: number
+  jsOnly: number
+  dbOnly: number
+}
+
+// Board disagreement is never acceptable; score deltas below this are float
+// noise from the two fixed-point solvers (the measured bench parity was
+// 5.6e-9 — three orders below).
+export const PARITY_DELTA_THRESHOLD = 1e-6
+
+export function computeParity(jsRows: ScoreRowLike[], dbRows: ScoreRowLike[]): ParityResult {
+  const js = new Map(jsRows.map((r) => [r.id, r.score]))
+  const db = new Map(dbRows.map((r) => [r.id, r.score]))
+  let maxLogDelta = 0
+  let common = 0
+  for (const [id, jsScore] of js) {
+    const dbScore = db.get(id)
+    if (dbScore === undefined) continue
+    common++
+    const delta = Math.abs(Math.log(jsScore) - Math.log(dbScore))
+    if (delta > maxLogDelta) maxLogDelta = delta
+  }
+  return {
+    maxLogDelta,
+    common,
+    jsOnly: jsRows.length - common,
+    dbOnly: dbRows.length - common,
+  }
+}
+
+export function parityOk(parity: ParityResult): boolean {
+  return parity.jsOnly === 0 && parity.dbOnly === 0 && parity.maxLogDelta < PARITY_DELTA_THRESHOLD
 }
