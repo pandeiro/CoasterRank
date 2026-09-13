@@ -9,6 +9,11 @@ observing the Bradley-Terry pipeline, and admin-queue testing. The CLI lives in
 - **Targets prod (`.env`) by default.** Any other project via
   `--db-url / --supabase-url / --service-key`. The banner on every run shows exactly which
   project it is touching (prod is flagged ⚠️).
+- **Every command requires `--prod` when the target is (or may be) production** —
+  including read-only `report`. The target counts as production when its project ref
+  matches `$PROJECT_REF`; when `$PROJECT_REF` is unset or the ref is unparseable the
+  CLI fails closed and demands `--prod` anyway. Retarget a throwaway project with
+  `--db-url` / `--supabase-url` to skip the flag.
 - **Synthetic users carry two markers** (either suffices):
   1. email on the `@test.coasterrank.dev` domain — **use this convention when signing up manual
      test users through the UI**;
@@ -24,29 +29,37 @@ observing the Bradley-Terry pipeline, and admin-queue testing. The CLI lives in
 ```bash
 cd scripts
 
-npm run testride:seed -- --users 20 --rides 10-25 --apply   # users ranked M random coasters each
-npm run testride:seed -- --users 5 --apply                  # users with no rides (impersonation-only)
-npm run testride:seed -- --users 500 --rides 30 --apply     # heavy run
-npm run testride:seed -- --users 3 --rides 10 --unranked 2 --with-submissions --apply
+npm run testride:seed -- --users 20 --rides 10-25 --apply --prod   # realistic ranked lists (see below)
+npm run testride:seed -- --users 5 --apply --prod                  # users with no rides (impersonation-only)
+npm run testride:seed -- --users 500 --rides 30 --apply --prod     # heavy run
+npm run testride:seed -- --users 3 --rides 10 --unranked 2 --with-submissions --apply --prod
 
-npm run testride:report                                     # synthetic + recent users, what each owns
-npm run testride:cleanup -- --synthetic                     # preview; add --yes to delete
-npm run testride:confirm -- --email x@test.coasterrank.dev --apply
-npm run testride:recompute                                  # on-demand recompute (service-role invoke)
+npm run testride:report -- --prod                                 # synthetic + recent users, what each owns
+npm run testride:cleanup -- --synthetic --prod                     # preview; add --yes to delete
+npm run testride:confirm -- --email x@test.coasterrank.dev --apply --prod
+npm run testride:recompute -- --prod                              # on-demand recompute (service-role invoke)
 ```
 
-Seed flags: `--users` (required; creates N _additional_ synthetic users, continuing numbering after the highest existing mock_XXXX user), `--rides <n|min-max>` (random distinct coasters per user,
+Seed flags: `--users` (required; creates N _additional_ synthetic users, continuing numbering after the highest existing mock_XXXX user), `--rides <n|min-max>` (ranked coasters per user,
 ranked `1..M`; omit = no rides), `--unranked <n>` (ridden-but-unranked extras), `--with-submissions`
 (one pending submission per user), `--seed <n>` (deterministic per batch; rides are
-`ON CONFLICT DO NOTHING`).
+`ON CONFLICT DO NOTHING`), `--uniform` (legacy pure-uniform random counts/shuffle instead of
+the realistic defaults).
+
+Realistic defaults (seed): list lengths are right-skewed (lognormal, median ~10, clamped to
+the `--rides` bounds — a single `--rides N` stays exact), and coaster inclusion/ordering is
+shared-popularity-biased: one latent quality per coaster per run, each user's ranking is
+quality + per-user noise. Famous coasters recur and rank high across users, so the fitted
+BT board spreads meaningfully instead of collapsing to ~1.0 everywhere as it does under
+independent uniform shuffles.
 
 ## Scenarios
 
 ### 1. Populate the board at a chosen scale (watch BT work)
 
 ```bash
-npm run testride:seed -- --users 20 --rides 10-25 --apply
-npm run testride:recompute        # or wait ≤15 min for the cron, or click "Recompute now" on /admin
+npm run testride:seed -- --users 20 --rides 10-25 --apply --prod
+npm run testride:recompute -- --prod        # or wait ≤15 min for the cron, or click "Recompute now" on /admin
 ```
 
 Examine the results on the board (ordering, "few votes" badges), coaster detail pages
@@ -68,7 +81,7 @@ crank `--rides`, not just `--users`.
 ### 2. Exercise the UI as a mock user (impersonation)
 
 ```bash
-npm run testride:seed -- --users 5 --apply     # or with rides for ranking flows
+npm run testride:seed -- --users 5 --apply --prod     # or with rides for ranking flows
 ```
 
 Then in the app: `/admin` → **Assume identity** → "Assume" on a user. You are now that user
@@ -85,7 +98,7 @@ Everything written lands on the marked user and is cleanup-able.
 Sign up through the UI as `anything@test.coasterrank.dev`, then:
 
 ```bash
-npm run testride:confirm -- --email anything@test.coasterrank.dev --apply
+npm run testride:confirm -- --email anything@test.coasterrank.dev --apply --prod
 ```
 
 (Confirming a _non_-synthetic email requires `--any-email` — it would verify an account you may
@@ -94,7 +107,7 @@ not own.) These users carry marker 1, so bulk cleanup finds them too.
 ### 4. Admin-queue testing
 
 ```bash
-npm run testride:seed -- --users 3 --rides 10 --with-submissions --apply
+npm run testride:seed -- --users 3 --rides 10 --with-submissions --apply --prod
 ```
 
 Each seeded user gets a pending submission → work the queue on `/admin` → **Submissions**.
@@ -104,10 +117,10 @@ row that survives user cleanup.
 ### 5. Getting back to the pre-mock state
 
 ```bash
-npm run testride:cleanup -- --synthetic     # preview: targets, cascade counts, storage files
-npm run testride:cleanup -- --synthetic --yes
-npm run testride:recompute
-npm run testride:report                     # verify: synthetic (either marker): 0
+npm run testride:cleanup -- --synthetic --prod     # preview: targets, cascade counts, storage files
+npm run testride:cleanup -- --synthetic --yes --prod
+npm run testride:recompute -- --prod
+npm run testride:report -- --prod                     # verify: synthetic (either marker): 0
 ```
 
 Inverse map — what deleting the `auth.users` rows does:
@@ -126,9 +139,9 @@ remains — synthetic influence simply disappears.
 ### 6. Before launch: verify zero synthetic users
 
 ```bash
-npm run testride:report
+npm run testride:report -- --prod
 ```
 
 The shared test password means no synthetic user may survive to public launch. `report` showing
 `0` synthetic (with no marker-drift warnings) is the gate. Surgical stragglers:
-`testride:cleanup -- --emails <address> --yes`.
+`testride:cleanup -- --emails <address> --yes --prod`.

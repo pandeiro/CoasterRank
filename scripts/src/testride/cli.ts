@@ -12,6 +12,7 @@
 import { Command } from 'commander'
 import {
   closeConnections,
+  requireProdConsent,
   resolveConnections,
   type ConnOptions,
   type Connections,
@@ -24,9 +25,11 @@ import { runRecompute } from './recompute'
 
 async function runAction(
   opts: ConnOptions,
+  cmdName: string,
   fn: (conns: Connections) => Promise<void>,
 ): Promise<void> {
   const conns = resolveConnections(opts)
+  requireProdConsent(conns, opts.prod, cmdName)
   try {
     await fn(conns)
   } finally {
@@ -76,6 +79,7 @@ const withConn = (cmd: Command): Command =>
     .option('--db-url <url>', 'Postgres connection string (default: $SUPABASE_DB_URL)')
     .option('--supabase-url <url>', 'Supabase project URL (default: $SUPABASE_URL)')
     .option('--service-key <key>', 'Service-role key (default: $SUPABASE_SERVICE_ROLE_KEY)')
+    .option('--prod', 'acknowledge the target is (or may be) production', false)
 
 interface SeedCliOpts extends ConnOptions {
   users: string
@@ -83,6 +87,7 @@ interface SeedCliOpts extends ConnOptions {
   unranked: string
   seed: string
   withSubmissions: boolean
+  uniform: boolean
   apply: boolean
 }
 
@@ -96,6 +101,11 @@ withConn(program.command('seed'))
   .option('--unranked <n>', 'extra ridden-but-unranked coasters per user', '0')
   .option('--seed <n>', 'PRNG seed for deterministic generation', '42')
   .option(
+    '--uniform',
+    'legacy uniform random counts/shuffle instead of the realistic defaults',
+    false,
+  )
+  .option(
     '--with-submissions',
     'also create a pending submission per user (admin-queue testing)',
     false,
@@ -108,9 +118,10 @@ withConn(program.command('seed'))
       unranked: parseIntArg(raw.unranked, 'unranked'),
       seed: parseIntArg(raw.seed, 'seed'),
       withSubmissions: raw.withSubmissions,
+      uniform: raw.uniform,
       apply: raw.apply,
     }
-    await runAction(raw, (conns) => runSeed(conns, opts))
+    await runAction(raw, 'seed', (conns) => runSeed(conns, opts))
   })
 
 interface ReportCliOpts extends ConnOptions {
@@ -123,7 +134,7 @@ withConn(program.command('report'))
   .option('--all', 'list all users (up to --limit) instead of synthetic + 15 recent', false)
   .option('--limit <n>', 'max users listed with --all', '100')
   .action(async (raw: ReportCliOpts) => {
-    await runAction(raw, (conns) =>
+    await runAction(raw, 'report', (conns) =>
       runReport(conns, { all: raw.all, limit: parseIntArg(raw.limit, 'limit') }),
     )
   })
@@ -146,7 +157,7 @@ withConn(program.command('cleanup'))
       console.error('Error: pass --synthetic, --emails, or --ids (at least one target).')
       process.exit(1)
     }
-    await runAction(raw, (conns) =>
+    await runAction(raw, 'cleanup', (conns) =>
       runCleanup(conns, {
         synthetic: raw.synthetic,
         emails: raw.emails,
@@ -170,7 +181,7 @@ withConn(program.command('confirm'))
   .option('--any-email', 'allow confirming a non-synthetic email (dangerous)', false)
   .option('--apply', 'write to the database', false)
   .action(async (raw: ConfirmCliOpts) => {
-    await runAction(raw, (conns) =>
+    await runAction(raw, 'confirm', (conns) =>
       runConfirm(conns, {
         email: raw.email,
         synthetic: raw.synthetic,
@@ -183,7 +194,7 @@ withConn(program.command('confirm'))
 withConn(program.command('recompute'))
   .description('Invoke the recompute-rankings Edge Function (service-role).')
   .action(async (raw: ConnOptions) => {
-    await runAction(raw, (conns) => runRecompute(conns))
+    await runAction(raw, 'recompute', (conns) => runRecompute(conns))
   })
 
 program.parseAsync(process.argv).catch((err: unknown) => {

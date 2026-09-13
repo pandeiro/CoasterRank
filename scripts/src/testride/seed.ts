@@ -11,6 +11,13 @@
 // user), --unranked, --with-submissions. Dry-run by default; --apply writes.
 // Purely additive: --users N creates N *additional* synthetic users, continuing
 // numbering after the highest existing mock-XXXX user.
+//
+// Realism (default): list lengths are right-skewed (lognormal, clamped to the
+// --rides bounds) and coaster inclusion/ordering is shared-popularity-biased:
+// one global latent quality per coaster per run, each user's ranking = quality
+// + per-user noise (Thurstone-style), so famous coasters recur and rank high
+// across users instead of every list being an independent uniform shuffle.
+// --uniform restores the legacy uniform counts/shuffle exactly.
 import { randomUUID } from 'node:crypto'
 import type { Pool } from 'pg'
 import { printBanner, requirePool, type Connections } from './connections'
@@ -29,6 +36,7 @@ export interface SeedOptions {
   unranked: number
   seed: number
   withSubmissions: boolean
+  uniform: boolean
   apply: boolean
 }
 
@@ -56,8 +64,23 @@ interface RideCounts {
   unranked: number
 }
 
-function rideCounts(rng: Rng, rides: RideSpec, unranked: number): RideCounts {
-  return { ranked: rng.int(rides.min, rides.max), unranked }
+// Right-skewed list-length sampler: lognormal with median ~10 (mu=2.3) and
+// sigma=0.8 (p90 ~28), clamped to the --rides bounds. Exact bounds (min==max,
+// including 0 = no rides) stay exact; --uniform bypasses this entirely.
+export const LIST_LENGTH_MU = 2.3
+export const LIST_LENGTH_SIGMA = 0.8
+
+export function realisticRankedCount(rng: Rng, rides: RideSpec): number {
+  if (rides.max <= 0 || rides.min >= rides.max) return Math.max(0, rides.min)
+  const sampled = Math.round(Math.exp(rng.gaussian(LIST_LENGTH_MU, LIST_LENGTH_SIGMA)))
+  return Math.min(rides.max, Math.max(rides.min, sampled))
+}
+
+function rideCounts(rng: Rng, rides: RideSpec, unranked: number, uniform: boolean): RideCounts {
+  return {
+    ranked: uniform ? rng.int(rides.min, rides.max) : realisticRankedCount(rng, rides),
+    unranked,
+  }
 }
 
 interface GenUser {
@@ -75,13 +98,14 @@ function generateUsers(
   unranked: number,
   count: number,
   startOffset = 0,
+  uniform = false,
 ): GenUser[] {
   const users: GenUser[] = []
   for (let i = 0; i < count; i++) {
     const num = startOffset + i + 1
     // profiles_username_format_check enforces ^[a-z0-9_]{3,20}$ — underscore, not hyphen.
     const username = `mock_${String(num).padStart(4, '0')}`
-    const counts = rideCounts(rng, rides, unranked)
+    const counts = rideCounts(rng, rides, unranked, uniform)
     users.push({
       id: randomUUID(),
       email: syntheticEmail(username),
@@ -203,24 +227,90 @@ interface RideRow {
   rank: number | null
 }
 
-function planRides(
+// Shared-popularity model (Thurstone-style):
+//   - one global latent quality q_i ~ Normal(0, 1) per coaster per run,
+//   - inclusion weight w_i = exp(q_i / POPULARITY_TEMPERATURE): famous
+//     coasters are ridden by many users, obscure ones by few,
+//   - each user's ordering = q_i + Normal(0, RIDER_NOISE): correlated across
+//     users (real disagreement) instead of independent uniform shuffles.
+export const POPULARITY_TEMPERATURE = 1.0
+export const RIDER_NOISE = 1.0
+
+// Deterministic in coaster-id order so the same --seed always yields the same
+// board no matter how many users are seeded.
+export function assignQualities(rng: Rng, coasterIds: readonly string[]): Map<string, number> {
+  const qualities = new Map<string, number>()
+  for (const id of coasterIds) qualities.set(id, rng.gaussian(0, 1))
+  return qualities
+}
+
+function popularityWeights(qualities: ReadonlyMap<string, number>): Map<string, number> {
+  const weights = new Map<string, number>()
+  for (const [id, q] of qualities) weights.set(id, Math.exp(q / POPULARITY_TEMPERATURE))
+  return weights
+}
+
+// Weighted sampling without replacement (Efraimidis–Spirakis: key = u^(1/w)).
+export function weightedSample(
+  rng: Rng,
+  ids: readonly string[],
+  weights: ReadonlyMap<string, number>,
+  n: number,
+): string[] {
+  const scored = ids.map((id) => {
+    const w = Math.max(weights.get(id) ?? 0, 1e-9)
+    return { id, key: Math.pow(rng.float(), 1 / w) }
+  })
+  scored.sort((a, b) => b.key - a.key)
+  return scored.slice(0, Math.max(0, Math.min(n, scored.length))).map((s) => s.id)
+}
+
+// One user's ranking of an already-chosen set: latent quality + per-rider
+// noise, sorted best-first.
+export function orderForUser(
+  rng: Rng,
+  qualities: ReadonlyMap<string, number>,
+  picked: readonly string[],
+): string[] {
+  return [...picked]
+    .map((id) => ({ id, s: (qualities.get(id) ?? 0) + rng.gaussian(0, RIDER_NOISE) }))
+    .sort((a, b) => b.s - a.s)
+    .map((r) => r.id)
+}
+
+export function planRides(
   rng: Rng,
   users: readonly GenUser[],
   idByEmail: Map<string, string>,
   coasterIds: readonly string[],
+  uniform = false,
 ): RideRow[] {
   const rows: RideRow[] = []
+  const qualities = uniform ? null : assignQualities(rng, coasterIds)
+  const weights = qualities ? popularityWeights(qualities) : null
   for (const u of users) {
     const userId = idByEmail.get(u.email)
     if (!userId) continue
-    const picked = rng.shuffle(coasterIds)
     const ranked = Math.min(u.ranked, coasterIds.length)
-    for (let r = 0; r < ranked; r++) {
-      rows.push({ userId, coasterId: picked[r] as string, rank: r + 1 })
+    const total = Math.min(u.ranked + u.unranked, coasterIds.length)
+    if (uniform) {
+      const picked = rng.shuffle(coasterIds)
+      for (let r = 0; r < ranked; r++) {
+        rows.push({ userId, coasterId: picked[r] as string, rank: r + 1 })
+      }
+      for (let k = 0; k < u.unranked; k++) {
+        const coasterId = picked[ranked + k]
+        if (!coasterId) break
+        rows.push({ userId, coasterId, rank: null })
+      }
+      continue
     }
-    for (let k = 0; k < u.unranked; k++) {
-      const coasterId = picked[ranked + k]
-      if (!coasterId) break
+    const picked = weightedSample(rng, coasterIds, weights as Map<string, number>, total)
+    const ordered = orderForUser(rng, qualities as Map<string, number>, picked.slice(0, ranked))
+    for (let r = 0; r < ordered.length; r++) {
+      rows.push({ userId, coasterId: ordered[r] as string, rank: r + 1 })
+    }
+    for (const coasterId of picked.slice(ranked)) {
       rows.push({ userId, coasterId, rank: null })
     }
   }
@@ -277,7 +367,11 @@ async function insertSubmissions(
 export async function runSeed(conns: Connections, opts: SeedOptions): Promise<void> {
   const ridesLabel =
     opts.rides.min === opts.rides.max ? `${opts.rides.min}` : `${opts.rides.min}-${opts.rides.max}`
-  printBanner(`seed (users: ${opts.users}, rides: ${ridesLabel}, apply: ${opts.apply})`, conns)
+  const modeLabel = opts.uniform ? 'uniform' : 'realistic'
+  printBanner(
+    `seed (users: ${opts.users}, rides: ${ridesLabel}, mode: ${modeLabel}, apply: ${opts.apply})`,
+    conns,
+  )
   const pool = requirePool(conns)
 
   const coasterRes = await pool.query<{ count: number }>(
@@ -291,14 +385,14 @@ export async function runSeed(conns: Connections, opts: SeedOptions): Promise<vo
 
   const maxExisting = await maxExistingUsernameNumber(pool)
   const rng = makeRng(opts.seed)
-  const users = generateUsers(rng, opts.rides, opts.unranked, opts.users, maxExisting)
+  const users = generateUsers(rng, opts.rides, opts.unranked, opts.users, maxExisting, opts.uniform)
   const totalRanked = users.reduce((acc, u) => acc + u.ranked, 0)
   const totalUnranked = users.reduce((acc, u) => acc + u.unranked, 0)
 
   console.log(
     `users         : ${maxExisting} existing + ${users.length} new = ${maxExisting + users.length} total`,
   )
-  console.log(`rides per user: ${ridesLabel} ranked + ${opts.unranked} unranked`)
+  console.log(`rides per user: ${ridesLabel} ranked + ${opts.unranked} unranked (${modeLabel})`)
   console.log(
     `rides planned : ${totalRanked} ranked + ${totalUnranked} unranked (coasters available: ${coasterCount})`,
   )
@@ -310,7 +404,7 @@ export async function runSeed(conns: Connections, opts: SeedOptions): Promise<vo
   const { created, idByEmail } = await insertUsers(pool, users)
   const coasterRows = await pool.query<{ id: string }>('select id from coasters order by id')
   const coasterIds = coasterRows.rows.map((r) => r.id)
-  const rides = planRides(rng, users, idByEmail, coasterIds)
+  const rides = planRides(rng, users, idByEmail, coasterIds, opts.uniform)
   const ridesInserted = await insertRides(pool, rides)
   const submissionsCreated = opts.withSubmissions
     ? await insertSubmissions(pool, users, idByEmail)
