@@ -133,7 +133,11 @@ export default function RiderPage() {
             className="shrink-0"
           />
           <div className="min-w-0">
-            <h1 className="display-heading truncate text-3xl text-ink sm:text-4xl">
+            {/* Racing Sans One's left side-bearing overhangs the em box
+                (a leading lowercase "p" visibly clips), and truncate needs
+                overflow-hidden — so the box extends 4px left while the text
+                starts at the same x: same layout, room for the glyph. */}
+            <h1 className="display-heading -ml-1 truncate pl-1 text-3xl text-ink sm:text-4xl">
               {displayName}
             </h1>
             <p className="mt-1 text-sm text-muted">
