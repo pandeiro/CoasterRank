@@ -112,7 +112,7 @@ export default function CountriesPage() {
   const pageUrl = `${window.location.origin}/countries`
 
   return (
-    <div className="mx-auto max-w-5xl py-8">
+    <div className="py-8">
       <Helmet>
         <title>{META_TITLE}</title>
         <meta name="description" content={META_DESCRIPTION} />
