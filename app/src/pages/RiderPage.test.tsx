@@ -122,20 +122,29 @@ describe('RiderPage', () => {
     expect(screen.getByText('Coaster Fan')).toBeInTheDocument()
     expect(screen.getByText(/@coaster_fan/)).toBeInTheDocument()
     expect(screen.getByText(/member since 2024/)).toBeInTheDocument()
-    // Stats live in the hero's right-hand stack (one line each: volume, top
-    // park, builder preference) — no separate stats row. Spotlights mirror
-    // the OG card (top park across all rides, top builder from the top 10);
-    // "#1 pick" is gone — the table right below already shows it.
+    // No eyebrow, no card chrome: the name leads, emoji-led stats stack to
+    // the side. Spotlights mirror the OG card (top park across all rides,
+    // top builder from the top 10); "#1 pick" is gone — the table right
+    // below already shows the top-ranked coaster.
+    expect(screen.queryByText('Rider ranking')).not.toBeInTheDocument()
     expect(screen.getByText('Steel Vengeance')).toBeInTheDocument()
     expect(screen.getByText('Fury 325')).toBeInTheDocument()
-    // Cedar Point appears in both the Top park line and the ride list.
+    // Cedar Point appears in both the top-park line and the ride list.
     expect(screen.getAllByText('Cedar Point').length).toBeGreaterThan(1)
-    expect(screen.getByTestId('rider-stats-volume')).toHaveTextContent('2 rides at 2 parks')
-    expect(screen.getByTestId('rider-stats-top-park')).toHaveTextContent('Top park')
-    expect(screen.getByTestId('rider-stats-top-builder')).toHaveTextContent('Likes')
-    expect(screen.getByText('Rocky Mountain Construction')).toBeInTheDocument()
+    expect(screen.getByTestId('rider-stats-rides')).toHaveTextContent('2 rides')
+    expect(screen.getByTestId('rider-stats-parks')).toHaveTextContent('2 parks')
+    expect(screen.getByTestId('rider-stats-top-park')).toHaveTextContent('Cedar Point')
+    // Enthusiast-short builder name (RMC), full name on the title attribute.
+    expect(screen.getByTestId('rider-stats-top-builder')).toHaveTextContent('RMC fan')
+    expect(screen.getByTestId('rider-stats-top-builder')).toHaveTextContent('1 coaster')
+    expect(screen.getByTestId('rider-stats-top-builder')).toHaveAttribute(
+      'title',
+      'Rocky Mountain Construction (1 of top 10)',
+    )
     expect(screen.queryByText('#1 pick')).not.toBeInTheDocument()
     expect(screen.getByText('Build your own ranking')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Rank My Rides' })).toHaveAttribute('href', '/signup')
+    expect(screen.queryByText('Sign up free')).not.toBeInTheDocument()
   })
 
   it('hides the signup CTA for logged-in users', () => {
@@ -151,7 +160,7 @@ describe('RiderPage', () => {
     })
 
     expect(screen.queryByText('Build your own ranking')).not.toBeInTheDocument()
-    expect(screen.queryByText('Sign up free')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Rank My Rides' })).not.toBeInTheDocument()
   })
 
   it('sets human-facing title and meta description via helmet', async () => {
@@ -254,9 +263,10 @@ describe('RiderPage', () => {
     renderAt()
 
     expect(screen.getByText('No coasters ranked yet.')).toBeInTheDocument()
-    // With no rides the hero shows just the volume line; the park/builder
-    // lines are omitted (no em-dash placeholders).
-    expect(screen.getByTestId('rider-stats-volume')).toHaveTextContent('0 rides at 0 parks')
+    // With no rides the hero shows just the rides/parks lines; the
+    // park/builder lines are omitted (no em-dash placeholders).
+    expect(screen.getByTestId('rider-stats-rides')).toHaveTextContent('0 rides')
+    expect(screen.getByTestId('rider-stats-parks')).toHaveTextContent('0 parks')
     expect(screen.queryByTestId('rider-stats-top-park')).not.toBeInTheDocument()
     expect(screen.queryByTestId('rider-stats-top-builder')).not.toBeInTheDocument()
   })

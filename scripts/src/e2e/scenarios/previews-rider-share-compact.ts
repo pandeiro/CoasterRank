@@ -178,7 +178,7 @@ async function main(): Promise<void> {
         })
         await page.goto('http://localhost:5199/riders/preview_rider')
         await waitForVisible(page, 'main')
-        await waitForVisible(page, '[data-testid="rider-stats-volume"]')
+        await waitForVisible(page, '[data-testid="rider-stats-rides"]')
         await waitForVisible(page, 'text=Build your own ranking')
         console.log(`[${SLUG}/rider-page-${kind}] prodReads:`, JSON.stringify(handle.prodReads()))
         return page

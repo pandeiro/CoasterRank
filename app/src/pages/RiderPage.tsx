@@ -4,6 +4,7 @@ import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
 import { MessageState, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
 import { manufacturerSpotlight, topSpotlight } from '../lib/og-svg'
 import { riderPageUrl, useRiderPage, isValidRiderUsername } from '../lib/rider'
 import { truncate } from '../lib/truncate'
@@ -84,6 +85,10 @@ export default function RiderPage() {
   // "#1 pick" stat; the ranked table right below already shows it.
   const topPark = topSpotlight(rides, 'park_name')
   const topBuilder = manufacturerSpotlight(rides, 10)
+  // Enthusiast-short builder name for the "X fan" line (B&M, RMC, GCI, CCI);
+  // the full name stays on the title attribute, same contract as the board.
+  const builderName = topBuilder?.name ?? null
+  const builderAbbr = builderName ? (MANUFACTURER_ABBREVIATIONS[builderName] ?? builderName) : null
   const topNames = rides.slice(0, 3).map((r) => truncate(r.name, 40))
   const parkCount = new Set(rides.map((r) => r.park_name).filter(Boolean)).size
   const memberSince = yearOf(profile.member_since)
@@ -114,23 +119,19 @@ export default function RiderPage() {
         <meta name="twitter:image" content={ogImage} />
       </Helmet>
 
-      {/* Hero — identity on the left, the three summary stats tucked into
-          the header's right-hand gap (one line each: volume, top park,
-          builder preference) so a top-10 screenshot stays tight with no
-          separate stats row. Stacks below the identity on mobile. */}
-      <Panel className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+      {/* Hero — bare identity + a four-line stats stack (no card chrome, no
+          eyebrow): the name leads, emoji-led stats tuck into the right-hand
+          gap. Stacks below the identity on mobile. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
           <Avatar
             src={profile.avatar_url}
             userId={profile.username}
-            size={72}
+            size={90}
             className="shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
-              Rider ranking
-            </p>
-            <h1 className="display-heading mt-1 truncate text-3xl text-ink sm:text-4xl">
+            <h1 className="display-heading truncate text-3xl text-ink sm:text-4xl">
               {displayName}
             </h1>
             <p className="mt-1 text-sm text-muted">
@@ -139,40 +140,43 @@ export default function RiderPage() {
             </p>
           </div>
         </div>
-        <div className="min-w-0 space-y-0.5 border-t border-line/70 pt-3 text-sm leading-snug sm:w-60 sm:shrink-0 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-          <p className="truncate" data-testid="rider-stats-volume">
-            <span className="font-semibold tabular-nums text-coral-text">{rides.length}</span>{' '}
-            <span className="text-muted">{rides.length === 1 ? 'ride' : 'rides'} at </span>
-            <span className="font-semibold tabular-nums text-accent-text">{parkCount}</span>{' '}
+        <div className="min-w-0 space-y-1 border-t border-line/70 pt-3 text-sm leading-snug sm:w-60 sm:shrink-0 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+          <p className="truncate" data-testid="rider-stats-rides">
+            <span aria-hidden="true">🎢 </span>
+            <span className="font-semibold tabular-nums text-ink">{rides.length}</span>{' '}
+            <span className="text-muted">{rides.length === 1 ? 'ride' : 'rides'}</span>
+          </p>
+          <p className="truncate" data-testid="rider-stats-parks">
+            <span aria-hidden="true">🗺️ </span>
+            <span className="font-semibold tabular-nums text-ink">{parkCount}</span>{' '}
             <span className="text-muted">{parkCount === 1 ? 'park' : 'parks'}</span>
           </p>
           {topPark && (
             <p
               className="truncate"
               data-testid="rider-stats-top-park"
-              title={`Top park: ${topPark.name} (${topPark.count} ridden)`}
+              title={`Top park: ${topPark.name} (${topPark.count} rides)`}
             >
-              <span className="text-muted">Top park · </span>
+              <span aria-hidden="true">📍 </span>
               <span className="font-medium text-ink">{topPark.name}</span>{' '}
               <span className="text-xs tabular-nums text-muted">· {topPark.count}</span>
             </p>
           )}
-          {topBuilder && (
+          {topBuilder && builderName && builderAbbr && (
             <p
               className="truncate"
               data-testid="rider-stats-top-builder"
-              title={`Likes ${topBuilder.name} (${topBuilder.count} in top 10)`}
+              title={`${builderName} (${topBuilder.count} of top 10)`}
             >
-              <span aria-hidden="true" className="font-semibold text-coral">
-                ♥{' '}
+              <span aria-hidden="true">🩵 </span>
+              <span className="font-medium text-ink">{builderAbbr} fan</span>{' '}
+              <span className="text-xs tabular-nums text-muted">
+                · {topBuilder.count} {topBuilder.count === 1 ? 'coaster' : 'coasters'}
               </span>
-              <span className="text-muted">Likes </span>
-              <span className="font-medium text-ink">{topBuilder.name}</span>{' '}
-              <span className="text-xs tabular-nums text-muted">· {topBuilder.count}</span>
             </p>
           )}
         </div>
-      </Panel>
+      </div>
 
       {/* The list sits right under the hero now that the stats live inside
           it — mt-4 keeps the top 10 tight for screenshots. */}
@@ -187,23 +191,31 @@ export default function RiderPage() {
       </div>
 
       {/* Growth loop: every shared visit is a signup opportunity — but only
-          pitch it to visitors who can actually sign up. */}
+          pitch it to visitors who can actually sign up. Accent-tinted card
+          (same treatment as the coaster detail top card — plain div, not
+          Panel, so the tint wins), two columns with the button standing
+          alone on the right to save vertical space. */}
       {!user && (
-        <Panel className="mt-8 flex flex-col items-center gap-3 p-6 text-center">
-          <h2 className="display-heading text-2xl text-ink">Build your own ranking</h2>
-          <p className="max-w-md text-sm text-muted">
-            Rank the coasters you&apos;ve ridden and get a shareable page just like this one.
-          </p>
-          <Link
-            to="/signup"
-            className="mt-1 rounded-full bg-coral-text px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-coral-text/90"
-          >
-            Sign up free
-          </Link>
-          <Link to="/" className="text-sm font-medium text-ink underline-offset-4 hover:underline">
-            See the live board
-          </Link>
-        </Panel>
+        <div className="mt-8 rounded-xl border border-accent/30 bg-accent/10 p-5 shadow-panel sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="display-heading text-2xl text-ink">Build your own ranking</h2>
+              <p className="mt-1 max-w-md text-sm text-muted">
+                Rank the coasters you&apos;ve ridden and get a shareable page just like this one. Or{' '}
+                <Link to="/" className="font-medium text-ink underline-offset-4 hover:underline">
+                  see the live board
+                </Link>
+                .
+              </p>
+            </div>
+            <Link
+              to="/signup"
+              className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-strong sm:self-center"
+            >
+              Rank My Rides
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   )
