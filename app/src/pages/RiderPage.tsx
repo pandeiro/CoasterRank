@@ -2,7 +2,6 @@ import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
-import StatBlock from '../components/StatBlock'
 import { MessageState, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import { manufacturerSpotlight, topSpotlight } from '../lib/og-svg'
@@ -115,33 +114,69 @@ export default function RiderPage() {
         <meta name="twitter:image" content={ogImage} />
       </Helmet>
 
-      {/* Hero */}
-      <Panel className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
-        <Avatar src={profile.avatar_url} userId={profile.username} size={72} />
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
-            Rider ranking
+      {/* Hero — identity on the left, the three summary stats tucked into
+          the header's right-hand gap (one line each: volume, top park,
+          builder preference) so a top-10 screenshot stays tight with no
+          separate stats row. Stacks below the identity on mobile. */}
+      <Panel className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+          <Avatar
+            src={profile.avatar_url}
+            userId={profile.username}
+            size={72}
+            className="shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-text">
+              Rider ranking
+            </p>
+            <h1 className="display-heading mt-1 truncate text-3xl text-ink sm:text-4xl">
+              {displayName}
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              @{profile.username}
+              {memberSince !== null && <> · member since {memberSince}</>}
+            </p>
+          </div>
+        </div>
+        <div className="min-w-0 space-y-0.5 border-t border-line/70 pt-3 text-sm leading-snug sm:w-60 sm:shrink-0 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+          <p className="truncate" data-testid="rider-stats-volume">
+            <span className="font-semibold tabular-nums text-coral-text">{rides.length}</span>{' '}
+            <span className="text-muted">{rides.length === 1 ? 'ride' : 'rides'} at </span>
+            <span className="font-semibold tabular-nums text-accent-text">{parkCount}</span>{' '}
+            <span className="text-muted">{parkCount === 1 ? 'park' : 'parks'}</span>
           </p>
-          <h1 className="display-heading mt-1 truncate text-3xl text-ink sm:text-4xl">
-            {displayName}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            @{profile.username}
-            {memberSince !== null && <> · member since {memberSince}</>}
-          </p>
+          {topPark && (
+            <p
+              className="truncate"
+              data-testid="rider-stats-top-park"
+              title={`Top park: ${topPark.name} (${topPark.count} ridden)`}
+            >
+              <span className="text-muted">Top park · </span>
+              <span className="font-medium text-ink">{topPark.name}</span>{' '}
+              <span className="text-xs tabular-nums text-muted">· {topPark.count}</span>
+            </p>
+          )}
+          {topBuilder && (
+            <p
+              className="truncate"
+              data-testid="rider-stats-top-builder"
+              title={`Likes ${topBuilder.name} (${topBuilder.count} in top 10)`}
+            >
+              <span aria-hidden="true" className="font-semibold text-coral">
+                ♥{' '}
+              </span>
+              <span className="text-muted">Likes </span>
+              <span className="font-medium text-ink">{topBuilder.name}</span>{' '}
+              <span className="text-xs tabular-nums text-muted">· {topBuilder.count}</span>
+            </p>
+          )}
         </div>
       </Panel>
 
-      {/* Micro-stats */}
-      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatBlock label="Ranked" value={rides.length} />
-        <StatBlock label="Parks" value={parkCount} />
-        <StatBlock label="Top park" value={topPark ? topPark.name : '—'} />
-        <StatBlock label="Top builder" value={topBuilder ? topBuilder.name : '—'} />
-      </dl>
-
-      {/* The list */}
-      <div className="mt-6">
+      {/* The list sits right under the hero now that the stats live inside
+          it — mt-4 keeps the top 10 tight for screenshots. */}
+      <div className="mt-4">
         {rides.length === 0 ? (
           <MessageState>No coasters ranked yet.</MessageState>
         ) : (
