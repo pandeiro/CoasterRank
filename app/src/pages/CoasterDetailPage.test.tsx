@@ -119,7 +119,11 @@ describe('CoasterDetailPage', () => {
       '/parks/cedar-point',
     )
     expect(screen.getByText(/Sandusky, United States/)).toBeInTheDocument()
-    expect(screen.getByText(/Rocky Mountain Construction/)).toBeInTheDocument()
+    // Manufacturer moved off the identity eyebrow (park + place only) into
+    // the specs section heading, replacing the generic "Coaster details"
+    // label — it appears exactly once, as the heading.
+    expect(screen.getByRole('heading', { name: 'Rocky Mountain Construction' })).toBeInTheDocument()
+    expect(screen.getAllByText(/Rocky Mountain Construction/)).toHaveLength(1)
     // Supporting BT stats inside the panel strip.
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText('131')).toBeInTheDocument()
@@ -150,6 +154,8 @@ describe('CoasterDetailPage', () => {
   })
 
   it('links to suggest-edit and scopes the details section', () => {
+    // Default fixture has no manufacturer, so the specs heading falls back
+    // to the generic label.
     vi.mocked(useCoaster).mockReturnValue({
       data: makeRankingRow({ name: 'Steel Vengeance' }),
       isPending: false,

@@ -133,7 +133,8 @@ export default function CoasterDetailPage() {
   // view row — no parks query needed on this page.
   const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
   const openingYear = yearFromDate(coaster.opening_date)
-  // Fully unfurled manufacturer lineage (the board shows "X et al").
+  // Fully unfurled manufacturer lineage (the board shows "X et al") — heads
+  // the specs section below.
   const manufacturerLineage = lineageNames(coaster)
 
   // All eight reference facts share one label-over-value grid (no card
@@ -180,9 +181,9 @@ export default function CoasterDetailPage() {
           unreliable here. */}
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
 
-      {/* Identity block (brief §1): park · location · manufacturers (full
-          lineage), then the name in display type. The community ranking
-          lives in the panel below — before any spec data. */}
+      {/* Identity block (brief §1): park · location, then the name in display
+          type. The community ranking lives in the panel below — before any
+          spec data. */}
       <p className="text-sm text-muted">
         {coaster.park_name && coaster.park_slug && (
           <Link to={`/parks/${coaster.park_slug}`} className="font-medium text-ink hover:underline">
@@ -190,20 +191,22 @@ export default function CoasterDetailPage() {
           </Link>
         )}
         {location ? ` · ${location}` : ''}
-        {manufacturerLineage.length > 0 ? ` · ${manufacturerLineage.join(' · ')}` : ''}
       </p>
       <h1 className="display-heading mt-1 text-4xl text-ink sm:text-5xl">{coaster.name}</h1>
 
       <RankingPanel coaster={coaster} />
 
-      {/* Coaster Details (brief §6): demoted reference data — visually plain
-          whitespace-separated pairs, clearly scoped below the ranking. */}
+      {/* Specs section (brief §6): demoted reference data — visually plain
+          whitespace-separated pairs, clearly scoped below the ranking. The
+          heading carries the manufacturer lineage (full lineage, same order
+          as the board's "X et al"); unknown builders fall back to the
+          generic label so the section stays labelled. */}
       <section aria-labelledby="coaster-details-heading" className="mt-8">
         <h2
           id="coaster-details-heading"
           className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
         >
-          Coaster details
+          {manufacturerLineage.length > 0 ? manufacturerLineage.join(' · ') : 'Coaster details'}
         </h2>
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
           {specs.map((spec) => (
