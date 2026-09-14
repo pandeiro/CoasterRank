@@ -89,11 +89,11 @@ const QUESTIONS: { q: string; a: ReactNode; text: string }[] = [
   },
   {
     q: 'How often do the rankings update?',
-    text: "The whole board refits itself every 15 minutes, and there's some caching to handle surges, so your votes show up quickly — generally within half an hour or less.",
+    text: 'The board is recalculated on a regular schedule as riders update their lists, with some caching to handle surges, so your changes generally show up within minutes.',
     a: (
       <p>
-        The whole board refits itself every 15 minutes, and there's some caching to handle surges,
-        so your votes show up quickly. Generally within a half hour or less.
+        The board is recalculated on a regular schedule as riders update their lists, with some
+        caching to handle surges, so your changes generally show up within minutes.
       </p>
     ),
   },
@@ -119,11 +119,12 @@ const QUESTIONS: { q: string; a: ReactNode; text: string }[] = [
   },
   {
     q: 'Who runs this?',
-    text: "It's an open-source side project run on love of the hobby — not a company. No ads, no sales pitches. Contributions of code, data, and strong opinions are all welcome.",
+    text: 'CoasterRank is maintained by CoasterRank Contributors as a free, open-source project. There are no ads and we do not sell personal information. Contributions of code, data corrections, rankings, and feedback are all welcome.',
     a: (
       <p>
-        It&apos;s an open-source side project run on love of the hobby — not a company. No ads, no
-        sales pitches. Contributions of code, data, and strong opinions are all welcome.
+        CoasterRank is maintained by CoasterRank Contributors as a free, open-source project. There
+        are no ads and we do not sell personal information. Contributions of code, data corrections,
+        rankings, and feedback are all welcome.
       </p>
     ),
   },

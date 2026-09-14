@@ -1,17 +1,17 @@
 # CoasterRank
 
-A multi-user webapp where roller-coaster enthusiasts rank the coasters they've ridden, and every visitor sees a live global ranking derived from everyone's input.
+CoasterRank is a free, open-source leaderboard for roller coasters, ranked live by the riders who ride them. Enthusiasts rank the coasters they've ridden, and every visitor sees a public global ranking derived from everyone's input.
 
 ## Vision
 
 - **Users** sign up, mark the coasters they've ridden, and drag-sort them into a personal ranked list.
 - **Everyone** (no login required) sees a live public board of the world's coasters ordered by a principled, community-driven score — not a popularity contest, not a simple average.
-- The ranking is computed by a **Bradley-Terry** model fed from pairwise wins implied by each user's ordered list. Each user contributes roughly one unit of influence regardless of list length, so a casual fan's voice isn't drowned out by someone who's ridden 500 coasters.
+- The ranking is computed by a **Bradley-Terry** model fed from pairwise wins implied by each user's ordered list. Influence grows roughly in proportion to list length rather than pair count, so short lists still count without letting a single small list swing the board.
 - The reference catalog of coasters starts from an open, public-domain dataset and grows via an admin + community submission queue (RCDB data is intentionally avoided for licensing reasons).
 
 ## Features
 
-- **Live public board** — global ranking recomputed every 15 minutes by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required
+- **Live public board** — global ranking recomputed on a short cadence by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required
 - **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates
 - **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params
 - **Seeded and community-curated catalog** — Initially 1,087 coasters/279 parks/101 manufacturers imported from a CC0 public-domain dataset, then cleaned, deduped, growing through user submissions

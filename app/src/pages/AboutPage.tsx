@@ -4,7 +4,7 @@ import { Formula, MathDisclosure, Tex } from '../components/MathDisclosure'
 
 const META_TITLE = 'About — CoasterRank'
 const META_DESCRIPTION =
-  'CoasterRank is a free, open-source leaderboard for roller coasters, ranked live by the community with a Bradley-Terry model. Learn how the ranking works.'
+  'What CoasterRank is, how the live Bradley-Terry ranking works, and our commitments: always free, no ads, open source and open data.'
 
 export default function AboutPage() {
   const pageUrl = `${window.location.origin}/about`
@@ -37,47 +37,31 @@ export default function AboutPage() {
       </script>
       <h1 className="display-heading text-3xl text-ink">About</h1>
       <p className="mt-4 text-[17px] font-medium leading-relaxed text-ink">
-        CoasterRank is a free, open-source leaderboard for roller coasters.
+        CoasterRank is a free, open-source leaderboard for roller coasters, built from the rankings
+        of the people who ride them.
       </p>
 
       <div className="mt-8 space-y-10 text-sm leading-7 text-muted">
         <section>
-          <h2 className="section-heading mb-3">Backstory</h2>
+          <h2 className="section-heading mb-3">Our purpose</h2>
           <p>
-            Coaster lover from early on. Then I grew up, as one does. Mostly forgot about them.
-            Then, my son discovers them and we're right back in the queue, doing it all over again.
+            Our goal is to turn the community&apos;s collective experience into a useful, shared
+            resource: a place to discover coasters, compare favorites, and contribute your own
+            perspective throughout the year.
           </p>
           <p className="mt-3">
-            We discovered the communities like{' '}
-            <a
-              href="https://aceonline.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-brand"
-            >
-              ACE
-            </a>{' '}
-            and websites and youtubers and especially loved{' '}
-            <a
-              href="https://votecoasters.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link-brand"
-            >
-              VoteCoasters
-            </a>{' '}
-            -- because who doesn't love ranking stuff? When 2025 came and went without a new ranking
-            there, we missed it enough to imagine building a version that stays live and never goes
-            dark. That's the idea here.
+            Rank the coasters you&apos;ve ridden from best to worst, share your personal list, and
+            help shape the public leaderboard. You can browse the community rankings without an
+            account, and riders with a handful of coasters are as welcome as lifelong enthusiasts.
           </p>
         </section>
 
         <section>
           <h2 className="section-heading mb-3">How the ranking works</h2>
           <p>
-            When you rank the coasters here from best to worst, you're quietly casting thousands of
-            votes at once: this one over that one, that one over the next, all the way down your
-            list.
+            Your ordered list provides a set of head-to-head preferences: each coaster is preferred
+            to every coaster below it. These comparisons let us combine different riders&apos; lists
+            without asking everyone to agree on a rating scale.
           </p>
           <p className="mt-3">
             <a
@@ -88,11 +72,9 @@ export default function AboutPage() {
             >
               <strong>Bradley-Terry</strong>
             </a>{' '}
-            (BT) is a statistical algorithm from the 1950s, long used to rank chess players, that
-            takes everyone's lists and finds the single strength score per coaster that best
-            explains all those head-to-head results. A coaster's score rises when it keeps ranking
-            higher than the coasters around it, no matter what 'rating' you might think it should
-            have. All we're saying is "this one is better than that one."
+            (BT) is the statistical model we use to turn those comparisons into a strength score for
+            each coaster. It estimates how consistently a coaster is preferred to others, taking
+            into account the strength of the coasters it is compared with.
           </p>
 
           <MathDisclosure>
@@ -151,27 +133,15 @@ export default function AboutPage() {
           </MathDisclosure>
 
           <p className="mt-3">
-            If the raw math were applied as-is, riders with longer lists would dominate: ranking 90
-            coasters generates thousands of head-to-heads, ranking 5 generates 10. Our first fix was
-            to flatten everything -- every rider, no matter how short their list, got exactly one
-            unit of say. Fair-sounding, and wrong: each <em>individual</em> opinion from a 5-coaster
-            rider counted enormously more than one from a 90-coaster rider, enough for a single new
-            signup to swing the top of the board -- and it quietly rewarded ranking as few coasters
-            as possible.
-          </p>
-          <p className="mt-3">
-            The weighting now takes the middle path:{' '}
-            <strong className="text-ink">your say grows with how much you&apos;ve ranked</strong> --
-            rank twice as many coasters, get about twice the say. A 5-coaster opinion counts for
-            less than a 90-coaster one because there&apos;s less evidence behind it, but every list
-            still counts. Short lists get a small say instead of a megaphone, and say grows with
-            real effort, not with list length squared, so nobody can out-shout the community by
-            stuffing a list.
+            Longer lists contain many more comparisons, so we weight each rider&apos;s contribution
+            to balance that effect. Overall influence grows roughly in proportion to the number of
+            coasters ranked, rather than the much larger number of pairs. Short lists contribute
+            too, with an adjustment that limits the influence of very small samples.
           </p>
 
           <MathDisclosure label="Show me the weighting">
             <p>
-              Your best-to-worst list already contains every head-to-head result -- ranking{' '}
+              Your best-to-worst list already contains every head-to-head result — ranking{' '}
               <Tex tex="n" /> coasters settles all of them at once:
             </p>
             <Formula
@@ -181,7 +151,7 @@ export default function AboutPage() {
             />
             <p className="mt-4">
               Each head-to-head you cast is weighted by the size of your list, with a small phantom
-              floor (about an 8-coaster list&apos;s worth) so very short lists can&apos;t shout:
+              floor (about an 8-coaster list&apos;s worth) so very short lists carry limited weight:
             </p>
             <Formula
               tex={
@@ -189,21 +159,50 @@ export default function AboutPage() {
               }
             />
             <p className="mt-4">
-              Rank five coasters or five hundred -- your say keeps growing with your list, and no
+              Rank five coasters or five hundred — your say keeps growing with your list, and no
               single opinion ever outweighs the whole community.
             </p>
           </MathDisclosure>
 
           <p className="mt-3">
-            Scores are shown on an index where{' '}
-            <strong className="text-ink">100 is the community average</strong> -- anything above it
-            rode higher, more often. The whole board refits itself every 15 minutes, so rankings
-            move as everybody rides and ranks and re-ranks.
+            The board is recalculated regularly as riders update their lists. Scores are shown on an
+            index where 100 is the community average — anything above it was preferred more often.
+            Results with fewer comparisons are more provisional, so the aim is a useful picture of
+            community opinion, with room for different tastes and new perspectives.
           </p>
         </section>
 
         <section>
-          <h2 className="section-heading mb-3">Open source, and open to you</h2>
+          <h2 className="section-heading mb-3">Our commitments</h2>
+          <ul className="list-disc space-y-3 pl-5">
+            <li>
+              <strong className="text-ink">Free access.</strong> Browsing the leaderboard and
+              creating your own rankings are free. There are no ads or paid ranking placements.
+            </li>
+            <li>
+              <strong className="text-ink">An open method.</strong> We publish the ranking code and
+              explain how contributions are weighted, so anyone can examine the method, question the
+              results, or propose improvements.
+            </li>
+            <li>
+              <strong className="text-ink">Respect for your information.</strong> We do not sell
+              your personal information. Your rankings and contributions are public; our{' '}
+              <Link to="/privacy" className="link-brand">
+                privacy policy
+              </Link>{' '}
+              explains what we collect, how it is used, and your options for managing it.
+            </li>
+            <li>
+              <strong className="text-ink">A shared resource.</strong> The application code is
+              MIT-licensed, the seed catalog is public-domain data, and community contributions are
+              licensed under CC&nbsp;BY&nbsp;4.0. These licenses let others build on the work, with
+              attribution where required.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="section-heading mb-3">Contribute</h2>
           <p>
             CoasterRank is{' '}
             <a
@@ -213,26 +212,51 @@ export default function AboutPage() {
               className="link-brand"
             >
               open source on GitHub
-            </a>{' '}
-            -- code, data pipeline, and ranking math, all MIT-licensed. Pull requests, bug reports,
-            and "have you considered&hellip;" comments are equally welcome; so is simply telling us
-            where the model gets it wrong.
+            </a>
+            . Code contributions, bug reports, and feedback on the ranking method are welcome. You
+            can also help directly through the app:
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>
-              <strong className="text-ink">Fix the map:</strong> submit missing coasters, correct a
-              wrong park or a defunct listing. The base coaster list is open data, and everything
-              the community adds is licensed CC&nbsp;BY&nbsp;4.0.
+              <strong className="text-ink">Improve the catalog:</strong>{' '}
+              <Link to="/submit" className="link-brand">
+                submit a missing coaster
+              </Link>{' '}
+              or suggest a correction from a coaster&apos;s page. Community submissions help keep
+              the shared catalog accurate and up to date.
             </li>
             <li>
-              <strong className="text-ink">Keep riding:</strong> the easiest contribution of all is
-              ranking your coasters. Every ranking improves the table!{' '}
-              <em>
-                (Well... unless you <strong>really</strong> love Apollo's Chariot...)
-              </em>
+              <strong className="text-ink">Share your experience:</strong> rank the coasters
+              you&apos;ve ridden and update your list as you ride more or your preferences change.
+              Your perspective belongs here, whether or not it matches the leaderboard.
             </li>
           </ul>
-          <p className="mt-3">&mdash; pandeiro & co</p>
+        </section>
+
+        <section>
+          <h2 className="section-heading mb-3">Origins</h2>
+          <p>
+            CoasterRank grew out of an appreciation for the enthusiast community, including{' '}
+            <a
+              href="https://aceonline.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-brand"
+            >
+              ACE
+            </a>{' '}
+            and ranking projects such as{' '}
+            <a
+              href="https://votecoasters.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-brand"
+            >
+              VoteCoasters
+            </a>
+            . In that spirit, CoasterRank is a year-round ranking that riders can contribute to
+            whenever they choose. The project is maintained by CoasterRank Contributors.
+          </p>
         </section>
       </div>
 
