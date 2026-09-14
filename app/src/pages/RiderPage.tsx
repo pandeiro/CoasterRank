@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { Heart, Map, MapPin, RollerCoaster } from 'lucide-react'
 import Avatar from '../components/ui/Avatar'
 import RiderRideList from '../components/RiderRideList'
 import { MessageState, Panel } from '../components/ui'
@@ -120,8 +121,8 @@ export default function RiderPage() {
       </Helmet>
 
       {/* Hero — bare identity + a four-line stats stack (no card chrome, no
-          eyebrow): the name leads, emoji-led stats tuck into the right-hand
-          gap. Stacks below the identity on mobile. */}
+          eyebrow): the name leads, Lucide glyphs in brand tokens lead each
+          stat line. Stacks below the identity on mobile. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
           <Avatar
@@ -141,37 +142,45 @@ export default function RiderPage() {
           </div>
         </div>
         <div className="min-w-0 space-y-1 border-t border-line/70 pt-3 text-sm leading-snug sm:w-60 sm:shrink-0 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-          <p className="truncate" data-testid="rider-stats-rides">
-            <span aria-hidden="true">🎢 </span>
-            <span className="font-semibold tabular-nums text-ink">{rides.length}</span>{' '}
-            <span className="text-muted">{rides.length === 1 ? 'ride' : 'rides'}</span>
+          <p className="flex min-w-0 items-center gap-1.5" data-testid="rider-stats-rides">
+            <RollerCoaster size={15} className="shrink-0 text-coral-text" aria-hidden="true" />
+            <span className="truncate">
+              <span className="font-semibold tabular-nums text-ink">{rides.length}</span>{' '}
+              <span className="text-muted">{rides.length === 1 ? 'ride' : 'rides'}</span>
+            </span>
           </p>
-          <p className="truncate" data-testid="rider-stats-parks">
-            <span aria-hidden="true">🗺️ </span>
-            <span className="font-semibold tabular-nums text-ink">{parkCount}</span>{' '}
-            <span className="text-muted">{parkCount === 1 ? 'park' : 'parks'}</span>
+          <p className="flex min-w-0 items-center gap-1.5" data-testid="rider-stats-parks">
+            <Map size={15} className="shrink-0 text-accent-text" aria-hidden="true" />
+            <span className="truncate">
+              <span className="font-semibold tabular-nums text-ink">{parkCount}</span>{' '}
+              <span className="text-muted">{parkCount === 1 ? 'park' : 'parks'}</span>
+            </span>
           </p>
           {topPark && (
             <p
-              className="truncate"
+              className="flex min-w-0 items-center gap-1.5"
               data-testid="rider-stats-top-park"
               title={`Top park: ${topPark.name} (${topPark.count} rides)`}
             >
-              <span aria-hidden="true">📍 </span>
-              <span className="font-medium text-ink">{topPark.name}</span>{' '}
-              <span className="text-xs tabular-nums text-muted">· {topPark.count}</span>
+              <MapPin size={15} className="shrink-0 text-accent-text" aria-hidden="true" />
+              <span className="truncate">
+                <span className="font-medium text-ink">{topPark.name}</span>{' '}
+                <span className="text-xs tabular-nums text-muted">· {topPark.count}</span>
+              </span>
             </p>
           )}
           {topBuilder && builderName && builderAbbr && (
             <p
-              className="truncate"
+              className="flex min-w-0 items-center gap-1.5"
               data-testid="rider-stats-top-builder"
               title={`${builderName} (${topBuilder.count} of top 10)`}
             >
-              <span aria-hidden="true">🩵 </span>
-              <span className="font-medium text-ink">{builderAbbr} fan</span>{' '}
-              <span className="text-xs tabular-nums text-muted">
-                · {topBuilder.count} {topBuilder.count === 1 ? 'coaster' : 'coasters'}
+              <Heart size={15} className="shrink-0 text-coral" aria-hidden="true" />
+              <span className="truncate">
+                <span className="font-medium text-ink">{builderAbbr} fan</span>{' '}
+                <span className="text-xs tabular-nums text-muted">
+                  · {topBuilder.count} {topBuilder.count === 1 ? 'coaster' : 'coasters'}
+                </span>
               </span>
             </p>
           )}
