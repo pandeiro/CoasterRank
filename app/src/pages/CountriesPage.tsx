@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { RankBadge } from '../components/CoasterTable'
 import ScorePill from '../components/ScorePill'
 import { MessageState, PageHeader, Panel } from '../components/ui'
+import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
 import { useAllCoasters } from '../lib/coasters'
 import { buildCountryStandings, type CountryStanding } from '../lib/countries'
 import { asFiniteNumber } from '../lib/rankMovement'
@@ -19,6 +20,9 @@ function formatAverageRank(value: number): string {
 
 function CountryCard({ standing, position }: { standing: CountryStanding; position: number }) {
   const builder = standing.topManufacturer
+  // Dense-stats context: enthusiast-standard abbreviation with the full name
+  // on hover (same convention as the board's manufacturer column).
+  const builderLabel = builder ? (MANUFACTURER_ABBREVIATIONS[builder.name] ?? builder.name) : null
   return (
     <Panel className="p-4 sm:p-5">
       <div className="flex items-baseline gap-2">
@@ -30,15 +34,18 @@ function CountryCard({ standing, position }: { standing: CountryStanding; positi
           avg {formatAverageRank(standing.averageRank)}
         </span>
       </div>
-      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted/80">
         <span className="tabular-nums">
           {standing.totalCoasters.toLocaleString()} coaster
           {standing.totalCoasters === 1 ? '' : 's'} · {standing.rankedCoasters.toLocaleString()}{' '}
           ranked
         </span>
-        {builder && (
-          <span className="min-w-0 truncate">
-            · most-built: {builder.name} ({builder.count.toLocaleString()})
+        {builder && builderLabel && (
+          <span
+            className="ml-auto min-w-0 truncate tabular-nums"
+            title={builderLabel === builder.name ? undefined : builder.name}
+          >
+            top builder: {builderLabel} ({builder.count.toLocaleString()})
           </span>
         )}
       </p>

@@ -79,8 +79,8 @@ describe('CountriesPage', () => {
         park_name: 'Phantasialand',
         park_slug: 'phantasialand',
         rank: 4,
-        manufacturer_names: ['Intamin'],
-        manufacturer_ids: ['i-id'],
+        manufacturer_names: ['Bolliger & Mabillard'],
+        manufacturer_ids: ['bm-id'],
       },
       {
         id: 'us-1',
@@ -112,9 +112,12 @@ describe('CountriesPage', () => {
     expect(screen.getByText('avg 5.0')).toBeInTheDocument()
     expect(screen.queryByText(/Short bench/)).not.toBeInTheDocument()
 
-    // Stats: totals, ranked counts, lineage-inclusive builder.
+    // Stats: totals, ranked counts, lineage-inclusive builder — abbreviated
+    // with the full name on hover.
     expect(screen.getAllByText(/2 coasters · 2 ranked/)).toHaveLength(2)
-    expect(screen.getByText(/most-built: Intamin \(1\)/)).toBeInTheDocument()
+    const builder = screen.getByText(/top builder: B&M \(1\)/)
+    expect(builder).toBeInTheDocument()
+    expect(builder).toHaveAttribute('title', 'Bolliger & Mabillard')
 
     // Board-style rows: coaster + park links, score pill present.
     expect(screen.getByRole('link', { name: 'De One' })).toHaveAttribute('href', '/coasters/de-one')
