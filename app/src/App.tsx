@@ -22,6 +22,7 @@ import NotFoundPage from './pages/NotFoundPage'
 
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
+const CountriesPage = lazy(() => import('./pages/CountriesPage'))
 const FaqPage = lazy(() => import('./pages/FaqPage'))
 const CoasterDetailPage = lazy(() => import('./pages/CoasterDetailPage'))
 const GuestRankPage = lazy(() => import('./pages/GuestRankPage'))
@@ -103,6 +104,7 @@ export default function App() {
               <Route element={<Layout />} errorElement={<RootErrorBoundary />}>
                 <Route path="/" element={<BoardPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/countries" element={<CountriesPage />} />
                 <Route path="/faq" element={<FaqPage />} />
                 {/* Guest workbench (GUEST_UX.md §3.3): public — no auth gate.
                     dnd-kit rides the lazy chunk, same as /me. */}
