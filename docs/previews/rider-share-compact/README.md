@@ -8,7 +8,7 @@ the Lucide-icon revision).
 | File                     | Shows                                                                                                                                                                                                                                                                     |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rider-page-desktop.png` | Full share page, desktop: bare hero (no card, no eyebrow, 90px avatar) + four-line stats stack with Lucide glyphs in brand tokens (coral coaster, accent map/pin, coral heart — "B&M fan"), 12-row list, accent-tinted two-column CTA with the Rank My Rides button right |
-| `rider-page-mobile.png`  | Same page, mobile 390px: stats stack below the identity under a hairline rule, CTA stacks with the button below the copy                                                                                                                                                  |
+| `rider-page-mobile.png`  | Same page, mobile 390px: stats condense to a 2x2 grid under a hairline rule, CTA stacks with the button below the copy                                                                                                                                                    |
 
 ## How the state was faked
 

@@ -120,9 +120,10 @@ export default function RiderPage() {
         <meta name="twitter:image" content={ogImage} />
       </Helmet>
 
-      {/* Hero — bare identity + a four-line stats stack (no card chrome, no
+      {/* Hero — bare identity + four stat lines (no card chrome, no
           eyebrow): the name leads, Lucide glyphs in brand tokens lead each
-          stat line. Stacks below the identity on mobile. */}
+          stat. Mobile condenses to a 2x2 grid so the top 10 still fits one
+          screen; sm+ tucks the lines into the right-hand gap. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
           <Avatar
@@ -141,7 +142,7 @@ export default function RiderPage() {
             </p>
           </div>
         </div>
-        <div className="min-w-0 space-y-1 border-t border-line/70 pt-3 text-sm leading-snug sm:w-60 sm:shrink-0 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+        <div className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-1 border-t border-line/70 pt-3 text-sm leading-snug sm:flex sm:w-60 sm:shrink-0 sm:flex-col sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
           <p className="flex min-w-0 items-center gap-1.5" data-testid="rider-stats-rides">
             <RollerCoaster size={15} className="shrink-0 text-coral-text" aria-hidden="true" />
             <span className="truncate">
