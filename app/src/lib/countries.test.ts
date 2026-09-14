@@ -3,9 +3,10 @@ import { buildCountryStandings, COUNTRY_TOP_N } from './countries'
 import { makeRankingRow } from '../test/fixtures'
 
 describe('buildCountryStandings', () => {
-  it('sorts countries by the average of their top-five global ranks', () => {
+  it('sorts countries by the ghost-padded top-five average', () => {
+    // Four ranked rides board-wide, so ghosts sit at rank 5.
     const rows = [
-      // Germany averages (2 + 4) / 2 = 3 — best average wins.
+      // Germany averages (2 + 4 + 5 + 5 + 5) / 5 = 4.2 — best average wins.
       makeRankingRow({
         id: 'de-1',
         name: 'De One',
@@ -20,7 +21,7 @@ describe('buildCountryStandings', () => {
         park_country: 'Germany',
         rank: 4,
       }),
-      // United States averages (1 + 9) / 2 = 5.
+      // United States averages (1 + 9 + 5 + 5 + 5) / 5 = 5.
       makeRankingRow({
         id: 'us-1',
         name: 'Us One',
@@ -38,7 +39,7 @@ describe('buildCountryStandings', () => {
     ]
     const standings = buildCountryStandings(rows)
     expect(standings.map((s) => s.country)).toEqual(['Germany', 'United States'])
-    expect(standings[0].averageRank).toBe(3)
+    expect(standings[0].averageRank).toBe(4.2)
     expect(standings[1].averageRank).toBe(5)
     expect(standings[0].bestRank).toBe(2)
   })
@@ -58,25 +59,52 @@ describe('buildCountryStandings', () => {
     expect(standing.averageRank).toBe(3)
     expect(standing.totalCoasters).toBe(7)
     expect(standing.rankedCoasters).toBe(7)
-    expect(standing.shortBench).toBe(false)
+  })
+
+  it('pads thin benches with ghosts at one past the last ranked ride', () => {
+    // Six ranked rides board-wide, so ghosts sit at rank 7: a lone rank-1
+    // ride averages (1 + 7 + 7 + 7 + 7) / 5 = 5.8 and loses to real depth
+    // averaging (2 + 3 + 4 + 5 + 6) / 5 = 4.
+    const rows = [
+      makeRankingRow({ id: 's-1', park_country: 'Solo', rank: 1, slug: 's-1', name: 'S One' }),
+      ...[2, 3, 4, 5, 6].map((rank) =>
+        makeRankingRow({
+          id: `d-${rank}`,
+          park_country: 'Deep',
+          rank,
+          slug: `d-${rank}`,
+          name: `D ${rank}`,
+        }),
+      ),
+    ]
+    const standings = buildCountryStandings(rows)
+    expect(standings.map((s) => s.country)).toEqual(['Deep', 'Solo'])
+    expect(standings[0].averageRank).toBe(4)
+    expect(standings[1].averageRank).toBe(5.8)
   })
 
   it('breaks average ties by best single rank, then alphabetically', () => {
+    // Six ranked rides board-wide, so ghosts sit at rank 7 and every
+    // two-ride country averages 6.2 — the order comes from the tie-breaks.
     const rows = [
-      // Both average 5…
       makeRankingRow({ id: 'b-1', park_country: 'Beta', rank: 4, slug: 'b-1', name: 'B One' }),
       makeRankingRow({ id: 'b-2', park_country: 'Beta', rank: 6, slug: 'b-2', name: 'B Two' }),
       // …but Alpha owns the single best rank.
       makeRankingRow({ id: 'a-1', park_country: 'Alpha', rank: 1, slug: 'a-1', name: 'A One' }),
       makeRankingRow({ id: 'a-2', park_country: 'Alpha', rank: 9, slug: 'a-2', name: 'A Two' }),
-      // Gamma ties Alpha exactly (1 + 9) / 2 — alphabetical settles it.
+      // Gamma ties Alpha exactly — alphabetical settles it.
       makeRankingRow({ id: 'g-1', park_country: 'Gamma', rank: 1, slug: 'g-1', name: 'G One' }),
       makeRankingRow({ id: 'g-2', park_country: 'Gamma', rank: 9, slug: 'g-2', name: 'G Two' }),
     ]
-    expect(buildCountryStandings(rows).map((s) => s.country)).toEqual(['Alpha', 'Gamma', 'Beta'])
+    const standings = buildCountryStandings(rows)
+    expect(standings.map((s) => s.country)).toEqual(['Alpha', 'Gamma', 'Beta'])
+    expect(standings[0].averageRank).toBe(6.2)
   })
 
-  it('flags countries with fewer than five ranked rides and averages what exists', () => {
+  it('pads a short bench with ghosts instead of averaging what exists', () => {
+    // Two ranked rides board-wide, so ghosts sit at rank 3: Spain averages
+    // (6 + 8 + 3 + 3 + 3) / 5 = 4.6. The unranked third ride still counts
+    // toward the totals but never touches the average.
     const rows = [
       makeRankingRow({ id: 's-1', park_country: 'Spain', rank: 6, slug: 's-1', name: 'S One' }),
       makeRankingRow({ id: 's-2', park_country: 'Spain', rank: 8, slug: 's-2', name: 'S Two' }),
@@ -90,11 +118,10 @@ describe('buildCountryStandings', () => {
       }),
     ]
     const [standing] = buildCountryStandings(rows)
-    expect(standing.averageRank).toBe(7)
+    expect(standing.averageRank).toBe(4.6)
     expect(standing.topFive).toHaveLength(2)
     expect(standing.totalCoasters).toBe(3)
     expect(standing.rankedCoasters).toBe(2)
-    expect(standing.shortBench).toBe(true)
   })
 
   it('drops countries with no ranked rides and rows with no country', () => {

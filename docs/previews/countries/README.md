@@ -1,6 +1,11 @@
 # Countries previews
 Captured 2026-09-14 against the PR build at localhost:5199.
 
+> STALE: these PNGs predate ghost padding — they show unpadded averages
+> (Germany #1 at 4.0) and short-bench badges, both gone now. Re-run
+> `scripts/src/e2e/scenarios/previews-countries.ts` to refresh (current
+> math: US #1 at 4.6, Japan #2 at 9.8, Germany #3 at 10.0, France #4 at 13.8).
+
 ## What's shown
 | File | Shows |
 | --- | --- |

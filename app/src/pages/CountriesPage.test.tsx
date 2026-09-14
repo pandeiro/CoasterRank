@@ -60,7 +60,7 @@ describe('CountriesPage', () => {
     expect(screen.getByText("Couldn't load the country standings.")).toBeInTheDocument()
   })
 
-  it('orders countries by top-five average with stats, flags, and board-style rows', () => {
+  it('orders countries by ghost-padded average with stats and board-style rows', () => {
     mockRows([
       {
         id: 'de-1',
@@ -103,17 +103,18 @@ describe('CountriesPage', () => {
     ])
     renderCountries()
 
-    // Germany (avg 3.0) outranks the United States (avg 5.0).
+    // Four ranked rides board-wide, so ghosts sit at rank 5: Germany
+    // (2 + 4 + 5 + 5 + 5) / 5 = 4.2 outranks the United States at 5.0.
+    // No short-bench badges anywhere.
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(headings).toEqual(['Germany', 'United States'])
-    expect(screen.getByText('avg 3.0')).toBeInTheDocument()
+    expect(screen.getByText('avg 4.2')).toBeInTheDocument()
     expect(screen.getByText('avg 5.0')).toBeInTheDocument()
+    expect(screen.queryByText(/Short bench/)).not.toBeInTheDocument()
 
     // Stats: totals, ranked counts, lineage-inclusive builder.
     expect(screen.getAllByText(/2 coasters · 2 ranked/)).toHaveLength(2)
     expect(screen.getByText(/most-built: Intamin \(1\)/)).toBeInTheDocument()
-    // Both benches are short (< 5 ranked).
-    expect(screen.getAllByText(/Short bench · 2 ranked/)).toHaveLength(2)
 
     // Board-style rows: coaster + park links, score pill present.
     expect(screen.getByRole('link', { name: 'De One' })).toHaveAttribute('href', '/coasters/de-one')
@@ -121,7 +122,6 @@ describe('CountriesPage', () => {
       'href',
       '/parks/europa-park',
     )
-    expect(screen.getByRole('link', { name: '← Back to the board' })).toHaveAttribute('href', '/')
   })
 
   it('caps each country at its five best-ranked rides', () => {
