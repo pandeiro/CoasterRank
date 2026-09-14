@@ -69,11 +69,14 @@ w = (P + c)^(−γ)      where P = n(n−1)/2, production: γ = 0.5, c = 28
 > **2026-09-13 — pair maintenance + in-DB fit (shadow rollout).** The
 > pipeline below gained a maintained pair layer (`user_pairs` →
 > `pair_totals`) so recomputes no longer re-aggregate `user_rides` from
-> scratch, and the MM fit can run **inside Postgres** (board-size payload —
-> no pair rows over the gateway). During the shadow period the JS fit still
-> serves the board while the in-DB fit logs per-run parity; the flip
-> (`BT_FIT_MODE=indb`) is an env change. Steps 1-2 below are the
-> shadow/legacy shape; see [PLAN §5.6](PLAN.md#56-pair-maintenance--in-db-fit-2026-09-13-shadow)
+> scratch, and the MM fit runs **inside Postgres** (board-size payload —
+> no pair rows over the gateway). **Prod is flipped (`BT_FIT_MODE=indb`,
+> 2026-09-14)** after a clean shadow soak (10/10 runs, max |Δ log score|
+> 5.5e-8): the first indb run measured 4.0s vs 34.5s shadow — 1 warm-start
+> iteration, no pair payload, identical 386-coaster board. `legacy` and
+> `shadow` remain one `supabase secrets set` away as rollback/compare
+> modes. Steps 1-2 below describe the shadow/legacy shape for reference;
+> see [PLAN §5.6](PLAN.md#56-pair-maintenance--in-db-fit-2026-09-13-shadow)
 > and [PROMOTION.md](spikes/2026-09-pairwise-bench/PROMOTION.md) for the
 > promoted pipeline.
 
@@ -155,7 +158,7 @@ The SPA fetches this view, joins parks/manufacturers client-side (cached), and f
 
 ```mermaid
 flowchart TD
-    A[pg_cron: */15 * * * *] --> B[recompute_rankings_cron]
+    A[pg_cron: */5 * * * *] --> B[recompute_rankings_cron]
     C[Admin button: /admin] --> D[supabase.functions.invoke]
     E[Ops curl: service-role key] --> F[Edge Function]
     B -->|pg_net POST| F
@@ -171,7 +174,7 @@ flowchart TD
 
 | Trigger | Auth method | Frequency |
 |---------|-------------|-----------|
-| pg_cron → pg_net → Edge Function | `RECOMPUTE_AUTH_SECRET` (Vault) | Every 15 min |
+| pg_cron → pg_net → Edge Function | `RECOMPUTE_AUTH_SECRET` (Vault) | Every 5 min |
 | Admin "Recompute now" button | Admin JWT (validated server-side) | On-demand |
 | curl with service-role key | `SUPABASE_SERVICE_ROLE_KEY` | Manual/ops |
 
@@ -206,7 +209,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 | Bot | Purpose | Trigger |
 |-----|---------|---------|
 | CoasterRankAlerts | System failures | Edge Function catch block (immediate) |
-| CoasterRankAlerts | Stale detection | `check_stale_recompute` hourly (no success in 1h) |
+| CoasterRankAlerts | Stale detection | `check_stale_recompute` hourly (no success in 30m — six dead 5-min slots) |
 | CoasterRankAlerts | Dirty queue stuck | `check_stale_recompute` hourly (depth > 1000 or oldest entry > 2h) |
 | CoasterRankAlerts | Health regression | `health-check.yml` 30m smoke (homepage / `/api/ranking` / Supabase / board render) |
 | CoasterRankEvents | Business milestones | Global #1 coaster changes |
@@ -217,8 +220,8 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 |-------------|-----------|-------|
 | Edge Function crashes | `cron_execution_logs` error row | Telegram (immediate) |
 | Edge Function returns error | `cron_execution_logs` error row | Telegram (immediate) |
-| Edge Function unreachable | `check_stale_recompute` (hourly) | Telegram (within 1h) |
-| pg_cron stopped firing | `check_stale_recompute` (hourly) | Telegram (within 1h) |
+| Edge Function unreachable | `check_stale_recompute` (hourly) | Telegram (within ~1h) |
+| pg_cron stopped firing | `check_stale_recompute` (hourly) | Telegram (within ~1h) |
 | Ride changes not reaching the board (missed dirty flag / stuck maintenance) | `check_stale_recompute` queue watchdog (hourly); live depth + oldest on `/admin/rankings`; `rpc_stats.fit.dirty_remaining` on every run | Telegram (within 1h) |
 | In-DB fit diverges from the served JS fit (maintenance bug signature) | `rpc_stats.parity.board_match = false` on shadow runs | `/admin/rankings` (read the soak before flipping `BT_FIT_MODE=indb`) |
 | In-DB pipeline error while shadowing (fail-open — JS keeps serving) | `rpc_stats.fit.error` on shadow/legacy rows; queue re-processes next slot | no page (soak review); `indb` mode fails closed instead |

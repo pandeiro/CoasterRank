@@ -1589,11 +1589,11 @@ export async function moveCoasterToPark(coasterId: string, newParkId: string) {
 // One query powers both slices: useAllCoasters and useParks share the
 // ['board-data'] cache entry (select projects each slice), so a page mounting
 // both — e.g. the search bar — triggers a single network fetch. staleTime
-// matches the 15-minute recompute cadence: refetching more often than the
+// matches the 5-minute recompute cadence: refetching more often than the
 // data can change is pure waste. Mutations that need immediate freshness
 // (admin flows) call refreshBoardData(), which bypasses the edge cache.
 export const BOARD_QUERY_KEY = ['board-data'] as const
-export const BOARD_STALE_TIME_MS = 15 * 60_000
+export const BOARD_STALE_TIME_MS = 5 * 60_000
 
 async function fetchBoardDataFromSupabase(): Promise<RankingBoardPayload> {
   const [rankings, parks, boardMeta] = await Promise.all([

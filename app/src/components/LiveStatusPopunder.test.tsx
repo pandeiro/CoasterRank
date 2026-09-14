@@ -81,4 +81,36 @@ describe('LiveStatusPopunder', () => {
       vi.useRealTimers()
     }
   })
+
+  it('estimates the next refit from the clock, no data needed', () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    })
+    try {
+      // 12:02:00 → next */5 slot at 12:05 → ~3 min out.
+      vi.setSystemTime(new Date('2026-09-05T12:02:00Z'))
+      render(<LiveStatusPopunder lastRankedAt="2026-09-05T11:58:00Z" />)
+      const trigger = screen.getByRole('button', { name: 'Live' })
+      fireEvent.mouseOver(trigger)
+      expect(screen.getByText(/Next refit in ~3 min/)).toBeInTheDocument()
+      expect(screen.getByText(/every 5 min/)).toBeInTheDocument()
+
+      // Crossing into the last minute of the slot collapses to "within a
+      // minute" — and the 30s tick updates it without refetching.
+      act(() => {
+        vi.advanceTimersByTime(121_000)
+      })
+      expect(screen.getByText(/Next refit within a minute/)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows the next-refit estimate even without a last-ranked timestamp', async () => {
+    const user = userEvent.setup()
+    render(<LiveStatusPopunder lastRankedAt={null} />)
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    expect(screen.getByText('Last ranked time unavailable')).toBeInTheDocument()
+    expect(screen.getByText(/Next refit/)).toBeInTheDocument()
+  })
 })

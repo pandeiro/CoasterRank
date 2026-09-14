@@ -205,10 +205,40 @@ source .env && curl -s -X POST \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 
+## Recompute cadence & BT fit mode (flip / rollback)
+
+- **Cadence**: pg_cron fires the recompute **every 5 minutes** (`*/5`, set in
+  `20260914120000`; was `*/15` before the pair-promotion pipeline cut the
+  per-run floor to ~4s). The `/api/ranking` edge TTL (300s) and the SPA's
+  board staleTime mirror it — change all three together or staleness wins.
+- **Fit mode** (`BT_FIT_MODE` function secret): `indb` serves prod since
+  2026-09-14. Rollback ladder (each = one secrets set + redeploy, then the
+  next cron slot picks it up):
+  ```bash
+  # instant rollback to the pre-promotion shape (JS fit, pair payload back)
+  source .env && supabase secrets set BT_FIT_MODE=legacy && \
+    supabase functions deploy recompute-rankings --no-verify-jwt
+  # or back to shadow (in-DB pipeline runs, JS still serves, parity logged)
+  #   ... and forward again:
+  source .env && supabase secrets set BT_FIT_MODE=indb && \
+    supabase functions deploy recompute-rankings --no-verify-jwt
+  ```
+  `legacy` keeps draining the dirty queue by design — rollback does not age
+  the watchdog or strand re-marks.
+- **Deploy trap (manual deploys only)**: the local Supabase CLI (< 2.116)
+  ignores `verify_jwt = false` from `supabase/config.toml` — deploying
+  without `--no-verify-jwt` turns the platform JWT gate back ON, and the
+  cron's opaque bearer is then rejected before the function runs (symptom:
+  cron slots stop logging entirely; a manual curl returns GoTrue's
+  `Invalid API key`). CI (2.116.0) reads the config and is immune. Hit
+  2026-09-14; caught within one slot. After ANY manual deploy, confirm the
+  next slot logs: `SELECT created_at, status FROM cron_execution_logs
+  ORDER BY created_at DESC LIMIT 3;`
+
 ## Debug the `/api/ranking` edge cache
 
-The board payload is served by the Worker from the Cloudflare Cache API (15-min edge TTL,
-mirroring the recompute cadence; ≤30-min display staleness is **by design** — see PLAN §10,
+The board payload is served by the Worker from the Cloudflare Cache API (5-min edge TTL,
+mirroring the recompute cadence; ≤10-min display staleness is **by design** — see PLAN §10,
 Phase 4.2, for why and for the only acceptable fix, purge-on-recompute). When it looks off:
 
 ```bash

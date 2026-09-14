@@ -422,14 +422,14 @@ export function renderHomeHtml(origin: string, top: HomeTopCoaster[] = []): stri
     <div>
       <p class="eyebrow">Live community ranking</p>
       <h1>CoasterRank</h1>
-      <p class="meta">Rank the coasters you've ridden — drag-sort your list and the community board updates. Every list feeds a Bradley–Terry refit of the whole board, recomputed every 15 minutes.</p>
+      <p class="meta">Rank the coasters you've ridden — drag-sort your list and the community board updates. Every list feeds a Bradley–Terry refit of the whole board, recomputed every 5 minutes.</p>
     </div>
   </div>
   ${topItems ? `<h2 class="section">Topping the board right now</h2><ol>${topItems}</ol>` : ''}
   <p class="meta"><a href="${escapeHtml(`${origin}/about`)}">How the ranking works</a> · <a href="${escapeHtml(`${origin}/faq`)}">FAQ</a></p>
   <footer>
     <a class="cta" href="${escapeHtml(url)}">See the live board</a>
-    <p>Bradley–Terry scored · recomputed every 15 minutes.</p>
+    <p>Bradley–Terry scored · recomputed every 5 minutes.</p>
   </footer>
 </div>
 </body>
@@ -460,11 +460,11 @@ async function fetchRiderPageFromSupabase(
 
 // /api/ranking — edge-cached board payload ----------------------------------
 
-// Edge TTL mirrors the pg_cron recompute cadence (every 15 min): worst-case
-// staleness is edge TTL + recompute period (≤ 30 min, accepted — BT scores
+// Edge TTL mirrors the pg_cron recompute cadence (every 5 min): worst-case
+// staleness is edge TTL + recompute period (≤ 10 min, accepted — BT scores
 // move glacially). The browser TTL stays short so reloads revalidate against
 // the (cheap, same-colo) edge cache instead of skipping it.
-const RANKING_EDGE_TTL_SECONDS = 900
+const RANKING_EDGE_TTL_SECONDS = 300
 const RANKING_BROWSER_TTL_SECONDS = 60
 // Bound upstream reads so a hung Supabase can't pile up in-flight requests
 // during a spike; a timeout surfaces as 502 → client falls back to Supabase.

@@ -622,13 +622,13 @@ describe('worker: /api/ranking', () => {
 
     expect(body).toEqual({ ...rankingPayload, generated_at: expect.any(String) })
     expect(response.headers.get('Content-Type')).toContain('application/json')
-    // Browser copy: short TTL. Edge copy: 15-min TTL.
+    // Browser copy: short TTL. Edge copy: 5-min TTL (mirrors the cron).
     expect(response.headers.get('Cache-Control')).toContain('max-age=60')
     expect(response.headers.get('X-Ranking-Cache')).toBe('MISS')
     expect(cache.put).toHaveBeenCalledTimes(1)
     const [putKey, putResponse] = cache.put.mock.calls[0] as unknown as [Request, Response]
     expect(putKey.url).toBe('https://coasterrank.test/api/ranking')
-    expect(putResponse.headers.get('Cache-Control')).toContain('max-age=900')
+    expect(putResponse.headers.get('Cache-Control')).toContain('max-age=300')
     // Three upstream reads (rankings + parks + board meta), all anon-key.
     expect(fetchMock).toHaveBeenCalledTimes(3)
     const metaUrl = String((fetchMock.mock.calls[2] as unknown as [string])[0])
@@ -644,7 +644,7 @@ describe('worker: /api/ranking', () => {
       new Response(JSON.stringify(rankingPayload), {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': `public, max-age=${900}`,
+          'Cache-Control': `public, max-age=${300}`,
         },
       }),
     )
