@@ -138,16 +138,18 @@ describe('CoasterTable', () => {
     expect(screen.queryByText('9 (90%)')).not.toBeInTheDocument()
   })
 
-  it('shows a status pill — SBNO or Historic — in both layouts, none for operating', () => {
+  it('shows a status pill — SBNO, Pre-launch, or Historic — in both layouts, none for operating', () => {
     renderTable(
       rowsFrom([
         { name: 'Standing', status: 'sbno' },
         { name: 'Gone', status: 'defunct' },
+        { name: 'Coming', status: 'under_construction' },
         { name: 'Live', status: 'operating' },
       ]),
     )
     expect(screen.getAllByText('SBNO')).toHaveLength(2)
     expect(screen.getAllByText('Historic')).toHaveLength(2)
+    expect(screen.getAllByText('Pre-launch')).toHaveLength(2)
     expect(screen.queryByText('Operating')).not.toBeInTheDocument()
   })
 
