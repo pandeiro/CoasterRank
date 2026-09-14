@@ -22,13 +22,13 @@ describe('AboutPage', () => {
     renderAbout()
     expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
     expect(
-      screen.getByText('CoasterRank is a free, open-source leaderboard for roller coasters.'),
+      screen.getByText(/free, open-source leaderboard for roller coasters/i),
     ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Backstory' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Our purpose' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'How the ranking works' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Open source, and open to you' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Our commitments' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Contribute' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Origins' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /back to the board/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'More questions? Read the FAQ' })).toHaveAttribute(
       'href',
@@ -83,7 +83,7 @@ describe('AboutPage', () => {
     })
     expect(
       document.head.querySelector('meta[name="description"]')?.getAttribute('content'),
-    ).toContain('free, open-source leaderboard')
+    ).toContain('always free')
     expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toContain(
       '/about',
     )
