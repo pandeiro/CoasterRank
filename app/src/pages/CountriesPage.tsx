@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { RankBadge } from '../components/CoasterTable'
 import ScorePill from '../components/ScorePill'
-import { Badge, MessageState, PageHeader, Panel } from '../components/ui'
+import { MessageState, PageHeader, Panel } from '../components/ui'
 import { useAllCoasters } from '../lib/coasters'
 import { buildCountryStandings, type CountryStanding } from '../lib/countries'
 import { asFiniteNumber } from '../lib/rankMovement'
@@ -40,11 +40,6 @@ function CountryCard({ standing, position }: { standing: CountryStanding; positi
           <span className="min-w-0 truncate">
             · most-built: {builder.name} ({builder.count.toLocaleString()})
           </span>
-        )}
-        {standing.shortBench && (
-          <Badge tone="warning" title="Fewer than five ranked rides — the average uses what exists">
-            Short bench · {standing.rankedCoasters} ranked
-          </Badge>
         )}
       </p>
       <ol className="mt-3 divide-y divide-line/70 border-t border-line/70">
@@ -117,7 +112,7 @@ export default function CountriesPage() {
   const pageUrl = `${window.location.origin}/countries`
 
   return (
-    <div className="mx-auto max-w-5xl py-8">
+    <div className="py-8">
       <Helmet>
         <title>{META_TITLE}</title>
         <meta name="description" content={META_DESCRIPTION} />
@@ -135,15 +130,7 @@ export default function CountriesPage() {
       </Helmet>
       <PageHeader
         title="Countries"
-        description="Every country on the board, ordered by the average global rank of its top five coasters. Computed live in your browser from the current ranking — no extra data, just a different slice."
-        action={
-          <Link
-            to="/"
-            className="shrink-0 text-sm font-medium text-ink underline-offset-4 hover:text-accent-text hover:underline"
-          >
-            ← Back to the board
-          </Link>
-        }
+        description="Ordered by the average global rank of its top five coasters."
       />
       <div className="mt-6">
         {coasters.isError ? (
@@ -162,8 +149,9 @@ export default function CountriesPage() {
               ))}
             </ol>
             <p className="mt-8 text-center text-xs leading-5 text-muted">
-              Averages use each country&apos;s top five ranked coasters (fewer where a country has
-              less than five on the board). Ranks and scores update with every recompute.
+              Averages run over five slots per country: a bench short of five is padded with ghost
+              entries ranked one past the last ranked ride on the board. Ranks and scores update
+              with every recompute.
             </p>
           </>
         )}

@@ -3,7 +3,8 @@ import { asFiniteNumber } from './rankMovement'
 
 // Per-country mashup over the board dataset (powers /countries): group the
 // /api/ranking rows by park country, average each country's top-five global
-// ranks, and sort ascending. Pure client-side — no extra fetch.
+// ranks, and sort ascending. Thin benches are ghost-padded (see below), so
+// depth matters as much as peak. Pure client-side — no extra fetch.
 
 // How many of a country's best-ranked rides feed its average.
 export const COUNTRY_TOP_N = 5
@@ -18,16 +19,15 @@ export type CountryStanding = {
   rankedCoasters: number
   /** Best-ranked rides, global-rank order, capped at COUNTRY_TOP_N. */
   topFive: RankingRow[]
-  /** Mean of the top-five global ranks (always over ≥1 ride — countries with
-      no ranked rides are excluded). */
+  /** Mean over exactly topN slots: real top-five ranks plus ghost padding for
+      thin benches (always over ≥1 real ride — countries with no ranked rides
+      are excluded). */
   averageRank: number
   /** Best single global rank in the country. Tie-breaks equal averages. */
   bestRank: number
   /** Lineage-inclusive builder tally across ALL of the country's coasters
       (multi-manufacturer rides credit every builder); alphabetical on ties. */
   topManufacturer: CountryTopManufacturer | null
-  /** True when the country has fewer ranked rides than COUNTRY_TOP_N. */
-  shortBench: boolean
 }
 
 export function buildCountryStandings(
@@ -42,6 +42,11 @@ export function buildCountryStandings(
     else byCountry.set(row.park_country, [row])
   }
 
+  // Ghost rank: one past the last ranked ride on the whole board. A country
+  // with fewer than topN ranked rides pads its average with these, so a lone
+  // superstar can't carry a country past deep benches.
+  const ghostRank = rows.filter((row) => asFiniteNumber(row.rank) !== null).length + 1
+
   const standings: CountryStanding[] = []
   for (const [country, all] of byCountry) {
     const ranked = all
@@ -51,7 +56,8 @@ export function buildCountryStandings(
     if (ranked.length === 0) continue
     const topFive = ranked.slice(0, topN)
     const ranks = topFive.map((row) => asFiniteNumber(row.rank) ?? Infinity)
-    const averageRank = ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length
+    while (ranks.length < topN) ranks.push(ghostRank)
+    const averageRank = ranks.reduce((sum, rank) => sum + rank, 0) / topN
 
     const builderCounts = new Map<string, number>()
     for (const row of all) {
@@ -78,7 +84,6 @@ export function buildCountryStandings(
       averageRank,
       bestRank: ranks[0],
       topManufacturer,
-      shortBench: ranked.length < topN,
     })
   }
 
