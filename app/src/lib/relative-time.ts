@@ -36,3 +36,25 @@ export function nextRefitLabel(nowMs: number, cadenceMs: number = RECOMPUTE_CADE
   if (remainingMs < 60_000) return 'within a minute'
   return `in ~${Math.ceil(remainingMs / 60_000)} min`
 }
+
+// The full next-refit line, anchored to the last board-change timestamp
+// (last_recomputed_at; generated_at fallback). While the anchor is fresh —
+// fewer than three skipped slots plus edge-cache slack — the refit lands on
+// the next cron boundary, which is a pure clock computation (NOT
+// last-changed + cadence repeated: the stored timestamp is the run's END
+// time and manual triggers land off-grid, so chaining from it drifts off
+// the */5 boundary grid the cron actually fires on). Once the anchor is
+// stale, slots have been skipping — a countdown would promise refits that
+// keep not coming — so the line says when they resume instead. A missing or
+// future-dated anchor (clock skew) falls through to the countdown.
+export function nextRefitLine(
+  lastChangedIso: string | null,
+  nowMs: number,
+  cadenceMs: number = RECOMPUTE_CADENCE_MS,
+): string {
+  const anchorMs = lastChangedIso ? new Date(lastChangedIso).getTime() : NaN
+  const anchorStale =
+    !Number.isNaN(anchorMs) && anchorMs <= nowMs && nowMs - anchorMs >= 3 * cadenceMs
+  if (anchorStale) return 'when rankings change (slots every 5 min)'
+  return `${nextRefitLabel(nowMs, cadenceMs)} (every 5 min)`
+}

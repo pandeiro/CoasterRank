@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatRelativeTime, nextRefitLabel } from '../lib/relative-time'
+import { formatRelativeTime, nextRefitLine } from '../lib/relative-time'
 
 // How often the relative "Last ranked X ago" and "Next refit" labels
 // re-render without refetching (§2.3): the board payload is cached for 5
@@ -88,11 +88,11 @@ export default function LiveStatusPopunder({
       {open && (
         <div
           role="status"
-          className="absolute right-0 top-full z-10 mt-1.5 min-w-max rounded-lg border border-line bg-surface-bright px-3 py-2 text-xs text-muted shadow-lift"
+          className="absolute right-0 top-full z-20 mt-1.5 min-w-max rounded-lg border border-line bg-surface-bright px-3 py-2 text-xs text-muted shadow-lift"
         >
-          <div>{label ? `Last ranked ${label}` : 'Last ranked time unavailable'}</div>
+          <div>{label ? `Last changed ${label}` : 'Last changed time unavailable'}</div>
           <div className="mt-0.5 text-muted">
-            Next refit {nextRefitLabel(Date.now())} (every 5 min)
+            Next refit {nextRefitLine(lastRankedAt, Date.now())}
           </div>
         </div>
       )}
