@@ -186,6 +186,11 @@ describe('BoardPage', () => {
     expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about')
   })
 
+  it('links the country count to /countries', () => {
+    renderBoard()
+    expect(screen.getByRole('link', { name: '1 country' })).toHaveAttribute('href', '/countries')
+  })
+
   it('shows the user count only past the gate, desktop-only', () => {
     mockBoardMeta({ real_user_count: 61 })
     const { unmount } = renderBoard()

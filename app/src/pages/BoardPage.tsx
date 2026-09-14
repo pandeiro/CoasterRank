@@ -434,9 +434,13 @@ export default function BoardPage() {
                 {countryCount > 0 && (
                   <>
                     <span aria-hidden="true">·</span>
-                    <span className="tabular-nums">
+                    <Link
+                      to="/countries"
+                      title="Per-country top fives"
+                      className="font-medium tabular-nums text-ink underline-offset-4 hover:text-accent-text hover:underline"
+                    >
                       {countryCount} countr{countryCount === 1 ? 'y' : 'ies'}
-                    </span>
+                    </Link>
                   </>
                 )}
                 {/* Users count is desktop-only: on mobile the line is tight

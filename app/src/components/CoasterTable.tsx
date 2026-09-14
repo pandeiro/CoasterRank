@@ -50,7 +50,9 @@ export function rankFontClass(position: number): string {
 // shadow) around an accent-blue number in the display font, centered —
 // across desktop and mobile. The fixed column right-aligns so circles share
 // an edge (§5.1); the podium ramp comes from the row tint, not the badge.
-function RankBadge({ position }: { position: number }) {
+// Exported for the /countries top-five rows so the mashup reuses the exact
+// board badge instead of drifting into a lookalike.
+export function RankBadge({ position }: { position: number }) {
   return (
     <span
       className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
