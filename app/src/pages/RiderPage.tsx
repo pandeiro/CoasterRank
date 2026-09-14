@@ -191,10 +191,12 @@ export default function RiderPage() {
       {/* The list sits right under the hero now that the stats live inside
           it — mt-4 keeps the top 10 tight for screenshots. */}
       <div className="mt-4">
+        {/* Full-bleed band on mobile (same as the homepage board table):
+            edge-to-edge rows, floating card restored at sm+. */}
         {rides.length === 0 ? (
           <MessageState>No coasters ranked yet.</MessageState>
         ) : (
-          <Panel className="overflow-hidden">
+          <Panel bleed className="overflow-hidden">
             <RiderRideList rides={rides} />
           </Panel>
         )}
