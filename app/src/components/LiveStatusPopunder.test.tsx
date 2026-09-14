@@ -7,16 +7,16 @@ import LiveStatusPopunder from './LiveStatusPopunder'
 // click), which is exactly the desktop interaction the popunder has to
 // reconcile: hover shows it, click pins it, a further click unpins.
 describe('LiveStatusPopunder', () => {
-  it('shows the last-ranked age on click and closes on Escape', async () => {
+  it('shows the last-changed age on click and closes on Escape', async () => {
     const user = userEvent.setup()
     render(<LiveStatusPopunder lastRankedAt={new Date(Date.now() - 8 * 60_000).toISOString()} />)
     const trigger = screen.getByRole('button', { name: 'Live' })
     await user.click(trigger)
-    expect(screen.getByText(/Last ranked 8 minutes ago/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed 8 minutes ago/)).toBeInTheDocument()
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
     await user.keyboard('{Escape}')
-    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last changed/)).not.toBeInTheDocument()
   })
 
   it('stays open when hover ends after a click (click pins)', () => {
@@ -25,7 +25,7 @@ describe('LiveStatusPopunder', () => {
     fireEvent.mouseOver(trigger)
     fireEvent.click(trigger)
     fireEvent.mouseOut(trigger)
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
   })
 
   it('toggles closed on a second tap without hover (mobile pin flow)', () => {
@@ -35,30 +35,30 @@ describe('LiveStatusPopunder', () => {
     render(<LiveStatusPopunder lastRankedAt={new Date(Date.now() - 3_600_000).toISOString()} />)
     const trigger = screen.getByRole('button', { name: 'Live' })
     fireEvent.click(trigger)
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
     fireEvent.click(trigger)
-    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last changed/)).not.toBeInTheDocument()
   })
 
   it('dismisses on outside pointer down', async () => {
     const user = userEvent.setup()
     render(<LiveStatusPopunder lastRankedAt={new Date(Date.now() - 60_000).toISOString()} />)
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
     await user.pointer({ coords: { x: 0, y: 0 }, keys: '[MouseLeft>]', target: document.body })
-    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last changed/)).not.toBeInTheDocument()
   })
 
   it('shows a muted fallback when the timestamp is missing or invalid', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<LiveStatusPopunder lastRankedAt={null} />)
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText('Last ranked time unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Last changed time unavailable')).toBeInTheDocument()
     unmount()
 
     render(<LiveStatusPopunder lastRankedAt="not-a-date" />)
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText('Last ranked time unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Last changed time unavailable')).toBeInTheDocument()
   })
 
   it('keeps ticking the label without refetching', async () => {
@@ -106,11 +106,48 @@ describe('LiveStatusPopunder', () => {
     }
   })
 
-  it('shows the next-refit estimate even without a last-ranked timestamp', async () => {
+  it('switches the next-refit line to change-triggered wording once the anchor goes stale', () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    })
+    try {
+      // Anchor 20 minutes old → three-plus cron slots skipped → a countdown
+      // would promise refits that keep not coming.
+      vi.setSystemTime(new Date('2026-09-05T12:20:00Z'))
+      render(<LiveStatusPopunder lastRankedAt="2026-09-05T12:00:00Z" />)
+      fireEvent.mouseOver(screen.getByRole('button', { name: 'Live' }))
+      expect(screen.getByText(/Next refit when rankings change/)).toBeInTheDocument()
+      expect(screen.queryByText(/in ~\d+ min/)).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps the countdown while the last-changed anchor is fresh', () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    })
+    try {
+      // Anchor 2 minutes old (fresh) at 12:02 → next slot 12:05 → ~3 min.
+      vi.setSystemTime(new Date('2026-09-05T12:02:00Z'))
+      render(<LiveStatusPopunder lastRankedAt="2026-09-05T12:00:00Z" />)
+      fireEvent.mouseOver(screen.getByRole('button', { name: 'Live' }))
+      expect(screen.getByText(/Next refit in ~3 min \(every 5 min\)/)).toBeInTheDocument()
+      // Crossing into the last minute collapses the estimate…
+      act(() => {
+        vi.advanceTimersByTime(121_000)
+      })
+      expect(screen.getByText(/Next refit within a minute/)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows the next-refit estimate even without a last-changed timestamp', async () => {
     const user = userEvent.setup()
     render(<LiveStatusPopunder lastRankedAt={null} />)
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText('Last ranked time unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Last changed time unavailable')).toBeInTheDocument()
     expect(screen.getByText(/Next refit/)).toBeInTheDocument()
   })
 })

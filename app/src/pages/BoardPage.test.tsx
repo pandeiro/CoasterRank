@@ -204,23 +204,23 @@ describe('BoardPage', () => {
     expect(screen.queryByText(/users/)).not.toBeInTheDocument()
   })
 
-  it('opens the Live popunder on click and shows the last-ranked age', async () => {
+  it('opens the Live popunder on click and shows the last-changed age', async () => {
     const user = userEvent.setup()
     renderBoard()
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
     // Escape dismisses.
     await user.keyboard('{Escape}')
-    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last changed/)).not.toBeInTheDocument()
   })
 
   it('dismisses the Live popunder on outside click', async () => {
     const user = userEvent.setup()
     renderBoard()
     await user.click(screen.getByRole('button', { name: 'Live' }))
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
     await user.click(screen.getByRole('heading', { name: /coasterrank/i }))
-    expect(screen.queryByText(/Last ranked/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last changed/)).not.toBeInTheDocument()
   })
 
   it('shows a muted fallback in the popunder when no timestamp exists', async () => {
@@ -229,7 +229,7 @@ describe('BoardPage', () => {
     renderBoard()
     await user.click(screen.getByRole('button', { name: 'Live' }))
     // generated_at is the fallback, so a normal label still renders.
-    expect(screen.getByText(/Last ranked/)).toBeInTheDocument()
+    expect(screen.getByText(/Last changed/)).toBeInTheDocument()
   })
 
   it('renders the ranked rows and links to the park', () => {
