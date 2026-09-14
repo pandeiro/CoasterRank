@@ -63,6 +63,13 @@ type LastRunRow = {
   rpc_stats: RpcStats | null
 }
 
+type SlotRow = {
+  created_at: string
+  status: 'success' | 'error' | 'skipped'
+  duration_ms: number
+  rpc_stats: { fit?: FitStats } | null
+}
+
 type DirtyQueueState = { depth: number; oldest: string | null }
 
 function formatTimeAgo(dateStr: string): string {
@@ -151,6 +158,23 @@ export default function RankingsPanel() {
     },
   })
 
+  // Recent pipeline slots (newest last for the strip): one dot per cron slot
+  // — green = full run, muted = healthy idle skip, red = error. The fixed
+  // per-run floor and dirty-queue timing are readable straight off the
+  // tooltips; a stuck queue shows as runs whose `left_` never reaches 0.
+  const recentSlots = useQuery({
+    queryKey: ['cron-execution-logs', 'recent-slots'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cron_execution_logs')
+        .select('created_at, status, duration_ms, rpc_stats')
+        .order('created_at', { ascending: false })
+        .limit(12)
+      if (error) throw error
+      return ((data ?? []) as SlotRow[]).reverse()
+    },
+  })
+
   // Live dirty queue (admin RLS on pair_dirty_users): depth + oldest entry.
   // This is the per-run floor's counterpart — a queue that never drains to
   // zero between slots means ride changes are not reaching the board. The
@@ -215,6 +239,39 @@ export default function RankingsPanel() {
         {recompute.isPending ? 'Recomputing…' : 'Recompute now'}
       </Button>
 
+      {/* Last 12 cron slots — the pipeline's heartbeat at a glance */}
+      {recentSlots.data && recentSlots.data.length > 0 && (
+        <div className="mt-4">
+          <div className="flex items-center gap-1.5" aria-label="Last 12 pipeline slots">
+            {recentSlots.data.map((slot) => {
+              const s = slot.rpc_stats?.fit
+              const dirty =
+                s && (s.dirty_processed ?? 0) + (s.dirty_remaining ?? 0) > 0
+                  ? ` · ${s.dirty_processed ?? 0} dirty, ${s.dirty_remaining ?? 0} left`
+                  : ''
+              const title = `${new Date(slot.created_at).toLocaleTimeString()} · ${slot.status} · ${formatDuration(slot.duration_ms)}${dirty}`
+              const dotClass =
+                slot.status === 'error'
+                  ? 'bg-danger'
+                  : slot.status === 'skipped'
+                    ? 'bg-line'
+                    : 'bg-success'
+              return (
+                <span
+                  key={slot.created_at}
+                  title={title}
+                  className={`h-2.5 w-2.5 rounded-full ${dotClass}`}
+                />
+              )
+            })}
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            Last 12 slots ·{' '}
+            {formatDuration(Math.max(...recentSlots.data.map((s) => s.duration_ms)))} slowest
+          </div>
+        </div>
+      )}
+
       {/* Last successful run */}
       {run && (
         <div className="mt-4 rounded-lg bg-surface p-3 text-sm">
@@ -237,11 +294,11 @@ export default function RankingsPanel() {
       {/* Dirty queue + in-DB fit breakdown (post pair-maintenance pipeline) */}
       {fit && (
         <div className="mt-3 rounded-lg bg-surface p-3 text-sm">
-          <div className="text-muted">
+          <div className={fit.dirty_remaining ? 'text-amber-600' : 'text-muted'}>
             <span className="font-medium text-ink">Dirty queue at run:</span>{' '}
             {fit.dirty_processed ?? 0} processed
             {(fit.dirty_remaining ?? 0) > 0
-              ? `, ${fit.dirty_remaining} left (continues next slot)`
+              ? `, ${fit.dirty_remaining} left (drains across slots)`
               : ' · drained'}
           </div>
           <div className="mt-1 text-muted">

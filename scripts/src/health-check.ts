@@ -8,7 +8,8 @@
  *
  * Fixed-floor thresholds (no persisted baseline — pre-launch simplicity):
  *   parks >= 250, coasters >= 1000, rankings payload >= 900 rows when present.
- * Staleness: generated_at / max(updated_at) < 45m (30m cadence + 15m recompute).
+ * Staleness: generated_at / max(updated_at) < 20m (edge cache ≤5m + 5m
+ * recompute cadence → healthy staleness ≤ ~10m; 2× margin).
  * If you need drift detection post-launch, add a health_check_logs table
  * with hybrid floor+delta (see spike notes) — not warranted now.
  *
@@ -53,7 +54,8 @@ const PAGE_TIMEOUT_MS = 20_000
 const MIN_PARKS = 250
 const MIN_COASTERS = 1000
 const MIN_RANKINGS_ROWS = 900
-const MAX_STALENESS_MS = 45 * 60 * 1000
+// Healthy staleness: edge cache ≤5m + 5-min recompute → ≤ ~10m. 2× margin.
+const MAX_STALENESS_MS = 20 * 60 * 1000
 
 type Check = { name: string; ok: boolean; detail: string; latencyMs?: number }
 

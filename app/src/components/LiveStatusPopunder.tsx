@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatRelativeTime } from '../lib/relative-time'
+import { formatRelativeTime, nextRefitLabel } from '../lib/relative-time'
 
-// How often the relative "Last ranked X ago" label re-renders without
-// refetching (§2.3): the underlying payload is cached for 15 minutes, so a
-// 30s tick keeps the label honest without any network traffic.
+// How often the relative "Last ranked X ago" and "Next refit" labels
+// re-render without refetching (§2.3): the board payload is cached for 5
+// minutes, so a 30s tick keeps both labels honest without any network
+// traffic.
 const REFRESH_INTERVAL_MS = 30_000
 
 // The board's `Live ●` affordance (§2.3): hover (desktop) or click/tap —
 // which also covers keyboard activation — shows a small popunder with the
-// last-recompute time; prefer the pg_cron success timestamp, fall back to
-// the edge-cache fill time. Hover is transient; click/tap pins it open so
-// touch users get a stable toggle (a second tap closes). Absolutely
-// positioned so opening it never shifts the status line; dismisses on
-// outside click or Escape.
+// last-recompute time and an estimate of the next one. The last line prefers
+// the pg_cron success timestamp, falling back to the edge-cache fill time;
+// the next line is a pure clock heuristic (refits land on 5-minute cron
+// boundaries, so "next slot" is computable from Date.now() alone — no board
+// data, no network). Hover is transient; click/tap pins it open so touch
+// users get a stable toggle (a second tap closes). Absolutely positioned so
+// opening it never shifts the status line; dismisses on outside click or
+// Escape.
 // turnoverId: when a board turnover lands (a recompute became visible) the
 // ping wave remounts, so the dot emits a fresh ripple — the status line
 // participates in the "living competition" beat without any new UI.
@@ -86,7 +90,10 @@ export default function LiveStatusPopunder({
           role="status"
           className="absolute right-0 top-full z-10 mt-1.5 min-w-max rounded-lg border border-line bg-surface-bright px-3 py-2 text-xs text-muted shadow-lift"
         >
-          {label ? `Last ranked ${label}` : 'Last ranked time unavailable'}
+          <div>{label ? `Last ranked ${label}` : 'Last ranked time unavailable'}</div>
+          <div className="mt-0.5 text-muted">
+            Next refit {nextRefitLabel(Date.now())} (every 5 min)
+          </div>
         </div>
       )}
     </div>
