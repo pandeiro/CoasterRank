@@ -104,27 +104,25 @@ describe('CountriesPage', () => {
     renderCountries()
 
     // Four ranked rides board-wide, so ghosts sit at rank 5: Germany
-    // (2 + 4 + 5 + 5 + 5) / 5 = 4.2 outranks the United States at 5.0.
-    // No short-bench badges anywhere.
+    // (2 + 4 + 5 + 5 + 5) / 5 = 4.2 outranks the United States at 5.0. The
+    // average itself is never displayed — only the resulting order.
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(headings).toEqual(['Germany', 'United States'])
-    expect(screen.getByText('avg 4.2')).toBeInTheDocument()
-    expect(screen.getByText('avg 5.0')).toBeInTheDocument()
-    expect(screen.queryByText(/Short bench/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^avg /)).not.toBeInTheDocument()
 
-    // Stats: totals, ranked counts, lineage-inclusive builder — abbreviated
-    // with the full name on hover.
+    // Stats line holds counts only.
     expect(screen.getAllByText(/2 coasters · 2 ranked/)).toHaveLength(2)
-    const builder = screen.getByText(/top builder: B&M \(1\)/)
-    expect(builder).toBeInTheDocument()
-    expect(builder).toHaveAttribute('title', 'Bolliger & Mabillard')
+    expect(screen.queryByText(/top builder/)).not.toBeInTheDocument()
 
-    // Board-style rows: coaster + park links, score pill present.
+    // Board-style rows: coaster + park links, maker alias in place of score.
     expect(screen.getByRole('link', { name: 'De One' })).toHaveAttribute('href', '/coasters/de-one')
     expect(screen.getByRole('link', { name: 'Europa-Park' })).toHaveAttribute(
       'href',
       '/parks/europa-park',
     )
+    const maker = screen.getByText('B&M')
+    expect(maker).toBeInTheDocument()
+    expect(maker).toHaveAttribute('title', 'Bolliger & Mabillard')
   })
 
   it('caps each country at its five best-ranked rides', () => {

@@ -2,10 +2,9 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { RankBadge } from '../components/CoasterTable'
-import ScorePill from '../components/ScorePill'
 import { MessageState, PageHeader, Panel } from '../components/ui'
 import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
-import { useAllCoasters } from '../lib/coasters'
+import { lineageNames, useAllCoasters } from '../lib/coasters'
 import { buildCountryStandings, type CountryStanding } from '../lib/countries'
 import { asFiniteNumber } from '../lib/rankMovement'
 
@@ -13,16 +12,7 @@ const META_TITLE = 'Countries — CoasterRank'
 const META_DESCRIPTION =
   'Every country on CoasterRank, ordered by the average global rank of its top five coasters. A fun client-side mashup of the live board.'
 
-// Average of global ranks, one decimal — same precision as the board scores.
-function formatAverageRank(value: number): string {
-  return value.toFixed(1)
-}
-
 function CountryCard({ standing, position }: { standing: CountryStanding; position: number }) {
-  const builder = standing.topManufacturer
-  // Dense-stats context: enthusiast-standard abbreviation with the full name
-  // on hover (same convention as the board's manufacturer column).
-  const builderLabel = builder ? (MANUFACTURER_ABBREVIATIONS[builder.name] ?? builder.name) : null
   return (
     <Panel className="p-4 sm:p-5">
       <div className="flex items-baseline gap-2">
@@ -30,28 +20,19 @@ function CountryCard({ standing, position }: { standing: CountryStanding; positi
         <h2 className="display-heading min-w-0 flex-1 truncate text-xl text-ink">
           {standing.country}
         </h2>
-        <span className="shrink-0 text-sm tabular-nums text-muted">
-          avg {formatAverageRank(standing.averageRank)}
-        </span>
       </div>
-      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted/80">
-        <span className="tabular-nums">
-          {standing.totalCoasters.toLocaleString()} coaster
-          {standing.totalCoasters === 1 ? '' : 's'} · {standing.rankedCoasters.toLocaleString()}{' '}
-          ranked
-        </span>
-        {builder && builderLabel && (
-          <span
-            className="ml-auto min-w-0 truncate tabular-nums"
-            title={builderLabel === builder.name ? undefined : builder.name}
-          >
-            top builder: {builderLabel} ({builder.count.toLocaleString()})
-          </span>
-        )}
+      <p className="mt-1 text-sm tabular-nums text-muted/80">
+        {standing.totalCoasters.toLocaleString()} coaster
+        {standing.totalCoasters === 1 ? '' : 's'} · {standing.rankedCoasters.toLocaleString()}{' '}
+        ranked
       </p>
       <ol className="mt-3 divide-y divide-line/70 border-t border-line/70">
         {standing.topFive.map((row) => {
           const rank = asFiniteNumber(row.rank)
+          // Primary builder, enthusiast-standard abbreviation with the full
+          // name on hover (same convention as the board's manufacturer column).
+          const primary = lineageNames(row)[0] ?? null
+          const maker = primary ? (MANUFACTURER_ABBREVIATIONS[primary] ?? primary) : null
           return (
             <li key={row.id} className="flex items-center gap-2.5 py-2">
               <span className="flex w-10 shrink-0 items-center justify-center self-center">
@@ -80,11 +61,12 @@ function CountryCard({ standing, position }: { standing: CountryStanding; positi
                     <span className="block truncate text-sm text-muted">{row.park_name}</span>
                   ))}
               </div>
-              {row.score !== null && (
-                <span className="shrink-0 self-center">
-                  <ScorePill row={row} />
-                </span>
-              )}
+              <span
+                className="max-w-24 shrink-0 self-center truncate text-right text-xs text-muted"
+                title={maker && primary && maker !== primary ? primary : undefined}
+              >
+                {maker ?? '—'}
+              </span>
             </li>
           )
         })}
