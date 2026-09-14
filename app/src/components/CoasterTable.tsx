@@ -17,13 +17,14 @@ import WeeklyDeltaBadge from './WeeklyDeltaBadge'
 import FewVotesBadge from './FewVotesBadge'
 import { Badge, MessageState, Panel } from './ui'
 
-// Non-operating rows carry a status pill: SBNO verbatim (accent), every other
-// non-operating status collapsed to "Historic" (neutral).
+// Non-operating rows carry a status pill: SBNO verbatim (accent),
+// under-construction rides as "Pre-launch" (neutral — not historic), every
+// other non-operating status collapsed to "Historic" (neutral).
 function statusPill(status: CoasterStatus): { label: string; tone: 'accent' | 'neutral' } | null {
   if (status === 'operating') return null
-  return status === 'sbno'
-    ? { label: 'SBNO', tone: 'accent' }
-    : { label: 'Historic', tone: 'neutral' }
+  if (status === 'sbno') return { label: 'SBNO', tone: 'accent' }
+  if (status === 'under_construction') return { label: 'Pre-launch', tone: 'neutral' }
+  return { label: 'Historic', tone: 'neutral' }
 }
 
 // Podium hierarchy (§6.1, decided): muted coral — three DISTINCT shades so
