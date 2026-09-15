@@ -226,7 +226,10 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
         </div>
         {materialGroup}
         {statusGroup}
-        <div className="relative shrink-0" ref={moreRef}>
+        {/* self-stretch + h-full keeps the button exactly as tall as the
+            search input: icon-only content (mobile) is shorter than a text
+            line, so padding alone leaves the button 8px short. */}
+        <div className="relative shrink-0 self-stretch" ref={moreRef}>
           {' '}
           <button
             ref={moreButtonRef}
@@ -235,7 +238,7 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             aria-expanded={moreOpen}
             aria-haspopup="true"
             aria-label="Filters"
-            className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-bright px-2.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface sm:px-3"
+            className="inline-flex h-full items-center justify-center gap-2 rounded-lg border border-line bg-surface-bright px-2.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface sm:px-3"
           >
             <SlidersHorizontal className="h-4 w-4 text-muted" />
             <span className="hidden sm:inline">Filters</span>

@@ -385,11 +385,13 @@ export default function MyCoastersPage() {
           <div className="min-w-0 flex-1">
             <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
           </div>
+          {/* self-stretch matches the button to the search input's height
+              (py-3 input vs. min-h-10 button differ by 6px on every viewport). */}
           <Button
             variant="outline"
             size="md"
             aria-label="Import list"
-            className="shrink-0"
+            className="shrink-0 self-stretch"
             onClick={() => setImportOpen(true)}
           >
             <Upload className="h-4 w-4" aria-hidden="true" />
