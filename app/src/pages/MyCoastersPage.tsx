@@ -322,9 +322,8 @@ export default function MyCoastersPage() {
   return (
     <div>
       {/* Custom header layout (vs. PageHeader) so the share nudge can sit
-          between the title and the Import list button on mobile — the import
-          entry point belongs next to the search/ranking machinery, not
-          separated from it by the banner. Desktop keeps Import top-right. */}
+          between the title and the search row on mobile — the import entry
+          point lives next to the search inside the sticky bar below. */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
         <div className="order-1 min-w-0 sm:flex-1">
           <PageHeader
@@ -352,18 +351,6 @@ export default function MyCoastersPage() {
             />
           </div>
         )}
-
-        <div className="order-3 w-full sm:order-2 sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Import list
-          </Button>
-        </div>
       </div>
 
       {showWelcome && user?.id && (
@@ -394,7 +381,21 @@ export default function MyCoastersPage() {
           searchStuck ? 'bg-canvas/95 backdrop-blur' : ''
         }`}
       >
-        <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
+          </div>
+          <Button
+            variant="outline"
+            size="md"
+            aria-label="Import list"
+            className="shrink-0"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Import list</span>
+          </Button>
+        </div>
         {pendingAdd && !isTouch && (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
