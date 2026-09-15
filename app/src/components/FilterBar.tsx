@@ -234,10 +234,11 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             onClick={() => setMoreOpen((open) => !open)}
             aria-expanded={moreOpen}
             aria-haspopup="true"
-            className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-bright px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface"
+            aria-label="Filters"
+            className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-bright px-2.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface sm:px-3"
           >
             <SlidersHorizontal className="h-4 w-4 text-muted" />
-            Filters
+            <span className="hidden sm:inline">Filters</span>
             {activeMore > 0 && (
               <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-[11px] font-semibold leading-5 text-canvas tabular-nums">
                 {activeMore}

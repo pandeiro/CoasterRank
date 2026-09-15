@@ -599,8 +599,10 @@ function ChooseStep({
           }}
         />
         <p className="mt-1 max-w-md text-xs leading-5 text-muted">
-          From Google Sheets: File → Download → Comma-separated values (.csv). Excel: File → Save As
-          → CSV UTF-8.
+          <span className="font-semibold">Google Sheets:</span> File → Download → Comma-separated
+          values (.csv).
+          <br />
+          <span className="font-semibold">Excel:</span> File → Save As → CSV UTF-8.
         </p>
       </div>
 

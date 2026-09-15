@@ -105,8 +105,10 @@ beforeEach(() => {
 describe('ImportListModal — choose step', () => {
   it('guides toward CSV export for Google Sheets and Excel', () => {
     renderModal()
-    expect(screen.getByText(/Google Sheets: File → Download/)).toBeInTheDocument()
-    expect(screen.getByText(/Excel: File → Save As → CSV UTF-8/)).toBeInTheDocument()
+    expect(screen.getByText('Google Sheets:')).toBeInTheDocument()
+    expect(screen.getByText('Excel:')).toBeInTheDocument()
+    expect(screen.getByText(/File → Download → Comma-separated/)).toBeInTheDocument()
+    expect(screen.getByText(/File → Save As → CSV UTF-8/)).toBeInTheDocument()
   })
 
   it('shows a parse error without leaving the choose step', async () => {
