@@ -13,8 +13,10 @@ const META_DESCRIPTION =
   'Every country on CoasterRank, ordered by the average global rank of its top five coasters. A fun client-side mashup of the live board.'
 
 function CountryCard({ standing, position }: { standing: CountryStanding; position: number }) {
+  // Bleed matches the board table: edge-to-edge band on mobile, floating
+  // card restored at sm+.
   return (
-    <Panel className="p-4 sm:p-5">
+    <Panel bleed className="p-4 sm:p-5">
       <div className="flex items-baseline gap-2">
         <span className="display-heading text-sm tabular-nums text-muted">#{position}</span>
         <h2 className="display-heading min-w-0 flex-1 truncate text-xl text-ink">
@@ -77,9 +79,9 @@ function CountryCard({ standing, position }: { standing: CountryStanding; positi
 
 function CountriesSkeleton() {
   return (
-    <div aria-hidden="true" className="grid items-start gap-4 md:grid-cols-2">
+    <div aria-hidden="true" className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
       {Array.from({ length: 4 }, (_, index) => (
-        <Panel key={index} className="space-y-3 p-4 sm:p-5">
+        <Panel bleed key={index} className="space-y-3 p-4 sm:p-5">
           <div className="h-6 w-2/3 animate-pulse rounded bg-line/60" />
           <div className="h-4 w-1/2 animate-pulse rounded bg-line/60" />
           {Array.from({ length: 5 }, (_, row) => (
@@ -130,9 +132,13 @@ export default function CountriesPage() {
           <MessageState>No ranked coasters yet — rank some rides and check back.</MessageState>
         ) : (
           <>
-            <ol className="grid items-start gap-4 md:grid-cols-2">
+            {/* Explicit single column on mobile: an implicit auto track sizes
+                to the rows' nowrap max-content (truncate) and blows the page
+                ~40px past the viewport. minmax(0,1fr) caps it; min-w-0 lets
+                each card shrink so truncation engages. */}
+            <ol className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
               {standings.map((standing, index) => (
-                <li key={standing.country}>
+                <li key={standing.country} className="min-w-0">
                   <CountryCard standing={standing} position={index + 1} />
                 </li>
               ))}
