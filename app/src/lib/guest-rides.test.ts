@@ -19,6 +19,7 @@ import {
 // Store-level API (module singleton + localStorage): reset before each test.
 import {
   addGuestRideFromRow,
+  addRowsToGuestSelection,
   applyGuestImport,
   clearGuestRides,
   commitGuestImport,
@@ -276,11 +277,31 @@ describe('guest store (toggle + mark mode)', () => {
     })
     afterEach(() => clearGuestRides())
 
-    it('adds through the store and is an idempotent no-op when present', () => {
+    it('adds through the store and is an idempotent duplicate when present', () => {
       expect(addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))).toBe('added')
       expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a'])
-      expect(addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))).toBe('added')
+      expect(addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))).toBe('duplicate')
       expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a'])
+    })
+
+    it('tallies adds, duplicates, and cap refusals for bulk commits', () => {
+      addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))
+      expect(
+        addRowsToGuestSelection([
+          row({ id: 'a', name: 'Fury 325', rank: 1 }),
+          row({ id: 'b', name: 'Maverick', rank: 2 }),
+        ]),
+      ).toEqual({ added: 1, duplicate: 1, capped: 0 })
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a', 'b'])
+      for (let i = 0; i < GUEST_RIDES_CAP - 2; i += 1) {
+        addGuestRideFromRow(row({ id: `c${i}`, name: `Coaster ${i}`, rank: i + 3 }))
+      }
+      expect(
+        addRowsToGuestSelection([
+          row({ id: 'x', name: 'X', rank: 999 }),
+          row({ id: 'y', name: 'Y', rank: 999 }),
+        ]),
+      ).toEqual({ added: 0, duplicate: 0, capped: 2 })
     })
 
     it('reports capped at the guest cap', () => {

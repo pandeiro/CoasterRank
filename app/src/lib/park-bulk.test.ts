@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { RankingRow } from './board-types'
 import { makePark, makeRankingRow } from '../test/fixtures'
 import {
   defaultParkSelection,
@@ -60,6 +61,21 @@ describe('matchParks', () => {
 
   it('needs at least two characters', () => {
     expect(matchParks(parks, rowsByPark, 'c')).toEqual([])
+  })
+
+  it('never matches catch-all parks (Other / Travelling)', () => {
+    // The importer's synthetic bucket and the CSV's travelling row are not
+    // real places — they must never surface in the bulk-add flow.
+    const other = makePark({ id: 'other', name: 'Other (unknown location)', slug: 'other' })
+    const travelling = makePark({ id: 'trav', name: 'Travelling', slug: 'travelling' })
+    const real = makePark({ id: 'real', name: 'Cedar Point', city: 'Sandusky' })
+    const emptyRows = new Map<string, RankingRow[]>()
+    expect(matchParks([other, travelling, real], emptyRows, 'other')).toEqual([])
+    expect(matchParks([other, travelling, real], emptyRows, 'travelling')).toEqual([])
+    expect(matchParks([other, travelling, real], emptyRows, 'travel')).toEqual([])
+    expect(matchParks([other, travelling, real], emptyRows, 'cedar').map((m) => m.park.id)).toEqual(
+      ['real'],
+    )
   })
 
   it('caps results at the limit', () => {

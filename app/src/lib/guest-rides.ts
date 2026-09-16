@@ -351,18 +351,41 @@ export function toggleGuestRide(row: RankingRow): GuestToggleResult {
 }
 
 /** Add-only counterpart to toggleGuestRide (search-to-add, park bulk-add):
- * adding an already-selected coaster is an idempotent no-op success. */
-export type GuestAddResult = 'added' | 'capped'
+ * adding an already-selected coaster is an idempotent no-op ('duplicate' —
+ * never an error, but distinguishable for honest toasts). */
+export type GuestAddResult = 'added' | 'duplicate' | 'capped'
 
 export function addGuestRideFromRow(row: RankingRow): GuestAddResult {
   const current = store.state
   const now = Date.now()
-  if (current?.orderedIds.includes(row.id)) return 'added'
+  if (current?.orderedIds.includes(row.id)) return 'duplicate'
   const base = current ?? emptyGuestRanking(now)
   const { state: next, capped } = addGuestRide(base, guestItemFromRankingRow(row, now), now)
   if (capped) return 'capped'
   setState(next)
   return 'added'
+}
+
+/**
+ * Park bulk-add commit: adds a whole selection to the store and tallies the
+ * outcome for the page-level toasts (fresh adds / cap refusals / already
+ * selected).
+ */
+export function addRowsToGuestSelection(rows: RankingRow[]): {
+  added: number
+  duplicate: number
+  capped: number
+} {
+  let added = 0
+  let duplicate = 0
+  let capped = 0
+  for (const row of rows) {
+    const result = addGuestRideFromRow(row)
+    if (result === 'added') added++
+    else if (result === 'duplicate') duplicate++
+    else capped++
+  }
+  return { added, duplicate, capped }
 }
 
 /**
