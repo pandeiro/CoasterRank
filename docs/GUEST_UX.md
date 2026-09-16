@@ -61,6 +61,8 @@ Result of the pre-implementation technical review against the live schema and co
 2. **Search-to-add on /rank**: the workbench gains the `CoasterSearchBar` (already-in-list aware); adds go through an add-only store path (`addGuestRideFromRow`). The global list's Mark Mode already covers find-by-filter/search there.
 3. **Park bulk-add picker** (both flows): **"Add from a park"** opens a park search + expandable per-park checklist. Defaults check the park's OPERATING coasters not already in the user's list; non-operating rows (SBNO/defunct/relocated) stay unchecked but selectable — "been to the park" must not silently claim rides that aren't standing. Guests: fills the Mark Mode selection (cap-aware, one dock CTA). Authed `/me`: appends the selection to the ladder bottom via the `fast_add` merged-ladder path with a 10s undo.
 4. **Cap copy reframed** (§2.2): the 150 guest cap is presented as an anti-spam measure and points at the signed-up bound (imports support up to 2,000). The signed-up import bound stays 2,000 rows client-side; the 5000 RPC ladder ceiling is unchanged (it bounds complete merged ladders, not imports).
+5. **Follow-up UX pass (same release)**: (a) **bar parity** — the shared `AddCoasterBar` (search + park picker + import) now mounts on `/rank` exactly as on `/me`; the workbench footer carries only `+ Add More` / `Save`. (b) The board's park entry moved out of the Mark Mode banner into the **FilterBar, next to search** (same slot, shown only in Mark Mode). (c) **"Join first, rank later" is a first-class choice**: a plain `Sign up` link sits next to `Log in` in the header, and the `/rank` empty state offers all three affordances equally. (d) Catch-all parks (`other`, `travelling`) never surface in the picker. (e) The board `FilterBar` uses the full-bleed band treatment on mobile (no card chrome eating horizontal space, #225 precedent).
+6. **The floating SignupCta card is REMOVED (supersedes pass 3–7's card and the 5(c) link/headline above).** No timed or disappearing UI on the board — no dwell ticker, no scroll gates, no return-trip fast path, no dismissal storage. Guests at the entry points just get static affordances: add coasters (board Mark Mode, search, import, park picker) or go straight through the signup funnel (`Log in`/`Sign up` header links, the `Rank My Rides` pill, the `/rank` empty-state CTAs). `lib/signup-cta.ts` is reduced to the signup page's why-email notice helpers (`lib/signup-notices.ts`).
 
 ---
 
@@ -125,7 +127,7 @@ flowchart TD
 
 - The global board (`/`) loads in its clean, read-optimized table layout.
 - The desktop header CTA changes from a generic `Sign up` to **`Rank My Rides`** — a dark pill with **rolling "airtime hills" of varying sizes** (big arch → clipped valley → small arch → shallow dip, accent front / coral back, pattern period 60 for a seamless −50% loop, 7s/11s parallax), plus a **constant alternating coral/aqua ripple ring** under the pill (two half-period-offset pseudo rings; runs forever, pauses + fades on hover, disabled under reduced motion). **Hover = business time**: waves and ripple fade, solid ink. Label stays cream on near-black at every phase.
-- The existing engagement-timed nudge (`SignupCta`) continues firing for passive browsers (after 16s engaged dwell + scroll, `SIGNUP_CTA_ENGAGED_SECONDS`), but its primary button now reads **`Rank My Rides`** — the same CTA as the header — triggering Mark Mode directly on the board rather than sending the user to a blank form. No secondary "or sign up" link: **Mark Mode IS the signup path now**; beside the CTA sits only the soft dismiss.
+- **REMOVED (v2.2 follow-up)**: the engagement-timed floating nudge (`SignupCta`) no longer exists — no dwell ticker, no scroll gate, no return-trip card, no dismissal storage. The logged-out chrome is static: `Log in` / `Sign up` links + the `Rank My Rides` pill (Mark Mode entry) in the header.
 
 #### 3.2 Mode 2: "Mark Ridden" Mode (Board Focus / Selection Overlay)
 
@@ -150,7 +152,7 @@ Activated when the visitor clicks **`Rank My Rides`** in the header or board her
    - Once $\ge 1$ coaster is marked, a floating dock smoothly animates into bottom-center:
      - **`Rank My Rides (N) →`** (Primary accent pill button).
      - **`Clear`** (Soft reset).
-   - When Mark Mode is active, the generic 16s `SignupCta` is **completely suppressed** to eliminate visual conflict.
+   - (The engagement-timed floating nudge was removed in the v2.2 follow-up — there is no longer anything to suppress.)
 5. **Park bulk-add picker (v2.2)**: the Mark Mode banner carries **`Add from a park`** — a park search (name or city, punctuation-normalized so "Knott's" ≈ "Knotts") with expandable per-park checklists. Defaults check the park's operating coasters not already selected; non-operating rows stay unchecked. Committing fills the same selection set as row taps (guests proceed via the dock; authed users via the fast-add CTA), so all existing cap + count + clear semantics apply unchanged.
 
 #### 3.3 Mode 3: The Ranking Workbench (`/rank`)
@@ -563,7 +565,7 @@ Options presented:
 
 - Add `MarkModeBanner` and `MarkModeDock` to `BoardPage.tsx`.
 - Add selection toggle handling to `CoasterTable.tsx`.
-- Repurpose `SignupCta.tsx` to launch Mark Mode.
+- ~~Repurpose `SignupCta.tsx` to launch Mark Mode~~ (removed in the v2.2 follow-up — the card no longer exists).
 
 #### Phase 3: The Ranking Workbench (`/rank`)
 

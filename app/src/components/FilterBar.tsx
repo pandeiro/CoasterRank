@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { MapPin, Search, SlidersHorizontal } from 'lucide-react'
 import type { CountryOption, MaterialView, RankingFilters } from '../lib/coasters'
 import { useMediaQuery } from '../lib/use-media-query'
 import { fieldClassName, Panel, selectClassName } from './ui'
@@ -9,6 +9,9 @@ type Props = {
   onChange: (filters: RankingFilters) => void
   countries: CountryOption[]
   manufacturers: string[]
+  /** Park bulk-add picker entry, shown only while it can act on a selection
+   *  (Mark Mode) — the same slot the bar occupies on /me and /rank. */
+  onAddFromPark?: () => void
 }
 
 const MATERIAL_VIEWS: { value: MaterialView; label: string }[] = [
@@ -75,7 +78,13 @@ function Segmented<T extends string>({
   )
 }
 
-export default function FilterBar({ filters, onChange, countries, manufacturers }: Props) {
+export default function FilterBar({
+  filters,
+  onChange,
+  countries,
+  manufacturers,
+  onAddFromPark,
+}: Props) {
   const isDesktop = useMediaQuery('(min-width: 640px)')
   const [search, setSearch] = useState(filters.q ?? '')
   const [moreOpen, setMoreOpen] = useState(false)
@@ -209,9 +218,10 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
     ))
 
   return (
-    // min-h floor keeps the toolbar a fixed slot (§8.2); content height is
-    // defined by the (always-rendered) controls themselves.
-    <Panel className="min-h-[3.25rem] p-2.5 sm:p-3">
+    // Full-bleed band on mobile (§#225 treatment): edge-to-edge, square
+    // corners, hairlines — no card chrome eating horizontal space. The
+    // floating card returns at sm+.
+    <Panel bleed className="min-h-[3.25rem] p-2.5 sm:p-3">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1 sm:min-w-[15rem]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -224,6 +234,17 @@ export default function FilterBar({ filters, onChange, countries, manufacturers 
             className={fieldClassName + ' pl-9'}
           />
         </div>
+        {onAddFromPark && (
+          <button
+            type="button"
+            onClick={onAddFromPark}
+            aria-label="Add coasters from a park"
+            className="inline-flex h-full shrink-0 items-center justify-center gap-2 rounded-lg border border-line bg-surface-bright px-2.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-surface sm:px-3"
+          >
+            <MapPin className="h-4 w-4 text-muted" />
+            <span className="hidden sm:inline">Add from park</span>
+          </button>
+        )}
         {materialGroup}
         {statusGroup}
         {/* self-stretch + h-full keeps the button exactly as tall as the

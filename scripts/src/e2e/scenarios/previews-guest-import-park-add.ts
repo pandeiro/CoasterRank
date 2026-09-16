@@ -350,10 +350,9 @@ async function main(): Promise<void> {
           await waitForVisible(page, 'text=Steel Vengeance')
           await page.locator('button', { hasText: 'Rank My Rides' }).first().click()
           await waitForVisible(page, 'text=Step 1 of 2')
-          await page
-            .getByRole('button', { name: /add from a park|^park$/i })
-            .first()
-            .click()
+          // The park entry lives in the FilterBar, next to search — the same
+          // slot as on /me and /rank (v2.2 parity).
+          await page.getByRole('button', { name: 'Add coasters from a park' }).first().click()
           await waitForVisible(page, 'text=Add coasters from a park')
           await page
             .locator('#modal-content')
