@@ -443,11 +443,14 @@ export default function MyCoastersPage() {
           </div>
           {/* self-stretch matches the button to the search input's height
               (py-3 input vs. min-h-10 button differ by 6px on every viewport). */}
+          {/* self-stretch matches both buttons to the search input's height
+              (py-3 input vs. min-h-10 button differ by 6px on every
+              viewport — #227). */}
           <Button
             variant="outline"
             size="md"
             aria-label="Add coasters from a park"
-            className="shrink-0"
+            className="shrink-0 self-stretch"
             onClick={() => setParkAddOpen(true)}
           >
             <MapPin className="h-4 w-4" aria-hidden="true" />
@@ -457,7 +460,7 @@ export default function MyCoastersPage() {
             variant="outline"
             size="md"
             aria-label="Import list"
-            className="shrink-0"
+            className="shrink-0 self-stretch"
             onClick={() => setImportOpen(true)}
           >
             <Upload className="h-4 w-4" aria-hidden="true" />

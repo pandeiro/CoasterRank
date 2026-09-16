@@ -298,6 +298,13 @@ export default function BoardPage() {
       else capped++
     }
     setParkAddOpen(false)
+    if (added === 0 && capped === 0) {
+      // Stale-existingIds race (picker already excludes listed coasters):
+      // everything committed was already selected — say so instead of
+      // closing silently.
+      setCapToast('Those coasters are already selected — nothing new to add.')
+      return
+    }
     if (added === 0 && capped > 0) {
       setCapToast(GUEST_CAP_MESSAGE)
     } else if (capped > 0) {
