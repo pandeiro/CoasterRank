@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
@@ -10,7 +10,6 @@ import MarkModeBanner from '../components/MarkModeBanner'
 import MarkModeDock from '../components/MarkModeDock'
 import ParkBulkAddModal from '../components/ParkBulkAddModal'
 import ScrollSentinel from '../components/ScrollSentinel'
-import SignupCta from '../components/SignupCta'
 import Toast from '../components/Toast'
 import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
@@ -41,19 +40,6 @@ import {
   type RankingRow,
 } from '../lib/coasters'
 import { useMovementLinger, useRankTurnover } from '../lib/rankMovement'
-import {
-  SIGNUP_CTA_ACTIVITY_WINDOW_MS,
-  SIGNUP_CTA_ENGAGED_SECONDS,
-  SIGNUP_CTA_RETURN_DELAY_MS,
-  armSignupCta,
-  clearSignupCtaArmed,
-  clearSignupCtaDismissed,
-  hasScrolledPastMinimum,
-  parseCtaPreviewMode,
-  persistSignupCtaDismissed,
-  readSignupCtaArmed,
-  readSignupCtaDismissed,
-} from '../lib/signup-cta'
 
 // Real-user visibility gate for the status line (§2.2): below this the count
 // stays hidden so an early-stage launch doesn't advertise small numbers.
@@ -153,110 +139,11 @@ export default function BoardPage() {
     if (hasNextPage) setPage((p) => p + 1)
   }, [hasNextPage])
 
-  // Floating signup CTA (logged-out visitors only). Fires once per visitor:
-  // ENGAGED dwell (seconds with recent user activity — a background tab can
-  // never trip it) AND scroll engagement must both land; dismissal persists
-  // in localStorage. Tunables live in lib/signup-cta.ts (?cta=show previews
-  // instantly, ?cta=reset clears the dismissed flag).
-  const { user, isLoading: authLoading } = useAuth()
-  const [ctaDismissed, setCtaDismissed] = useState(readSignupCtaDismissed)
-  const [ctaHidden, setCtaHidden] = useState(false)
-  const [dwellReady, setDwellReady] = useState(false)
-  const [scrollReady, setScrollReady] = useState(false)
-  // Last user-activity timestamp. Starts at -Infinity deliberately: the
-  // counter only starts on real action, never on page load.
-  const lastActivityRef = useRef(Number.NEGATIVE_INFINITY)
-  // Return-trip arming, captured on mount: set during an EARLIER board visit
-  // in this tab (leaving for a detail page unmounts the board, coming back
-  // remounts it). Deliberately not reactive mid-mount — arming this visit
-  // must not fast-path this same visit.
-  const [returnArmed] = useState(readSignupCtaArmed)
-  const [returnReady, setReturnReady] = useState(false)
-  // Captured on mount: later filter navigations rebuild the querystring and
-  // may drop the param, which must not un-preview a tweaking session.
-  const [ctaPreview] = useState(() => parseCtaPreviewMode(searchParams))
-
-  useEffect(() => {
-    if (ctaPreview === 'reset') {
-      clearSignupCtaDismissed()
-      clearSignupCtaArmed()
-      setCtaDismissed(false)
-    }
-  }, [ctaPreview])
-
-  // Scroll engagement doubles as return-trip arming: a visitor who scrolled,
-  // left for a detail page, and came back is warm — no re-earning.
-  const markScrollEngaged = useCallback(() => {
-    setScrollReady(true)
-    armSignupCta()
-  }, [])
-
-  // Activity listeners: every scroll/pointer/key/touch stamps "now". The
-  // initial depth check below deliberately does NOT stamp — mounting is not
-  // engagement.
-  useEffect(() => {
-    if (authLoading || user || ctaDismissed || ctaPreview === 'show') return
-    const stamp = () => {
-      lastActivityRef.current = Date.now()
-    }
-    const onScroll = () => {
-      stamp()
-      if (hasScrolledPastMinimum()) markScrollEngaged()
-    }
-    if (hasScrolledPastMinimum()) markScrollEngaged()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('pointerdown', stamp, { passive: true })
-    window.addEventListener('keydown', stamp)
-    window.addEventListener('touchstart', stamp, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('pointerdown', stamp)
-      window.removeEventListener('keydown', stamp)
-      window.removeEventListener('touchstart', stamp)
-    }
-  }, [authLoading, user, ctaDismissed, ctaPreview, markScrollEngaged])
-
-  // Engaged-seconds ticker: a 1s tick counts only while activity happened
-  // within the recency window. Stops once the gate trips.
-  useEffect(() => {
-    if (authLoading || user || ctaDismissed || ctaPreview === 'show' || dwellReady) return
-    let engaged = 0
-    const id = setInterval(() => {
-      if (Date.now() - lastActivityRef.current <= SIGNUP_CTA_ACTIVITY_WINDOW_MS) {
-        engaged += 1
-        if (engaged >= SIGNUP_CTA_ENGAGED_SECONDS) setDwellReady(true)
-      }
-    }, 1000)
-    return () => clearInterval(id)
-  }, [authLoading, user, ctaDismissed, ctaPreview, dwellReady])
-
-  // Reaching a second page of the board counts as scroll engagement.
-  useEffect(() => {
-    if (page >= 2) markScrollEngaged()
-  }, [page, markScrollEngaged])
-
-  // Return-trip fast path: armed on an earlier board visit in this tab, the
-  // card appears after a short settle delay — no re-earning the gates.
-  // Dismissal still wins; preview-show bypasses everything as before.
-  useEffect(() => {
-    if (!returnArmed || authLoading || user || ctaDismissed || ctaPreview === 'show') return
-    const timer = setTimeout(() => setReturnReady(true), SIGNUP_CTA_RETURN_DELAY_MS)
-    return () => clearTimeout(timer)
-  }, [returnArmed, authLoading, user, ctaDismissed, ctaPreview])
-
-  const handleCtaDismiss = useCallback(() => {
-    // Preview mode never writes storage — it hides for this view only.
-    if (ctaPreview !== 'show') {
-      persistSignupCtaDismissed()
-      setCtaDismissed(true)
-    }
-    setCtaHidden(true)
-  }, [ctaPreview])
-
   // ── Mark Mode (GUEST_UX.md §3.2 guests / §3.6 Mode 6 fast-add for authed
   // users). The ?mark=1 param is the cross-page entry (header CTA, /rank
   // back-links); the store keeps the mode + selection across navigation, the
   // param keeps it across reloads.
+  const { user, isLoading: authLoading } = useAuth()
   const guest = useGuestRides()
   const authed = !authLoading && Boolean(user)
   const markMode = !authLoading && guest.markMode
@@ -320,13 +207,6 @@ export default function BoardPage() {
     resetGuestSelection()
   }, [])
 
-  // CTA card → Mark Mode on the board (§3.1): engage without persisting a
-  // dismissal — Mark Mode suppression hides the card for this engagement.
-  const handleMarkEnter = useCallback(() => {
-    enterGuestMarkMode()
-    setCtaHidden(true)
-  }, [])
-
   const handleMarkRank = useCallback(() => {
     navigate('/rank')
   }, [navigate])
@@ -369,13 +249,6 @@ export default function BoardPage() {
       return null
     })
   }, [removeRide])
-
-  const showCta =
-    !authLoading &&
-    !user &&
-    !markMode &&
-    !ctaHidden &&
-    (ctaPreview === 'show' || (!ctaDismissed && ((dwellReady && scrollReady) || returnReady)))
 
   return (
     <>
@@ -553,7 +426,6 @@ export default function BoardPage() {
           </>
         )}
       </div>
-      {showCta && <SignupCta onDismiss={handleCtaDismiss} onRankMyRides={handleMarkEnter} />}
       {markMode && guest.count > 0 && (
         <MarkModeDock
           authed={authed}

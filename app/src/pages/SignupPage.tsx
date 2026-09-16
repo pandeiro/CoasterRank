@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { readGuestRanking } from '../lib/guest-rides'
 import { buildSignupMetadata } from '../lib/guest-promotion'
-import { persistWhyEmailDismissed, readWhyEmailDismissed } from '../lib/signup-cta'
+import { persistWhyEmailDismissed, readWhyEmailDismissed } from '../lib/signup-notices'
 import { isReservedUsername, USERNAME_RE, USERNAME_RULES } from '../lib/validation'
 import { Button, fieldClassName, Panel } from '../components/ui'
 
