@@ -26,12 +26,25 @@ import {
   readFileAsText,
   type ParsedSheet,
 } from '../../lib/import/parse'
+import {
+  GUEST_RIDES_CAP,
+  commitGuestImport,
+  guestItemFromRankingRow,
+  readGuestRanking,
+  type GuestRankingState,
+} from '../../lib/guest-rides'
 import { Badge, Button, Modal, fieldClassName } from '../ui'
 
 type Props = {
   isOpen: boolean
   onClose: () => void
   rides: UserRide[]
+  /**
+   * Guest flow: commit through the localStorage guest store instead of the
+   * apply_imported_rides RPC — append-only, cap-aware, no server telemetry
+   * (pre-auth events must never reach Supabase, GUEST_UX.md §5.1).
+   */
+  guestMode?: boolean
   /** Fired after a committed import; the page shows the (undoable) toast. */
   onApplied: (result: AppliedImport) => void
   onError: (message: string) => void
@@ -45,8 +58,11 @@ export type AppliedImport = {
   priorRankedIds: string[]
   /** Ids the import ranked (the applied payload). */
   appliedIds: string[]
-  /** Holding-pen rows the import promoted — undo must re-unrank these. */
+  /** Holding-pen rows the import ranked — undo must re-unrank these. */
   unrankIds: string[]
+  /** Guest mode only: the exact prior store snapshot (null = list was empty).
+   *  Undo restores it wholesale; a replace-mode RPC undo doesn't need this. */
+  guestPriorState?: GuestRankingState | null
 }
 
 /**
@@ -93,7 +109,14 @@ function collectUnmatchedNames(rows: RowState[]): string[] {
     .map((r) => r.raw.name)
 }
 
-export default function ImportListModal({ isOpen, onClose, rides, onApplied, onError }: Props) {
+export default function ImportListModal({
+  isOpen,
+  onClose,
+  rides,
+  guestMode = false,
+  onApplied,
+  onError,
+}: Props) {
   const { user } = useAuth()
   const qc = useQueryClient()
   const board = useAllCoasters()
@@ -205,16 +228,21 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       setSource(importSource)
       setFileBytes(bytes)
       setStep('review')
-      void logImportEvent('parsed', importSource, {
-        rowsTotal: parsed.rows.length,
-        stats: {
-          ...summarize(nextRows),
-          unmatched_names: collectUnmatchedNames(nextRows),
-          file_bytes: bytes ?? undefined,
-        },
-      })
+      // Pre-auth telemetry is forbidden (GUEST_UX.md §5.1): guest imports
+      // never write import_events — 'applied' provenance lands post-auth via
+      // the promotion RPCs instead.
+      if (!guestMode) {
+        void logImportEvent('parsed', importSource, {
+          rowsTotal: parsed.rows.length,
+          stats: {
+            ...summarize(nextRows),
+            unmatched_names: collectUnmatchedNames(nextRows),
+            file_bytes: bytes ?? undefined,
+          },
+        })
+      }
     },
-    [board.data, rankedIds],
+    [board.data, rankedIds, guestMode],
   )
 
   const handleFile = useCallback(
@@ -228,12 +256,12 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       } catch (e) {
         const message = e instanceof ParseError ? e.message : 'Couldn\u2019t read that file.'
         setParseError(message)
-        void logImportEvent('failed', 'csv', { stats: { file_bytes: file.size } })
+        if (!guestMode) void logImportEvent('failed', 'csv', { stats: { file_bytes: file.size } })
       } finally {
         setParsing(false)
       }
     },
-    [startReview],
+    [startReview, guestMode],
   )
 
   const handlePaste = useCallback(() => {
@@ -251,15 +279,30 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
     } catch (e) {
       const message = e instanceof ParseError ? e.message : 'Couldn\u2019t parse the pasted text.'
       setParseError(message)
-      void logImportEvent('failed', 'paste', {})
+      if (!guestMode) void logImportEvent('failed', 'paste', {})
     } finally {
       setParsing(false)
     }
-  }, [pasteText, startReview])
+  }, [pasteText, startReview, guestMode])
 
   const setRow = useCallback((index: number, patch: Partial<RowState>) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
   }, [])
+
+  // Guest cap math: how many new coasters the 150-cap still admits, whether
+  // the current selection truncates, and whether the list is already full.
+  const guestRemaining = guestMode ? Math.max(0, GUEST_RIDES_CAP - priorRankedIds.length) : null
+  const capTruncates =
+    guestMode && guestRemaining !== null && acceptedCount > guestRemaining && guestRemaining > 0
+  const guestListFull = guestMode && priorRankedIds.length >= GUEST_RIDES_CAP
+
+  // Board rows by id — the guest apply path resolves each accepted id back to
+  // a full RankingRow to build the localStorage snapshot item.
+  const boardRowsById = useMemo(() => {
+    const map = new Map<string, RankingRow>()
+    for (const row of board.data ?? []) map.set(row.id, row)
+    return map
+  }, [board.data])
 
   const apply = useCallback(async () => {
     if (!source || applying) return
@@ -272,10 +315,37 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
       .map((r) => r.selectedId!)
       .filter((id, i, arr) => arr.indexOf(id) === i && !(mode === 'append' && priorSet.has(id)))
     if (!firstIsTop) orderedAccepted.reverse()
-    const orderedIds =
-      mode === 'replace' ? orderedAccepted : [...priorRankedIds, ...orderedAccepted]
+    // Guest cap: apply the first N in the user's listed order — the review
+    // screen explains the truncation and relabels the button; the store
+    // refuses anything past the cap regardless.
+    const effectiveOrdered =
+      capTruncates && guestRemaining !== null
+        ? orderedAccepted.slice(0, guestRemaining)
+        : orderedAccepted
     setApplying(true)
     try {
+      if (guestMode) {
+        const priorState = readGuestRanking()
+        const outcome = commitGuestImport(effectiveOrdered, (id) => {
+          const row = boardRowsById.get(id)
+          return row ? guestItemFromRankingRow(row, Date.now()) : null
+        })
+        if (outcome) {
+          onApplied({
+            appliedCount: outcome.addedIds.length,
+            mode: 'append',
+            source,
+            priorRankedIds,
+            appliedIds: outcome.addedIds,
+            unrankIds: [],
+            guestPriorState: priorState,
+          })
+        } else {
+          onError('Those coasters are already on your list — nothing new to import.')
+        }
+        onClose()
+        return
+      }
       const stats: ImportStats = {
         ...summarize(rows),
         not_found: counts.needsPick + counts.missing,
@@ -283,6 +353,8 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
         duration_ms: openedAt.current ? Date.now() - openedAt.current : undefined,
         file_bytes: fileBytes ?? undefined,
       }
+      const orderedIds =
+        mode === 'replace' ? orderedAccepted : [...priorRankedIds, ...orderedAccepted]
       const count = await applyImport({ orderedIds, replace: mode === 'replace', source, stats })
       await qc.invalidateQueries({ queryKey: ['myRides', user?.id] })
       onApplied({
@@ -320,6 +392,10 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
     source,
     qc,
     user?.id,
+    guestMode,
+    capTruncates,
+    guestRemaining,
+    boardRowsById,
   ])
 
   const visibleRows = rows.slice(0, rowLimit)
@@ -416,7 +492,9 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
               </div>
             </fieldset>
 
-            {priorRankedIds.length > 0 && (
+            {/* Guest mode is append-only: there is no replaceable account
+                list, and the guest merge rules forbid overwriting anyway. */}
+            {!guestMode && priorRankedIds.length > 0 && (
               <fieldset>
                 <legend className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                   Merge
@@ -477,17 +555,32 @@ export default function ImportListModal({ isOpen, onClose, rides, onApplied, onE
             ) : (
               <Button
                 variant={mode === 'replace' ? 'danger' : 'primary'}
-                disabled={acceptedCount === 0 || applying}
+                disabled={acceptedCount === 0 || applying || guestListFull}
                 onClick={() => void apply()}
               >
                 {applying
                   ? 'Importing…'
                   : mode === 'replace'
                     ? `Replace list with ${acceptedCount} coasters`
-                    : `Import ${acceptedCount} coasters`}
+                    : capTruncates && guestRemaining !== null
+                      ? `Import first ${guestRemaining} of ${acceptedCount} coasters`
+                      : `Import ${acceptedCount} coasters`}
               </Button>
             )}
           </div>
+          {guestMode && acceptedCount > 0 && guestListFull && (
+            <p className="mt-2 text-xs text-muted">
+              Your guest list is full — 150 coasters, an anti-spam limit. Sign up free to keep
+              building your ranking; imported lists can hold up to 2,000.
+            </p>
+          )}
+          {guestMode && capTruncates && !guestListFull && (
+            <p className="mt-2 text-xs text-muted">
+              Guest lists hold up to 150 coasters (an anti-spam limit), so we&apos;ll import the
+              first {guestRemaining} in your listed order. Sign up free to import all{' '}
+              {acceptedCount} — imported lists can hold up to 2,000.
+            </p>
+          )}
           {mode === 'replace' && confirmReplace && (
             <p className="mt-2 text-xs text-danger-text">
               Replaces your {priorRankedIds.length} ranked coasters. Your current list is kept for

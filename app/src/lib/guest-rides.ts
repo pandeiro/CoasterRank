@@ -12,6 +12,13 @@ export const GUEST_RIDES_STORAGE_KEY = 'cr.guest-rides.v1'
  * below GoTrue's undocumented raw_user_meta_data limits (supabase/auth#1776).
  */
 export const GUEST_RIDES_CAP = 150
+/**
+ * User-facing cap copy, shared by every surface that can hit the cap (board
+ * Mark Mode, /rank search, park bulk-add). Names the anti-spam rationale and
+ * points at the signed-up bound (apply_imported_rides / parse cap: 2,000).
+ */
+export const GUEST_CAP_MESSAGE =
+  'Guest lists hold up to 150 coasters (an anti-spam limit). Sign up free to lift it — imports support up to 2,000.'
 
 export interface GuestRideItem {
   coaster_id: string
@@ -343,6 +350,21 @@ export function toggleGuestRide(row: RankingRow): GuestToggleResult {
   return 'added'
 }
 
+/** Add-only counterpart to toggleGuestRide (search-to-add, park bulk-add):
+ * adding an already-selected coaster is an idempotent no-op success. */
+export type GuestAddResult = 'added' | 'capped'
+
+export function addGuestRideFromRow(row: RankingRow): GuestAddResult {
+  const current = store.state
+  const now = Date.now()
+  if (current?.orderedIds.includes(row.id)) return 'added'
+  const base = current ?? emptyGuestRanking(now)
+  const { state: next, capped } = addGuestRide(base, guestItemFromRankingRow(row, now), now)
+  if (capped) return 'capped'
+  setState(next)
+  return 'added'
+}
+
 /**
  * Tears down the guest list entirely. Unconditional on purpose: callers
  * (promotion gate, merge modal) may reach this on a page whose module store
@@ -369,6 +391,67 @@ export function lockGuestOrderOnWorkbenchVisit(): void {
   const current = store.state
   if (!current) return
   setState(lockGuestOrder(current, Date.now()))
+}
+
+// ── Guest import (GUEST_UX.md §3.3)
+
+export type GuestImportOutcome = {
+  /** Final state — only meaningful when addedIds is non-empty. */
+  state: GuestRankingState
+  /** Ids newly appended, in applied order. */
+  addedIds: string[]
+  /** New ids refused because the guest cap was reached. */
+  cappedCount: number
+}
+
+/**
+ * Pure guest-import apply. The imported order is explicit user intent, so
+ * unlike board marks (which seed by board rank while unlocked) an import
+ * locks the list FIRST: an empty list adopts the imported order wholesale;
+ * a non-empty list appends at the bottom and never reshuffles existing
+ * positions (§3.3.5 invariant). The cap refuses new ids rather than
+ * truncating existing selections — callers surface cappedCount.
+ */
+export function applyGuestImport(
+  prior: GuestRankingState | null,
+  orderedIds: string[],
+  resolveItem: (coasterId: string) => GuestRideItem | null,
+  now: number,
+): GuestImportOutcome {
+  let state = lockGuestOrder(prior ?? emptyGuestRanking(now), now)
+  const addedIds: string[] = []
+  let cappedCount = 0
+  for (const id of orderedIds) {
+    // state grows as items land, so this also dedupes repeated ids in the
+    // payload and skips coasters already in the list.
+    if (state.orderedIds.includes(id)) continue
+    const item = resolveItem(id)
+    if (!item) continue
+    const result = addGuestRide(state, item, now)
+    state = result.state
+    if (result.capped) cappedCount++
+    else addedIds.push(id)
+  }
+  return { state, addedIds, cappedCount }
+}
+
+/**
+ * Store-level commit for the import modal. Returns null (and writes nothing)
+ * when the payload adds nothing new; the caller treats that as a no-op.
+ */
+export function commitGuestImport(
+  orderedIds: string[],
+  resolveItem: (coasterId: string) => GuestRideItem | null,
+): GuestImportOutcome | null {
+  const outcome = applyGuestImport(store.state, orderedIds, resolveItem, Date.now())
+  if (outcome.addedIds.length === 0) return null
+  setState(outcome.state)
+  return outcome
+}
+
+/** Import undo: restores an exact prior snapshot (null clears the list). */
+export function restoreGuestState(state: GuestRankingState | null): void {
+  setState(state)
 }
 
 export function enterGuestMarkMode(): void {

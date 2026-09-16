@@ -13,7 +13,9 @@ import { fieldClassName } from './ui'
 
 type Props = {
   existingCoasterIds: Set<string>
-  onAdd: (coasterId: string, coasterName: string) => void
+  /** Full row: /me only needs id+name, but the guest workbench snapshots the
+   *  whole board row into localStorage (park, manufacturer, board rank). */
+  onAdd: (row: RankingRow) => void
 }
 
 const MAX_RESULTS = 8
@@ -54,7 +56,7 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
   }, [debouncedQuery])
 
   function select(row: RankingRow) {
-    onAdd(row.id, row.name)
+    onAdd(row)
     setQuery('')
     setIsOpen(false)
     // Desktop: keep focus for rapid consecutive adds. Touch: blur so the

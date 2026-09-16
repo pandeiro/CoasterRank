@@ -1,7 +1,7 @@
 # Guest Onboarding: "Mark & Rank"
 
-**Status:** Ready for Implementation (v2.1 Spec — supersedes v2)  
-**Date:** 2026-09-11  
+**Status:** Ready for Implementation (v2.2 Spec — supersedes v2.1)  
+**Date:** 2026-09-11 (v2.2 additions 2026-09-16)  
 **Target Release:** v1 (Core Mark & Rank) + v1.1 (Coaster Detail Touchpoint)  
 **Related Docs:** `docs/PLAN.md` (§2 "Anonymous 'ridden' flags → signup materialization", §11), `docs/SCHEMA.md`, `AGENTS.md`
 
@@ -54,6 +54,13 @@ Result of the pre-implementation technical review against the live schema and co
 3. **Dock pulse**: with ≥ 5 rides marked, a coral ring breathes under `Rank My Rides (N) →` (constant, pauses + fades on hover, reduced-motion safe) — same "go rank" semantics.
 4. **Save button color**: new `coralVivid` variant — vivid logo coral with ink text (contrast ≈ 5.3:1); the darker `coral` variant stays for the submit/admin flows.
 5. **Banner copy**: "Create a free account to join the global board and save your list." removed — the Save CTA carries that job.
+
+### Changelog (v2.2 — full guest import + park bulk-add)
+
+1. **Import is now IN the guest flow (supersedes pass 3's "alternate path, not integration").** Strategy shift: while the board is trying to impress every visitor, withholding the best tool (spreadsheet import) as a signup incentive undercuts the first-session experience. The `/rank` workbench and empty state now expose the full import experience — file upload AND paste, the same parse → match → review engine as `/me` — committed to the guest store (no RPC, no server writes). Guest imports are **append-only** (the merge rules forbid overwriting) and **lock the order**: an empty list adopts the imported order wholesale; a non-empty list appends at the bottom (§3.3.5 invariant). Over-cap imports apply the first N in listed order with friendly copy (anti-spam framing + the signed-up bound). Pre-auth telemetry stays forbidden — guest imports emit no `import_events`.
+2. **Search-to-add on /rank**: the workbench gains the `CoasterSearchBar` (already-in-list aware); adds go through an add-only store path (`addGuestRideFromRow`). The global list's Mark Mode already covers find-by-filter/search there.
+3. **Park bulk-add picker** (both flows): **"Add from a park"** opens a park search + expandable per-park checklist. Defaults check the park's OPERATING coasters not already in the user's list; non-operating rows (SBNO/defunct/relocated) stay unchecked but selectable — "been to the park" must not silently claim rides that aren't standing. Guests: fills the Mark Mode selection (cap-aware, one dock CTA). Authed `/me`: appends the selection to the ladder bottom via the `fast_add` merged-ladder path with a 10s undo.
+4. **Cap copy reframed** (§2.2): the 150 guest cap is presented as an anti-spam measure and points at the signed-up bound (imports support up to 2,000). The signed-up import bound stays 2,000 rows client-side; the 5000 RPC ladder ceiling is unchanged (it bounds complete merged ladders, not imports).
 
 ---
 
@@ -144,6 +151,7 @@ Activated when the visitor clicks **`Rank My Rides`** in the header or board her
      - **`Rank My Rides (N) →`** (Primary accent pill button).
      - **`Clear`** (Soft reset).
    - When Mark Mode is active, the generic 16s `SignupCta` is **completely suppressed** to eliminate visual conflict.
+5. **Park bulk-add picker (v2.2)**: the Mark Mode banner carries **`Add from a park`** — a park search (name or city, punctuation-normalized so "Knott's" ≈ "Knotts") with expandable per-park checklists. Defaults check the park's operating coasters not already selected; non-operating rows stay unchecked. Committing fills the same selection set as row taps (guests proceed via the dock; authed users via the fast-add CTA), so all existing cap + count + clear semantics apply unchanged.
 
 #### 3.3 Mode 3: The Ranking Workbench (`/rank`)
 
@@ -159,15 +167,20 @@ When the user clicks **`Rank My Rides (N)`**, they transition to `/rank`:
 3. **Status Banner & CTA Chrome**:
    - Top banner:
      > **New Rider Ranking** · Drag to re-order your lineup.
-     > _Have a big list? You can also just import a spreadsheet once you **Sign Up**._
+     > _Have a big list? Import a spreadsheet or paste it in — no account needed. New marks from the board always land at the bottom._
    - Sticky footer action bar:
      - **`Save Ranking & Join Board`** (Prominent button in the vivid logo coral — `coralVivid`).
      - **`+ Add More Coasters`** (Navigates back to `/` with Mark Mode pre-activated and existing selections preserved).
+     - **`Import list`** (v2.2 — opens the guest import modal; same affordance in the empty state).
 4. **Direct / Empty Visits**:
-   - `/rank` hit directly (shared URL, back button) with no guest rides shows an empty state: brief explainer plus a **`Rank My Rides`** button returning to the board with Mark Mode pre-activated.
-   - The empty state also carries the spreadsheet line — _"Have a big list? You can also just import a spreadsheet once you Sign Up."_
+   - `/rank` hit directly (shared URL, back button) with no guest rides shows an empty state: brief explainer plus **`Rank My Rides`** returning to the board with Mark Mode pre-activated, and **`Import a spreadsheet`** opening the guest import modal (v2.2 — no signup gate).
    - A logged-in user with **0 rides** who reaches `/rank` (not redirected — see Part II §3.1) gets the same workbench in seed mode; saving materializes the list via `materialize_guest_rides` — no signup, no merge modal.
-5. **Order lifecycle (review round 2, D)** — seeding vs. manual order:
+5. **Search-to-add (v2.2)**: the workbench mounts the `CoasterSearchBar` above the list. Results exclude coasters already in the list; selecting one snapshots the full board row into the store and appends (the workbench visit locked the order). Cap overflow reuses the §2.2 toast.
+6. **Guest import (v2.2)**: the full `/me` import experience — CSV/TSV/TXT file, drag-drop, or paste; the same `packages/match` tiers; the same review screen — with three guest differences:
+   - **Append-only**: no replace/merge choice (there is no server list to merge against, and overwriting is forbidden anyway).
+   - **Order semantics**: committing locks the list. Empty list → adopts the imported order wholesale ("first row is #1"/"first row is last" respected); non-empty list → appends at the bottom in review order, never reshuffling existing positions (§3.3.5 invariant).
+   - **Cap**: applying more than the cap admits imports the first N in listed order — the button relabels ("Import first 118 of 213 coasters") and a note explains the anti-spam limit and the signed-up bound (up to 2,000). A full list disables apply with the same framing. Commit is pure client state (no RPC); the toast's **Undo** restores the exact pre-import snapshot.
+7. **Order lifecycle (review round 2, D)** — seeding vs. manual order:
    - **Phase 1 (seed)**: while the guest list is unlocked (`orderLocked: false`), newly marked coasters are seeded into board-rank position.
    - **Phase 2 (locked)**: the first `/rank` visit — or any manual drag — locks the order. From then on, "+ Add More Coasters" selections **append to the bottom**; the user's manual positioning is never re-sorted away (selecting coaster #6 after dragging #1 to the top must not reshuffle the list).
 
@@ -325,7 +338,7 @@ export interface GuestRankingState {
 #### 2.2 Storage Limits & Sanitation
 
 - **Quota Safety**: Max 150 coasters stored locally (~6KB of IDs + snapshots; well under the 5MB browser quota). 150 because enthusiasts commonly clear 100 rides and 150 keeps the signup-metadata payload far below GoTrue's undocumented `raw_user_meta_data` size limits, which can break auth sessions when exceeded (supabase/auth#1776).
-- **Cap Overflow UX**: Marking beyond 150 is a no-op: the row toggles back off, a toast explains ("You can rank up to 150 coasters as a guest"), and the dock counter stays at 150. The RPC enforces a 5000-row ladder ceiling aligned with the import contract (see §4.3).
+- **Cap Overflow UX (v2.2 copy)**: Marking beyond 150 is a no-op: the row toggles back off, a toast explains the limit with the anti-spam framing and the signed-up bound ("Guest lists hold up to 150 coasters (an anti-spam limit). Sign up free to lift it — imports support up to 2,000."), and the dock counter stays at 150. The RPC enforces a 5000-row ladder ceiling aligned with the import contract (see §4.3).
 - **Catalog Drift Resilience**: Snapshots store `name` and `slug` so that if catalog data updates while offline, the user’s UI does not crash.
 - **Idempotency**: Adding an already-selected coaster is a no-op; removing a coaster deletes it from both `orderedIds` and `items`.
 

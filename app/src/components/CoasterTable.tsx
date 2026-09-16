@@ -19,8 +19,11 @@ import { Badge, MessageState, Panel } from './ui'
 
 // Non-operating rows carry a status pill: SBNO verbatim (accent),
 // under-construction rides as "Pre-launch" (neutral — not historic), every
-// other non-operating status collapsed to "Historic" (neutral).
-function statusPill(status: CoasterStatus): { label: string; tone: 'accent' | 'neutral' } | null {
+// other non-operating status collapsed to "Historic" (neutral). Exported for
+// the park bulk-add picker's checklist rows (same labels, same semantics).
+export function statusPill(
+  status: CoasterStatus,
+): { label: string; tone: 'accent' | 'neutral' } | null {
   if (status === 'operating') return null
   if (status === 'sbno') return { label: 'SBNO', tone: 'accent' }
   if (status === 'under_construction') return { label: 'Pre-launch', tone: 'neutral' }

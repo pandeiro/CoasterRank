@@ -22,6 +22,8 @@ vi.stubGlobal(
 
 vi.mock('../lib/rides', () => ({
   useMyRides: vi.fn(),
+  // Park bulk-add undo deletes appended rows through this mutation.
+  useRemoveRide: vi.fn(() => ({ mutate: vi.fn() })),
 }))
 
 vi.mock('../lib/profile', () => ({
@@ -33,8 +35,12 @@ vi.mock('../lib/auth-context', () => ({
 }))
 
 vi.mock('../components/CoasterSearchBar', () => ({
-  default: ({ onAdd }: { onAdd: (id: string, name: string) => void }) => (
-    <button type="button" data-testid="search-bar" onClick={() => onAdd('c9', 'New Coaster')}>
+  default: ({ onAdd }: { onAdd: (row: { id: string; name: string }) => void }) => (
+    <button
+      type="button"
+      data-testid="search-bar"
+      onClick={() => onAdd({ id: 'c9', name: 'New Coaster' })}
+    >
       search
     </button>
   ),

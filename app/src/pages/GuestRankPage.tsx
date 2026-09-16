@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Navigate, Link, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
+import { Upload } from 'lucide-react'
+import CoasterSearchBar from '../components/CoasterSearchBar'
+import ImportListModal, {
+  IMPORT_UNDO_MS,
+  type AppliedImport,
+} from '../components/import/ImportListModal'
 import RankedCoasterList, {
   REMOVE_UNDO_MS,
   type RankingStorageAdapter,
@@ -9,11 +15,15 @@ import RankedCoasterList, {
 import Toast from '../components/Toast'
 import { Button, Panel } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import type { RankingRow } from '../lib/coasters'
 import {
+  GUEST_CAP_MESSAGE,
+  addGuestRideFromRow,
   clearGuestRides,
   lockGuestOrderOnWorkbenchVisit,
   removeGuestRideById,
   reorderGuestRideList,
+  restoreGuestState,
   useGuestRides,
   userRidesFromGuestState,
 } from '../lib/guest-rides'
@@ -70,6 +80,42 @@ export default function GuestRankPage() {
     [],
   )
   const dismissToast = useCallback(() => setToast(null), [])
+
+  // Import modal (§3.3): the full spreadsheet/paste experience, committed to
+  // the guest store. Guests get no sign-up gate — see GUEST_UX.md v2.2.
+  const [importOpen, setImportOpen] = useState(false)
+  // Freshly added card (search-to-add) flashes its highlight ring for a beat,
+  // mirroring /me's insert feedback.
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+
+  const handleSearchAdd = useCallback(
+    (row: RankingRow) => {
+      const result = addGuestRideFromRow(row)
+      if (result === 'capped') {
+        notify(GUEST_CAP_MESSAGE, 'info', { durationMs: 6000 })
+        return
+      }
+      setHighlightId(row.id)
+      setTimeout(() => setHighlightId(null), 2000)
+    },
+    [notify],
+  )
+
+  const handleImportApplied = useCallback(
+    (result: AppliedImport) => {
+      const undo = () => {
+        // Restores the exact pre-import snapshot (null = the list was empty).
+        restoreGuestState(result.guestPriorState ?? null)
+        notify('Import undone — your previous list is back')
+      }
+      notify(
+        `Imported ${result.appliedCount} coaster${result.appliedCount === 1 ? '' : 's'}`,
+        'info',
+        { action: { label: 'Undo', onClick: undo }, durationMs: IMPORT_UNDO_MS },
+      )
+    },
+    [notify],
+  )
 
   // Guest storage adapter (§3.2): persists through the local store; the
   // save path doubles as the drag-reorder commit and locks the order.
@@ -147,17 +193,26 @@ export default function GuestRankPage() {
             Nothing marked yet. Head back to the board, tap the coasters you've ridden, and drag
             them into your own ranking here.
           </p>
-          <Button className="mt-6" onClick={handleAddMore}>
-            Rank My Rides
-          </Button>
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <Button onClick={handleAddMore}>Rank My Rides</Button>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              Import a spreadsheet
+            </Button>
+          </div>
           <p className="mx-auto mt-4 max-w-xs text-xs text-muted">
-            Have a big list? You can also just import a spreadsheet once you{' '}
-            <Link to="/signup" className="link-brand">
-              Sign Up
-            </Link>
-            .
+            CSV or paste it in — no account needed. Searching for coasters works up top once your
+            list has something in it.
           </p>
         </Panel>
+        <ImportListModal
+          isOpen={importOpen}
+          onClose={() => setImportOpen(false)}
+          rides={rides}
+          guestMode
+          onApplied={handleImportApplied}
+          onError={handleError}
+        />
       </div>
     )
   }
@@ -170,20 +225,21 @@ export default function GuestRankPage() {
       <div className="mb-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
         <p className="font-semibold text-ink">New Rider Ranking</p>
         <p className="mt-0.5 text-muted">Drag to re-order your lineup.</p>
-        {/* Power-user escape hatch (§3.3): someone with an existing
-            spreadsheet wants to jump straight to import after signup, not
-            toy-rank first. No import integration in the guest flow. */}
+        {/* Full import lives in the guest flow now (GUEST_UX.md v2.2): no
+            sign-up gate — the store cap and its copy do the bounding. */}
         <p className="mt-1.5 text-xs text-muted">
-          Have a big list? You can also just import a spreadsheet once you{' '}
-          <Link to="/signup" className="link-brand">
-            Sign Up
-          </Link>
-          .
+          Have a big list? Import a spreadsheet or paste it in — no account needed. New marks from
+          the board always land at the bottom.
         </p>
+      </div>
+
+      <div className="mb-4">
+        <CoasterSearchBar existingCoasterIds={guest.selectedIds} onAdd={handleSearchAdd} />
       </div>
 
       <RankedCoasterList
         rides={rides}
+        highlightId={highlightId}
         storage={storage}
         onRemoved={handleRemoved}
         onError={handleError}
@@ -194,9 +250,20 @@ export default function GuestRankPage() {
 
       <div className="sticky bottom-0 z-20 -mx-2 border-t border-line/70 bg-canvas/95 px-2 py-3 backdrop-blur sm:-mx-3 sm:px-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="outline" size="sm" onClick={handleAddMore}>
-            + Add More Coasters
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" size="sm" onClick={handleAddMore}>
+              + Add More Coasters
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Import list"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Import list</span>
+            </Button>
+          </div>
           {/* Vivid logo coral (coralVivid): the save action pops via brand
               color, no motion gimmicks. */}
           <Button variant="coralVivid" size="md" onClick={handleSave} disabled={saving}>
@@ -204,6 +271,15 @@ export default function GuestRankPage() {
           </Button>
         </div>
       </div>
+
+      <ImportListModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        rides={rides}
+        guestMode
+        onApplied={handleImportApplied}
+        onError={handleError}
+      />
 
       {toast && (
         <Toast
