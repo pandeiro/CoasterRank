@@ -5,7 +5,16 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import GuestRankPage from './GuestRankPage'
+import { useAllCoasters, useParks } from '../lib/coasters'
 import { useAuth } from '../lib/auth-context'
+
+// AddCoasterBar's stuck-state sentinel needs the observer jsdom lacks.
+class MockIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 import { useMyRides } from '../lib/rides'
 import {
   clearGuestRides,
@@ -103,6 +112,15 @@ beforeEach(() => {
   window.localStorage.clear()
   clearGuestRides()
   lastModalProps = null
+  // ParkBulkAddModal mounts (hooks included) even while closed — give it
+  // the empty catalog shape it expects.
+  vi.mocked(useAllCoasters).mockReturnValue({
+    data: [],
+    isPending: false,
+    isLoading: false,
+    isError: false,
+  } as never)
+  vi.mocked(useParks).mockReturnValue({ data: [] } as never)
   vi.mocked(useAuth).mockReturnValue({
     user: null,
     isLoading: false,
@@ -141,7 +159,7 @@ describe('GuestRankPage — workbench', () => {
     expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['g-0', 'search-1'])
   })
 
-  it('opens the import modal from the footer', async () => {
+  it('opens the import modal from the add bar', async () => {
     const user = userEvent.setup()
     seedGuestList(2)
     render(pageTree())

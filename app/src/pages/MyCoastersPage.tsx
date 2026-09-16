@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MapPin, Upload } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
+import AddCoasterBar from '../components/AddCoasterBar'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
-import CoasterSearchBar from '../components/CoasterSearchBar'
 import ExistingAccountMergeModal from '../components/ExistingAccountMergeModal'
 import ImportListModal, {
   IMPORT_UNDO_MS,
@@ -15,7 +14,7 @@ import ShareNudgeBanner from '../components/ShareNudgeBanner'
 import Toast from '../components/Toast'
 import WelcomeModal from '../components/WelcomeModal'
 import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
-import { Button, MessageState, PageHeader } from '../components/ui'
+import { MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import type { RankingRow } from '../lib/coasters'
 import { clearGuestRides, readGuestRanking } from '../lib/guest-rides'
@@ -47,11 +46,6 @@ type MergePromptState = {
   guestCount: number
   remoteCount: number
 }
-
-// The sticky search bar only gets its backdrop once it has actually stuck to
-// the header — in normal flow it stays transparent so adjacent card shadows
-// (header above, first ranked card below) aren't painted over.
-const SEARCH_STUCK_ROOT_MARGIN = '-64px 0px 0px 0px'
 
 export default function MyCoastersPage() {
   const { user, isConfirmed } = useAuth()
@@ -105,26 +99,10 @@ export default function MyCoastersPage() {
       { replace: true },
     )
   }, [setSearchParams])
-  const searchSentinelRef = useRef<HTMLDivElement>(null)
-  const [searchStuck, setSearchStuck] = useState(false)
   // Touch users skip position picking: the add lands at the end of the list
   // instantly and can be long-press dragged into place (keyboard/scroll
   // constraints make the desktop pick-a-position flow hostile on mobile).
   const [isTouch] = useState(isCoarsePointer)
-
-  useEffect(() => {
-    const sentinel = searchSentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (entry) setSearchStuck(!entry.isIntersecting)
-      },
-      { rootMargin: SEARCH_STUCK_ROOT_MARGIN },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     startReplay()
@@ -427,46 +405,12 @@ export default function MyCoastersPage() {
         committing={parkAddBusy}
       />
 
-      <div ref={searchSentinelRef} aria-hidden="true" className="h-px" />
-
-      <div
-        className={`sticky top-16 z-20 pb-3 pt-3 transition-colors duration-200 ${
-          searchStuck ? 'bg-canvas/95 backdrop-blur' : ''
-        }`}
+      <AddCoasterBar
+        existingCoasterIds={existingIds}
+        onAdd={(row) => handleAdd(row.id, row.name)}
+        onAddFromPark={() => setParkAddOpen(true)}
+        onImport={() => setImportOpen(true)}
       >
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="min-w-0 flex-1">
-            <CoasterSearchBar
-              existingCoasterIds={existingIds}
-              onAdd={(row) => handleAdd(row.id, row.name)}
-            />
-          </div>
-          {/* self-stretch matches the button to the search input's height
-              (py-3 input vs. min-h-10 button differ by 6px on every viewport). */}
-          {/* self-stretch matches both buttons to the search input's height
-              (py-3 input vs. min-h-10 button differ by 6px on every
-              viewport — #227). */}
-          <Button
-            variant="outline"
-            size="md"
-            aria-label="Add coasters from a park"
-            className="shrink-0 self-stretch"
-            onClick={() => setParkAddOpen(true)}
-          >
-            <MapPin className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Add from park</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            aria-label="Import list"
-            className="shrink-0 self-stretch"
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Import list</span>
-          </Button>
-        </div>
         {pendingAdd && !isTouch && (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-ink-soft">
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -494,7 +438,7 @@ export default function MyCoastersPage() {
             </button>
           </div>
         )}
-      </div>
+      </AddCoasterBar>
 
       <div>
         {isPending ? (

@@ -32,9 +32,17 @@ export function groupRowsByPark(rows: RankingRow[]): Map<string, RankingRow[]> {
 export type ParkMatch = { park: Park; rows: RankingRow[] }
 
 /**
+ * Catch-all parks that are not real places: the importer's synthetic
+ * "Other (unknown location)" bucket and the CSV's "Travelling" row. They
+ * never belong in the bulk-add flow — excluded from picker results only
+ * (the board and detail pages still show their coasters).
+ */
+const CATCH_ALL_PARK_SLUGS = new Set(['other', 'travelling'])
+
+/**
  * Substring search over park names, falling back to location (city/region/
  * country). Name matches lead; both tiers keep the payload's order so the
- * list stays stable between keystrokes.
+ * list stays stable between keystrokes. Catch-all parks never match.
  */
 export function matchParks(
   parks: Park[],
@@ -47,6 +55,7 @@ export function matchParks(
   const byName: ParkMatch[] = []
   const byLocation: ParkMatch[] = []
   for (const park of parks) {
+    if (CATCH_ALL_PARK_SLUGS.has(park.slug)) continue
     if (normalizeParkQuery(park.name).includes(q)) {
       byName.push({ park, rows: rowsByPark.get(park.id) ?? [] })
       continue

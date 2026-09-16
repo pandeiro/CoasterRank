@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
-import { Upload } from 'lucide-react'
-import CoasterSearchBar from '../components/CoasterSearchBar'
+import AddCoasterBar from '../components/AddCoasterBar'
 import ImportListModal, {
   IMPORT_UNDO_MS,
   type AppliedImport,
 } from '../components/import/ImportListModal'
+import ParkBulkAddModal from '../components/ParkBulkAddModal'
 import RankedCoasterList, {
   REMOVE_UNDO_MS,
   type RankingStorageAdapter,
@@ -19,6 +19,7 @@ import type { RankingRow } from '../lib/coasters'
 import {
   GUEST_CAP_MESSAGE,
   addGuestRideFromRow,
+  addRowsToGuestSelection,
   clearGuestRides,
   lockGuestOrderOnWorkbenchVisit,
   removeGuestRideById,
@@ -84,6 +85,9 @@ export default function GuestRankPage() {
   // Import modal (§3.3): the full spreadsheet/paste experience, committed to
   // the guest store. Guests get no sign-up gate — see GUEST_UX.md v2.2.
   const [importOpen, setImportOpen] = useState(false)
+  // Park bulk-add picker (§3.2, /rank parity with /me): fills the guest
+  // selection, same commit path as the board's Mark Mode.
+  const [parkOpen, setParkOpen] = useState(false)
   // Freshly added card (search-to-add) flashes its highlight ring for a beat,
   // mirroring /me's insert feedback.
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -95,8 +99,32 @@ export default function GuestRankPage() {
         notify(GUEST_CAP_MESSAGE, 'info', { durationMs: 6000 })
         return
       }
+      if (result === 'duplicate') return
       setHighlightId(row.id)
       setTimeout(() => setHighlightId(null), 2000)
+    },
+    [notify],
+  )
+
+  const handleParkCommit = useCallback(
+    (rows: RankingRow[]) => {
+      const { added, duplicate, capped } = addRowsToGuestSelection(rows)
+      setParkOpen(false)
+      if (added === 0 && capped === 0) {
+        notify('Those coasters are already selected — nothing new to add.')
+        return
+      }
+      if (capped > 0) {
+        notify(`Added ${added} coaster${added === 1 ? '' : 's'}. ${GUEST_CAP_MESSAGE}`, 'info', {
+          durationMs: 6000,
+        })
+      } else if (added > 0) {
+        notify(
+          `Added ${added} coaster${added === 1 ? '' : 's'}${
+            duplicate > 0 ? ` (${duplicate} already selected)` : ''
+          }`,
+        )
+      }
     },
     [notify],
   )
@@ -181,7 +209,9 @@ export default function GuestRankPage() {
   }
 
   if (!guest.state || guest.count === 0) {
-    // §3.3.4: direct/empty visits get the explainer, not a blank page.
+    // §3.3.4: direct/empty visits get the explainer, not a blank page. Three
+    // equal affordances (v2.2): mark on the board, just sign up (join now,
+    // rank later), or import — no funnel forcing.
     return (
       <div className="mx-auto max-w-xl">
         <Helmet>
@@ -195,14 +225,16 @@ export default function GuestRankPage() {
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
             <Button onClick={handleAddMore}>Rank My Rides</Button>
+            <Button variant="outline" onClick={() => navigate('/signup')}>
+              Sign up free
+            </Button>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4" aria-hidden="true" />
               Import a spreadsheet
             </Button>
           </div>
           <p className="mx-auto mt-4 max-w-xs text-xs text-muted">
-            CSV or paste it in — no account needed. Searching for coasters works up top once your
-            list has something in it.
+            Join now and rank whenever — or start right here, no account needed. CSV or paste it in;
+            searching for coasters works up top once your list has something in it.
           </p>
         </Panel>
         <ImportListModal
@@ -225,17 +257,18 @@ export default function GuestRankPage() {
       <div className="mb-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
         <p className="font-semibold text-ink">New Rider Ranking</p>
         <p className="mt-0.5 text-muted">Drag to re-order your lineup.</p>
-        {/* Full import lives in the guest flow now (GUEST_UX.md v2.2): no
-            sign-up gate — the store cap and its copy do the bounding. */}
         <p className="mt-1.5 text-xs text-muted">
-          Have a big list? Import a spreadsheet or paste it in — no account needed. New marks from
-          the board always land at the bottom.
+          New marks from the board always land at the bottom.
         </p>
       </div>
 
-      <div className="mb-4">
-        <CoasterSearchBar existingCoasterIds={guest.selectedIds} onAdd={handleSearchAdd} />
-      </div>
+      {/* Same add bar as /me (v2.2 parity): search + park picker + import. */}
+      <AddCoasterBar
+        existingCoasterIds={guest.selectedIds}
+        onAdd={handleSearchAdd}
+        onAddFromPark={() => setParkOpen(true)}
+        onImport={() => setImportOpen(true)}
+      />
 
       <RankedCoasterList
         rides={rides}
@@ -250,20 +283,9 @@ export default function GuestRankPage() {
 
       <div className="sticky bottom-0 z-20 -mx-2 border-t border-line/70 bg-canvas/95 px-2 py-3 backdrop-blur sm:-mx-3 sm:px-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" size="sm" onClick={handleAddMore}>
-              + Add More Coasters
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Import list"
-              onClick={() => setImportOpen(true)}
-            >
-              <Upload className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Import list</span>
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleAddMore}>
+            + Add More Coasters
+          </Button>
           {/* Vivid logo coral (coralVivid): the save action pops via brand
               color, no motion gimmicks. */}
           <Button variant="coralVivid" size="md" onClick={handleSave} disabled={saving}>
@@ -279,6 +301,13 @@ export default function GuestRankPage() {
         guestMode
         onApplied={handleImportApplied}
         onError={handleError}
+      />
+
+      <ParkBulkAddModal
+        isOpen={parkOpen}
+        onClose={() => setParkOpen(false)}
+        existingIds={guest.selectedIds}
+        onCommit={handleParkCommit}
       />
 
       {toast && (

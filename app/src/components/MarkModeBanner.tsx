@@ -1,4 +1,4 @@
-import { MapPin, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 type Props = {
   /** Authenticated visitors get the fast-add framing (Mode 6); guests the
@@ -6,19 +6,13 @@ type Props = {
   authed?: boolean
   selectedCount: number
   onExit: () => void
-  /** Opens the park bulk-add picker (GUEST_UX.md §3.2): bulk-mark a whole
-   *  park's lineup instead of tapping rows one by one. */
-  onAddFromPark?: () => void
 }
 
 // GUEST_UX.md §3.2: slim guidance banner pinned above the filter bar while
-// Mark Mode is active. Non-blocking — pure guidance, exits cleanly.
-export default function MarkModeBanner({
-  authed = false,
-  selectedCount,
-  onExit,
-  onAddFromPark,
-}: Props) {
+// Mark Mode is active. Non-blocking — pure guidance, exits cleanly. (The
+// park bulk-add entry lives in the FilterBar, next to search, where the
+// same button sits on /me and /rank.)
+export default function MarkModeBanner({ authed = false, selectedCount, onExit }: Props) {
   return (
     <div className="mb-3 flex items-center gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm">
       <p className="min-w-0 flex-1 text-ink-soft">
@@ -39,17 +33,6 @@ export default function MarkModeBanner({
           </>
         )}
       </p>
-      {onAddFromPark && (
-        <button
-          type="button"
-          onClick={onAddFromPark}
-          className="flex shrink-0 items-center gap-1 rounded-full border border-accent/50 bg-surface px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-accent/15 hover:text-ink"
-        >
-          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="hidden sm:inline">Add from a park</span>
-          <span className="sm:hidden">Park</span>
-        </button>
-      )}
       <button
         type="button"
         onClick={onExit}

@@ -61,15 +61,25 @@ export default function SignupCta({ onDismiss, onRankMyRides }: Props) {
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {onRankMyRides ? (
-                // Mark Mode IS the signup path now (§3.1): one primary CTA,
-                // no secondary "or sign up" — that read as clutter.
-                <button
-                  type="button"
-                  onClick={onRankMyRides}
-                  className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
-                >
-                  Rank My Rides
-                </button>
+                // v2.2: Mark Mode stays primary, but joining first is a
+                // first-class choice — the quiet link is back beside it
+                // ("join now, rank later" is not a funnel detour).
+                <>
+                  <button
+                    type="button"
+                    onClick={onRankMyRides}
+                    className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent-strong"
+                  >
+                    Rank My Rides
+                  </button>
+                  <Link
+                    to="/signup"
+                    onClick={onDismiss}
+                    className="text-[13px] font-medium text-ink underline-offset-4 transition-colors hover:text-accent-text hover:underline"
+                  >
+                    Sign up free
+                  </Link>
+                </>
               ) : (
                 <Link
                   to="/signup"

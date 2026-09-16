@@ -51,6 +51,9 @@ export const SIGNUP_CTA_HEADLINES = [
   { question: 'Ridden any of these?', followUp: 'Rank them — shape the board.' },
   { question: 'Something here underrated?', followUp: 'Your list fixes that.' },
   { question: 'Have a top 10?', followUp: 'Cast your vote — shape the board.' },
+  // v2.2: the join-first framing — joining and ranking later is a first-class
+  // choice, not a funnel detour.
+  { question: 'Prefer to just join?', followUp: 'Sign up free — rank your rides whenever.' },
 ] as const
 
 /** Whether the visitor already dismissed the CTA (persists "never again"). */

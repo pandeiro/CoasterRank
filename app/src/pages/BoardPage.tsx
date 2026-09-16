@@ -16,7 +16,7 @@ import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import {
   GUEST_CAP_MESSAGE,
-  addGuestRideFromRow,
+  addRowsToGuestSelection,
   clearGuestRides,
   enterGuestMarkMode,
   exitGuestMarkMode,
@@ -286,22 +286,16 @@ export default function BoardPage() {
     }
   }, [])
 
-  // Park bulk-add (§3.2 picker): fills the same selection set as row taps —
-  // guests head to the dock's Rank CTA, authed users to the fast-add CTA.
+  // Park bulk-add (§3.2 picker, FilterBar entry): fills the same selection
+  // set as row taps — guests head to the dock's Rank CTA, authed users to
+  // the fast-add CTA.
   const [parkAddOpen, setParkAddOpen] = useState(false)
   const handleParkCommit = useCallback((rows: RankingRow[]) => {
-    let added = 0
-    let capped = 0
-    for (const row of rows) {
-      const result = addGuestRideFromRow(row)
-      if (result === 'added') added++
-      else capped++
-    }
+    const { added, duplicate, capped } = addRowsToGuestSelection(rows)
     setParkAddOpen(false)
     if (added === 0 && capped === 0) {
-      // Stale-existingIds race (picker already excludes listed coasters):
-      // everything committed was already selected — say so instead of
-      // closing silently.
+      // Stale-existingIds race (the picker already excludes listed coasters):
+      // everything committed was already selected — say so, don't close silent.
       setCapToast('Those coasters are already selected — nothing new to add.')
       return
     }
@@ -309,6 +303,12 @@ export default function BoardPage() {
       setCapToast(GUEST_CAP_MESSAGE)
     } else if (capped > 0) {
       setCapToast(`Added ${added} coaster${added === 1 ? '' : 's'}. ${GUEST_CAP_MESSAGE}`)
+    } else {
+      setCapToast(
+        `Added ${added} coaster${added === 1 ? '' : 's'}${
+          duplicate > 0 ? ` (${duplicate} already selected)` : ''
+        }`,
+      )
     }
   }, [])
 
@@ -505,18 +505,14 @@ export default function BoardPage() {
         </div>
       </header>
       {markMode && (
-        <MarkModeBanner
-          authed={authed}
-          selectedCount={guest.count}
-          onExit={handleMarkExit}
-          onAddFromPark={() => setParkAddOpen(true)}
-        />
+        <MarkModeBanner authed={authed} selectedCount={guest.count} onExit={handleMarkExit} />
       )}
       <FilterBar
         filters={filters}
         onChange={onFiltersChange}
         countries={countries}
         manufacturers={manufacturers}
+        onAddFromPark={markMode ? () => setParkAddOpen(true) : undefined}
       />
       <div className="relative mt-4 min-h-[60vh] sm:mt-6 sm:min-h-[65vh]">
         {coasters.isError ? (
