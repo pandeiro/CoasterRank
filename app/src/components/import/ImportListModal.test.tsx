@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { useQueryClient } from '@tanstack/react-query'
@@ -6,6 +6,12 @@ import ImportListModal, { type AppliedImport } from './ImportListModal'
 import { useAllCoasters, useParks } from '../../lib/coasters'
 import { useAuth } from '../../lib/auth-context'
 import { applyImport, logImportEvent } from '../../lib/import/apply'
+import {
+  clearGuestRides,
+  getGuestRidesSnapshot,
+  toggleGuestRide,
+  userRidesFromGuestState,
+} from '../../lib/guest-rides'
 import { makePark, makeRankingRow, makeUserRide } from '../../test/fixtures'
 
 vi.mock('@tanstack/react-query', async (importOriginal) => {
@@ -67,9 +73,10 @@ function mockEnv() {
 type RenderOptions = {
   rides?: ReturnType<typeof makeUserRide>[]
   onApplied?: (result: AppliedImport) => void
+  guestMode?: boolean
 }
 
-function renderModal({ rides = [], onApplied = vi.fn() }: RenderOptions = {}) {
+function renderModal({ rides = [], onApplied = vi.fn(), guestMode = false }: RenderOptions = {}) {
   const onError = vi.fn()
   const onClose = vi.fn()
   render(
@@ -77,6 +84,7 @@ function renderModal({ rides = [], onApplied = vi.fn() }: RenderOptions = {}) {
       isOpen
       onClose={onClose}
       rides={rides}
+      guestMode={guestMode}
       onApplied={onApplied}
       onError={onError}
     />,
@@ -439,5 +447,86 @@ describe('ImportListModal — empty list', () => {
     await pasteAndReview(user, 'Fury 325')
     expect(screen.queryByRole('radio', { name: /replace my list/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Import 1 coasters$/i })).toBeEnabled()
+  })
+})
+
+// Guest mode commits through the REAL localStorage guest store (no mocks) —
+// this is the integration seam between the shared review UI and the store.
+describe('ImportListModal — guest mode (GUEST_UX.md §3.3 v2.2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockEnv()
+    clearGuestRides()
+  })
+
+  afterEach(() => clearGuestRides())
+
+  /** Seeds the store with N distinct coasters and returns matching rides. */
+  function seedGuestList(count: number) {
+    for (let i = 0; i < count; i += 1) {
+      toggleGuestRide(makeRankingRow({ id: `g-${i}`, name: `Guest Coaster ${i}`, rank: i + 1 }))
+    }
+    const state = getGuestRidesSnapshot().state
+    return userRidesFromGuestState(state!)
+  }
+
+  it('commits to the guest store instead of the RPC, with a restore-able prior snapshot', async () => {
+    const user = userEvent.setup()
+    const rides = seedGuestList(1)
+    const { onApplied } = renderModal({ rides, guestMode: true })
+    await pasteAndReview(user, 'Fury 325')
+    await user.click(screen.getByRole('button', { name: /^Import 1 coasters$/i }))
+    await waitFor(() => {
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['g-0', 'fury'])
+      expect(applyImport).not.toHaveBeenCalled()
+      // Pre-auth telemetry is forbidden — no import_events from a guest.
+      expect(logImportEvent).not.toHaveBeenCalled()
+      expect(onApplied).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appliedCount: 1,
+          mode: 'append',
+          priorRankedIds: ['g-0'],
+          appliedIds: ['fury'],
+          unrankIds: [],
+          guestPriorState: expect.objectContaining({ orderedIds: ['g-0'] }),
+        }),
+      )
+    })
+  })
+
+  it('hides the merge fieldset — guest imports are append-only', async () => {
+    const user = userEvent.setup()
+    const rides = seedGuestList(1)
+    renderModal({ rides, guestMode: true })
+    await pasteAndReview(user, 'Fury 325')
+    expect(screen.queryByRole('radio', { name: /replace my list/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /add after my list/i })).not.toBeInTheDocument()
+  })
+
+  it('applies only the first N under the cap and explains why', async () => {
+    const user = userEvent.setup()
+    const rides = seedGuestList(149)
+    const { onApplied } = renderModal({ rides, guestMode: true })
+    await pasteAndReview(user, 'Fury 325\nPantherian\nMadeup Coaster XYZ')
+    // 2 accepted (1 not found), room for 1 → truncated apply.
+    expect(screen.getByRole('button', { name: /^Import first 1 of 2 coasters$/i })).toBeEnabled()
+    expect(screen.getByText(/anti-spam limit/)).toBeInTheDocument()
+    expect(screen.getByText(/import all 2/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Import first 1 of 2 coasters$/i }))
+    await waitFor(() => {
+      expect(getGuestRidesSnapshot().state?.orderedIds).toHaveLength(150)
+      expect(onApplied).toHaveBeenCalledWith(
+        expect.objectContaining({ appliedCount: 1, appliedIds: ['fury'] }),
+      )
+    })
+  })
+
+  it('disables apply when the guest list is already full', async () => {
+    const user = userEvent.setup()
+    const rides = seedGuestList(150)
+    renderModal({ rides, guestMode: true })
+    await pasteAndReview(user, 'Fury 325')
+    expect(screen.getByRole('button', { name: /^Import 1 coasters$/i })).toBeDisabled()
+    expect(screen.getByText(/list is full/)).toBeInTheDocument()
   })
 })

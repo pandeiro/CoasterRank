@@ -18,12 +18,16 @@ import {
 
 // Store-level API (module singleton + localStorage): reset before each test.
 import {
+  addGuestRideFromRow,
+  applyGuestImport,
   clearGuestRides,
+  commitGuestImport,
   enterGuestMarkMode,
   exitGuestMarkMode,
   getGuestRidesSnapshot,
   lockGuestOrderOnWorkbenchVisit,
   reorderGuestRideList,
+  restoreGuestState,
   toggleGuestRide,
 } from './guest-rides'
 
@@ -263,5 +267,118 @@ describe('guest store (toggle + mark mode)', () => {
     expect(getGuestRidesSnapshot().markMode).toBe(false)
     // Mark mode is session state — it never lands in localStorage.
     expect(window.localStorage.getItem('cr.guest-rides.v1')).toBeNull()
+  })
+
+  describe('search-add + park bulk-add (add-only store path)', () => {
+    beforeEach(() => {
+      window.localStorage.clear()
+      clearGuestRides()
+    })
+    afterEach(() => clearGuestRides())
+
+    it('adds through the store and is an idempotent no-op when present', () => {
+      expect(addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))).toBe('added')
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a'])
+      expect(addGuestRideFromRow(row({ id: 'a', name: 'Fury 325', rank: 1 }))).toBe('added')
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a'])
+    })
+
+    it('reports capped at the guest cap', () => {
+      for (let i = 0; i < GUEST_RIDES_CAP; i += 1) {
+        addGuestRideFromRow(row({ id: `c${i}`, name: `Coaster ${i}`, rank: i + 1 }))
+      }
+      expect(addGuestRideFromRow(row({ id: 'overflow', name: 'Overflow', rank: 999 }))).toBe(
+        'capped',
+      )
+      expect(getGuestRidesSnapshot().state?.orderedIds).toHaveLength(GUEST_RIDES_CAP)
+    })
+  })
+
+  describe('guest import (applyGuestImport / commitGuestImport / restoreGuestState)', () => {
+    beforeEach(() => {
+      window.localStorage.clear()
+      clearGuestRides()
+    })
+    afterEach(() => clearGuestRides())
+
+    /** Snapshot resolver standing in for the modal's board-row lookup. */
+    const itemFor = (id: string) =>
+      guestItemFromRankingRow(row({ id, name: `Imported ${id}`, rank: 999 }), 1_000)
+
+    it('adopts the imported order wholesale on an empty list and locks it', () => {
+      const outcome = applyGuestImport(null, ['a', 'b', 'c'], itemFor, 1_000)
+      expect(outcome.addedIds).toEqual(['a', 'b', 'c'])
+      expect(outcome.cappedCount).toBe(0)
+      expect(outcome.state.orderedIds).toEqual(['a', 'b', 'c'])
+      // Imported order is explicit intent: never re-seeded by board rank.
+      expect(outcome.state.orderLocked).toBe(true)
+    })
+
+    it('appends to a non-empty list at the bottom, ignoring board-rank seeding', () => {
+      const prior = stateWith([
+        ['Velocicoaster', 1],
+        ['Fury 325', 5],
+      ])
+      const outcome = applyGuestImport(prior, ['x', 'y'], itemFor, 2_000)
+      expect(outcome.addedIds).toEqual(['x', 'y'])
+      // The imported items' board ranks (999) say "seed at the end" anyway,
+      // but the lock — not the ranks — is what guarantees this order.
+      expect(names(outcome.state)).toEqual([
+        'Velocicoaster',
+        'Fury 325',
+        'Imported x',
+        'Imported y',
+      ])
+      expect(outcome.state.orderLocked).toBe(true)
+    })
+
+    it('skips payload duplicates and coasters already in the list', () => {
+      const prior = stateWith([['Fury 325', 1]]) // id c0
+      const outcome = applyGuestImport(prior, ['c0', 'x', 'x'], itemFor, 2_000)
+      expect(outcome.addedIds).toEqual(['x'])
+      expect(outcome.state.orderedIds).toEqual(['c0', 'x'])
+    })
+
+    it('counts cap refusals without truncating existing selections', () => {
+      let prior = emptyGuestRanking(1_000)
+      for (let i = 0; i < GUEST_RIDES_CAP; i += 1) {
+        prior = addGuestRide(
+          prior,
+          guestItemFromRankingRow(row({ id: `c${i}`, name: `Coaster ${i}`, rank: i + 1 }), 1_000),
+          1_000,
+        ).state
+      }
+      const outcome = applyGuestImport(prior, ['x', 'y', 'z'], itemFor, 2_000)
+      expect(outcome.addedIds).toEqual([])
+      expect(outcome.cappedCount).toBe(3)
+      expect(outcome.state.orderedIds).toEqual(prior.orderedIds)
+    })
+
+    it('commits through the store and no-ops when nothing is new', () => {
+      const outcome = commitGuestImport(['a', 'b'], itemFor)
+      expect(outcome?.addedIds).toEqual(['a', 'b'])
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['a', 'b'])
+
+      const before = getGuestRidesSnapshot().state
+      // Re-importing the same list is a silent no-op — nothing new to add.
+      expect(commitGuestImport(['a', 'b'], itemFor)).toBeNull()
+      expect(getGuestRidesSnapshot().state).toBe(before)
+    })
+
+    it('restores an exact prior snapshot for undo (null clears)', () => {
+      const prior = stateWith([['Fury 325', 1]])
+      restoreGuestState(prior)
+      commitGuestImport(['x'], itemFor)
+      expect(getGuestRidesSnapshot().state?.orderedIds).toEqual(['c0', 'x'])
+
+      restoreGuestState(prior)
+      expect(readGuestRanking()?.orderedIds).toEqual(['c0'])
+      expect(readGuestRanking()?.orderLocked).toBe(prior.orderLocked)
+
+      // The import-from-empty undo path: null tears the list down entirely.
+      commitGuestImport(['y'], itemFor)
+      restoreGuestState(null)
+      expect(getGuestRidesSnapshot().state).toBeNull()
+    })
   })
 })

@@ -8,12 +8,15 @@ import FilterBar from '../components/FilterBar'
 import LiveStatusPopunder from '../components/LiveStatusPopunder'
 import MarkModeBanner from '../components/MarkModeBanner'
 import MarkModeDock from '../components/MarkModeDock'
+import ParkBulkAddModal from '../components/ParkBulkAddModal'
 import ScrollSentinel from '../components/ScrollSentinel'
 import SignupCta from '../components/SignupCta'
 import Toast from '../components/Toast'
 import { MessageState } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
 import {
+  GUEST_CAP_MESSAGE,
+  addGuestRideFromRow,
   clearGuestRides,
   enterGuestMarkMode,
   exitGuestMarkMode,
@@ -35,6 +38,7 @@ import {
   useAllCoasters,
   useBoardMeta,
   type RankingFilters,
+  type RankingRow,
 } from '../lib/coasters'
 import { useMovementLinger, useRankTurnover } from '../lib/rankMovement'
 import {
@@ -278,7 +282,33 @@ export default function BoardPage() {
   const handleToggleSelect = useCallback((row: Parameters<typeof toggleGuestRide>[0]) => {
     const result = toggleGuestRide(row)
     if (result === 'capped') {
-      setCapToast('You can rank up to 150 coasters as a guest — sign up to go beyond that.')
+      setCapToast(GUEST_CAP_MESSAGE)
+    }
+  }, [])
+
+  // Park bulk-add (§3.2 picker): fills the same selection set as row taps —
+  // guests head to the dock's Rank CTA, authed users to the fast-add CTA.
+  const [parkAddOpen, setParkAddOpen] = useState(false)
+  const handleParkCommit = useCallback((rows: RankingRow[]) => {
+    let added = 0
+    let capped = 0
+    for (const row of rows) {
+      const result = addGuestRideFromRow(row)
+      if (result === 'added') added++
+      else capped++
+    }
+    setParkAddOpen(false)
+    if (added === 0 && capped === 0) {
+      // Stale-existingIds race (picker already excludes listed coasters):
+      // everything committed was already selected — say so instead of
+      // closing silently.
+      setCapToast('Those coasters are already selected — nothing new to add.')
+      return
+    }
+    if (added === 0 && capped > 0) {
+      setCapToast(GUEST_CAP_MESSAGE)
+    } else if (capped > 0) {
+      setCapToast(`Added ${added} coaster${added === 1 ? '' : 's'}. ${GUEST_CAP_MESSAGE}`)
     }
   }, [])
 
@@ -475,7 +505,12 @@ export default function BoardPage() {
         </div>
       </header>
       {markMode && (
-        <MarkModeBanner authed={authed} selectedCount={guest.count} onExit={handleMarkExit} />
+        <MarkModeBanner
+          authed={authed}
+          selectedCount={guest.count}
+          onExit={handleMarkExit}
+          onAddFromPark={() => setParkAddOpen(true)}
+        />
       )}
       <FilterBar
         filters={filters}
@@ -530,6 +565,14 @@ export default function BoardPage() {
           pulse={!authed && guest.count >= 5}
           onRank={authed ? () => void commitFastAdd() : handleMarkRank}
           onClear={handleMarkClear}
+        />
+      )}
+      {markMode && (
+        <ParkBulkAddModal
+          isOpen={parkAddOpen}
+          onClose={() => setParkAddOpen(false)}
+          existingIds={guest.selectedIds}
+          onCommit={handleParkCommit}
         />
       )}
       {capToast && (

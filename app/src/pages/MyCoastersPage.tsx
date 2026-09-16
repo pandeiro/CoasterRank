@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Upload } from 'lucide-react'
+import { MapPin, Upload } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import ConfirmEmailGate from '../components/ConfirmEmailGate'
 import CoasterSearchBar from '../components/CoasterSearchBar'
@@ -9,6 +9,7 @@ import ImportListModal, {
   IMPORT_UNDO_MS,
   type AppliedImport,
 } from '../components/import/ImportListModal'
+import ParkBulkAddModal from '../components/ParkBulkAddModal'
 import RankedCoasterList, { REMOVE_UNDO_MS, type PendingAdd } from '../components/RankedCoasterList'
 import ShareNudgeBanner from '../components/ShareNudgeBanner'
 import Toast from '../components/Toast'
@@ -16,6 +17,7 @@ import WelcomeModal from '../components/WelcomeModal'
 import { persistWelcomeDismissed, readWelcomeDismissed } from '../lib/welcome'
 import { Button, MessageState, PageHeader } from '../components/ui'
 import { useAuth } from '../lib/auth-context'
+import type { RankingRow } from '../lib/coasters'
 import { clearGuestRides, readGuestRanking } from '../lib/guest-rides'
 import {
   fetchMyRankedRideIds,
@@ -27,7 +29,7 @@ import { applyImport, logImportEvent } from '../lib/import/apply'
 import { fetchProfile } from '../lib/profile'
 import { dismissShareNudge, useShareNudge } from '../lib/share-nudge'
 import { startReplay, stopReplay } from '../lib/sentry'
-import { useMyRides } from '../lib/rides'
+import { useMyRides, useRemoveRide } from '../lib/rides'
 import { isCoarsePointer } from '../lib/use-media-query'
 
 type ToastAction = { label: string; onClick: () => void }
@@ -308,6 +310,49 @@ export default function MyCoastersPage() {
     [notify, qc, user?.id],
   )
 
+  // ── Park bulk-add (GUEST_UX.md §3.2 picker, authed commit): the selection
+  // appends to the BOTTOM of the ranked ladder via the same merged-ladder
+  // fast_add path as board Mark Mode — the RPC's coverage guard requires the
+  // complete payload, and appending (not the holding pen) keeps 17 new
+  // coasters from stranding the user with unpositioned rows. Undo deletes
+  // exactly the appended rows.
+  const removeRide = useRemoveRide()
+  const [parkAddOpen, setParkAddOpen] = useState(false)
+  const [parkAddBusy, setParkAddBusy] = useState(false)
+  const [parkAddResult, setParkAddResult] = useState<{ appendedIds: string[] } | null>(null)
+
+  const commitParkAdd = useCallback(
+    async (rows: RankingRow[]) => {
+      if (!user || parkAddBusy) return
+      setParkAddBusy(true)
+      try {
+        const remoteIds = await fetchMyRankedRideIds()
+        const remote = new Set(remoteIds)
+        const appended = rows.map((r) => r.id).filter((id) => !remote.has(id))
+        if (appended.length === 0) {
+          notify('Those coasters are already in your list — nothing to add.')
+          return
+        }
+        await materializeGuestRides([...remoteIds, ...appended], 'fast_add', null)
+        await qc.invalidateQueries({ queryKey: ['myRides', user.id] })
+        setParkAddResult({ appendedIds: appended })
+        setParkAddOpen(false)
+      } catch {
+        notify("Couldn't add your coasters. Please try again.", 'error')
+      } finally {
+        setParkAddBusy(false)
+      }
+    },
+    [parkAddBusy, user, qc, notify],
+  )
+
+  const undoParkAdd = useCallback(() => {
+    setParkAddResult((current) => {
+      for (const id of current?.appendedIds ?? []) removeRide.mutate(id)
+      return null
+    })
+  }, [removeRide])
+
   if (!isConfirmed) {
     return (
       <div>
@@ -374,6 +419,14 @@ export default function MyCoastersPage() {
         onError={handleError}
       />
 
+      <ParkBulkAddModal
+        isOpen={parkAddOpen}
+        onClose={() => setParkAddOpen(false)}
+        existingIds={existingIds}
+        onCommit={(rows) => void commitParkAdd(rows)}
+        committing={parkAddBusy}
+      />
+
       <div ref={searchSentinelRef} aria-hidden="true" className="h-px" />
 
       <div
@@ -383,10 +436,26 @@ export default function MyCoastersPage() {
       >
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="min-w-0 flex-1">
-            <CoasterSearchBar existingCoasterIds={existingIds} onAdd={handleAdd} />
+            <CoasterSearchBar
+              existingCoasterIds={existingIds}
+              onAdd={(row) => handleAdd(row.id, row.name)}
+            />
           </div>
           {/* self-stretch matches the button to the search input's height
               (py-3 input vs. min-h-10 button differ by 6px on every viewport). */}
+          {/* self-stretch matches both buttons to the search input's height
+              (py-3 input vs. min-h-10 button differ by 6px on every
+              viewport — #227). */}
+          <Button
+            variant="outline"
+            size="md"
+            aria-label="Add coasters from a park"
+            className="shrink-0 self-stretch"
+            onClick={() => setParkAddOpen(true)}
+          >
+            <MapPin className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Add from park</span>
+          </Button>
           <Button
             variant="outline"
             size="md"
@@ -462,6 +531,15 @@ export default function MyCoastersPage() {
         />
       )}
 
+      {parkAddResult && (
+        <Toast
+          message={`Added ${parkAddResult.appendedIds.length} coaster${parkAddResult.appendedIds.length === 1 ? '' : 's'} to the bottom of your ranking`}
+          tone="info"
+          durationMs={10000}
+          action={{ label: 'Undo', onClick: undoParkAdd }}
+          onDismiss={() => setParkAddResult(null)}
+        />
+      )}
       {mergePrompt && (
         <ExistingAccountMergeModal
           guestCount={mergePrompt.guestCount}
