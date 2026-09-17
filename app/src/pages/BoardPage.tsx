@@ -380,13 +380,22 @@ export default function BoardPage() {
       {markMode && (
         <MarkModeBanner authed={authed} selectedCount={guest.count} onExit={handleMarkExit} />
       )}
-      <FilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        countries={countries}
-        manufacturers={manufacturers}
-        onAddFromPark={markMode ? () => setParkAddOpen(true) : undefined}
-      />
+      {/* Mobile sticky filter bar: pins directly under the sticky site
+          header (h-16, z-30) once the hero + banner scroll off. Mobile-only
+          (sm:static) — desktop keeps the static toolbar. z-20 sits above the
+          scrolling table but below the header, the bottom MarkModeDock (z-40),
+          and the mobile filter popover (fixed, z-50), so guest Mark Mode —
+          banner above (scrolls away, never sticky), dock bottom-fixed,
+          popover overlay — is unaffected. */}
+      <div className="sticky top-16 z-20 sm:static sm:z-auto">
+        <FilterBar
+          filters={filters}
+          onChange={onFiltersChange}
+          countries={countries}
+          manufacturers={manufacturers}
+          onAddFromPark={markMode ? () => setParkAddOpen(true) : undefined}
+        />
+      </div>
       <div className="relative mt-4 min-h-[60vh] sm:mt-6 sm:min-h-[65vh]">
         {coasters.isError ? (
           <MessageState tone="danger">Couldn&apos;t load the board.</MessageState>
