@@ -119,10 +119,7 @@ export default function CountriesPage() {
         <meta name="twitter:description" content={META_DESCRIPTION} />
         <meta name="twitter:image" content={`${window.location.origin}/og-default.png`} />
       </Helmet>
-      <PageHeader
-        title="Countries"
-        description="Ordered by the average global rank of its top five coasters."
-      />
+      <PageHeader title="Countries" description="Compared by average rank of top five coasters." />
       <div className="mt-6">
         {coasters.isError ? (
           <MessageState tone="danger">Couldn&apos;t load the country standings.</MessageState>
