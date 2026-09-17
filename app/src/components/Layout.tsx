@@ -134,11 +134,6 @@ export default function Layout() {
                   <NavLink to="/login" className={navLinkClass}>
                     Log in
                   </NavLink>
-                  {/* v2.2: a plain sign-up path for "join first, rank later"
-                      visitors — the pill below launches Mark Mode instead. */}
-                  <NavLink to="/signup" className={navLinkClass}>
-                    Sign up
-                  </NavLink>
                   {/* GUEST_UX.md §3.1: the primary funnel CTA. Idle = rolling
                     "airtime hills" of VARYING sizes (big arch, clipped valley,
                     small arch, shallow dip — pattern period 60 so the -50%
