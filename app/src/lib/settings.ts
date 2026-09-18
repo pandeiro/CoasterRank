@@ -20,6 +20,24 @@ export const DEFAULT_SETTINGS: LocalSettings = {
   theme: 'system',
 }
 
+// First-visit units default, from the browser locale: the US, Liberia, and
+// Myanmar are the only countries on imperial, so visitors there start
+// imperial — an explicit pick (stored) always wins over this guess.
+const IMPERIAL_REGIONS = new Set(['US', 'LR', 'MM'])
+
+export function localeDefaultUnits(): Units {
+  try {
+    if (typeof navigator === 'undefined' || typeof navigator.language !== 'string') {
+      return 'metric'
+    }
+    const region = new Intl.Locale(navigator.language).region?.toUpperCase()
+    return region !== undefined && IMPERIAL_REGIONS.has(region) ? 'imperial' : 'metric'
+  } catch {
+    // Malformed locale tag (Intl.Locale throws RangeError): stay metric.
+    return 'metric'
+  }
+}
+
 function isUnits(value: unknown): value is Units {
   return value === 'metric' || value === 'imperial'
 }
@@ -31,18 +49,19 @@ function isThemeMode(value: unknown): value is ThemeMode {
 function readStoredSettings(): LocalSettings {
   try {
     const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS }
+    if (!raw) return { units: localeDefaultUnits(), theme: DEFAULT_SETTINGS.theme }
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
+    if (typeof parsed !== 'object' || parsed === null)
+      return { units: localeDefaultUnits(), theme: DEFAULT_SETTINGS.theme }
     const record = parsed as Record<string, unknown>
     return {
-      units: isUnits(record.units) ? record.units : DEFAULT_SETTINGS.units,
+      units: isUnits(record.units) ? record.units : localeDefaultUnits(),
       theme: isThemeMode(record.theme) ? record.theme : DEFAULT_SETTINGS.theme,
     }
   } catch {
     // Corrupt JSON or blocked storage (private mode): fall back to defaults
     // without throwing — settings are a preference, never a gate.
-    return { ...DEFAULT_SETTINGS }
+    return { units: localeDefaultUnits(), theme: DEFAULT_SETTINGS.theme }
   }
 }
 
@@ -129,7 +148,22 @@ export function resolveIsDark(mode: ThemeMode): boolean {
 
 export function applyThemeMode(mode: ThemeMode): void {
   if (typeof document === 'undefined') return
-  document.documentElement.classList.toggle('dark', resolveIsDark(mode))
+  const isDark = resolveIsDark(mode)
+  document.documentElement.classList.toggle('dark', isDark)
+  syncFavicon(isDark)
+}
+
+// Tab-icon follows the resolved theme. An SVG-embedded media query (the
+// GitHub trick) would only track the OS — explicit light/dark overrides
+// need the href swapped here (and in the index.html pre-paint script).
+const FAVICON_LIGHT_HREF = '/favicon.svg'
+const FAVICON_DARK_HREF = '/favicon-dark.svg'
+
+function syncFavicon(isDark: boolean): void {
+  const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+  if (!link) return
+  const href = isDark ? FAVICON_DARK_HREF : FAVICON_LIGHT_HREF
+  if (link.getAttribute('href') !== href) link.setAttribute('href', href)
 }
 
 let themeInitDone = false

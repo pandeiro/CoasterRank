@@ -306,6 +306,7 @@ export default function BoardPage() {
             still on the -0.12em optical rise. */}
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <h1 className="mx-auto flex flex-wrap items-baseline justify-center gap-x-1 sm:mx-0 sm:justify-start">
+            {/* Masthead mark swaps for dark mode like the header logo. */}
             <img
               src="/logo.svg"
               alt=""
@@ -313,7 +314,15 @@ export default function BoardPage() {
               height="1113"
               fetchPriority="high"
               decoding="async"
-              className="h-[3.7rem] w-auto sm:h-[4.5rem]"
+              className="h-[3.7rem] w-auto sm:h-[4.5rem] dark:hidden"
+            />
+            <img
+              src="/logo-reversed.svg"
+              alt=""
+              width="1444"
+              height="1113"
+              decoding="async"
+              className="hidden h-[3.7rem] w-auto sm:h-[4.5rem] dark:block"
             />
             <span className="display-heading -translate-y-[0.12em] text-[2.4rem] leading-none tracking-wide sm:text-[2.9rem]">
               Coaster<span className="text-coral">Rank</span>

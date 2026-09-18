@@ -8,6 +8,7 @@ import {
   formatSpeedKmh,
   getSettingsSnapshot,
   initSettingsTheme,
+  localeDefaultUnits,
   resolveIsDark,
   updateSettings,
 } from './settings'
@@ -47,8 +48,10 @@ afterAll(() => {
 // Stage a raw localStorage value, then sync the module store through the
 // cross-tab path (the same code other tabs' writes take).
 function stageStoredSettings(raw: string | null) {
-  window.localStorage.clear()
   updateSettings({ ...DEFAULT_SETTINGS })
+  // Clear AFTER the reset: the reset write persists to storage, which would
+  // otherwise make the null (first-visit) case unreadable.
+  window.localStorage.clear()
   if (raw !== null) window.localStorage.setItem(SETTINGS_STORAGE_KEY, raw)
   const event = new Event('storage') as Event & { key?: string | null }
   event.key = SETTINGS_STORAGE_KEY
@@ -57,6 +60,24 @@ function stageStoredSettings(raw: string | null) {
 }
 
 describe('settings storage', () => {
+  const realLanguage = window.navigator.language
+
+  beforeEach(() => {
+    // Pin a metric locale: jsdom defaults to en-US, which takes the
+    // imperial first-visit default (tested explicitly below).
+    Object.defineProperty(window.navigator, 'language', {
+      value: 'de-DE',
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window.navigator, 'language', {
+      value: realLanguage,
+      configurable: true,
+    })
+  })
+
   beforeEach(() => {
     window.localStorage.clear()
     document.documentElement.classList.remove('dark')
@@ -98,6 +119,45 @@ describe('settings storage', () => {
     updateSettings({ units: 'imperial' })
     updateSettings({ units: 'furlongs' as never, theme: 'amoled' as never })
     expect(getSettingsSnapshot()).toEqual({ units: 'imperial', theme: 'system' })
+  })
+})
+
+describe('locale units default', () => {
+  const realLanguage = window.navigator.language
+
+  function setLanguage(tag: string) {
+    Object.defineProperty(window.navigator, 'language', { value: tag, configurable: true })
+  }
+
+  afterEach(() => {
+    setLanguage(realLanguage)
+    window.localStorage.clear()
+    document.documentElement.classList.remove('dark')
+    updateSettings({ units: 'metric', theme: 'system' })
+  })
+
+  it('defaults imperial to US English, metric elsewhere', () => {
+    setLanguage('en-US')
+    expect(localeDefaultUnits()).toBe('imperial')
+    expect(stageStoredSettings(null)).toEqual({ units: 'imperial', theme: 'system' })
+    setLanguage('en-GB')
+    expect(localeDefaultUnits()).toBe('metric')
+    expect(stageStoredSettings(null)).toEqual({ units: 'metric', theme: 'system' })
+  })
+
+  it('stays metric without a region or with a malformed tag', () => {
+    setLanguage('en')
+    expect(localeDefaultUnits()).toBe('metric')
+    setLanguage('')
+    expect(localeDefaultUnits()).toBe('metric')
+  })
+
+  it('a stored pick always wins over the locale guess', () => {
+    setLanguage('en-US')
+    expect(stageStoredSettings(JSON.stringify({ units: 'metric', theme: 'system' }))).toEqual({
+      units: 'metric',
+      theme: 'system',
+    })
   })
 })
 
@@ -147,6 +207,16 @@ describe('theme resolution', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     applyThemeMode('light')
     expect(document.documentElement.classList.contains('dark')).toBe(false)
+  })
+
+  it('applyThemeMode swaps the tab icon with the theme', () => {
+    document.head.innerHTML = '<link rel="icon" type="image/svg+xml" href="/favicon.svg">'
+    const link = document.querySelector('link[rel="icon"]')!
+    applyThemeMode('dark')
+    expect(link.getAttribute('href')).toBe('/favicon-dark.svg')
+    applyThemeMode('light')
+    expect(link.getAttribute('href')).toBe('/favicon.svg')
+    document.head.innerHTML = ''
   })
 
   it('follows live OS flips while on system', () => {

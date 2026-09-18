@@ -76,6 +76,10 @@ describe('CoasterDetailPage', () => {
     mockLoggedOut()
     vi.mocked(useIsAdmin).mockReturnValue(false)
     vi.mocked(useRecomputeFreshness).mockReturnValue({ data: sixMinutesAgo } as never)
+    // The settings store is module state: reset display prefs every test so
+    // the jsdom-locale first-visit default (imperial under en-US) can't leak
+    // between cases — metric is this file's baseline, imperial opts in below.
+    updateSettings({ units: 'metric', theme: 'system' })
   })
 
   it('shows identity, the community ranking panel, and demoted specs', () => {
