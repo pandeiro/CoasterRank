@@ -18,6 +18,9 @@ export default function Footer() {
           <Link to="/privacy" className="transition-colors hover:text-ink">
             Privacy
           </Link>
+          <Link to="/settings" className="transition-colors hover:text-ink">
+            Settings
+          </Link>
           <a
             href="https://github.com/pandeiro/CoasterRank"
             target="_blank"

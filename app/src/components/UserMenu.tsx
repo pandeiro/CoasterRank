@@ -1,7 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LogOut, User, List, Share2, MessageSquarePlus, type LucideIcon } from 'lucide-react'
+import {
+  LogOut,
+  User,
+  List,
+  Settings,
+  Share2,
+  MessageSquarePlus,
+  type LucideIcon,
+} from 'lucide-react'
 import type { Profile } from '../lib/profile'
 import Avatar from './ui/Avatar'
 import { useFeedback } from './feedback-context'
@@ -104,6 +112,9 @@ export default function UserMenu({ profile, userId, onSignOut }: UserMenuProps) 
   // Action item: opens the feedback modal in place — no navigation, so the
   // page (scroll, filters, drag state) is untouched behind the overlay.
   itemDefs.push({ label: 'Feedback', Icon: MessageSquarePlus, action: openFeedback })
+  // Local-only display settings (units + UI mode): a route, not a modal —
+  // guests reach the same page via the footer link.
+  itemDefs.push({ to: '/settings', label: 'Settings', Icon: Settings })
 
   function renderItems(rowClass: string, iconSize: number) {
     return itemDefs.map(({ to, label, Icon, action }) =>

@@ -49,6 +49,212 @@ const swatches: Swatch[] = [
   },
 ]
 
+// Dark-mode proposals for the same tokens. Rendered inside a `.dark`
+// wrapper below, so each `bg-*` utility paints its real dark value — the
+// hex alongside is the source of truth for review.
+const darkSwatches: Swatch[] = [
+  { name: 'Ink', value: '#F4F3EE', utility: 'bg-ink', detail: 'Was #1A1A2E' },
+  { name: 'Ink soft', value: '#D8D7E2', utility: 'bg-ink-soft', detail: 'Was #2F2E48' },
+  { name: 'Canvas', value: '#14141F', utility: 'bg-canvas', detail: 'Was #FEFCF3' },
+  { name: 'Surface', value: '#1E1E2D', utility: 'bg-surface', detail: 'Was #F5F0E8' },
+  { name: 'Bright', value: '#262638', utility: 'bg-surface-bright', detail: 'Was #FFFFFF' },
+  { name: 'Line', value: '#37374E', utility: 'bg-line', detail: 'Was #E0DBD1' },
+  { name: 'Muted', value: '#A9A9BC', utility: 'bg-muted', detail: 'Was #4A4A5A' },
+  {
+    name: 'Accent',
+    value: '#48CAE4',
+    utility: 'bg-accent',
+    detail: 'Unchanged — brand pop on dark',
+  },
+  {
+    name: 'Accent strong',
+    value: '#5ED2E8',
+    utility: 'bg-accent-strong',
+    detail: 'Was #159AB8, lifted for dark',
+  },
+  {
+    name: 'Accent ink',
+    value: '#82DBEE',
+    utility: 'bg-accent-ink',
+    detail: 'Was #0D6C80, lifted for dark',
+  },
+  { name: 'Coral', value: '#E85D75', utility: 'bg-coral', detail: 'Unchanged' },
+  {
+    name: 'Coral text',
+    value: '#F492A6',
+    utility: 'bg-coral-text',
+    detail: 'Was #A61E35 (6.7:1 on dark bright)',
+  },
+  { name: 'Success', value: '#2E8B73', utility: 'bg-success', detail: 'Unchanged' },
+  {
+    name: 'Success text',
+    value: '#6FC7AC',
+    utility: 'bg-success-text',
+    detail: 'Was #1E6E5A (7.4:1 on dark bright)',
+  },
+  { name: 'Warning', value: '#B7791F', utility: 'bg-warning', detail: 'Unchanged' },
+  {
+    name: 'Warning text',
+    value: '#D9A44C',
+    utility: 'bg-warning-text',
+    detail: 'Was #8C5A0F (6.6:1 on dark bright)',
+  },
+  { name: 'Danger', value: '#C24156', utility: 'bg-danger', detail: 'Unchanged' },
+  {
+    name: 'Danger text',
+    value: '#E88A97',
+    utility: 'bg-danger-text',
+    detail: 'Was #A62B3F (6.0:1 on dark bright)',
+  },
+]
+
+// Full token map: light hex → dark hex. Dots use inline styles (explicit
+// hex, immune to the surrounding theme) so both ends read true anywhere.
+const tokenMap: Array<{ token: string; light: string; dark: string }> = [
+  { token: 'ink', light: '#1A1A2E', dark: '#F4F3EE' },
+  { token: 'ink-soft', light: '#2F2E48', dark: '#D8D7E2' },
+  { token: 'canvas', light: '#FEFCF3', dark: '#14141F' },
+  { token: 'surface', light: '#F5F0E8', dark: '#1E1E2D' },
+  { token: 'surface-bright', light: '#FFFFFF', dark: '#262638' },
+  { token: 'line', light: '#E0DBD1', dark: '#37374E' },
+  { token: 'muted', light: '#4A4A5A', dark: '#A9A9BC' },
+  { token: 'accent', light: '#48CAE4', dark: '#48CAE4' },
+  { token: 'accent-strong', light: '#159AB8', dark: '#5ED2E8' },
+  { token: 'accent-dark', light: '#12839C', dark: '#12839C' },
+  { token: 'accent-ink', light: '#0D6C80', dark: '#82DBEE' },
+  { token: 'accent-text', light: '#0D6C80', dark: '#7CD9EC' },
+  { token: 'coral', light: '#E85D75', dark: '#E85D75' },
+  { token: 'coral-text', light: '#A61E35', dark: '#F492A6' },
+  { token: 'success', light: '#2E8B73', dark: '#2E8B73' },
+  { token: 'success-text', light: '#1E6E5A', dark: '#6FC7AC' },
+  { token: 'warning', light: '#B7791F', dark: '#B7791F' },
+  { token: 'warning-text', light: '#8C5A0F', dark: '#D9A44C' },
+  { token: 'danger', light: '#C24156', dark: '#C24156' },
+  { token: 'danger-text', light: '#A62B3F', dark: '#E88A97' },
+]
+
+function TokenMapRow({ row }: { row: (typeof tokenMap)[number] }) {
+  const unchanged = row.light.toLowerCase() === row.dark.toLowerCase()
+  return (
+    <div className="flex items-center gap-3 border-b border-line/60 py-2 last:border-b-0">
+      <p className="w-28 shrink-0 font-mono text-xs font-semibold text-ink">{row.token}</p>
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 shrink-0 rounded-md ring-1 ring-black/15"
+        style={{ background: row.light }}
+      />
+      <p className="w-20 shrink-0 font-mono text-xs text-muted">{row.light}</p>
+      <span aria-hidden="true" className="shrink-0 text-xs text-muted">
+        →
+      </span>
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 shrink-0 rounded-md ring-1 ring-black/15"
+        style={{ background: row.dark }}
+      />
+      <p className="w-20 shrink-0 font-mono text-xs text-ink">{row.dark}</p>
+      {unchanged && (
+        <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] text-muted">
+          same
+        </span>
+      )}
+    </div>
+  )
+}
+
+export function DarkModeMocks() {
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Badge tone="accent">Dark mode — proposed</Badge>
+        <span className="text-xs text-muted">
+          Surfaces drop to an ink-navy stack; brand hues stay identical so the mark and live states
+          read the same. Only functional text variants lighten (all ≥ 4.5:1 on dark).
+        </span>
+      </div>
+      <Panel className="p-5 sm:p-6">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          Token map · light → dark
+        </p>
+        <div className="grid gap-x-10 md:grid-cols-2">
+          {tokenMap.map((row) => (
+            <TokenMapRow key={row.token} row={row} />
+          ))}
+        </div>
+      </Panel>
+      {/* Live preview: `.dark` flips the CSS vars, so every utility below
+          paints its true dark value — this is the real render, not a mock. */}
+      <div className="dark mt-5 rounded-xl border border-line bg-canvas p-5 sm:p-6">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          Live preview · true dark render
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {darkSwatches.map((swatch) => (
+            <SwatchCard key={swatch.name} swatch={swatch} />
+          ))}
+        </div>
+        <div className="mt-5 overflow-hidden rounded-xl border border-line bg-surface-bright">
+          <div className="flex items-center gap-4 border-b border-line bg-surface/70 px-4 py-4 sm:px-5">
+            <span className="display-heading text-xl text-muted/75">1</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate font-semibold text-ink">Steel Vengeance</p>
+                <Badge tone="coral">12 (30%)</Badge>
+              </div>
+              <p className="truncate text-sm text-muted">Cedar Point</p>
+            </div>
+            <span className="text-sm tabular-nums text-muted">102.9</span>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-4 sm:px-5">
+            <span className="display-heading text-xl text-muted/75">2</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate font-semibold text-ink">Fury 325</p>
+                <Badge tone="warning">few votes</Badge>
+              </div>
+              <p className="truncate text-sm text-muted">Carowinds</p>
+            </div>
+            <span className="text-sm tabular-nums text-muted">102.6</span>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button>Primary</Button>
+          <Button variant="coral">Accent</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Badge tone="accent">Active</Badge>
+          <Badge tone="success">Saved</Badge>
+          <Badge tone="danger">Error</Badge>
+        </div>
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <label className="text-sm font-medium text-ink-soft">
+            Search
+            <input className={`mt-2 ${fieldClassName}`} placeholder="Search coasters…" />
+          </label>
+          <label className="text-sm font-medium text-ink-soft">
+            Material
+            <select className={`mt-2 w-full ${selectClassName}`} defaultValue="steel">
+              <option value="steel">Steel</option>
+              <option value="wood">Wood</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </label>
+        </div>
+        <p className="mt-5 text-sm leading-7">
+          Body copy stays <span className="text-muted">muted #A9A9BC (7.9:1)</span> with{' '}
+          <a href="#dark-mode" onClick={(e) => e.preventDefault()}>
+            <span className="link-brand">branded links #82DBEE</span>
+          </a>{' '}
+          and <span className="text-accent-text">functional accent #7CD9EC (11.3:1)</span> — plus{' '}
+          <span className="text-success-text">success</span>,{' '}
+          <span className="text-warning-text">warning</span>, and{' '}
+          <span className="text-danger-text">danger</span> text variants.
+        </p>
+      </div>
+    </>
+  )
+}
+
 const spacing = [1, 2, 3, 4, 6, 8, 10, 12]
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -355,6 +561,10 @@ export function DesignBoard() {
               <SwatchCard key={swatch.name} swatch={swatch} />
             ))}
           </div>
+        </Section>
+
+        <Section title="Dark mode">
+          <DarkModeMocks />
         </Section>
 
         <Section title="Typography">

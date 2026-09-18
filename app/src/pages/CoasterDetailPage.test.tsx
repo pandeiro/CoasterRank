@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HelmetProvider } from 'react-helmet-async'
@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-context'
 import { useCoaster, useRecomputeFreshness } from '../lib/coasters'
 import { useIsAdmin } from '../lib/useIsAdmin'
 import { useAddRide, useMyRides } from '../lib/rides'
+import { updateSettings } from '../lib/settings'
 import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -141,6 +142,28 @@ describe('CoasterDetailPage', () => {
       'href',
       '/signup',
     )
+  })
+
+  describe('units setting', () => {
+    beforeEach(() => {
+      updateSettings({ units: 'imperial' })
+    })
+
+    afterEach(() => {
+      updateSettings({ units: 'metric' })
+    })
+
+    it('renders specs in imperial when the visitor chose it', () => {
+      vi.mocked(useCoaster).mockReturnValue({
+        data: makeRankingRow({ height_m: 61, speed_kmh: 119, length_m: 1146 }),
+        isPending: false,
+        isError: false,
+      } as never)
+      renderPage()
+      expect(screen.getByText('200 ft')).toBeInTheDocument()
+      expect(screen.getByText('74 mph')).toBeInTheDocument()
+      expect(screen.getByText('3,760 ft')).toBeInTheDocument()
+    })
   })
 
   it('lists former names from the row aliases', () => {

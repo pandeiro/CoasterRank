@@ -2,12 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import { initSentry } from './lib/sentry'
+import { initSettingsTheme } from './lib/settings'
 import { clearChunkReloadGuard, reloadForChunkError } from './lib/chunk-recovery'
 import './index.css'
 import App from './App.tsx'
 import ErrorFallback from './components/ErrorFallback'
 
 initSentry()
+// Local settings (units + UI mode): paint stored/system theme, follow OS
+// flips on `system`, pick up other tabs' changes. Idempotent with the
+// index.html pre-paint script.
+initSettingsTheme()
 
 console.log(`
 ██╗    ██╗███████╗██╗      ██████╗  ██████╗ ███╗   ███╗███████╗    ████████╗ ██████╗
