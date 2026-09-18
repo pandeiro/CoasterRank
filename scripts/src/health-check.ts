@@ -57,6 +57,12 @@ const MIN_RANKINGS_ROWS = 900
 // Healthy staleness: edge cache ≤5m + 5-min recompute → ≤ ~10m. 2× margin.
 const MAX_STALENESS_MS = 20 * 60 * 1000
 
+// Autovacuum bloat safety bounds for pair pipeline tables.
+// Alert if dead tuples exceed 20,000 OR dead-to-live ratio > 50% when dead tuples > 1,000.
+const MAX_DEAD_TUPLES = 20_000
+const MAX_DEAD_RATIO = 0.5
+const MIN_DEAD_TUPLES_FOR_RATIO_CHECK = 1_000
+
 type Check = { name: string; ok: boolean; detail: string; latencyMs?: number }
 
 function arg(flag: string): string | undefined {
@@ -275,6 +281,58 @@ async function checkSupabaseAnon(): Promise<Check[]> {
   }
 }
 
+type PgStatRow = {
+  relname: string
+  n_live_tup: number | string
+  n_dead_tup: number | string
+}
+
+async function checkAutovacuumBloat(): Promise<Check[]> {
+  const dbUrl = process.env.SUPABASE_DB_URL
+  if (!dbUrl) {
+    return [
+      { name: 'autovacuum:bloat', ok: true, detail: 'skipped (SUPABASE_DB_URL not set)' },
+    ]
+  }
+  try {
+    const { default: pg } = await import('pg')
+    const client = new pg.Client({ connectionString: dbUrl })
+    await client.connect()
+    try {
+      const query = `
+        SELECT relname, n_live_tup, n_dead_tup
+        FROM pg_stat_user_tables
+        WHERE relname IN ('user_pairs', 'pair_totals', 'pair_dirty_users', 'pair_user_state');
+      `
+      const res = await client.query<PgStatRow>(query)
+      const warnings: string[] = []
+      for (const row of res.rows) {
+        const live = Number(row.n_live_tup) || 0
+        const dead = Number(row.n_dead_tup) || 0
+        const deadRatio = live > 0 ? dead / live : dead > 0 ? 1 : 0
+        if (
+          dead > MAX_DEAD_TUPLES ||
+          (dead > MIN_DEAD_TUPLES_FOR_RATIO_CHECK && deadRatio > MAX_DEAD_RATIO)
+        ) {
+          warnings.push(
+            `${row.relname} (live=${live}, dead=${dead}, ratio=${(deadRatio * 100).toFixed(1)}%)`,
+          )
+        }
+      }
+      const ok = warnings.length === 0
+      const detail = ok
+        ? `all pair tables healthy (${res.rows.map((r) => `${r.relname}:${r.n_dead_tup}d`).join(', ')})`
+        : `bloat threshold exceeded: ${warnings.join('; ')}`
+      return [{ name: 'autovacuum:bloat', ok, detail }]
+    } finally {
+      await client.end()
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return [{ name: 'autovacuum:bloat', ok: false, detail: `postgres check failed: ${msg}` }]
+  }
+}
+
 async function checkBrowser(): Promise<Check[]> {
   if (skipBrowser) return [{ name: 'browser', ok: true, detail: 'skipped (--skip-browser)' }]
   let browser: import('playwright').Browser | null = null
@@ -372,13 +430,14 @@ function summarize(checks: Check[]): { ok: boolean; summary: string } {
 async function main(): Promise<void> {
   const all: Check[] = []
 
-  const [home, apiRes, supabaseChecks, browserChecks] = await Promise.all([
+  const [home, apiRes, supabaseChecks, autovacuumChecks, browserChecks] = await Promise.all([
     checkHomepage(),
     checkApiRanking(),
     checkSupabaseAnon(),
+    checkAutovacuumBloat(),
     checkBrowser(),
   ])
-  all.push(...home, ...apiRes.checks, ...supabaseChecks, ...browserChecks)
+  all.push(...home, ...apiRes.checks, ...supabaseChecks, ...autovacuumChecks, ...browserChecks)
 
   const { ok, summary } = summarize(all)
   console.log(summary)
