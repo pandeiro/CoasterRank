@@ -230,6 +230,24 @@ describe('BoardPage', () => {
     expect(screen.getByText(/Last changed/)).toBeInTheDocument()
   })
 
+  it('keeps the Live popunder above the sticky mobile filter bar', async () => {
+    const user = userEvent.setup()
+    const { container } = renderBoard()
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    // (The LocationProbe <output> also has the implicit status role, so
+    // scope to the popunder through its own copy.)
+    const popunder = screen.getByText(/Last changed/).closest('div[role="status"]')
+    // Stacking contract (jsdom can't compute paint order — pin the classes):
+    // the hero popunder drops downward at z-20 over the sticky filter bar,
+    // so the bar must sit below it — a tied z-20 paints over the popup on
+    // mobile (later in the DOM wins ties) and hides the live stats.
+    expect(popunder).toHaveClass('z-20')
+    const stickyFilter = container.querySelector('.sticky.top-16')
+    expect(stickyFilter).not.toBeNull()
+    expect(stickyFilter).toHaveClass('z-10')
+    expect(stickyFilter).not.toHaveClass('z-20')
+  })
+
   it('renders the ranked rows and links to the park', () => {
     renderBoard()
     // Both CSS-gated layouts render the row; scope to the desktop table.

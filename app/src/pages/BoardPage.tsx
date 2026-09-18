@@ -382,12 +382,15 @@ export default function BoardPage() {
       )}
       {/* Mobile sticky filter bar: pins directly under the sticky site
           header (h-16, z-30) once the hero + banner scroll off. Mobile-only
-          (sm:static) — desktop keeps the static toolbar. z-20 sits above the
+          (sm:static) — desktop keeps the static toolbar. z-10 sits above the
           scrolling table but below the header, the bottom MarkModeDock (z-40),
           and the mobile filter popover (fixed, z-50), so guest Mark Mode —
           banner above (scrolls away, never sticky), dock bottom-fixed,
-          popover overlay — is unaffected. */}
-      <div className="sticky top-16 z-20 sm:static sm:z-auto">
+          popover overlay — is unaffected. z-10 (not z-20) deliberately: the
+          hero's LiveStatusPopunder drops downward at z-20 from earlier in the
+          DOM, so a tied z-20 here paints over it and hides the live stats on
+          mobile. */}
+      <div className="sticky top-16 z-10 sm:static sm:z-auto">
         <FilterBar
           filters={filters}
           onChange={onFiltersChange}
