@@ -207,15 +207,15 @@ function groupThousands(value: number): string {
 
 export function formatHeightM(heightM: number, units: Units): string {
   if (units === 'imperial') return `${groupThousands(Math.round(heightM * M_TO_FT))} ft`
-  return `${heightM} m`
+  return `${groupThousands(heightM)} m`
 }
 
 export function formatSpeedKmh(speedKmh: number, units: Units): string {
   if (units === 'imperial') return `${groupThousands(Math.round(speedKmh * KMH_TO_MPH))} mph`
-  return `${speedKmh} km/h`
+  return `${groupThousands(speedKmh)} km/h`
 }
 
 export function formatLengthM(lengthM: number, units: Units): string {
   if (units === 'imperial') return `${groupThousands(Math.round(lengthM * M_TO_FT))} ft`
-  return `${lengthM} m`
+  return `${groupThousands(lengthM)} m`
 }

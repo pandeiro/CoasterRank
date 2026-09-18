@@ -187,7 +187,7 @@ function RankTreatments() {
             className="flex items-center gap-2 border-b border-line/70 px-4 py-3 last:border-b-0"
           >
             <span
-              className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
+              className={`display-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-bright text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFont(row.rank)}`}
             >
               {row.rank}
             </span>

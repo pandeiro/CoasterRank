@@ -63,7 +63,7 @@ function OptionCard<T extends string>({
         value={value}
         checked={checked}
         onChange={() => onSelect(value)}
-        className="mt-1 h-4 w-4 shrink-0 accent-[#0D6C80]"
+        className="mt-1 h-4 w-4 shrink-0 accent-accent-text"
       />
       <span>
         <span className="block text-sm font-semibold text-ink">{title}</span>

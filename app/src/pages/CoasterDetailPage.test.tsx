@@ -136,7 +136,7 @@ describe('CoasterDetailPage', () => {
     // Demoted spec pairs — all eight reference facts share one grid.
     expect(screen.getByText('61 m')).toBeInTheDocument()
     expect(screen.getByText('119 km/h')).toBeInTheDocument()
-    expect(screen.getByText('1146 m')).toBeInTheDocument()
+    expect(screen.getByText('1,146 m')).toBeInTheDocument()
     expect(screen.getByText('I-Box Track')).toBeInTheDocument()
     expect(screen.getByText('Steel')).toBeInTheDocument()
     expect(screen.getByText('2018')).toBeInTheDocument()

@@ -224,9 +224,11 @@ export default function RiderPage() {
                 .
               </p>
             </div>
+            {/* CTA text pinned to ink (same reason as MarkModeDock: the cyan
+                fill is mode-invariant, so the label is too). */}
             <Link
               to="/signup"
-              className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-strong sm:self-center"
+              className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-[#1A1A2E] transition-colors hover:bg-accent-strong sm:self-center"
             >
               Rank My Rides
             </Link>

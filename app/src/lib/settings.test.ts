@@ -162,10 +162,10 @@ describe('locale units default', () => {
 })
 
 describe('units formatting', () => {
-  it('passes metric values through untouched', () => {
+  it('passes metric values through, grouped', () => {
     expect(formatHeightM(61, 'metric')).toBe('61 m')
     expect(formatSpeedKmh(119, 'metric')).toBe('119 km/h')
-    expect(formatLengthM(1146, 'metric')).toBe('1146 m')
+    expect(formatLengthM(1146, 'metric')).toBe('1,146 m')
   })
 
   it('converts to imperial, rounded with grouped thousands', () => {
