@@ -34,6 +34,9 @@ const SubmitPage = lazy(() => import('./pages/SubmitPage'))
 const SuggestEditPage = lazy(() => import('./pages/SuggestEditPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
+// Local-only display settings (units + UI mode): public — guests get
+// settings too, so this stays outside RequireAuth like /rank.
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 import React from 'react'
 import ErrorFallback from './components/ErrorFallback'
 import { isChunkLoadError, reloadForChunkError } from './lib/chunk-recovery'
@@ -118,6 +121,7 @@ export default function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route element={<RequireAuth />}>
                   <Route path="/me" element={<MyCoastersPage />} />
                   <Route path="/me/profile" element={<ProfilePage />} />

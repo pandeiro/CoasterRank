@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // UI-mode setting flips `.dark` on <html>; every color utility resolves
+  // through CSS vars, so the whole app re-skins via the :root/.dark blocks
+  // in src/index.css — no `dark:` variants needed for existing surfaces.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

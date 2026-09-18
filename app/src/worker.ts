@@ -71,8 +71,14 @@ const SECURITY_HEADERS: Record<string, string> = {
   // https://cloudflareinsights.com — covers the beacon's cross-origin send
   // endpoint (auto-inject posts same-origin to /cdn-cgi/rum, already covered
   // by 'self'; the host entry future-proofs a manual-snippet switch).
+  // script-src 'sha256-…' — the UI-mode pre-paint inline script in
+  // app/index.html (applies .dark + the dark tab icon before first paint).
+  // The hash pins its exact bytes: ANY edit to that script (even whitespace)
+  // changes the hash and prod blocks it, so worker.test.ts recomputes the
+  // hash from index.html and asserts it matches this string — drift fails
+  // loudly in CI instead of flashing in prod.
   'Content-Security-Policy':
-    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://cloudflareinsights.com",
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://static.cloudflareinsights.com 'sha256-LewTQ+yP4jUGtNW+XKoPKeH5+9DC52I3J7PnjrJRwhE='; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://cloudflareinsights.com",
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',

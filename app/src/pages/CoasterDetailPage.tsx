@@ -6,6 +6,7 @@ import RankingPanel from '../components/RankingPanel'
 import { MessageState } from '../components/ui'
 import type { RankingRow } from '../lib/board-types'
 import { capitalize, formatScore, lineageNames, useCoaster, yearFromDate } from '../lib/coasters'
+import { formatHeightM, formatLengthM, formatSpeedKmh, useSettings } from '../lib/settings'
 import { useIsAdmin } from '../lib/useIsAdmin'
 
 // Admin-only quick-edit: code-split so non-admins never download the form.
@@ -116,6 +117,11 @@ export default function CoasterDetailPage() {
   const isAdmin = useIsAdmin()
   const [adminEditOpen, setAdminEditOpen] = useState(false)
   const [adminError, setAdminError] = useState<string | null>(null)
+  // Visitor's display units (local-only setting). Hook first, with the rest:
+  // the pending/error/not-found returns below must not precede any hook.
+  const {
+    settings: { units },
+  } = useSettings()
 
   if (isPending) {
     return <CoasterDetailSkeleton />
@@ -142,11 +148,22 @@ export default function CoasterDetailPage() {
   // `model` carries the track type ("I-Box Track"); `type` usually duplicates
   // material ("Steel"), so it's only a fallback when model is missing.
   // Unknown track/opening renders as an em dash like the other specs.
+  // Displayed specs convert to the visitor's units (lib/settings);
+  // meta/JSON-LD above stay metric — canonical for SEO/crawlers.
   const trackLabel = coaster.model ?? coaster.type
   const specs = [
-    { label: 'Height', value: coaster.height_m === null ? '—' : `${coaster.height_m} m` },
-    { label: 'Speed', value: coaster.speed_kmh === null ? '—' : `${coaster.speed_kmh} km/h` },
-    { label: 'Length', value: coaster.length_m === null ? '—' : `${coaster.length_m} m` },
+    {
+      label: 'Height',
+      value: coaster.height_m === null ? '—' : formatHeightM(coaster.height_m, units),
+    },
+    {
+      label: 'Speed',
+      value: coaster.speed_kmh === null ? '—' : formatSpeedKmh(coaster.speed_kmh, units),
+    },
+    {
+      label: 'Length',
+      value: coaster.length_m === null ? '—' : formatLengthM(coaster.length_m, units),
+    },
     { label: 'Inversions', value: coaster.inversions === null ? '—' : String(coaster.inversions) },
     { label: 'Track', value: trackLabel ?? '—' },
     { label: 'Material', value: capitalize(coaster.material) },

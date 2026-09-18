@@ -45,7 +45,10 @@ export default function MarkModeDock({
         <button
           type="button"
           onClick={onRank}
-          className={`relative flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-strong ${pulse ? 'dock-pulse' : ''}`}
+          // Text pinned to ink: bg-accent is identical in both modes, so its
+          // label stays put too — text-ink would flip to cream in dark mode
+          // (1.7:1 on cyan). Light render unchanged.
+          className={`relative flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-[#1A1A2E] transition-colors hover:bg-accent-strong ${pulse ? 'dock-pulse' : ''}`}
         >
           {label}
           {!authed && <ArrowRight className="h-4 w-4" aria-hidden="true" />}

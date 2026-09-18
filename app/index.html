@@ -17,6 +17,27 @@
       rel="stylesheet"
     />
     <title>CoasterRank</title>
+    <!-- UI-mode pre-paint: apply `.dark` + the dark tab icon before first
+         paint so themed visitors never flash the light canvas. Mirrors
+         resolveIsDark()/syncFavicon() in src/lib/settings.ts
+         (cr.settings.v1 {theme}); main.tsx re-applies + subscribes on boot.
+         No external deps, storage failures → light. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('cr.settings.v1') || '{}')
+        var t = s.theme || 'system'
+        var d =
+          t === 'dark' ||
+          (t !== 'light' &&
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (d) {
+          document.documentElement.classList.add('dark')
+          var l = document.querySelector('link[rel="icon"]')
+          if (l) l.setAttribute('href', '/favicon-dark.svg')
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

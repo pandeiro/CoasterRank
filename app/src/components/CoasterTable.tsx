@@ -50,8 +50,10 @@ export function rankFontClass(position: number): string {
   return 'text-base'
 }
 
-// §5.1–5.3, decided: EVERY rank gets a white circle (slight dark ink drop
-// shadow) around an accent-blue number in the display font, centered —
+// §5.1–5.3, decided: EVERY rank gets a bright circle (white in light mode;
+// surface-bright tracks the theme — a hardcoded bg-white would strand the
+// themed accent-text numerals at 1.6:1 in dark mode) with a slight dark ink
+// drop shadow, around an accent-blue number in the display font, centered —
 // across desktop and mobile. The fixed column right-aligns so circles share
 // an edge (§5.1); the podium ramp comes from the row tint, not the badge.
 // Exported for the /countries top-five rows so the mashup reuses the exact
@@ -59,7 +61,7 @@ export function rankFontClass(position: number): string {
 export function RankBadge({ position }: { position: number }) {
   return (
     <span
-      className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
+      className={`display-heading inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-bright text-center leading-none tabular-nums text-accent-text shadow-[0_1px_2px_rgb(26_26_46_/_0.18)] ${rankFontClass(position)}`}
     >
       {position}
     </span>

@@ -60,4 +60,14 @@ describe('Layout', () => {
     // Sub-pages get the solid scrolled-board chrome, not the transparent hero state.
     expect(screen.getByRole('banner')).toHaveClass('bg-canvas/95', 'border-line/80')
   })
+
+  it('ships both logo variants, CSS-gated on .dark (no Tailwind in jsdom — pin the classes)', () => {
+    renderLayout('/me')
+    // Light mark paints by default; the reversed canvas-hill mark takes over
+    // in dark mode. Alt stays empty (decorative — the link name carries it).
+    const light = document.querySelector('img[src="/logo.svg"]')
+    const dark = document.querySelector('img[src="/logo-reversed.svg"]')
+    expect(light).toHaveClass('dark:hidden')
+    expect(dark).toHaveClass('hidden', 'dark:block')
+  })
 })

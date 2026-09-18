@@ -113,6 +113,9 @@ export default function Layout() {
                   : 'pointer-events-none -translate-y-1 opacity-0'
               }`}
             >
+              {/* Brand mark swaps for dark mode (the ink hill vanishes on
+                  dark canvas, so the reversed canvas-hill variant takes
+                  over); the text wordmark flips via text-ink automatically. */}
               <img
                 src="/logo.svg"
                 alt=""
@@ -120,7 +123,15 @@ export default function Layout() {
                 height="1113"
                 fetchPriority="high"
                 decoding="async"
-                className="h-8 w-auto shrink-0 sm:h-[2.3rem]"
+                className="h-8 w-auto shrink-0 sm:h-[2.3rem] dark:hidden"
+              />
+              <img
+                src="/logo-reversed.svg"
+                alt=""
+                width="1444"
+                height="1113"
+                decoding="async"
+                className="hidden h-8 w-auto shrink-0 sm:h-[2.3rem] dark:block"
               />
               <span className="display-heading -translate-y-[0.12em] text-xl leading-none tracking-wide sm:text-2xl">
                 Coaster<span className="text-coral">Rank</span>

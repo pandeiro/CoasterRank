@@ -14,7 +14,9 @@ function rankRowClass(rank: number): string {
 }
 
 function rankNumberClass(rank: number): string {
-  if (rank <= 3) return 'bg-white text-accent-text shadow-sm'
+  // Bright (not hardcoded white): surface-bright tracks the theme so the
+  // accent-text numerals keep contrast in dark mode (9.2:1).
+  if (rank <= 3) return 'bg-surface-bright text-accent-text shadow-sm'
   return 'text-muted'
 }
 

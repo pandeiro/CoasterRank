@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HelmetProvider } from 'react-helmet-async'
@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-context'
 import { useCoaster, useRecomputeFreshness } from '../lib/coasters'
 import { useIsAdmin } from '../lib/useIsAdmin'
 import { useAddRide, useMyRides } from '../lib/rides'
+import { updateSettings } from '../lib/settings'
 import { makeRankingRow } from '../test/fixtures'
 
 vi.mock('../lib/coasters', async (importOriginal) => {
@@ -75,6 +76,10 @@ describe('CoasterDetailPage', () => {
     mockLoggedOut()
     vi.mocked(useIsAdmin).mockReturnValue(false)
     vi.mocked(useRecomputeFreshness).mockReturnValue({ data: sixMinutesAgo } as never)
+    // The settings store is module state: reset display prefs every test so
+    // the jsdom-locale first-visit default (imperial under en-US) can't leak
+    // between cases — metric is this file's baseline, imperial opts in below.
+    updateSettings({ units: 'metric', theme: 'system' })
   })
 
   it('shows identity, the community ranking panel, and demoted specs', () => {
@@ -131,7 +136,7 @@ describe('CoasterDetailPage', () => {
     // Demoted spec pairs — all eight reference facts share one grid.
     expect(screen.getByText('61 m')).toBeInTheDocument()
     expect(screen.getByText('119 km/h')).toBeInTheDocument()
-    expect(screen.getByText('1146 m')).toBeInTheDocument()
+    expect(screen.getByText('1,146 m')).toBeInTheDocument()
     expect(screen.getByText('I-Box Track')).toBeInTheDocument()
     expect(screen.getByText('Steel')).toBeInTheDocument()
     expect(screen.getByText('2018')).toBeInTheDocument()
@@ -141,6 +146,28 @@ describe('CoasterDetailPage', () => {
       'href',
       '/signup',
     )
+  })
+
+  describe('units setting', () => {
+    beforeEach(() => {
+      updateSettings({ units: 'imperial' })
+    })
+
+    afterEach(() => {
+      updateSettings({ units: 'metric' })
+    })
+
+    it('renders specs in imperial when the visitor chose it', () => {
+      vi.mocked(useCoaster).mockReturnValue({
+        data: makeRankingRow({ height_m: 61, speed_kmh: 119, length_m: 1146 }),
+        isPending: false,
+        isError: false,
+      } as never)
+      renderPage()
+      expect(screen.getByText('200 ft')).toBeInTheDocument()
+      expect(screen.getByText('74 mph')).toBeInTheDocument()
+      expect(screen.getByText('3,760 ft')).toBeInTheDocument()
+    })
   })
 
   it('lists former names from the row aliases', () => {

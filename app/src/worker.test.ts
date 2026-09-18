@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import worker, {
   handleSitemapRequest,
@@ -911,6 +912,27 @@ describe('worker: security headers', () => {
     expect(response.status).toBe(502)
     expectBaseHeaders(response)
     expectEnforcedCsp(response)
+  })
+
+  it("allow-lists every index.html inline script's hash in script-src", async () => {
+    // The UI-mode pre-paint script must stay inline (it runs before first
+    // paint); CSP blocks unlisted inline scripts outright, so any edit to
+    // those bytes must land in the shipped header too — this fails loudly
+    // in CI instead of flashing in prod.
+    const html = await readFile(new URL('../index.html', import.meta.url), 'utf8')
+    const inlineScripts = [
+      ...html.matchAll(/<script(?![^>]*\bsrc\b)[^>]*>([\s\S]*?)<\/script>/gi),
+    ].map((match) => match[1])
+    expect(inlineScripts.length).toBeGreaterThan(0)
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      makeEnv(),
+    )
+    const csp = response.headers.get('content-security-policy') ?? ''
+    for (const body of inlineScripts) {
+      const hash = `'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`
+      expect(csp, `inline script hash ${hash}`).toContain(hash)
+    }
   })
 })
 
