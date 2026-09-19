@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Button, Panel } from '../ui'
 import { refreshBoardData } from '../../lib/coasters'
+import { useRankingSchedule, formatTimeUntil } from '../../lib/rankingSchedule'
 
 type RecomputeResponse = {
   updated: number
@@ -103,6 +104,7 @@ function formatDelta(n: number | undefined): string {
 // only fire when it is open.
 export default function RankingsPanel() {
   const queryClient = useQueryClient()
+  const scheduleQuery = useRankingSchedule()
 
   const lastRun = useQuery({
     queryKey: ['cron-execution-logs', 'last-success'],
@@ -215,6 +217,7 @@ export default function RankingsPanel() {
       void refreshBoardData(queryClient).catch(() => {})
       queryClient.invalidateQueries({ queryKey: ['cron-execution-logs'] })
       queryClient.invalidateQueries({ queryKey: ['pair-dirty-users'] })
+      queryClient.invalidateQueries({ queryKey: ['ranking-schedule'] })
     },
   })
 
@@ -238,6 +241,24 @@ export default function RankingsPanel() {
         <RefreshCw className={recompute.isPending ? 'animate-spin' : ''} size={16} />
         {recompute.isPending ? 'Recomputing…' : 'Recompute now'}
       </Button>
+
+      {/* Next scheduled run */}
+      {scheduleQuery.data && (
+        <div className="mt-3 text-xs text-muted">
+          {scheduleQuery.data.active && scheduleQuery.data.next_run ? (
+            <>
+              Next scheduled run:{' '}
+              <span className="font-medium text-ink">
+                {formatTimeUntil(scheduleQuery.data.next_run)}
+              </span>{' '}
+              ({new Date(scheduleQuery.data.next_run).toLocaleTimeString()})
+              {scheduleQuery.data.schedule ? ` · schedule: ${scheduleQuery.data.schedule}` : ''}
+            </>
+          ) : (
+            'Scheduled runs paused (cron inactive)'
+          )}
+        </div>
+      )}
 
       {/* Last 12 cron slots — the pipeline's heartbeat at a glance */}
       {recentSlots.data && recentSlots.data.length > 0 && (
