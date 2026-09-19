@@ -5,13 +5,74 @@ governing growth, the first bottleneck, and architectural options within our
 stack. Companion to [`docs/RANKINGS.md`](RANKINGS.md) (how rankings work) —
 this doc is about how they *scale*.
 
-Status: informational. No code changes were made alongside this analysis
-(2026-09-09). Figures marked "measured" come from prod `cron_execution_logs`
-and prod table counts that day. **§9 (2026-09-13) supersedes §4's projections
-with measured results** from a disposable staging project; raw data:
-[`docs/spikes/2026-09-pairwise-bench/`](spikes/2026-09-pairwise-bench/RESULTS.md).
+Status: **Production Active Architecture (Updated 2026-09-14)**.
+- **§1, §2a, §4, §5 describe historical baseline architecture** (pre-2026-09-13 unpaginated JS fit over PostgREST). Retained as historical benchmarks and failure mode context.
+- **§9 & §10 document the current production pipeline**: incremental pair maintenance (`pair_dirty_users`, `user_pairs`, `pair_totals`), warm-started in-DB fitting (`pair_fit_step`), 5-min cron cadence, and Cloudflare Worker edge caching.
 
-## 1. App context
+## 0. Architecture Overview: End-to-End Data Pipeline
+
+The diagram below illustrates how raw user ranking writes flow through dirty tracking, incremental delta pair maintenance, in-DB Bradley-Terry fitting, and edge CDN delivery.
+
+```mermaid
+flowchart TD
+    subgraph Client Layer
+        UI[User Ranks / CSV Import / Guest Claim]
+        SPA[SPA Board View]
+    end
+
+    subgraph Supabase Postgres (Database Engine)
+        TRG[Statement Trigger on user_rides]
+        QUE[(pair_dirty_users Queue)]
+        SWP[Hourly Reconciliation Sweep]
+
+        subgraph Incremental Pair Maintenance
+            UP[(user_pairs Delta)]
+            PT[(pair_totals Aggregates)]
+        end
+
+        subgraph In-DB Bradley-Terry Fit
+            FIT[pair_fit_step MM Engine\nWarm-Started Iterations]
+            RAT[(coaster_ratings Table)]
+            VIEW[v_coaster_rankings View]
+        end
+    end
+
+    subgraph Execution & Monitoring
+        CRON[pg_cron: */5 min]
+        EDGE[recompute-rankings Edge Function]
+        LOGS[(cron_execution_logs)]
+        ALERT[Telegram Alerts / Admin Dashboard]
+    end
+
+    subgraph CDN Edge Layer
+        CF[Cloudflare Worker /api/ranking\n15-min Edge Cache]
+    end
+
+    %% Flow Connections
+    UI -->|1. Write Rides| TRG
+    TRG -->|2. Mark User Dirty| QUE
+    SWP -.->|Self-Heal Missed Flags| QUE
+
+    CRON -->|3. Trigger Slot| EDGE
+    EDGE -->|4. Claim Batch & Apply Deltas| QUE
+    QUE --> UP
+    UP -->|5. Delta Upsert| PT
+
+    EDGE -->|6. Run Warm-Start Fit| FIT
+    PT --> FIT
+    FIT -->|7. Persist Scores| RAT
+    RAT --> VIEW
+
+    EDGE -->|8. Log Telemetry| LOGS
+    EDGE -.->|Alert on Fail/Parity Drift| ALERT
+
+    VIEW -->|9. Serve Fresh Data| CF
+    CF -->|10. Fast Read| SPA
+```
+
+## 1. App context (Historical Baseline Architecture)
+
+> **Historical Context (Pre-2026-09-13):** The section below documents the original 15-minute JS fitting architecture before the promotion of the in-DB pipeline (§9).
 
 CoasterRank is a Vite + React + TypeScript SPA (`app/`) on Supabase
 (Postgres + Auth + Edge Functions), auto-deployed to Cloudflare Workers.
@@ -19,7 +80,7 @@ Rankings are the only scaling-sensitive path: everything else is small-table
 CRUD. The board itself reads a cached view; only the recompute job does
 work proportional to user data.
 
-Ranking pipeline (15-minute cadence):
+Ranking pipeline (Historical 15-minute JS fit cadence):
 
 ```mermaid
 flowchart TD
@@ -50,7 +111,9 @@ Key files:
 
 ## 2. Relevant computations
 
-### 2a. `pairwise_wins()` — the expensive query
+### 2a. `pairwise_wins()` — the expensive query (Historical)
+
+> **Historical Context:** `pairwise_wins()` was the primary cost driver under the original JS fit model. In current production, pair aggregation is maintained incrementally via `pair_totals` and fitted directly in Postgres (`pair_fit_step`).
 
 Per-user-normalized pairwise wins (PLAN §5.1). Current body
 (`20260906120000`, V-01):
@@ -172,7 +235,9 @@ with a bare `Gateway Timeout`, flanked by successes at 06:15 (1222ms) and
 days. A single awaited call was killed at ~7s by the API gateway on 8k raw
 rows. See §4: that is the failure mode scale will make permanent.
 
-## 4. Scaling math
+## 4. Scaling math (Historical Projections & Observed Walls)
+
+> **Historical Context:** §4 details the theoretical bounds that led to the measured benchmark spike in §9. Under the live in-DB fit architecture, the $O(R)$ JS transfer wall has been eliminated.
 
 Raw rows grow **quadratically in list length, linearly in users**:
 `R ≈ U·n̄²/2`. Distinct pairs `P ≈ 0.3–0.6 × R`, capped by the catalog

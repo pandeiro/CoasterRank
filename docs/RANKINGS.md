@@ -66,21 +66,74 @@ w = (P + c)^(−γ)      where P = n(n−1)/2, production: γ = 0.5, c = 28
 
 ## Data flow
 
-> **2026-09-13 — pair maintenance + in-DB fit (shadow rollout).** The
-> pipeline below gained a maintained pair layer (`user_pairs` →
-> `pair_totals`) so recomputes no longer re-aggregate `user_rides` from
-> scratch, and the MM fit runs **inside Postgres** (board-size payload —
-> no pair rows over the gateway). **Prod is flipped (`BT_FIT_MODE=indb`,
-> 2026-09-14)** after a clean shadow soak (10/10 runs, max |Δ log score|
-> 5.5e-8): the first indb run measured 4.0s vs 34.5s shadow — 1 warm-start
-> iteration, no pair payload, identical 386-coaster board. `legacy` and
-> `shadow` remain one `supabase secrets set` away as rollback/compare
-> modes. Steps 1-2 below describe the shadow/legacy shape for reference;
-> see [PLAN §5.6](PLAN.md#56-pair-maintenance--in-db-fit-2026-09-13-shadow)
-> and [PROMOTION.md](spikes/2026-09-pairwise-bench/PROMOTION.md) for the
-> promoted pipeline.
+The end-to-end data pipeline handles raw user ranking writes, dirty tracking, incremental delta pair maintenance, in-DB fitting, and edge CDN delivery:
 
-### Step 1: Pairwise aggregation (SQL RPCs)
+```mermaid
+flowchart TD
+    subgraph Client Layer
+        UI[User Ranks / CSV Import / Guest Claim]
+        SPA[SPA Board View]
+    end
+
+    subgraph Supabase Postgres (Database Engine)
+        TRG[Statement Trigger on user_rides]
+        QUE[(pair_dirty_users Queue)]
+        SWP[Hourly Reconciliation Sweep]
+
+        subgraph Incremental Pair Maintenance
+            UP[(user_pairs Delta)]
+            PT[(pair_totals Aggregates)]
+        end
+
+        subgraph In-DB Bradley-Terry Fit
+            FIT[pair_fit_step MM Engine\nWarm-Started Iterations]
+            RAT[(coaster_ratings Table)]
+            VIEW[v_coaster_rankings View]
+        end
+    end
+
+    subgraph Execution & Monitoring
+        CRON[pg_cron: */5 min]
+        EDGE[recompute-rankings Edge Function]
+        LOGS[(cron_execution_logs)]
+        ALERT[Telegram Alerts / Admin Dashboard]
+    end
+
+    subgraph CDN Edge Layer
+        CF[Cloudflare Worker /api/ranking\n15-min Edge Cache]
+    end
+
+    %% Flow Connections
+    UI -->|1. Write Rides| TRG
+    TRG -->|2. Mark User Dirty| QUE
+    SWP -.->|Self-Heal Missed Flags| QUE
+
+    CRON -->|3. Trigger Slot| EDGE
+    EDGE -->|4. Claim Batch & Apply Deltas| QUE
+    QUE --> UP
+    UP -->|5. Delta Upsert| PT
+
+    EDGE -->|6. Run Warm-Start Fit| FIT
+    PT --> FIT
+    FIT -->|7. Persist Scores| RAT
+    RAT --> VIEW
+
+    EDGE -->|8. Log Telemetry| LOGS
+    EDGE -.->|Alert on Fail/Parity Drift| ALERT
+
+    VIEW -->|9. Serve Fresh Data| CF
+    CF -->|10. Fast Read| SPA
+```
+
+> **Production Pipeline Active (`BT_FIT_MODE=indb`, 2026-09-14).** The
+> pipeline maintains a pair layer (`user_pairs` → `pair_totals`) so recomputes
+> no longer re-aggregate `user_rides` from scratch, and the MM fit runs
+> **inside Postgres** (`pair_fit_step`, board-size payload — no pair rows
+> over the gateway). Production runs in 4.0s (1 warm-start iteration) vs 34.5s
+> under legacy shadow mode. `legacy` and `shadow` remain available via
+> `supabase secrets set` as rollback/compare modes.
+
+### Step 1: Pairwise maintenance & in-DB MM fitting (SQL RPCs)
 
 Two security-definer RPCs run inside Postgres and are called by the Edge Function via PostgREST with the service-role key. EXECUTE is revoked from anon/authenticated — they are not public APIs.
 

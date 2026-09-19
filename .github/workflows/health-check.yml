@@ -26,6 +26,7 @@ jobs:
       HEALTH_CHECK_URL: ${{ inputs.url || 'https://coasterrank.app' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       ALERTS_BOT_TOKEN: ${{ secrets.COASTER_RANK_ALERTS_BOT_TOKEN }}
