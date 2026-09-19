@@ -110,7 +110,7 @@ reference:
   shared test password must not survive to launch).
 
 Fallback (no tooling available): `delete from auth.users where email = '…';` in the SQL editor
-cascades profiles/rides/submissions, then recompute.
+cascades profiles/rides/submissions, triggers `pair_totals` cleanup, then recompute.
 
 ## Email: templates, sender identity & deliverability
 

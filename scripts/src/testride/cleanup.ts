@@ -29,6 +29,7 @@ interface CountRow {
 
 interface CountsRow {
   rides: number
+  pairs: number
   subs: number
   reviews: number
 }
@@ -99,6 +100,7 @@ export async function runCleanup(conns: Connections, opts: CleanupOptions): Prom
   const countRes = await pool.query<CountsRow>(
     `select
        (select count(*)::int from user_rides where user_id = any($1::uuid[])) as rides,
+       (select count(*)::int from user_pairs where user_id = any($1::uuid[])) as pairs,
        (select count(*)::int from coaster_submissions where submitted_by = any($1::uuid[])) as subs,
        (select count(*)::int from coaster_submissions where reviewed_by = any($1::uuid[])) as reviews`,
     [uuids],
@@ -113,6 +115,7 @@ export async function runCleanup(conns: Connections, opts: CleanupOptions): Prom
   console.log('\nWill delete (FK cascade):')
   console.log(`  profiles            : ${targets.length}`)
   console.log(`  user_rides          : ${counts?.rides ?? 0}`)
+  console.log(`  user_pairs          : ${counts?.pairs ?? 0} (trigger subtracts from totals)`)
   console.log(`  submissions (their) : ${counts?.subs ?? 0}`)
   if ((counts?.reviews ?? 0) > 0) {
     console.log(
