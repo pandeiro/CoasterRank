@@ -130,7 +130,7 @@ describe('CoasterTable', () => {
   it('shows first-place votes for gated-in coasters', () => {
     const rows = rowsFrom([{ name: 'Steel Vengeance', first_place_votes: 114, participants: 131 }])
     renderTable(rows, new Set([rows[0].id]))
-    expect(screen.getAllByText('114 (87%)')).toHaveLength(2)
+    expect(screen.getAllByText('#1: 87%')).toHaveLength(2)
   })
 
   it('hides first-place data for gated-out coasters even when votes exist', () => {

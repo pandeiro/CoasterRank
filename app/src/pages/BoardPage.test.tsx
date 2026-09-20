@@ -313,15 +313,15 @@ describe('BoardPage', () => {
       { name: 'Unvoted', first_place_votes: 0, participants: 10, rank: 3 },
     ])
     const { unmount } = renderBoard()
-    expect(screen.getAllByText('12 (30%)')).toHaveLength(2)
-    expect(screen.getAllByText('8 (27%)')).toHaveLength(2)
-    expect(screen.queryByText('0 (0%)')).not.toBeInTheDocument()
+    expect(screen.getAllByText('#1: 30%')).toHaveLength(2)
+    expect(screen.getAllByText('#1: 27%')).toHaveLength(2)
+    expect(screen.queryByText('#1: 0%')).not.toBeInTheDocument()
     unmount()
 
     // Below the gate the first-place pill is hidden.
     mockBoardMeta({ ranked_user_count: 10 })
     renderBoard()
-    expect(screen.queryByText('12 (30%)')).not.toBeInTheDocument()
+    expect(screen.queryByText('#1: 30%')).not.toBeInTheDocument()
   })
 
   it('renders the first page and loads the rest on scroll', async () => {
