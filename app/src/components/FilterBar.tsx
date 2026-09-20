@@ -250,7 +250,7 @@ export default function FilterBar({
         {/* self-stretch + h-full keeps the button exactly as tall as the
             search input: icon-only content (mobile) is shorter than a text
             line, so padding alone leaves the button 8px short. */}
-        <div className="relative shrink-0 self-stretch" ref={moreRef}>
+        <div className="relative shrink-0 self-stretch z-20" ref={moreRef}>
           {' '}
           <button
             ref={moreButtonRef}
