@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatRelativeTime, nextRefitLine } from '../lib/relative-time'
+import { formatCountdown, getNextActiveRun, useRankingSchedule } from '../lib/rankingSchedule'
 
-// How often the relative "Last ranked X ago" and "Next refit" labels
-// re-render without refetching (§2.3): the board payload is cached for 5
-// minutes, so a 30s tick keeps both labels honest without any network
-// traffic.
-const REFRESH_INTERVAL_MS = 30_000
+// While open, the countdown ticks every second so the relative time is live and
+// transitions smoothly to 'now' when the scheduled slot occurs. When closed, no
+// interval runs.
+const COUNTDOWN_INTERVAL_MS = 1_000
 
 // The board's `Live ●` affordance (§2.3): hover (desktop) or click/tap —
 // which also covers keyboard activation — shows a small popunder with the
@@ -33,11 +33,13 @@ export default function LiveStatusPopunder({
   const rootRef = useRef<HTMLDivElement>(null)
 
   const open = hovered || pinnedOpen
+  const { data: schedule } = useRankingSchedule({ enabled: open })
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), REFRESH_INTERVAL_MS)
+    if (!open) return
+    const id = setInterval(() => setTick((t) => t + 1), COUNTDOWN_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [])
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -62,6 +64,14 @@ export default function LiveStatusPopunder({
   }, [open])
 
   const label = lastRankedAt ? formatRelativeTime(lastRankedAt) : ''
+  const nowMs = Date.now()
+  const activeNextRun = getNextActiveRun(schedule, nowMs)
+  const countdown = formatCountdown(activeNextRun, nowMs)
+  const nextRefitDisplay = countdown
+    ? countdown.isNow
+      ? 'Next refit now'
+      : `Next refit ${countdown.label}`
+    : `Next refit ${nextRefitLine(lastRankedAt, nowMs)}`
 
   return (
     <div
@@ -91,9 +101,7 @@ export default function LiveStatusPopunder({
           className="absolute right-0 top-full z-20 mt-1.5 min-w-max rounded-lg border border-line bg-surface-bright px-3 py-2 text-xs text-muted shadow-lift"
         >
           <div>{label ? `Last changed ${label}` : 'Last changed time unavailable'}</div>
-          <div className="mt-0.5 text-muted">
-            Next refit {nextRefitLine(lastRankedAt, Date.now())}
-          </div>
+          <div className="mt-0.5 text-muted">{nextRefitDisplay}</div>
         </div>
       )}
     </div>
