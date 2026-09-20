@@ -293,11 +293,11 @@ export default function CoasterTable({
         )}
         {firstPlace && (
           <span className="shrink-0">
-            <Badge
-              tone="coral"
-              title="First-place votes, with the share of riders who ranked it #1. Shown for the top 10 coasters once 30+ rankings are in."
-            >
-              {`${firstPlace.votes} (${firstPlace.pct}%)`}
+               <Badge
+                 tone="success"
+                 title="First-place votes, with the share of riders who ranked it #1. Shown for the top 10 coasters once 30+ rankings are in."
+               >
+               {`#1: ${firstPlace.pct}%`}
             </Badge>
           </span>
         )}
