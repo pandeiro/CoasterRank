@@ -278,4 +278,18 @@ describe('FilterBar', () => {
     await openMore(user)
     expect(screen.getByRole('combobox', { name: 'Country' })).toHaveClass('min-w-[12rem]')
   })
+
+  it('leaves the Filters button unstacked so the Live popunder paints above it on desktop', () => {
+    renderBar()
+    // Stacking contract (jsdom can't compute paint order — pin the classes):
+    // on desktop the bar is static (no stacking context), so a z-index on
+    // the Filters wrapper competes at root level with the hero
+    // LiveStatusPopunder (z-20) — a tie paints the later-DOM button over
+    // the popup and hides the live stats. The mobile sticky wrapper (z-10)
+    // already scopes this subtree below the popunder, so no z-index is
+    // needed here on either viewport.
+    const wrapper = screen.getByRole('button', { name: /filters/i }).parentElement
+    expect(wrapper).not.toBeNull()
+    expect(wrapper?.className ?? '').not.toContain('z-')
+  })
 })
