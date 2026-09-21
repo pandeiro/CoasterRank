@@ -249,8 +249,15 @@ export default function FilterBar({
         {statusGroup}
         {/* self-stretch + h-full keeps the button exactly as tall as the
             search input: icon-only content (mobile) is shorter than a text
-            line, so padding alone leaves the button 8px short. */}
-        <div className="relative shrink-0 self-stretch z-20" ref={moreRef}>
+            line, so padding alone leaves the button 8px short. No z-index
+            here: on desktop the bar is static (no stacking context), so a
+            z-20 on this wrapper ties with the hero LiveStatusPopunder's z-20
+            and — later in the DOM — paints the button over the popup. On
+            mobile the sticky wrapper (z-10) already scopes this subtree
+            below the popunder, and a z-20 here is a no-op against the
+            WeeklyDeltaBadges (z-10) anyway: it can't escape the wrapper's
+            stacking context. */}
+        <div className="relative shrink-0 self-stretch" ref={moreRef}>
           {' '}
           <button
             ref={moreButtonRef}
