@@ -112,6 +112,8 @@ type FitStats = {
   maintain_ms: number
   maintain_calls: number
   maintain_batch_final: number
+  /** True when the maintain loop stopped on MAINTAIN_MS_BUDGET with users still queued (partial drain, not an error). */
+  maintain_budget_hit: boolean
   agg_ms: number
   step_ms: number
   step_calls: number
@@ -156,13 +158,22 @@ const RPC_MAX_RETRIES = 3
 const RPC_RETRY_JITTER_MS = 250
 
 // Dirty-queue budget (PROMOTION §3): bounded batches across separate RPCs —
-// one call outgrew the ~8s statement timeout at ~200 dirty users, so each
-// call claims MAINTAIN_BATCH users (adaptive-halved on statement timeouts)
-// and the loop repeats until the queue drains. 40 calls × 25 users = 1000
-// users per run; a queue deeper than that drains across cron slots (the
-// watchdog alert threshold is aligned).
+// one call outgrew the platform statement timeout at ~200 dirty users, so
+// each call claims MAINTAIN_BATCH users (adaptive-halved on statement
+// timeouts) and the loop repeats until the queue drains. 40 calls × 25 users
+// = 1000 users per run; a queue deeper than that drains across cron slots
+// (the watchdog alert threshold is aligned).
+//
+// Per-call statements run under pair_maintain_step's function-level
+// statement_timeout (60s — migration 20260922191500; a single 516-ride user
+// needs ~21s for first-time ingestion of ~133k pairs, measured 2026-09-22).
+// MAINTAIN_MS_BUDGET caps the loop's total RPC time, checked between calls:
+// a future user larger than the statement budget degrades to a partial drain
+// (remaining users process next slots, by design — recorded as
+// maintain_budget_hit, not an error) instead of eating the invocation.
 const MAINTAIN_BATCH = 25
 const MAX_MAINTAIN_CALLS = 40
+const MAINTAIN_MS_BUDGET = 60000
 // MM iterations per fit_step call: adaptive-halved on statement timeouts.
 // 200 calls covers a cold board rebuild (80-160 iterations measured) with
 // headroom for halving.
@@ -496,8 +507,10 @@ Deno.serve(async (req) => {
     // while nothing processes it — the queue ages, the watchdog false-pages
     // through the whole rollback window, and a re-flip starts on a backlog.
     // shadow + indb then aggregate pair_totals (no O(R) rides scan) and
-    // MM-fit in-DB, warm-started and resumable. Everything is
-    // statement-bounded: no single statement nears the ~8s platform timeout.
+    // MM-fit in-DB, warm-started and resumable. Every maintain statement
+    // runs under pair_maintain_step's 60s function-level statement_timeout
+    // (migration 20260922191500), and the loop additionally stops on
+    // MAINTAIN_MS_BUDGET.
     //
     // Failure policy (deliberate): in shadow/legacy the JS fit serves the
     // board, so an in-DB failure fails OPEN — record rpc_stats.fit.error and
@@ -506,6 +519,7 @@ Deno.serve(async (req) => {
     // path — fail closed (error row + Telegram), same as any serving
     // failure.
     let maintainMs = 0
+    let maintainBudgetHit = false
     let maintainCalls = 0
     let maintainBatch = MAINTAIN_BATCH
     let aggMs = 0
@@ -526,6 +540,13 @@ Deno.serve(async (req) => {
 
     try {
       for (let call = 0; call < MAX_MAINTAIN_CALLS; call++) {
+        if (maintainMs >= MAINTAIN_MS_BUDGET) {
+          // A future giant-list user outgrew even the raised statement
+          // budget — stop claiming and let the remainder drain next slots
+          // (the first call always runs, so progress is guaranteed).
+          maintainBudgetHit = true
+          break
+        }
         const t = await timed(() =>
           rpcWithRetry<MaintainRow>(supabase, 'pair_maintain_step', {
             p_batch: maintainBatch,
@@ -535,8 +556,9 @@ Deno.serve(async (req) => {
         maintainCalls++
         if (t.value.error) {
           if (isStatementTimeoutMessage(t.value.error.message) && maintainBatch > 1) {
-            // The batch's statements must each stay under the ~8s statement
-            // timeout — halve and try again (consumed budget still counts).
+            // The batch's statements must each stay under the per-call
+            // statement budget — halve and try again (consumed budget still
+            // counts).
             maintainBatch = Math.max(1, Math.floor(maintainBatch / 2))
             continue
           }
@@ -714,6 +736,7 @@ Deno.serve(async (req) => {
         maintain_ms: maintainMs,
         maintain_calls: maintainCalls,
         maintain_batch_final: maintainBatch,
+        maintain_budget_hit: maintainBudgetHit,
         agg_ms: aggMs,
         step_ms: stepMs,
         step_calls: stepCalls,

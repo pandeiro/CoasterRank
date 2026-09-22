@@ -138,7 +138,8 @@ export function parseFitMode(value: string | null | undefined): FitMode {
   return DEFAULT_FIT_MODE
 }
 
-// Postgres statement timeouts (the ~8s platform per-statement limit) surface
+// Postgres statement timeouts (the ~8s platform per-statement default;
+// individual functions may raise it via a function-level SET) surface
 // through PostgREST as 57014 "canceling statement due to statement timeout".
 // NOT retried by isRetryableRpcError — they mean the statement is too big;
 // the pipeline responds by halving its batch size instead of retrying blind.

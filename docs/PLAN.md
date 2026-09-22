@@ -283,6 +283,19 @@ promotion (`docs/spikes/2026-09-pairwise-bench/PROMOTION.md`) replaces both:
   `check_stale_recompute`. The steady-state per-run floor is the warm 1-3
   iteration fit + O(dirty) maintenance; idle slots with empty queues skip
   exactly as before.
+- **Per-user n² bound (2026-09-22 incident)** — a single 516-ride bulk import
+  needs ~21s of statement time for first-time ingestion of ~133k pairs, but
+  the PostgREST path enforces ~8s per statement. Adaptive batch-halving only
+  shrinks the *user count* per call, so it bottomed out at batch=1 and every
+  5-min run failed (queue + Telegram spam) until a direct-psql drain.
+  Two-part fix: (1) function-level `SET statement_timeout = '60s'` on
+  `pair_maintain_step` (~3x measured worst case; pooler-safe, other callers
+  unaffected — any future `CREATE OR REPLACE` of the function must
+  re-specify it, see migration `20260922191500`); (2) a 60s wall-clock budget
+  on the maintain loop (`MAINTAIN_MS_BUDGET`, recorded as
+  `rpc_stats.fit.maintain_budget_hit`) so a future user larger than the
+  statement budget degrades to a partial cross-slot drain instead of eating
+  the invocation.
 
 ## 6. SPA routes
 
