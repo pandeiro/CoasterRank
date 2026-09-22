@@ -1,0 +1,25 @@
+-- Pair maintenance statement budget (incident 2026-09-22).
+--
+-- A single 516-ride user needs ~21s of statement time for first-time
+-- ingestion of their ~133k pairs (516*515/2), but the PostgREST path
+-- enforces ~8s per statement (Postgres 57014). The Edge Function's adaptive
+-- batch-halving only shrinks the *user count* per call, so it bottoms out at
+-- batch=1 and the run fails every 5-minute slot while the queue (including
+-- small users claimed in the same oldest-first transaction) never drains.
+-- Measured during the incident via direct-psql drain: 4 users in ~21s.
+--
+-- Attach a function-scoped statement_timeout to pair_maintain_step: it
+-- overrides the session/role default for the function's transactions only
+-- (pooler-safe; every other caller keeps the platform default). 60s is ~3x
+-- the measured 21s worst case; the Edge Function's maintain-loop wall-clock
+-- budget is the backstop for a future user larger still.
+--
+-- MAINTENANCE NOTE: any future migration that rewrites pair_maintain_step
+-- with CREATE OR REPLACE must re-specify the SET clause (or re-run the
+-- ALTER below) — otherwise the ~8s platform default applies again and
+-- giant-list users fail the run exactly as in the 2026-09-22 incident.
+-- Verify after deploy:
+--   select proconfig from pg_proc
+--   where proname = 'pair_maintain_step' and pronamespace = 'public'::regnamespace;
+-- (must contain statement_timeout=60s).
+alter function public.pair_maintain_step(integer) set statement_timeout = '60s';
