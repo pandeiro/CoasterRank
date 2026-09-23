@@ -1,0 +1,98 @@
+name: db-tests
+
+# Postgres-only database tests (Job A): migration preflight + pgTAP.
+# No Supabase CLI, no GoTrue/PostgREST/Kong — just the pinned postgres image,
+# plain psql, and pg_prove. See docs/research/RFC_POSTGRES_TESTING.md.
+#
+# Safety: this job receives NO production credentials. Every connection string
+# targets the ephemeral localhost service container only.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  db-tests:
+    name: db-tests/postgres
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # EXACT patch pin — never a floating major tag. Pinned past the
+        # SET ROLE + revoked-EXECUTE SIGSEGV builds (supabase/postgres#2377);
+        # the spike step below re-proves a clean 42501 on every run.
+        image: supabase/postgres:17.6.1.175
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: postgres
+      # Trust auth on localhost in this image; password set anyway for safety.
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install psql + pg_prove
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          sudo apt-get install -y -qq pgtap || sudo apt-get install -y -qq libtap-parser-sourcehandler-pgtap-perl
+          which pg_prove
+          pg_prove --version
+
+      - name: Platform shim (supabase_admin, test-only)
+        run: |
+          set -euo pipefail
+          psql -U supabase_admin -v ON_ERROR_STOP=1 -f supabase/tests/setup/00_platform_shim.sql
+
+      - name: Spike gate — clean 42501, no backend crash (supabase/postgres#2377)
+        run: |
+          set -euo pipefail
+          psql -U postgres -v ON_ERROR_STOP=1 <<'EOF'
+          CREATE FUNCTION public.db_tests_sigsegv_probe() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$;
+          REVOKE EXECUTE ON FUNCTION public.db_tests_sigsegv_probe() FROM PUBLIC, authenticated;
+          SET ROLE authenticated;
+          DO $$ BEGIN PERFORM public.db_tests_sigsegv_probe(); EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'clean 42501 as expected'; END $$;
+          RESET ROLE;
+          DROP FUNCTION public.db_tests_sigsegv_probe();
+          EOF
+          pg_isready -U postgres -h localhost
+
+      - name: Apply all migrations (preflight gate)
+        run: |
+          set -euo pipefail
+          echo "DB_TESTS_START=$(date +%s)" >> "$GITHUB_ENV"
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "applying $f"
+            psql -U postgres -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Run pgTAP suite
+        run: |
+          set -euo pipefail
+          pg_prove -U postgres --dbname postgres \
+            supabase/tests/rls/*.test.sql \
+            supabase/tests/pairs/*.test.sql
+          echo "DB_TESTS_END=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Report job timing
+        if: always()
+        run: |
+          END="${DB_TESTS_END:-$(date +%s)}"
+          echo "migration-apply + pgTAP took $((END - DB_TESTS_START))s"
