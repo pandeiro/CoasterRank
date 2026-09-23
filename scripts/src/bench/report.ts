@@ -1,8 +1,8 @@
 // Turns results/runs.jsonl into the human-readable spike report:
-//   docs/spikes/2026-09-pairwise-bench/RESULTS.md  ← plain-English writeup
-//   docs/spikes/2026-09-pairwise-bench/chart.svg   ← duration vs R
-//   docs/spikes/2026-09-pairwise-bench/results.csv ← flat numbers
-//   docs/spikes/2026-09-pairwise-bench/data/runs.jsonl ← raw samples
+//   docs/research/benchmarks/2026-09-pairwise/RESULTS.md  ← plain-English writeup
+//   docs/research/benchmarks/2026-09-pairwise/chart.svg   ← duration vs R
+//   docs/research/benchmarks/2026-09-pairwise/results.csv ← flat numbers
+//   docs/research/benchmarks/2026-09-pairwise/data/runs.jsonl ← raw samples
 // The report is written so someone who has never seen the system can answer:
 // "at what scale does the current recompute pipeline start failing?"
 import { mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
@@ -26,7 +26,7 @@ function loadChurn(): ChurnSample[] {
 }
 
 const RESULTS_JSONL = join(REPO_ROOT, 'scripts', 'src', 'bench', 'results', 'runs.jsonl')
-const SPIKE_DIR = join(REPO_ROOT, 'docs', 'spikes', '2026-09-pairwise-bench')
+const SPIKE_DIR = join(REPO_ROOT, 'docs', 'research', 'benchmarks', '2026-09-pairwise')
 
 const GATEWAY_KILL_MS = 7000
 
@@ -327,7 +327,7 @@ function generateReport(samples: readonly RunSample[]): void {
   }
   lines.push(``)
   lines.push(
-    `**What this means:** the baseline's binding constraint is *edge-function memory* — the pair JSON payload loads into the Deno worker and dies (HTTP 546 \`WORKER_RESOURCE_LIMIT\`) past ~12MB, only ~2× today's prod load. Variant **a-dirty** (trigger-maintained pair table) speeds up the SQL a little but ships the same payload, so the memory wall does not move. Variant **b-plpgsql** (aggregation + MM fit in-database, warm-started from the previous board) collapses the payload to board-size (~0.1MB) and survives four times past the baseline's cliff — its own wall is the *aggregation statement* vs the platform's ~8s per-statement timeout at R ≈ 1.7M. **Combining them removes both walls**: the maintained pair table eliminates the per-run aggregation statement, and the in-DB fit eliminates the payload — the epic-ready promotion design (app-set dirty flags + reconciliation sweep, two-level delta-maintained totals, batch temp tables, temp_buffers, vacuum strategy) is spec'd in [PROMOTION.md](PROMOTION.md). Independent of variants, prod itself already shows \`pairwise_wins\` calls at 4.5–12s with two gateway-504 errors on 2026-09-12, and its board is fitted on a max-rows-truncated 10k-row prefix of its 50k pairs.`,
+    `**What this means:** the baseline's binding constraint is *edge-function memory* — the pair JSON payload loads into the Deno worker and dies (HTTP 546 \`WORKER_RESOURCE_LIMIT\`) past ~12MB, only ~2× today's prod load. Variant **a-dirty** (trigger-maintained pair table) speeds up the SQL a little but ships the same payload, so the memory wall does not move. Variant **b-plpgsql** (aggregation + MM fit in-database, warm-started from the previous board) collapses the payload to board-size (~0.1MB) and survives four times past the baseline's cliff — its own wall is the *aggregation statement* vs the platform's ~8s per-statement timeout at R ≈ 1.7M. **Combining them removes both walls**: the maintained pair table eliminates the per-run aggregation statement, and the in-DB fit eliminates the payload — the epic-ready promotion design (app-set dirty flags + reconciliation sweep, two-level delta-maintained totals, batch temp tables, temp_buffers, vacuum strategy) is spec'd in [2026-09-incremental-ranking.md](../../../architecture/decisions/2026-09-incremental-ranking.md). Independent of variants, prod itself already shows \`pairwise_wins\` calls at 4.5–12s with two gateway-504 errors on 2026-09-12, and its board is fitted on a max-rows-truncated 10k-row prefix of its 50k pairs.`,
   )
   lines.push(``)
   lines.push(`## How to read this`)

@@ -8,7 +8,7 @@ gateway. This is the harness's `b-plpgsql` / `ab-combined` variant backend.
 — which is why this fork lives HERE (outside the deploy path) instead of in
 `supabase/functions/`. The prod function keeps its own name and shape; the
 production promotion lands as a change to `recompute-rankings` itself (spec:
-[`PROMOTION.md`](../../spikes/2026-09-pairwise-bench/PROMOTION.md)).
+[`2026-09-incremental-ranking.md`](../../../../docs/architecture/decisions/2026-09-incremental-ranking.md)).
 
 ## Deploying to the disposable staging project
 

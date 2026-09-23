@@ -6,7 +6,7 @@ a coral **heart** threaded by the loop's stitching (`#E85D75`). Both sources
 are hand-drawn art vectorized via potrace, then recolored to the
 design-token palette with their viewBoxes tightened to the ink bounds (so the
 displayed box equals the artwork box). v6 replaces v3, archived in
-`docs/logo-archive/v3/`.
+`docs/design/logo-archive/v3/`.
 
 ## Files
 

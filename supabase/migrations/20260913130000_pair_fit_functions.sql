@@ -1,5 +1,5 @@
 -- Pair maintenance + in-DB Bradley-Terry fit (promotion spec:
--- docs/spikes/2026-09-pairwise-bench/PROMOTION.md §3-§4). The SQL is a port
+-- docs/architecture/decisions/2026-09-incremental-ranking.md §3-§4). The SQL is a port
 -- of the MEASURED bench shapes (scripts/src/bench/sql/: a-dirty for
 -- maintenance, b-plpgsql for the fit, ab-combined for the union), with the
 -- spec's two production corrections: batches claimed via processing_until

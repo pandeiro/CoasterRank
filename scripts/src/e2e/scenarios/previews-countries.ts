@@ -15,9 +15,8 @@
  * Germany's two-ride bench drops to third under ghost padding (avg 10.0),
  * and France brings a single ranked ride (avg 13.8).
  *
- * NOTE: the PNGs in docs/previews/countries/ predate ghost padding (they
- * show unpadded averages and short-bench badges) — re-run this scenario to
- * refresh them.
+ * Historical PNGs for this scenario were removed after the UI and fixture
+ * math changed. Re-run this scenario when a fresh preview set is needed.
  */
 import { config } from 'dotenv'
 config({ path: new URL('../../../../.env', import.meta.url).pathname })

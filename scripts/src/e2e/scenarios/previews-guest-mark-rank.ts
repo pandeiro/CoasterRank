@@ -1,7 +1,7 @@
 /**
  * Scenario: guest-mark-rank previews — Mark Mode banner/dock on the board,
  * the /rank workbench, and the login merge modal (UI PR: guest mark & rank,
- * docs/GUEST_UX.md).
+ * docs/product/GUEST_UX.md).
  *
  * Run: cd scripts && npx tsx src/e2e/scenarios/previews-guest-mark-rank.ts
  * (dev server must be up first: cd app && npm run dev -- --port 5199 --strictPort)

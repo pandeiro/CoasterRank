@@ -494,7 +494,7 @@ export function DesignBoard() {
               </code>
               . Earlier marks are archived in{' '}
               <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                docs/logo-archive
+                docs/design/logo-archive
               </code>
               .
             </p>

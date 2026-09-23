@@ -45,7 +45,7 @@ your state, and never go past tier 3 without asking:
 | --- | --- | --- | --- |
 | 1 | **Component harness**: temp React page rendering the real component with stub props | none | Remove the harness file before merge (precedent: share-nudge states, welcome modal). |
 | 2 | **Fake session + `mockSupabase()`**: localStorage session, fixtures fulfilled locally, pass-through swapped to anon | anon reads only (logged, printed) | No real user's data is read; writes fail RLS as anon — but keep flows read-only anyway. Mock every table the fake user "owns" (`profiles`, `user_rides`, …); only the public catalog may pass through. Best tier for new migrations/RPCs that exist only on your branch. |
-| 3 | **Real synthetic-user login** (`helpers.login()`) | reads as that user | Read-only flows only (no drags — they write ranks). Synthetic users are a possibility, not a presence: `testride:report` first, **ask before seeding** (`docs/TEST_DATA.md`). |
+| 3 | **Real synthetic-user login** (`helpers.login()`) | reads as that user | Read-only flows only (no drags — they write ranks). Synthetic users are a possibility, not a presence: `testride:report` first, **ask before seeding** (`docs/operations/TEST_DATA.md`). |
 
 Never: real production users' data in shots; sessions for real accounts;
 anything that writes (screenshots are capture-only — if your state needs a

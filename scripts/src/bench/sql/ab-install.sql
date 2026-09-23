@@ -1,7 +1,7 @@
 -- BENCH-ONLY (staging project) — MEASURED PROTOTYPE.
 -- NOTE: DB triggers maintaining pair permutations are deliberately SUPERSEDED for
 -- production by app-set dirty flags + a reconciliation sweep (write amplification,
--- bloat, lock contention) — see docs/spikes/2026-09-pairwise-bench/PROMOTION.md §1.
+-- bloat, lock contention) — see docs/architecture/decisions/2026-09-incremental-ranking.md §1.
 -- This file exists to reproduce the measured variant, not as a promotion artifact. — combined variant: dirty-tracking pair
 -- maintenance (a) + in-database MM fit (b). Applied ON TOP of
 -- b-plpgsql-install.sql by the bench harness (variants.ts order):

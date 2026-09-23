@@ -1,5 +1,5 @@
 -- Pair-state schema for incremental pair maintenance + in-DB BT fitting
--- (promotion spec: docs/spikes/2026-09-pairwise-bench/PROMOTION.md §2-§3).
+-- (promotion spec: docs/architecture/decisions/2026-09-incremental-ranking.md §2-§3).
 --
 -- Two levels of pair storage replace the per-run O(R) aggregation over
 -- user_rides that pairs each recompute against the edge-function memory wall:

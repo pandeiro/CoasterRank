@@ -3,7 +3,7 @@
  * full import entry points (v2.2), the guest import review screen with its
  * cap copy, the park bulk-add picker in board Mark Mode, and /me's
  * "Add from park" button (UI PR: guest import + park bulk-add,
- * docs/GUEST_UX.md v2.2).
+ * docs/product/GUEST_UX.md v2.2).
  *
  * Run: cd scripts && npx tsx src/e2e/scenarios/previews-guest-import-park-add.ts
  * (dev server must be up first: cd app && npm run dev -- --port 5199 --strictPort)

@@ -2,7 +2,7 @@
 
 Disposable-environment benchmark of the recompute pipeline to find where it
 buckles under community growth, and (next) to measure what incremental pair
-maintenance / dirty tracking buys. Companion to [`docs/SCALE.md`](../../SCALE.md)
+maintenance / dirty tracking buys. Companion to [`docs/architecture/SCALE.md`](../../../architecture/SCALE.md)
 (analysis) — this is the measurement. Results live in
 [`RESULTS.md`](RESULTS.md).
 
@@ -13,7 +13,7 @@ same region as prod), stood up 2026-09-12:
 
 1. **Restore**: newest nightly dump (`coasterrank-2026-09-12.sql.gz` from the
    CoasterRankBackups repo) applied in tolerant mode (`psql ON_ERROR_STOP=0`),
-   errors triaged against the drill table in [`docs/RUNBOOKS.md`](../../RUNBOOKS.md).
+   errors triaged against the drill table in [`docs/operations/RUNBOOKS.md`](../../../operations/RUNBOOKS.md).
 2. **Migrations**: `supabase db push` converged the 2 post-dump migrations.
 3. **Function**: `recompute-rankings` deployed; `APP_ENV=bench` secret set;
    **no Telegram tokens** (alerts/events no-op).
@@ -71,10 +71,10 @@ shape measured (see RESULTS.md), plus a growth simulation (`bench churn`)
 covering accumulation + dirty-set churn to 1,000 users. The epic-ready
 implementation design (app-set dirty flags + reconciliation sweep, two-level
 delta-maintained pair totals, batch temp tables, temp_buffers, vacuum
-strategy) is spec'd in **[PROMOTION.md](PROMOTION.md)** — that doc is the
+strategy) is spec'd in **[2026-09-incremental-ranking.md](../../../architecture/decisions/2026-09-incremental-ranking.md)** — that doc is the
 direct input for the prod-implementation epic.
 
 ## Teardown
 
-See the "Disposable benchmark projects" section in [`docs/RUNBOOKS.md`](../../RUNBOOKS.md)
+See the "Disposable benchmark projects" section in [`docs/operations/RUNBOOKS.md`](../../../operations/RUNBOOKS.md)
 — delete or pause the project; keep the repo artifacts.

@@ -2,7 +2,7 @@
 --
 -- Ad-hoc data fix has already renamed the 21 duplicate slugs (46 rows) on
 -- 2026-09-04 to `slug || '-' || COALESCE(NULLIF(park_slug,'other'), manu_slug)`.
--- See docs/audit/2026-09-04-slug-dedup.md for the full mapping.
+-- See docs/architecture/decisions/2026-09-global-slug-uniqueness.md for the full mapping.
 -- This migration is the hardening step so future inserts cannot re-introduce
 -- collisions exploited by /coasters/:slug (maybeSingle).
 --
