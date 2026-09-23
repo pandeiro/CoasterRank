@@ -13,12 +13,10 @@ type RecomputeResponse = {
   skipped?: boolean
 }
 
-// rpc_stats.fit — present on every run since the in-DB pipeline shipped
-// (shadow + indb modes; absent on 'legacy' rolls-back). Timings are the
-// wall-clock around each RPC group; the dirty counters describe the queue
-// as this run saw it (PROMOTION §5.3).
+// rpc_stats.fit — present on every run since the in-DB pipeline shipped.
+// Timings are the wall-clock around each RPC group; the dirty counters
+// describe the queue as this run saw it (PROMOTION §5.3).
 type FitStats = {
-  mode?: string
   maintain_ms?: number
   maintain_calls?: number
   maintain_batch_final?: number
@@ -36,22 +34,8 @@ type FitStats = {
   dirty_oldest?: string | null
 }
 
-// rpc_stats.parity — shadow mode only: the served (JS) fit vs the in-DB fit.
-// board_match=true (max_log_delta < 1e-6, no board-membership drift) across
-// the soak is the gate for flipping BT_FIT_MODE to 'indb'.
-type ParityStats = {
-  max_log_delta?: number
-  js_pairs?: number
-  db_pairs?: number
-  board_match?: boolean
-  js_only?: number
-  db_only?: number
-}
-
 type RpcStats = {
   fit?: FitStats
-  parity?: ParityStats
-  pairwise_wins?: { ms?: number; bytes?: number; retries?: number }
 }
 
 type LastRunRow = {
@@ -92,11 +76,6 @@ function formatDuration(ms: number): string {
 function formatMs(ms: number | undefined): string {
   if (ms === undefined) return '—'
   return `${ms}ms`
-}
-
-function formatDelta(n: number | undefined): string {
-  if (n === undefined) return '—'
-  return n.toExponential(1)
 }
 
 // Admin-only recompute trigger + last-run status + dirty-queue monitor.
@@ -223,7 +202,6 @@ export default function RankingsPanel() {
 
   const run = lastRun.data
   const fit = run?.rpc_stats?.fit
-  const parity = run?.rpc_stats?.parity
 
   return (
     <Panel bleed className="p-3 sm:p-6">
@@ -299,7 +277,6 @@ export default function RankingsPanel() {
           <div className="flex items-center gap-2 text-muted">
             <span className="inline-block h-2 w-2 rounded-full bg-success" />
             Last success: {formatTimeAgo(run.created_at)}
-            {fit?.mode ? ` · fit mode: ${fit.mode}` : ''}
           </div>
           <div className="mt-1 text-ink">
             {`${run.iterations + 1} iteration${run.iterations + 1 === 1 ? '' : 's'}`} &middot;{' '}
@@ -332,19 +309,6 @@ export default function RankingsPanel() {
             pair_totals {fit.db_pairs ?? 0} rows · {fit.db_contributors ?? 0} contributors ·{' '}
             {fit.db_iterations ?? 0} fit iterations{fit.db_converged ? '' : ' (hit cap)'}
           </div>
-          {parity && (
-            <div className={parity.board_match ? 'text-muted' : 'text-danger'}>
-              <span className="font-medium text-ink">Shadow parity:</span> max |Δ log score|{' '}
-              {formatDelta(parity.max_log_delta)}
-              {parity.board_match ? ' (match)' : ' — BOARD MISMATCH'}
-              {parity.js_pairs !== undefined && parity.db_pairs !== undefined && (
-                <>
-                  {' '}
-                  · js {parity.js_pairs} vs db {parity.db_pairs} pairs
-                </>
-              )}
-            </div>
-          )}
         </div>
       )}
 

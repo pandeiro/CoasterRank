@@ -3,14 +3,10 @@
 // (dependency-free: plain Deno.test + throws, no network imports).
 import {
   backoffDelayMs,
-  computeParity,
   drainPages,
   estimatePayloadBytes,
   isRetryableRpcError,
   isStatementTimeoutMessage,
-  PARITY_DELTA_THRESHOLD,
-  parityOk,
-  parseFitMode,
   shouldSkipRecompute,
 } from './helpers.ts'
 
@@ -185,16 +181,6 @@ Deno.test('drainPages treats null data as an empty page', async () => {
   assertEquals(result.pages, 1, 'terminates immediately')
 })
 
-Deno.test('parseFitMode accepts the three modes, defaults unknown to shadow', () => {
-  assertEquals(parseFitMode('shadow'), 'shadow', 'shadow')
-  assertEquals(parseFitMode('indb'), 'indb', 'indb')
-  assertEquals(parseFitMode('legacy'), 'legacy', 'legacy')
-  assertEquals(parseFitMode(' INDB '), 'indb', 'whitespace + case')
-  assertEquals(parseFitMode(undefined), 'shadow', 'unset -> shadow')
-  assertEquals(parseFitMode(''), 'shadow', 'empty -> shadow')
-  assertEquals(parseFitMode('bogus'), 'shadow', 'unknown -> shadow (never flip by accident)')
-})
-
 Deno.test('isStatementTimeoutMessage matches the 57014 shapes, not other errors', () => {
   assertEquals(
     isStatementTimeoutMessage('canceling statement due to statement timeout'),
@@ -210,53 +196,4 @@ Deno.test('isStatementTimeoutMessage matches the 57014 shapes, not other errors'
   assertEquals(isStatementTimeoutMessage('no such table'), false, 'data error')
 })
 
-Deno.test('computeParity measures log-space delta over the common board', () => {
-  // 1% score disagreement → ln(1.01) ≈ 0.00995.
-  const result = computeParity(
-    [
-      { id: 'a', score: 1.0 },
-      { id: 'b', score: 2.0 },
-      { id: 'c', score: 1.5 },
-    ],
-    [
-      { id: 'a', score: 1.01 },
-      { id: 'b', score: 2.0 },
-      { id: 'd', score: 9.0 },
-    ],
-  )
-  assertEquals(result.common, 2, 'a + b common')
-  assertEquals(result.jsOnly, 1, 'c only in js')
-  assertEquals(result.dbOnly, 1, 'd only in db')
-  const expected = Math.abs(Math.log(1.0) - Math.log(1.01))
-  assertEquals(
-    Math.abs(result.maxLogDelta - expected) < 1e-12,
-    true,
-    'max delta is the a-row log gap',
-  )
-  assertEquals(parityOk(result), false, 'membership mismatch fails parity')
-})
 
-Deno.test('computeParity + parityOk accept the measured float-noise floor', () => {
-  // Two fixed-point solvers agreeing to the bench's measured parity
-  // (5.6e-9 — below the 1e-6 threshold).
-  const rows = (score: number) => [
-    { id: 'a', score },
-    { id: 'b', score: 1 / score },
-  ]
-  const result = computeParity(rows(1.03), rows(1.03 * (1 + 1e-9)))
-  assertEquals(result.common, 2, 'identical boards')
-  assertEquals(result.jsOnly, 0, 'no js-only rows')
-  assertEquals(result.dbOnly, 0, 'no db-only rows')
-  assertEquals(result.maxLogDelta < PARITY_DELTA_THRESHOLD, true, 'delta under threshold')
-  assertEquals(parityOk(result), true, 'parity ok')
-})
-
-Deno.test('computeParity handles empty boards on either side', () => {
-  const emptyJs = computeParity([], [{ id: 'a', score: 1 }])
-  assertEquals(emptyJs.common, 0, 'no common rows')
-  assertEquals(emptyJs.dbOnly, 1, 'db board alone')
-  assertEquals(parityOk(emptyJs), false, 'db-only board fails parity')
-  const bothEmpty = computeParity([], [])
-  assertEquals(bothEmpty.maxLogDelta, 0, 'no delta')
-  assertEquals(parityOk(bothEmpty), true, 'two empty boards agree')
-})
