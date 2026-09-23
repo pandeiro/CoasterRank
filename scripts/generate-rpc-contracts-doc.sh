@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # generate-rpc-contracts-doc.sh — snapshot the RPC contract surface into
-# docs/RPC_CONTRACTS.md.
+# docs/reference/RPC_CONTRACTS.md.
 #
 # Usage:  ./scripts/generate-rpc-contracts-doc.sh (from repo root)
 #         npm run rpc-contracts-doc                    (from scripts/)
@@ -37,7 +37,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$REPO_ROOT/docs/RPC_CONTRACTS.md"
+OUT="$REPO_ROOT/docs/reference/RPC_CONTRACTS.md"
 
 # Prefer env var (CI sets it directly); fall back to .env for local dev.
 if [ -z "${SUPABASE_DB_URL:-}" ] && [ -f "$REPO_ROOT/.env" ]; then

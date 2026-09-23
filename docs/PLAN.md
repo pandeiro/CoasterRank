@@ -323,7 +323,9 @@ CoasterRank/
 │   ├── RUNBOOKS.md                    # one-time / rare ops runbooks
 │   ├── TEST_DATA.md                   # testride scenarios guide
 │   ├── RANKINGS.md                    # how ranking is computed, stored, monitored, displayed
-│   ├── SCHEMA.md                      # auto-generated DB schema doc (scripts/generate-schema-doc.sh)
+│   ├── reference/                    # auto-generated reference snapshots (do not hand-edit)
+│   │   ├── SCHEMA.md                 # DB schema (scripts/generate-schema-doc.sh)
+│   │   └── RPC_CONTRACTS.md          # RPC contracts (scripts/generate-rpc-contracts-doc.sh)
 │   └── previews/<slug>/               # committed UX PR screenshots + per-slug README
 │                                      #   (skill: .agents/skills/ux-pr-previews)
 ├── app/                               # Vite React TS SPA
