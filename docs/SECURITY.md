@@ -123,9 +123,9 @@ already downloaded an object.
 - Supabase deployment runs only after changes reach `main`, performs read-only
   compatibility checks before migrations, and deploys migrations/functions as
   one controlled workflow.
-- Schema documentation is regenerated automatically from the deployed schema
-  and proposed through a dedicated bot branch/PR, keeping generated docs
-  reviewable.
+- Reference documentation (`docs/reference/SCHEMA.md`, `docs/reference/RPC_CONTRACTS.md`)
+  is regenerated automatically from the deployed schema and proposed through a
+  dedicated bot branch/PR, keeping generated docs reviewable.
 
 ## Known accepted risks and tradeoffs
 

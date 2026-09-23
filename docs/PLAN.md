@@ -391,7 +391,7 @@ Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets �
 
 ### 9.3 Supabase deploy workflow (`.github/workflows/deploy-supabase.yml`)
 
-- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints, then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR generated from the production schema; it does not push directly to `main`.
+- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints,   then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR with the regenerated `docs/reference/` snapshots (schema + RPC contracts); it does not push directly to `main`.
 - Migrations must always be additive and backwards-compatible with the current frontend.
 
 ### 9.4 SPA deploy workflow (Cloudflare Workers auto-deploy)
