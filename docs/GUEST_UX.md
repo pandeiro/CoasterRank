@@ -3,7 +3,7 @@
 **Status:** Ready for Implementation (v2.2 Spec — supersedes v2.1)  
 **Date:** 2026-09-11 (v2.2 additions 2026-09-16)  
 **Target Release:** v1 (Core Mark & Rank) + v1.1 (Coaster Detail Touchpoint)  
-**Related Docs:** `docs/PLAN.md` (§2 "Anonymous 'ridden' flags → signup materialization", §11), `docs/SCHEMA.md`, `AGENTS.md`
+**Related Docs:** `docs/PLAN.md` (§2 "Anonymous 'ridden' flags → signup materialization", §11), `docs/reference/SCHEMA.md`, `AGENTS.md`
 
 ### Changelog (v2 → v2.1)
 

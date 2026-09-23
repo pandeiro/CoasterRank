@@ -13,6 +13,7 @@ supabase/            # Supabase CLI config + migrations + edge functions
   email-templates/   # branded auth email HTML (source of truth; synced via scripts/sync-email-templates)
 docs/PLAN.md         # authoritative project plan & decision log
 docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
+docs/reference/      # auto-generated snapshots (SCHEMA.md, RPC_CONTRACTS.md) — do not hand-edit
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
   src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
 packages/match/      # pure TS coaster-name matcher for spreadsheet import (own package.json;
@@ -83,9 +84,16 @@ npm run import-coasters           # dry-run: parse + report counts, no DB connec
 npm run import-coasters -- --apply  # write/refresh prod via SUPABASE_DB_URL (idempotent)
 npm run import-coasters -- data/ext/coaster_db.csv  # optional: explicit CSV path (positional)
 npm run sync-email-templates      # dry-run: diff email templates vs. live project; --apply pushes (see supabase/email-templates/)
+npm run schema-doc                # regenerate docs/reference/SCHEMA.md from prod (read-only psql via SUPABASE_DB_URL)
+npm run rpc-contracts-doc         # regenerate docs/reference/RPC_CONTRACTS.md (DB harvest + .rpc() code scan)
 npm run typecheck                 # tsc --noEmit for the scripts package
 npm test                          # vitest run for the scripts package
 ```
+
+`docs/reference/` is generated output — never hand-edit it (the next regen wipes edits).
+Durable RPC notes belong in `COMMENT ON FUNCTION` migrations, which the contracts
+generator renders as descriptions. Feature PRs leave `docs/reference/` alone; the deploy
+workflow regenerates it post-deploy and maintains a reviewable `bot/schema-docs` PR.
 
 Test & mock data lives in `scripts/src/testride/` (`npm run testride:seed|report|cleanup|confirm|recompute`
 — synthetic users for UI testing and BT exercise; dry-run by default). Full guide + scenarios:
@@ -166,8 +174,12 @@ used in CI (as a GitHub repo secret).
   algorithm changes must redeploy it).
   **Never run `supabase db push` or `supabase functions deploy` manually for routine changes.**
   Migrations and edge-function changes go through a PR → merge → CI deploy. The deploy job
-  authenticates with the `SUPABASE_ACCESS_TOKEN` and `PROJECT_REF` repo secrets (no direct DB
-  connection string in CI); it is a silent no-op if those secrets are missing.
+  authenticates with the `SUPABASE_ACCESS_TOKEN`, `PROJECT_REF`, and `SUPABASE_DB_URL` repo
+  secrets and fails loudly if any is missing. After a successful deploy it regenerates
+  `docs/reference/SCHEMA.md` + `docs/reference/RPC_CONTRACTS.md` from prod and maintains a
+  reviewable `bot/schema-docs` PR (a human merges it; the workflow never pushes to `main`
+  directly). PR creation needs the repo setting "Allow GitHub Actions to create and approve
+  pull requests".
 - **Branch policy**: PRs required to merge into `main`. CI runs the quality gates on every PR; the
   deploy job only runs after merge.
 - **Migration ordering preflight**: PR CI runs `ci/migration-order`, which fails any PR adding a
@@ -190,6 +202,7 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - Run `npm run format` before committing; CI enforces `format:check`.
 - No secrets in code. Secrets live in `.env` (local) or GitHub/Cloudflare secrets (CI/hosting).
 - Update `docs/PLAN.md` when a decision changes — it is the source of truth.
+- Never hand-edit `docs/reference/*` — regen wipes edits (previously lost a `manufacturer_id` note).
 - **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching rows — the row count may be unknown at query time.
 - Always read Supabase `error` from awaited calls — enforced by the `supabase/require-error-check` oxlint plugin (`npm run lint`).
 

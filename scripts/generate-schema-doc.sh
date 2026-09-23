@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# generate-schema-doc.sh — snapshot the current public schema into docs/SCHEMA.md.
+# generate-schema-doc.sh — snapshot the current public schema into docs/reference/SCHEMA.md.
 #
 # Usage:  ./scripts/generate-schema-doc.sh          (from repo root)
 #         npm run schema-doc                         (from scripts/)
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$REPO_ROOT/docs/SCHEMA.md"
+OUT="$REPO_ROOT/docs/reference/SCHEMA.md"
 
 # Prefer env var (CI sets it directly); fall back to .env for local dev.
 if [ -z "${SUPABASE_DB_URL:-}" ] && [ -f "$REPO_ROOT/.env" ]; then

@@ -183,40 +183,40 @@ jobs:
           cache: npm
           cache-dependency-path: scripts/package-lock.json
 
-      - name: Generate schema docs
-        run: npm ci && npm run schema-doc
+      - name: Generate reference docs
+        run: npm ci && npm run schema-doc && npm run rpc-contracts-doc
         working-directory: scripts
 
-      - name: Open schema docs update PR if changed
+      - name: Open reference docs update PR if changed
         # Non-blocking: creating the PR requires the repo setting
         # "Allow GitHub Actions to create and approve pull requests", which
-        # is not API-manageable. If it's off, docs/SCHEMA.md still lands on
+        # is not API-manageable. If it's off, docs/reference/* still lands on
         # bot/schema-docs (push above) and a human can open the PR manually.
         # The deploy itself must never go red over the docs step.
         continue-on-error: true
         id: schema_pr
         run: |
           set -euo pipefail
-          git diff --quiet docs/SCHEMA.md && echo "No changes" && exit 0
+          git diff --quiet docs/reference/SCHEMA.md docs/reference/RPC_CONTRACTS.md && echo "No changes" && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B bot/schema-docs
-          git add docs/SCHEMA.md
-          git commit -m "docs: regenerate SCHEMA.md [skip ci]"
+          git add docs/reference/SCHEMA.md docs/reference/RPC_CONTRACTS.md
+          git commit -m "docs: regenerate reference docs [skip ci]"
           git push --force origin HEAD:bot/schema-docs
           if [ "$(gh pr list --state open --head bot/schema-docs --json number --jq 'length')" = "0" ]; then
             cat > /tmp/schema-doc-pr.md <<'EOF'
-          This automated PR updates `docs/SCHEMA.md` from the production schema after the Supabase deployment completed.
+          This automated PR updates `docs/reference/SCHEMA.md` and `docs/reference/RPC_CONTRACTS.md` from the production schema after the Supabase deployment completed.
 
           The deploy workflow keeps this change on a reviewable branch so protected `main` can require pull requests.
           EOF
             gh pr create \
               --base main \
               --head bot/schema-docs \
-              --title "docs: regenerate SCHEMA.md" \
+              --title "docs: regenerate reference docs" \
               --body-file /tmp/schema-doc-pr.md
           else
-            echo "An open schema-doc PR already exists; branch was refreshed."
+            echo "An open reference-docs PR already exists; branch was refreshed."
           fi
         env:
           GH_TOKEN: ${{ github.token }}

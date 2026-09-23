@@ -323,7 +323,9 @@ CoasterRank/
 │   ├── RUNBOOKS.md                    # one-time / rare ops runbooks
 │   ├── TEST_DATA.md                   # testride scenarios guide
 │   ├── RANKINGS.md                    # how ranking is computed, stored, monitored, displayed
-│   ├── SCHEMA.md                      # auto-generated DB schema doc (scripts/generate-schema-doc.sh)
+│   ├── reference/                    # auto-generated reference snapshots (do not hand-edit)
+│   │   ├── SCHEMA.md                 # DB schema (scripts/generate-schema-doc.sh)
+│   │   └── RPC_CONTRACTS.md          # RPC contracts (scripts/generate-rpc-contracts-doc.sh)
 │   └── previews/<slug>/               # committed UX PR screenshots + per-slug README
 │                                      #   (skill: .agents/skills/ux-pr-previews)
 ├── app/                               # Vite React TS SPA
@@ -389,7 +391,7 @@ Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets �
 
 ### 9.3 Supabase deploy workflow (`.github/workflows/deploy-supabase.yml`)
 
-- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints, then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR generated from the production schema; it does not push directly to `main`.
+- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints,   then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR with the regenerated `docs/reference/` snapshots (schema + RPC contracts); it does not push directly to `main`.
 - Migrations must always be additive and backwards-compatible with the current frontend.
 
 ### 9.4 SPA deploy workflow (Cloudflare Workers auto-deploy)
