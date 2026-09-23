@@ -12,7 +12,7 @@ supabase/            # Supabase CLI config + migrations + edge functions
   functions/         # Deno Edge Functions
   email-templates/   # branded auth email HTML (source of truth; synced via scripts/sync-email-templates)
 docs/PLAN.md         # authoritative project plan & decision log
-docs/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
+docs/operations/RUNBOOKS.md     # one-time / rare ops runbooks (admin bootstrap, recompute, Cloudflare, ...)
 docs/reference/      # auto-generated snapshots (SCHEMA.md, RPC_CONTRACTS.md) — do not hand-edit
 packages/bt/         # pure TS Bradley-Terry MM (own package.json; shared by Edge Function + tests)
   src/mm.ts          # MM fitting (Hunter 2004) with anchor + L2 regularization
@@ -22,7 +22,7 @@ supabase/functions/recompute-rankings/  # Deno Edge Function: pairwise RPCs -> M
 data/                # reference datasets (ext/ = committed CC0 coaster_db.csv + provenance HTML)
 scripts/             # ops & data tooling package — own package.json (tsx, pg, csv-parse, dotenv)
   src/import-coasters.ts # CC0 CSV → parks + coasters, idempotent, direct Postgres via SUPABASE_DB_URL
-  src/testride/      # testride CLI (synthetic users) — see docs/TEST_DATA.md
+  src/testride/      # testride CLI (synthetic users) — see docs/operations/TEST_DATA.md
   src/oneoff/        # archived one-off scripts (not wired into package.json; see its README)
 ```
 
@@ -97,7 +97,7 @@ workflow regenerates it post-deploy and maintains a reviewable `bot/schema-docs`
 
 Test & mock data lives in `scripts/src/testride/` (`npm run testride:seed|report|cleanup|confirm|recompute`
 — synthetic users for UI testing and BT exercise; dry-run by default). Full guide + scenarios:
-[`docs/TEST_DATA.md`](docs/TEST_DATA.md). Never leave synthetic users in prod past launch.
+[`docs/operations/TEST_DATA.md`](docs/operations/TEST_DATA.md). Never leave synthetic users in prod past launch.
 
 The Bradley-Terry package (`packages/bt`) also has its **own** `package.json` (same standalone-package pattern as `scripts/` — no root workspace):
 
@@ -193,7 +193,7 @@ used in CI (as a GitHub repo secret).
 
 One-time / rare operational tasks (admin bootstrap, Supabase project creation, recompute bootstrap
 + manual trigger, Cloudflare connect, custom domain, test-user cleanup) live in
-**[`docs/RUNBOOKS.md`](docs/RUNBOOKS.md)** — read it on demand when the task arises.
+**[`docs/operations/RUNBOOKS.md`](docs/operations/RUNBOOKS.md)** — read it on demand when the task arises.
 
 ## Conventions
 

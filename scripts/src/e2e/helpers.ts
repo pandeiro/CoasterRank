@@ -46,7 +46,7 @@ export async function requireSyntheticUser(): Promise<void> {
     throw new Error(
       `Synthetic user ${QA_USER} is missing or its password changed. ` +
         'Ask the user before creating test data: `cd scripts && npm run testride:seed -- --apply` ' +
-        'is a PRODUCTION DB WRITE (see docs/TEST_DATA.md).',
+        'is a PRODUCTION DB WRITE (see docs/operations/TEST_DATA.md).',
     )
   }
 }

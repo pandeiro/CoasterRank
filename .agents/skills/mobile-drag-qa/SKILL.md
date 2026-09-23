@@ -21,7 +21,7 @@ undo-window deletes, optimistic adds.
    - Desktop position-pick selection only sets client state until you click an
      insert divider.
    - Drag reorder DOES write ranks; restore afterwards (see below).
-4. See `docs/TEST_DATA.md` for the full lifecycle and
+4. See `docs/operations/TEST_DATA.md` for the full lifecycle and
    `scripts/src/oneoff/restore-mock0001-order.mts` for restoring mock_0001's
    canonical rank order (it uses the app's own API path — do NOT restore data
    by scripted gestures; dnd-kit auto-scroll makes multi-slot drags land

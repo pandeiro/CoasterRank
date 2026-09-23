@@ -10,7 +10,7 @@ export const REPO_ROOT = join(__dirname, '..', '..', '..')
 const res = dotenv.config({ path: join(REPO_ROOT, '.env.bench') })
 if (res.error) {
   console.error(
-    'Error: .env.bench not found at repo root. See docs/spikes/2026-09-pairwise-bench/.',
+    'Error: .env.bench not found at repo root. See docs/research/benchmarks/2026-09-pairwise/.',
   )
   process.exit(1)
 }

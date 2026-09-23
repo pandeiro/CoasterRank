@@ -103,7 +103,7 @@ cd packages/match && npm install # import-matcher algorithm work + tests
 
 - [`AGENTS.md`](AGENTS.md) — command reference, environment rules, multi-account Supabase CLI auth
 - [`docs/PLAN.md`](docs/PLAN.md) — authoritative project plan and decision log
-- [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md) — operational runbooks (one-time setup, manual ops)
+- [`docs/operations/RUNBOOKS.md`](docs/operations/RUNBOOKS.md) — operational runbooks (one-time setup, manual ops)
 
 ## License
 

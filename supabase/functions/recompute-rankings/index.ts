@@ -2,7 +2,7 @@
 // user_rides and upserts them into coaster_ratings; the board's
 // v_coaster_rankings view reads the results live.
 //
-// Fit pipeline (PROMOTION spec: docs/spikes/2026-09-pairwise-bench/) —
+// Fit pipeline (PROMOTION spec: docs/architecture/decisions/2026-09-incremental-ranking.md) —
 // selected by the BT_FIT_MODE function secret, default 'shadow':
 //
 //   legacy — paged pairwise_wins over the gateway + JS MM fit (pre-promotion

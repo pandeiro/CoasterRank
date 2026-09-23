@@ -1,4 +1,4 @@
-// BENCH-ONLY fork of recompute-rankings (spike: docs/spikes/2026-09-pairwise-bench/).
+// BENCH-ONLY fork of recompute-rankings (spike: docs/research/benchmarks/2026-09-pairwise/).
 // Identical auth/logging/write flow, but the pair aggregation AND the MM fit
 // both run inside Postgres via bench.recompute_plpgsql() (single RPC, tiny
 // payload — no pair rows cross the gateway). Deployed to the disposable

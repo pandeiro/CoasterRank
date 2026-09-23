@@ -333,7 +333,7 @@ export function slugify(name: string): string {
 // parks; detail page `/coasters/:slug` uses maybeSingle() so those broke.
 // New helpers disambiguate with park slug, then manufacturer token, then
 // numeric suffix – mirrors the 2026-09-04 ad-hoc fix (see
-// docs/audit/2026-09-04-slug-dedup.md).
+// docs/architecture/decisions/2026-09-global-slug-uniqueness.md).
 async function fetchExistingCoasterSlugs(base: string): Promise<Set<string>> {
   const existing = new Set<string>()
   // slugs are `base` or `base-%`; like `base%` is a tight prefix filter,

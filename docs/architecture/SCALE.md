@@ -2,7 +2,7 @@
 
 How the CoasterRank ranking pipeline scales: what it costs today, the math
 governing growth, the first bottleneck, and architectural options within our
-stack. Companion to [`docs/RANKINGS.md`](RANKINGS.md) (how rankings work) —
+stack. Companion to [`RANKINGS.md`](RANKINGS.md) (how rankings work) —
 this doc is about how they *scale*.
 
 Status: **Production Active Architecture (Updated 2026-09-14)**.
@@ -336,7 +336,7 @@ any candidate fix.
 ## 9. Measured load tolerance (2026-09-13 spike)
 
 Full method, environment, and raw data:
-[`docs/spikes/2026-09-pairwise-bench/`](spikes/2026-09-pairwise-bench/README.md).
+[`research/benchmarks/2026-09-pairwise/`](../research/benchmarks/2026-09-pairwise/README.md).
 Disposable staging project from the nightly prod dump + migrations; PostgREST
 max-rows raised to 1M so nothing truncates; pg_cron disabled; every recompute
 manual; grid seeded with bench-*eligible* synthetic users (testride's
@@ -408,7 +408,7 @@ existing users who edited rankings). `bench churn` walks epochs of
 `{totalUsers, editors}` from 10 users toward 1,000 (uniform 50-ride lists,
 plus bulk-import burst users with 220 rides at 100/350/750), keeping state
 between epochs, two runs per epoch (apply = after changes, idle = unchanged
-floor). Raw data: `spikes/2026-09-pairwise-bench/` (churn section in
+floor). Raw data: `../research/benchmarks/2026-09-pairwise/` (churn section in
 RESULTS.md).
 
 | variant | died at | wall |
@@ -443,7 +443,7 @@ amplification, bloat, lock contention), dedicated dirty-state table,
 two-level delta-maintained pair totals with batch temp-table aggregation,
 `SET LOCAL temp_buffers` in the fit functions, single-writer deadlock
 avoidance, and a vacuum strategy for the pair tables — is
-[`spikes/2026-09-pairwise-bench/PROMOTION.md`](spikes/2026-09-pairwise-bench/PROMOTION.md).
+[`decisions/2026-09-incremental-ranking.md`](decisions/2026-09-incremental-ranking.md).
 The trigger-based variant SQL in `scripts/src/bench/sql/` is the measured
 prototype, deliberately superseded by that spec for production.
 **Shipped 2026-09-13** (shadow rollout; per-run floor + dirty-queue timing

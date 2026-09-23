@@ -1,4 +1,4 @@
--- ── Guest promotion (docs/GUEST_UX.md Part II §4.3, v2.1) ─────────────────
+-- ── Guest promotion (docs/product/GUEST_UX.md Part II §4.3, v2.1) ─────────────────
 -- Guests rank locally in localStorage; on verified signup (or merge into an
 -- existing account) the client calls materialize_guest_rides with the
 -- COMPLETE ordered ladder. Guest promotion is deliberately NOT routed through

@@ -85,7 +85,7 @@ where id = (select id from auth.users where email = 'you@example.com');
 ## Test & mock data: the `testride` CLI
 
 The `testride` CLI (`scripts/src/testride/`) creates, inspects, impersonates, and removes
-synthetic test users. **Full guide + scenarios: [`docs/TEST_DATA.md`](TEST_DATA.md).** Quick
+synthetic test users. **Full guide + scenarios: [`TEST_DATA.md`](TEST_DATA.md).** Quick
 reference:
 
 - **Markers** (either suffices): email on the `@test.coasterrank.dev` domain — adopt this when
@@ -543,7 +543,7 @@ docker rm -f coasterrank-restore-drill   # scratch instance
 
 Procedure for standing up (and tearing down) a throwaway hosted Supabase
 project for benchmarks or staging — first used 2026-09-12 for the
-`pairwise_wins` scale benchmark (`docs/spikes/2026-09-pairwise-bench/`).
+`pairwise_wins` scale benchmark (`docs/research/benchmarks/2026-09-pairwise/`).
 Work happens in a dedicated worktree so the prod checkout's `.env` and CLI
 link state are untouched.
 

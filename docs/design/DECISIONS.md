@@ -5,9 +5,7 @@ Date: 2026-08-20
 Scope: v1 visual design system and product UI styling
 
 This is the canonical record of the design decisions made during the design
-system spike. The original material in `docs/spikes/design/` remains as
-historical source material; this document records the decisions we are
-implementing.
+system spike; it records the decisions we are implementing.
 
 ## Product character
 
@@ -152,7 +150,7 @@ save and rollback.
 The mark (v6, September 2026) combines a coaster hill, an accent track with
 its support columns — lift, drop, and loop — and a coral heart threaded by the
 loop's stitching: the drop, the ride, the love. It replaces the v3 "Heartline"
-mark (archived in `docs/logo-archive/v3/`) after the September 2026 design
+mark (archived in `docs/design/logo-archive/v3/`) after the September 2026 design
 review: one clear coaster gesture instead of a heartbeat metaphor, holding up
 at both favicon and hero scale.
 

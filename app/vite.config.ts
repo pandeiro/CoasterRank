@@ -57,7 +57,7 @@ if (!process.env.VITEST) {
       .join(', ')
     // Cloudflare Workers auto-deploy (and any CI build that intends to upload
     // source maps) must have these three vars set in the build environment.
-    // See docs/RUNBOOKS.md "Connect Cloudflare" and docs/PLAN.md §8 / §9.4.
+    // See docs/operations/RUNBOOKS.md "Connect Cloudflare" and docs/PLAN.md §8 / §9.4.
     console.warn(
       `[sentry] Source-map upload DISABLED — missing build env: ${missing}. ` +
         'Build will emit NO sourcemaps (sourcemap: false) and skip sentryVitePlugin. ' +

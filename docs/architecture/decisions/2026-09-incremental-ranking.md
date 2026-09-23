@@ -4,8 +4,8 @@ The epic-ready design for moving the recompute pipeline off the measured
 memory wall (edge-function OOM at ~12MB pair payload, ~2× prod load) onto
 dirty-tracking + in-database fitting. Evidence base:
 
-- Measured results: [`RESULTS.md`](RESULTS.md) (variant grid + growth/churn
-  simulation) and `docs/SCALE.md` §9.
+- Measured results: [`RESULTS.md`](../../research/benchmarks/2026-09-pairwise/RESULTS.md) (variant grid + growth/churn
+  simulation) and `docs/architecture/SCALE.md` §9.
 - Prototype code: `scripts/src/bench/` (harness) + `scripts/src/bench/sql/`
   (bench-only variant installs) + `scripts/src/bench/edge-fork/` (staging
   fork of the Edge Function).
