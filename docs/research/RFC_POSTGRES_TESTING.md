@@ -1,7 +1,7 @@
 # RFC: Automated Testing Strategy for Supabase Migrations & Postgres RPC Logic
 
 **Author:** CoasterRank Engineering
-**Status:** Proposed / Draft (v2 — incorporates `docs/RFC_POSTGRES_TESTING_REVIEW.md`)
+**Status:** Proposed / Draft (v2 — staff-review feedback incorporated; review artifact removed per docs convention, substance preserved in §§Failure-mode calibration through Roadmap)
 **Date:** September 22, 2026 (rev. September 23, 2026)
 
 ---
