@@ -196,4 +196,3 @@ Deno.test('isStatementTimeoutMessage matches the 57014 shapes, not other errors'
   assertEquals(isStatementTimeoutMessage('no such table'), false, 'data error')
 })
 
-

@@ -1,7 +1,7 @@
 # Spec: Retire shadow and legacy fit-mode machinery
 
-**Status:** Proposed  
-**Date:** September 23, 2026  
+**Status:** Implemented (PR #250, merged 2026-09-23)
+**Date:** September 23, 2026
 **Context:** `BT_FIT_MODE=indb` has been serving prod since 2026-09-14. The shadow
 soak ran clean (10/10 non-skip runs, `board_match=true`, max |Δ log score| 5.5e-8).
 The JS fit and parity machinery exist solely to support the soak and the
@@ -251,10 +251,10 @@ There is no reason to drop or rename `pairwise_wins()`. It stays.
    purely a type + JSX removal; its test file (`RankingsPanel.test.tsx`) should
    need no changes unless it specifically tests the parity block.
 5. Manual smoke: trigger a recompute from the admin panel and verify the
-   last-run block renders correctly without the parity row.
+   last-run block renders correctly without the parity row or fit-mode label.
 6. Check `cron_execution_logs` after the first post-deploy cron slot — confirm
    `rpc_stats` no longer contains `parity` or `pairwise_wins` keys; confirm
-   `fit.mode` is absent (or `'indb'` if kept as a static).
+   `fit.mode` is absent.
 
 ---
 
