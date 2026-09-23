@@ -6,7 +6,6 @@ import {
   firstPlaceLabel,
   isFewVotes,
   lineageNames,
-  type CoasterStatus,
   type RankingRow,
 } from '../lib/coasters'
 import { MANUFACTURER_ABBREVIATIONS } from '../lib/abbreviations'
@@ -16,19 +15,7 @@ import ScorePill from './ScorePill'
 import WeeklyDeltaBadge from './WeeklyDeltaBadge'
 import FewVotesBadge from './FewVotesBadge'
 import { Badge, MessageState, Panel } from './ui'
-
-// Non-operating rows carry a status pill: SBNO verbatim (accent),
-// under-construction rides as "Pre-launch" (neutral — not historic), every
-// other non-operating status collapsed to "Historic" (neutral). Exported for
-// the park bulk-add picker's checklist rows (same labels, same semantics).
-export function statusPill(
-  status: CoasterStatus,
-): { label: string; tone: 'accent' | 'neutral' } | null {
-  if (status === 'operating') return null
-  if (status === 'sbno') return { label: 'SBNO', tone: 'accent' }
-  if (status === 'under_construction') return { label: 'Pre-launch', tone: 'neutral' }
-  return { label: 'Historic', tone: 'neutral' }
-}
+import { rankFontClass, statusPill } from '../lib/coaster-display'
 
 // Podium hierarchy (§6.1, decided): muted coral — three DISTINCT shades so
 // #1 > #2 > #3 reads as an intentional ramp (a merged 2/3 shade reads as a
@@ -38,16 +25,6 @@ function rowTint(position: number | null): string {
   if (position === 2) return 'bg-coral/[0.03] hover:bg-coral/[0.03]'
   if (position === 3) return 'bg-coral/[0.015] hover:bg-coral/[0.015]'
   return 'hover:bg-canvas'
-}
-
-// §5.2: one font tier down at ≥100, another at ≥1000, so 3–4 digit ranks
-// stay inside the fixed column (and the 40px circle) without clipping.
-// Exported for unit testing (the display numbering is gapless over the given
-// rows, so ≥100 positions only occur deep in a real board).
-export function rankFontClass(position: number): string {
-  if (position >= 1000) return 'text-xs'
-  if (position >= 100) return 'text-sm'
-  return 'text-base'
 }
 
 // §5.1–5.3, decided: EVERY rank gets a bright circle (white in light mode;
@@ -184,7 +161,7 @@ export default function CoasterTable({
   // empties the movement map (~12s in — that would silently remount the whole
   // list a second time: DOM churn plus focus loss), and must not move for
   // movement-less recomputes (most recomputes move nobody — remounting every
-  // 15 min would be pure churn).
+  // 5 min would be pure churn).
   const animatedTurnoverRef = useRef<string | null>(null)
   if (turnover?.turnoverId && turnover.movement.size > 0 && !prefersReducedMotion()) {
     animatedTurnoverRef.current = turnover.turnoverId

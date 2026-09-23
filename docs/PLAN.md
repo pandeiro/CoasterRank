@@ -388,10 +388,13 @@ Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets �
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
+- **`check-scripts` job** (display name `ci/check-scripts`): same triggers; working directory `scripts/`. Steps: `npm ci`, `npm run typecheck`, `npm test`, `npm run format:check`.
+- **`check-bt` / `check-match` jobs**: same triggers; working directories `packages/bt/` / `packages/match/`. Steps: `npm ci`, `npm run typecheck`, `npm test`, `npm run format:check` (single shared root `.prettierrc` resolves from every sub-package; `packages/match` additionally ignores the frozen `fixtures/catalog.json`).
+- **Prettier scope**: one root `.prettierrc` (no per-package copies); a root `.prettierignore` encodes the deliberate skips (hand-formatted markdown, generated `docs/reference/`, synced email templates, stale social-preview mockups, `data/` artifacts, Deno Edge Functions, the frozen catalog fixture). `app/.prettierignore` still skips `*.md` for the app gate.
 
 ### 9.3 Supabase deploy workflow (`.github/workflows/deploy-supabase.yml`)
 
-- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints,   then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR with the regenerated `docs/reference/` snapshots (schema + RPC contracts); it does not push directly to `main`.
+- Runs only on `main`, path-filtered on `supabase/**` **and `packages/bt/**`** (the Edge Function bundles `packages/bt/src/mm.ts`, so algorithm changes must redeploy it). It fails loudly if deploy secrets are missing, serializes deployments, installs pinned Supabase/PostgreSQL clients, runs read-only compatibility preflights for the username and submission constraints,   then links, pushes migrations, verifies the `public_board_meta` return contract, and deploys every Edge Function entrypoint. Afterward it opens or refreshes a `bot/schema-docs` PR with the regenerated `docs/reference/` snapshots (schema + RPC contracts) — unless the only diff is the `> Generated:` timestamp headers, in which case it skips the PR as noise; it does not push directly to `main`.
 - Migrations must always be additive and backwards-compatible with the current frontend.
 
 ### 9.4 SPA deploy workflow (Cloudflare Workers auto-deploy)

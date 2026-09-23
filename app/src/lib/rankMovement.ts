@@ -6,7 +6,7 @@
 //    week's final rank from `rank_weekly_snapshots`); the delta is plain
 //    arithmetic at render time — see `weekDelta`. Renders on every page load.
 //
-// 2. LIVE (ephemeral): the board refetches every 15 minutes; when the payload's
+// 2. LIVE (ephemeral): the board refetches every 5 minutes; when the payload's
 //    `last_recomputed_at` moves, that is a "turnover" — the moment a recompute
 //    became visible. `useRankTurnover` diffs the previous payload's global
 //    ranks against the new ones (client-side, so the delta is honest about

@@ -8,7 +8,12 @@ const CATALOG: CatalogEntry[] = [
   { id: 'bat-sfgam', name: 'Batman: The Ride', park: 'Six Flags Great America' },
   { id: 'bat-sfgadv', name: 'Batman: The Ride', park: 'Six Flags Great Adventure' },
   { id: 'bat-sfmm', name: 'Batman: The Ride', park: 'Six Flags Magic Mountain' },
-  { id: 'pantherian', name: 'Pantherian', park: 'Kings Dominion', aliases: ['Intimidator 305', 'I305'] },
+  {
+    id: 'pantherian',
+    name: 'Pantherian',
+    park: 'Kings Dominion',
+    aliases: ['Intimidator 305', 'I305'],
+  },
   { id: 'tt2', name: 'Top Thrill 2', park: 'Cedar Point', aliases: ['Top Thrill Dragster'] },
   { id: 'beast', name: 'The Beast', park: 'Kings Island' },
   { id: 'big-dipper', name: 'Big Dipper (1935)', park: 'Luna Park Sydney' },
@@ -16,7 +21,11 @@ const CATALOG: CatalogEntry[] = [
   { id: 'el-toro', name: 'El Toro', park: 'Six Flags Great Adventure' },
   { id: 'iron-gwazi', name: 'Iron Gwazi', park: 'Busch Gardens Tampa Bay' },
   { id: 'hippogriff-japan', name: 'Flight of the Hippogriff', park: 'Universal Studios Japan' },
-  { id: 'hippogriff-ioa', name: 'Flight of the Hippogriff', park: "Universal's Islands of Adventure" },
+  {
+    id: 'hippogriff-ioa',
+    name: 'Flight of the Hippogriff',
+    park: "Universal's Islands of Adventure",
+  },
 ]
 
 describe('createMatcher', () => {

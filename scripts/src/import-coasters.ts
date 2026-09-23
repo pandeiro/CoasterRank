@@ -446,7 +446,8 @@ async function apply(m: ReturnType<typeof buildModel>): Promise<void> {
         )
         .join(', ')
       const linParams: (string | number)[] = []
-      for (const row of lineageRows) linParams.push(row.coasterId, row.manufacturerId, 0, 'open-csv')
+      for (const row of lineageRows)
+        linParams.push(row.coasterId, row.manufacturerId, 0, 'open-csv')
       await client.query(
         `insert into public.coaster_manufacturers (coaster_id, manufacturer_id, position, source)
          values ${linValues}

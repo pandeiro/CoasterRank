@@ -57,7 +57,9 @@ const group = (fills) =>
     .join('\n  ')
 
 function svg({ body, viewBox = VB, bg = null, rx = 0 }) {
-  const bgRect = bg ? `<rect x="0" y="0" width="100%" height="100%" fill="${bg}"${rx ? ` rx="${rx}"` : ''}/>` : ''
+  const bgRect = bg
+    ? `<rect x="0" y="0" width="100%" height="100%" fill="${bg}"${rx ? ` rx="${rx}"` : ''}/>`
+    : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">
   <title>CoasterRank Heartline mark</title>
   ${bgRect}<g transform="${W}">
@@ -88,7 +90,14 @@ const variants = {
   }),
   'heartline-heart': svg({ body: group({ ...structure, heart: T.coral, loop: T.accent }) }),
   'heartline-heritage': svg({
-    body: group({ ...structure, latticeL: T.accent, railsR: T.accent, support: T.accent, track: T.coral, heart: T.coral }),
+    body: group({
+      ...structure,
+      latticeL: T.accent,
+      railsR: T.accent,
+      support: T.accent,
+      track: T.coral,
+      heart: T.coral,
+    }),
   }),
   'heartline-duotone': svg({ body: group({ ...all(T.ink), heart: T.coral }) }),
   'heartline-mono': svg({ body: group(all(T.ink)) }),
@@ -96,7 +105,14 @@ const variants = {
 }
 
 // simplified marks: drop lattice / rails / support / ticks
-const markEls = { hill: el.hill, hill2: el.hill2, track: el.track, heart: el.heart, loop: el.loop, tail: el.tail }
+const markEls = {
+  hill: el.hill,
+  hill2: el.hill2,
+  track: el.track,
+  heart: el.heart,
+  loop: el.loop,
+  tail: el.tail,
+}
 const markGroup = (fills) =>
   Object.entries(fills)
     .map(([name, color]) => `<path d="${markEls[name]}" fill="${color}"/>`)
@@ -104,11 +120,27 @@ const markGroup = (fills) =>
 
 const markVariants = {
   'heartline-mark': svg({
-    body: markGroup({ hill: T.ink, hill2: T.ink, track: T.coral, heart: T.coral, loop: T.accent, tail: T.ink }),
+    body: markGroup({
+      hill: T.ink,
+      hill2: T.ink,
+      track: T.coral,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.ink,
+    }),
   }),
-  'heartline-mark-mono': svg({ body: markGroup(Object.fromEntries(Object.keys(markEls).map((k) => [k, T.ink]))) }),
+  'heartline-mark-mono': svg({
+    body: markGroup(Object.fromEntries(Object.keys(markEls).map((k) => [k, T.ink]))),
+  }),
   'heartline-mark-reversed': svg({
-    body: markGroup({ hill: T.canvas, hill2: T.canvas, track: T.canvas, heart: T.coral, loop: T.accent, tail: T.canvas }),
+    body: markGroup({
+      hill: T.canvas,
+      hill2: T.canvas,
+      track: T.canvas,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.canvas,
+    }),
   }),
 }
 
@@ -157,7 +189,14 @@ const badgeVariants = {
   'heartline-badge-canvas': heartBadge({ bg: T.canvas, glyph: T.ink }),
   'heartline-badge-mark': markBadge({
     bg: T.ink,
-    colors: { hill: T.canvas, hill2: T.canvas, track: T.coral, heart: T.coral, loop: T.accent, tail: T.canvas },
+    colors: {
+      hill: T.canvas,
+      hill2: T.canvas,
+      track: T.coral,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.canvas,
+    },
   }),
 }
 
@@ -169,7 +208,14 @@ function lockup({ stacked }) {
   const markW = markH * (1436 / 602)
   const gap = 56
   const text = `Coaster<tspan fill="${T.coral}">Rank</tspan>`
-  const markFills = { hill: T.ink, hill2: T.ink, track: T.coral, heart: T.coral, loop: T.accent, tail: T.ink }
+  const markFills = {
+    hill: T.ink,
+    hill2: T.ink,
+    track: T.coral,
+    heart: T.coral,
+    loop: T.accent,
+    tail: T.ink,
+  }
   if (!stacked) {
     const w = 80 + markW + gap + 1150
     const h = 480
@@ -209,7 +255,18 @@ function potraceLayer(png) {
   const pbm = png.replace(/\.png$/, '.pbm')
   const out = png.replace(/\.png$/, '.svg')
   execFileSync('magick', [png, '-compress', 'none', pbm])
-  execFileSync('potrace', ['-b', 'svg', '-q', '--turdsize', '5', '--alphamax', '1.2', '-o', out, pbm])
+  execFileSync('potrace', [
+    '-b',
+    'svg',
+    '-q',
+    '--turdsize',
+    '5',
+    '--alphamax',
+    '1.2',
+    '-o',
+    out,
+    pbm,
+  ])
   return [...readFileSync(out, 'utf8').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1])
 }
 
@@ -217,8 +274,14 @@ function bboxOf(d) {
   // potrace path data: absolute M + relative c chains (0.1pt units, y-up canvas)
   const tokens = d.match(/[MmCcLlHhVvZz]|-?\d*\.?\d+(?:e-?\d+)?/g) ?? []
   let i = 0
-  let cx = 0, cy = 0, sx = 0, sy = 0
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let cx = 0,
+    cy = 0,
+    sx = 0,
+    sy = 0
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity
   const next = () => parseFloat(tokens[i++])
   const isNum = () => i < tokens.length && !/^[A-Za-z]$/.test(tokens[i])
   const pt = (x, y) => {
@@ -232,27 +295,56 @@ function bboxOf(d) {
     if (c === 'M' || c === 'm') {
       let first = true
       while (isNum()) {
-        if (c === 'M') { cx = next(); cy = next() } else { cx += next(); cy += next() }
-        if (first) { sx = cx; sy = cy; first = false }
+        if (c === 'M') {
+          cx = next()
+          cy = next()
+        } else {
+          cx += next()
+          cy += next()
+        }
+        if (first) {
+          sx = cx
+          sy = cy
+          first = false
+        }
         pt(cx, cy)
         if (c === 'M') break
       }
-      sx = cx; sy = cy
+      sx = cx
+      sy = cy
     } else if (c === 'C' || c === 'c') {
       while (isNum()) {
-        const x0 = cx, y0 = cy
-        const dx1 = next(), dy1 = next(), dx2 = next(), dy2 = next(), dx3 = next(), dy3 = next()
+        const x0 = cx,
+          y0 = cy
+        const dx1 = next(),
+          dy1 = next(),
+          dx2 = next(),
+          dy2 = next(),
+          dx3 = next(),
+          dy3 = next()
         if (c === 'C') {
-          pt(dx1, dy1); pt(dx2, dy2); pt(dx3, dy3)
-          cx = dx3; cy = dy3
+          pt(dx1, dy1)
+          pt(dx2, dy2)
+          pt(dx3, dy3)
+          cx = dx3
+          cy = dy3
         } else {
-          pt(x0 + dx1, y0 + dy1); pt(x0 + dx2, y0 + dy2); pt(x0 + dx3, y0 + dy3)
-          cx = x0 + dx3; cy = y0 + dy3
+          pt(x0 + dx1, y0 + dy1)
+          pt(x0 + dx2, y0 + dy2)
+          pt(x0 + dx3, y0 + dy3)
+          cx = x0 + dx3
+          cy = y0 + dy3
         }
       }
     } else if (c === 'L' || c === 'l') {
       while (isNum()) {
-        if (c === 'L') { cx = next(); cy = next() } else { cx += next(); cy += next() }
+        if (c === 'L') {
+          cx = next()
+          cy = next()
+        } else {
+          cx += next()
+          cy += next()
+        }
         pt(cx, cy)
       }
     } else if (c === 'H' || c === 'h') {
@@ -266,7 +358,8 @@ function bboxOf(d) {
         pt(cx, cy)
       }
     } else if (c === 'Z' || c === 'z') {
-      cx = sx; cy = sy
+      cx = sx
+      cy = sy
     }
   }
   return { minX, minY, maxX, maxY }
@@ -281,10 +374,19 @@ async function buildMinis() {
   const baseSvg = `${tmp}mini-base.svg`
   execFileSync('bash', [
     '/Users/mu/.agents/skills/png2svg/png2svg.sh',
-    '--preprocess', 'logo', '--threshold', '80', '--output', baseSvg, src2x,
+    '--preprocess',
+    'logo',
+    '--threshold',
+    '80',
+    '--output',
+    baseSvg,
+    src2x,
   ])
-  const basePaths = [...readFileSync(baseSvg, 'utf8').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1])
-  if (basePaths.length !== 3) throw new Error(`expected 3 base components (hill/heart/loop), got ${basePaths.length}`)
+  const basePaths = [...readFileSync(baseSvg, 'utf8').matchAll(/<path d="([^"]+)"/g)].map(
+    (m) => m[1],
+  )
+  if (basePaths.length !== 3)
+    throw new Error(`expected 3 base components (hill/heart/loop), got ${basePaths.length}`)
 
   // 2. classify by bbox: hill = leftmost, loop = rightmost, heart = middle
   const withBox = basePaths.map((d) => ({ d, ...bboxOf(d) }))
@@ -297,7 +399,10 @@ async function buildMinis() {
       process.env.CHROME_BIN ??
       '/Users/mu/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell',
   })
-  const page = await browser.newPage({ viewport: { width: MINI_W, height: MINI_H }, deviceScaleFactor: MINI_SCALE })
+  const page = await browser.newPage({
+    viewport: { width: MINI_W, height: MINI_H },
+    deviceScaleFactor: MINI_SCALE,
+  })
   const masks = {}
   for (const [name, d] of Object.entries(elems)) {
     const compSvg = `${tmp}mask-${name}.svg`
@@ -309,7 +414,21 @@ async function buildMinis() {
     await page.goto(`file://${compSvg}`)
     await page.screenshot({ path: png, omitBackground: true })
     // flatten onto white (morphology wants opaque)
-    execFileSync('magick', ['-quiet', png, '-background', 'white', '-alpha', 'off', '-fuzz', '0%', '-fill', 'black', '+opaque', 'white', png])
+    execFileSync('magick', [
+      '-quiet',
+      png,
+      '-background',
+      'white',
+      '-alpha',
+      'off',
+      '-fuzz',
+      '0%',
+      '-fill',
+      'black',
+      '+opaque',
+      'white',
+      png,
+    ])
     masks[name] = png
   }
 
@@ -322,8 +441,24 @@ async function buildMinis() {
     const grown = {}
     for (const [name, mask] of Object.entries(masks)) {
       const out = `${tmp}lvl${li}-${name}.png`
-      if (k > 0) execFileSync('magick', ['-quiet', mask, '-morphology', 'Erode', `Disk:${k * MINI_SCALE}`, out])
-      else if (k < 0) execFileSync('magick', ['-quiet', mask, '-morphology', 'Dilate', `Disk:${-k * MINI_SCALE}`, out])
+      if (k > 0)
+        execFileSync('magick', [
+          '-quiet',
+          mask,
+          '-morphology',
+          'Erode',
+          `Disk:${k * MINI_SCALE}`,
+          out,
+        ])
+      else if (k < 0)
+        execFileSync('magick', [
+          '-quiet',
+          mask,
+          '-morphology',
+          'Dilate',
+          `Disk:${-k * MINI_SCALE}`,
+          out,
+        ])
       else execFileSync('magick', ['-quiet', mask, out])
       grown[name] = out
     }
@@ -334,12 +469,29 @@ async function buildMinis() {
       let keep = `${tmp}lvl${li}-${name}-keep.png`
       execFileSync('magick', ['-quiet', grown[name], '-negate', keep])
       for (const o of other) {
-        execFileSync('magick', ['-quiet', keep, grown[o], '-compose', 'Multiply', '-composite', keep])
+        execFileSync('magick', [
+          '-quiet',
+          keep,
+          grown[o],
+          '-compose',
+          'Multiply',
+          '-composite',
+          keep,
+        ])
       }
       // union with my original silhouette so exclusion never bites the body
       // (keep is white=member; the original mask is black=member — negate it first)
       execFileSync('magick', [
-        '-quiet', keep, '(', masks[name], '-negate', ')', '-compose', 'Lighten', '-composite', keep,
+        '-quiet',
+        keep,
+        '(',
+        masks[name],
+        '-negate',
+        ')',
+        '-compose',
+        'Lighten',
+        '-composite',
+        keep,
       ])
       execFileSync('magick', ['-quiet', keep, '-negate', `${tmp}lvl${li}-${name}-l.png`])
       layers[name] = potraceLayer(`${tmp}lvl${li}-${name}-l.png`)
@@ -378,8 +530,16 @@ async function buildMinis() {
   const minis_light = {}
   const minis_dark = {}
   MINI_LEVELS.forEach((_, li) => {
-    minis_light[`heartline-mini-${li}`] = miniSvg(minis[li], { hill: T.ink, heart: T.coral, loop: T.accent })
-    minis_dark[`heartline-mini-${li}-reversed`] = miniSvg(minis[li], { hill: T.canvas, heart: T.coral, loop: T.accent })
+    minis_light[`heartline-mini-${li}`] = miniSvg(minis[li], {
+      hill: T.ink,
+      heart: T.coral,
+      loop: T.accent,
+    })
+    minis_dark[`heartline-mini-${li}-reversed`] = miniSvg(minis[li], {
+      hill: T.canvas,
+      heart: T.coral,
+      loop: T.accent,
+    })
   })
 
   // badge: thickest level (last) reversed, on an ink tile
@@ -399,7 +559,8 @@ async function buildMinis() {
 </svg>
 `
 
-  writeFileSync(tmp + '/MARKER.txt', 'here'); console.log('TMP CONTENTS:', require('fs').readdirSync(tmp).length, 'files at buildMinis end')
+  writeFileSync(tmp + '/MARKER.txt', 'here')
+  console.log('TMP CONTENTS:', require('fs').readdirSync(tmp).length, 'files at buildMinis end')
   return { minis_light, minis_dark, badgeMini, miniVB }
 }
 

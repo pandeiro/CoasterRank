@@ -37,8 +37,7 @@ describe('computeRankings', () => {
     // but by less than a sweep of the same magnitude would.
     const contested = computeRankings([pair('a', 'b', 3), pair('b', 'a', 1)])
     const sweep = computeRankings([pair('a', 'b', 3)])
-    const contestedGap =
-      scoresOf(contested).get('a')! - scoresOf(contested).get('b')!
+    const contestedGap = scoresOf(contested).get('a')! - scoresOf(contested).get('b')!
     const sweepGap = scoresOf(sweep).get('a')! - scoresOf(sweep).get('b')!
     expect(contestedGap).toBeGreaterThan(0)
     expect(contestedGap).toBeLessThan(sweepGap)
@@ -94,11 +93,7 @@ describe('computeRankings', () => {
   })
 
   it('orders a transitive dominance chain monotonically', () => {
-    const result = computeRankings([
-      pair('a', 'b', 5),
-      pair('b', 'c', 5),
-      pair('a', 'c', 5),
-    ])
+    const result = computeRankings([pair('a', 'b', 5), pair('b', 'c', 5), pair('a', 'c', 5)])
     expect(result.rows.map((r) => r.coasterId)).toEqual(['a', 'b', 'c'])
   })
 

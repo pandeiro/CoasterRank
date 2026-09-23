@@ -45,7 +45,7 @@ flowchart TD
     end
 
     subgraph CDN Edge Layer
-        CF[Cloudflare Worker /api/ranking\n15-min Edge Cache]
+        CF[Cloudflare Worker /api/ranking\n5-min Edge Cache]
     end
 
     %% Flow Connections

@@ -4,11 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "supabase/**"
+      - 'supabase/**'
       # The Edge Function bundles packages/bt/src/mm.ts at deploy time, so
       # algorithm/knob changes must redeploy the function too.
-      - "packages/bt/**"
-      - ".github/workflows/deploy-supabase.yml"
+      - 'packages/bt/**'
+      - '.github/workflows/deploy-supabase.yml'
 
 permissions:
   contents: write
@@ -179,7 +179,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: scripts/package-lock.json
 
@@ -198,6 +198,17 @@ jobs:
         run: |
           set -euo pipefail
           git diff --quiet docs/reference/SCHEMA.md docs/reference/RPC_CONTRACTS.md && echo "No changes" && exit 0
+          # Skip timestamp-only refreshes: if every added/removed line is the
+          # "> Generated: …" header, there is nothing worth a review PR.
+          # (No `grep -q`: under pipefail its early pipe-close (SIGPIPE) would
+          # flip the result when real changes exist.)
+          substantive=$(git diff -U0 -- docs/reference/SCHEMA.md docs/reference/RPC_CONTRACTS.md \
+            | grep -E '^[+-]' | grep -vE '^\+\+\+|^---' | grep -vE '^[+-]> Generated: ' || true)
+          if [ -z "$substantive" ]; then
+            echo "Only Generated timestamps changed — skipping reference-docs PR."
+            exit 0
+          fi
+          echo "Reference docs have substantive changes — opening refresh PR."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B bot/schema-docs

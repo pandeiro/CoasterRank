@@ -39,4 +39,3 @@ node compose.mjs
 Path data is in potrace 0.1pt units over a 14360×6020 canvas, y-up (the emitted group
 transform `translate(0,602) scale(0.1,-0.1)` flips it). Any custom transform math must work
 in path units: `x_svg = tx + s·u`, `y_svg = ty − s·v` with `v = (602 − y_pt)·10`.
-

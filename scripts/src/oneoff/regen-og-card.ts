@@ -213,8 +213,8 @@ async function main(usernameArg: string) {
     }),
     { waitUntil: 'networkidle' },
   )
-  const dataUrl = await page.evaluate(
-    () => (window as unknown as { __render: () => Promise<string> }).__render(),
+  const dataUrl = await page.evaluate(() =>
+    (window as unknown as { __render: () => Promise<string> }).__render(),
   )
   await browser.close()
 

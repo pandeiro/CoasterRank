@@ -1,0 +1,27 @@
+# Deliberately not Prettier-formatted. Applies to root-cwd runs only —
+# app/ and scripts/ use their own cwd ignore files (app skips *.md too).
+# CI gates (app, scripts, packages) never see these paths.
+
+# Markdown is hand-formatted repo-wide (tables, mermaid, decision logs).
+*.md
+
+# Generated snapshots — regen wipes edits, never hand-edit (see AGENTS.md).
+docs/reference/
+
+# Branded auth email HTML — synced to the live project via
+# scripts/sync-email-templates; formatting risks false diffs.
+supabase/email-templates/
+
+# Static design mockups, intentionally stale (live OG text is in worker.ts).
+docs/social-preview/
+
+# Committed external datasets + provenance artifacts, not source.
+data/
+
+# Deno Edge Functions — no formatter configured (deno fmt territory);
+# not covered by any prettier gate.
+supabase/functions/
+
+# Frozen catalog dump — would explode to ~7k lines of churn
+# (also in packages/match/.prettierignore for package-cwd runs).
+packages/match/fixtures/catalog.json

@@ -166,7 +166,7 @@ this runbook — none are wired today.
 
 ## Bootstrap the rankings recompute (one-time, after the Phase 6 deploy)
 
-The 15-minute pg_cron → Edge Function pipeline reads its URL + shared secret from Supabase Vault
+The 5-minute pg_cron → Edge Function pipeline reads its URL + shared secret from Supabase Vault
 (no environment values live in migrations), and the Edge Function reads the same secret from its
 own env. After the Phase 6 migration + function deploy land on prod:
 

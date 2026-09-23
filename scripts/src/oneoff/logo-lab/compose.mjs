@@ -1,4 +1,11 @@
-import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync, readdirSync as fs_readdirSync } from 'fs'
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  copyFileSync,
+  readdirSync as fs_readdirSync,
+} from 'fs'
 import { execFileSync } from 'child_process'
 import { chromium } from 'playwright'
 
@@ -57,7 +64,9 @@ const group = (fills) =>
     .join('\n  ')
 
 function svg({ body, viewBox = VB, bg = null, rx = 0 }) {
-  const bgRect = bg ? `<rect x="0" y="0" width="100%" height="100%" fill="${bg}"${rx ? ` rx="${rx}"` : ''}/>` : ''
+  const bgRect = bg
+    ? `<rect x="0" y="0" width="100%" height="100%" fill="${bg}"${rx ? ` rx="${rx}"` : ''}/>`
+    : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">
   <title>CoasterRank Heartline mark</title>
   ${bgRect}<g transform="${W}">
@@ -88,7 +97,14 @@ const variants = {
   }),
   'heartline-heart': svg({ body: group({ ...structure, heart: T.coral, loop: T.accent }) }),
   'heartline-heritage': svg({
-    body: group({ ...structure, latticeL: T.accent, railsR: T.accent, support: T.accent, track: T.coral, heart: T.coral }),
+    body: group({
+      ...structure,
+      latticeL: T.accent,
+      railsR: T.accent,
+      support: T.accent,
+      track: T.coral,
+      heart: T.coral,
+    }),
   }),
   'heartline-duotone': svg({ body: group({ ...all(T.ink), heart: T.coral }) }),
   'heartline-mono': svg({ body: group(all(T.ink)) }),
@@ -96,7 +112,14 @@ const variants = {
 }
 
 // simplified marks: drop lattice / rails / support / ticks
-const markEls = { hill: el.hill, hill2: el.hill2, track: el.track, heart: el.heart, loop: el.loop, tail: el.tail }
+const markEls = {
+  hill: el.hill,
+  hill2: el.hill2,
+  track: el.track,
+  heart: el.heart,
+  loop: el.loop,
+  tail: el.tail,
+}
 const markGroup = (fills) =>
   Object.entries(fills)
     .map(([name, color]) => `<path d="${markEls[name]}" fill="${color}"/>`)
@@ -104,11 +127,27 @@ const markGroup = (fills) =>
 
 const markVariants = {
   'heartline-mark': svg({
-    body: markGroup({ hill: T.ink, hill2: T.ink, track: T.coral, heart: T.coral, loop: T.accent, tail: T.ink }),
+    body: markGroup({
+      hill: T.ink,
+      hill2: T.ink,
+      track: T.coral,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.ink,
+    }),
   }),
-  'heartline-mark-mono': svg({ body: markGroup(Object.fromEntries(Object.keys(markEls).map((k) => [k, T.ink]))) }),
+  'heartline-mark-mono': svg({
+    body: markGroup(Object.fromEntries(Object.keys(markEls).map((k) => [k, T.ink]))),
+  }),
   'heartline-mark-reversed': svg({
-    body: markGroup({ hill: T.canvas, hill2: T.canvas, track: T.canvas, heart: T.coral, loop: T.accent, tail: T.canvas }),
+    body: markGroup({
+      hill: T.canvas,
+      hill2: T.canvas,
+      track: T.canvas,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.canvas,
+    }),
   }),
 }
 
@@ -157,7 +196,14 @@ const badgeVariants = {
   'heartline-badge-canvas': heartBadge({ bg: T.canvas, glyph: T.ink }),
   'heartline-badge-mark': markBadge({
     bg: T.ink,
-    colors: { hill: T.canvas, hill2: T.canvas, track: T.coral, heart: T.coral, loop: T.accent, tail: T.canvas },
+    colors: {
+      hill: T.canvas,
+      hill2: T.canvas,
+      track: T.coral,
+      heart: T.coral,
+      loop: T.accent,
+      tail: T.canvas,
+    },
   }),
 }
 
@@ -169,7 +215,14 @@ function lockup({ stacked }) {
   const markW = markH * (1436 / 602)
   const gap = 56
   const text = `Coaster<tspan fill="${T.coral}">Rank</tspan>`
-  const markFills = { hill: T.ink, hill2: T.ink, track: T.coral, heart: T.coral, loop: T.accent, tail: T.ink }
+  const markFills = {
+    hill: T.ink,
+    hill2: T.ink,
+    track: T.coral,
+    heart: T.coral,
+    loop: T.accent,
+    tail: T.ink,
+  }
   if (!stacked) {
     const w = 80 + markW + gap + 1150
     const h = 480
@@ -208,8 +261,14 @@ function bboxOf(d) {
   // potrace path data: absolute M + relative chains (0.1pt units, y-up canvas)
   const tokens = d.match(/[MmCcLlHhVvZz]|-?\d*\.?\d+(?:e-?\d+)?/g) ?? []
   let i = 0
-  let cx = 0, cy = 0, sx = 0, sy = 0
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let cx = 0,
+    cy = 0,
+    sx = 0,
+    sy = 0
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity
   const next = () => parseFloat(tokens[i++])
   const isNum = () => i < tokens.length && !/^[A-Za-z]$/.test(tokens[i])
   const pt = (x, y) => {
@@ -223,27 +282,56 @@ function bboxOf(d) {
     if (c === 'M' || c === 'm') {
       let first = true
       while (isNum()) {
-        if (c === 'M') { cx = next(); cy = next() } else { cx += next(); cy += next() }
-        if (first) { sx = cx; sy = cy; first = false }
+        if (c === 'M') {
+          cx = next()
+          cy = next()
+        } else {
+          cx += next()
+          cy += next()
+        }
+        if (first) {
+          sx = cx
+          sy = cy
+          first = false
+        }
         pt(cx, cy)
         if (c === 'M') break
       }
-      sx = cx; sy = cy
+      sx = cx
+      sy = cy
     } else if (c === 'C' || c === 'c') {
       while (isNum()) {
-        const x0 = cx, y0 = cy
-        const dx1 = next(), dy1 = next(), dx2 = next(), dy2 = next(), dx3 = next(), dy3 = next()
+        const x0 = cx,
+          y0 = cy
+        const dx1 = next(),
+          dy1 = next(),
+          dx2 = next(),
+          dy2 = next(),
+          dx3 = next(),
+          dy3 = next()
         if (c === 'C') {
-          pt(dx1, dy1); pt(dx2, dy2); pt(dx3, dy3)
-          cx = dx3; cy = dy3
+          pt(dx1, dy1)
+          pt(dx2, dy2)
+          pt(dx3, dy3)
+          cx = dx3
+          cy = dy3
         } else {
-          pt(x0 + dx1, y0 + dy1); pt(x0 + dx2, y0 + dy2); pt(x0 + dx3, y0 + dy3)
-          cx = x0 + dx3; cy = y0 + dy3
+          pt(x0 + dx1, y0 + dy1)
+          pt(x0 + dx2, y0 + dy2)
+          pt(x0 + dx3, y0 + dy3)
+          cx = x0 + dx3
+          cy = y0 + dy3
         }
       }
     } else if (c === 'L' || c === 'l') {
       while (isNum()) {
-        if (c === 'L') { cx = next(); cy = next() } else { cx += next(); cy += next() }
+        if (c === 'L') {
+          cx = next()
+          cy = next()
+        } else {
+          cx += next()
+          cy += next()
+        }
         pt(cx, cy)
       }
     } else if (c === 'H' || c === 'h') {
@@ -257,7 +345,8 @@ function bboxOf(d) {
         pt(cx, cy)
       }
     } else if (c === 'Z' || c === 'z') {
-      cx = sx; cy = sy
+      cx = sx
+      cy = sy
     }
   }
   return { minX, minY, maxX, maxY }
@@ -276,13 +365,38 @@ async function buildMinis() {
   for (let li = 0; li < MINI_LEVELS.length; li++) {
     const k = MINI_LEVELS[li]
     const lvlPng = `${tmp}lvl-${li}.png`
-    if (k > 0) execFileSync('magick', ['-quiet', MINI_SRC, '-alpha', 'off', '-morphology', 'Erode', `Disk:${k}`, lvlPng])
+    if (k > 0)
+      execFileSync('magick', [
+        '-quiet',
+        MINI_SRC,
+        '-alpha',
+        'off',
+        '-morphology',
+        'Erode',
+        `Disk:${k}`,
+        lvlPng,
+      ])
     else execFileSync('magick', ['-quiet', MINI_SRC, '-alpha', 'off', lvlPng])
     const lvlSvg = `${tmp}lvl-${li}.svg`
     execFileSync('magick', ['-quiet', lvlPng, '-compress', 'none', `${tmp}lvl-${li}.pbm`])
-    execFileSync('potrace', ['-b', 'svg', '-q', '--turdsize', '5', '--alphamax', '1.2', '-o', lvlSvg, `${tmp}lvl-${li}.pbm`])
-    const comps = [...readFileSync(lvlSvg, 'utf8').matchAll(/<path d="([^"]+)"/g)].map((m) => ({ d: m[1], ...bboxOf(m[1]) }))
-    if (comps.length !== 3) throw new Error(`mini level ${k}: expected 3 components, got ${comps.length}`)
+    execFileSync('potrace', [
+      '-b',
+      'svg',
+      '-q',
+      '--turdsize',
+      '5',
+      '--alphamax',
+      '1.2',
+      '-o',
+      lvlSvg,
+      `${tmp}lvl-${li}.pbm`,
+    ])
+    const comps = [...readFileSync(lvlSvg, 'utf8').matchAll(/<path d="([^"]+)"/g)].map((m) => ({
+      d: m[1],
+      ...bboxOf(m[1]),
+    }))
+    if (comps.length !== 3)
+      throw new Error(`mini level ${k}: expected 3 components, got ${comps.length}`)
     comps.sort((a, b) => a.minX - b.minX)
     minis.push({ hill: comps[0].d, heart: comps[1].d, loop: comps[2].d })
   }
@@ -317,8 +431,16 @@ async function buildMinis() {
   const minis_light = {}
   const minis_dark = {}
   MINI_LEVELS.forEach((_, li) => {
-    minis_light[`heartline-mini-${li}`] = miniSvg(minis[li], { hill: T.ink, heart: T.coral, loop: T.accent })
-    minis_dark[`heartline-mini-${li}-reversed`] = miniSvg(minis[li], { hill: T.canvas, heart: T.coral, loop: T.accent })
+    minis_light[`heartline-mini-${li}`] = miniSvg(minis[li], {
+      hill: T.ink,
+      heart: T.coral,
+      loop: T.accent,
+    })
+    minis_dark[`heartline-mini-${li}-reversed`] = miniSvg(minis[li], {
+      hill: T.canvas,
+      heart: T.coral,
+      loop: T.accent,
+    })
   })
 
   // badge: thickest level reversed, on an ink tile

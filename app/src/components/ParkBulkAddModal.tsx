@@ -7,7 +7,7 @@ import {
   matchParks,
   sortRowsForCommit,
 } from '../lib/park-bulk'
-import { statusPill } from './CoasterTable'
+import { statusPill } from '../lib/coaster-display'
 import { Button, Modal, fieldClassName } from './ui'
 
 type Props = {

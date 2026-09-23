@@ -35,7 +35,9 @@ export async function requireSyntheticUser(): Promise<void> {
   const url = process.env.VITE_SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY
   if (!url || !anon) {
-    throw new Error('VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY missing — run from the repo .env (dotenv).')
+    throw new Error(
+      'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY missing — run from the repo .env (dotenv).',
+    )
   }
   const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -188,7 +190,10 @@ export async function rankedNames(page: Page): Promise<string[]> {
 }
 
 /** Bounding-box center of the nth ranked row's drag handle. */
-export async function dragHandleCenter(page: Page, index: number): Promise<{ x: number; y: number }> {
+export async function dragHandleCenter(
+  page: Page,
+  index: number,
+): Promise<{ x: number; y: number }> {
   const handle = page.getByRole('button', { name: 'Drag to reorder' }).nth(index)
   const box = await handle.boundingBox()
   if (!box) throw new Error(`drag handle ${index} has no bounding box`)
@@ -218,11 +223,7 @@ export async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 /** Desktop mouse drag of a ranked row from one index to another. */
-export async function mouseDragRow(
-  page: Page,
-  fromIndex: number,
-  toIndex: number,
-): Promise<void> {
+export async function mouseDragRow(page: Page, fromIndex: number, toIndex: number): Promise<void> {
   const from = await dragHandleCenter(page, fromIndex)
   const to = await dragHandleCenter(page, toIndex)
   // Center-to-center: dnd-kit's collision detection uses the dragged rect
@@ -232,9 +233,13 @@ export async function mouseDragRow(
   await page.mouse.down()
   const steps = 10
   for (let i = 1; i <= steps; i++) {
-    await page.mouse.move(from.x + ((to.x - from.x) * i) / steps, from.y + ((to.y - from.y) * i) / steps, {
-      steps: 2,
-    })
+    await page.mouse.move(
+      from.x + ((to.x - from.x) * i) / steps,
+      from.y + ((to.y - from.y) * i) / steps,
+      {
+        steps: 2,
+      },
+    )
     await page.waitForTimeout(50)
   }
   await page.waitForTimeout(150)
