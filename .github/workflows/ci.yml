@@ -22,7 +22,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -48,7 +48,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: packages/bt/package-lock.json
 
@@ -57,6 +57,32 @@ jobs:
       - run: npm run typecheck
 
       - run: npm test
+
+      - run: npm run format:check
+
+  check-scripts:
+    name: ci/check-scripts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run format:check
 
   # supabase db push refuses out-of-order migrations at deploy time (see
   # #159/#161): a migration stamped before one that already merged+applied
@@ -122,7 +148,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: packages/match/package-lock.json
 
@@ -131,3 +157,5 @@ jobs:
       - run: npm run typecheck
 
       - run: npm test
+
+      - run: npm run format:check

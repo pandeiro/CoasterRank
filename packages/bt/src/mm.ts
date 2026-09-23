@@ -89,10 +89,7 @@ export type MMResult = {
 // out and a coaster has no wins (guards the divisions below).
 const MIN_SCORE = 1e-12
 
-export function computeRankings(
-  pairs: Pair[],
-  options: Partial<MMOptions> = {},
-): MMResult {
+export function computeRankings(pairs: Pair[], options: Partial<MMOptions> = {}): MMResult {
   const opts = { ...DEFAULT_MM_OPTIONS, ...options }
 
   // Aggregate into sparse structures: total weighted wins per coaster, and

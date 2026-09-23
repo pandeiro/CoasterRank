@@ -3,8 +3,8 @@
  *
  * Route handling:
  *  - `/api/ranking` → the global board dataset (rankings + parks) as JSON,
- *    served from the edge cache (Cache API, 15-minute TTL — mirrors the
- *    pg_cron recompute cadence; worst-case staleness ≤ 30 min). Supabase is
+ *    served from the edge cache (Cache API, 5-minute TTL — mirrors the
+ *    pg_cron recompute cadence; worst-case staleness ≤ 10 min). Supabase is
  *    only hit on cache misses, so homepage loads skip Supabase entirely.
  *    GET/OPTIONS only, CORS: self-origin reflected, others only via the
  *    RANKING_ALLOWED_ORIGINS var (no domains hard-coded — forks deploy under

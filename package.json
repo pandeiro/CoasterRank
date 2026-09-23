@@ -13,6 +13,6 @@
     "format": "npm --prefix app run format",
     "format:check": "npm --prefix app run format:check",
     "gates": "npm --prefix app run typecheck && npm --prefix app run lint && npm --prefix app run test:run && npm --prefix app run format:check",
-    "gates:all": "npm run gates && npm --prefix scripts run typecheck && npm --prefix packages/bt run typecheck && npm --prefix packages/bt test && npm --prefix packages/match run typecheck && npm --prefix packages/match test"
+    "gates:all": "npm run gates && npm --prefix scripts run typecheck && npm --prefix scripts run format:check && npm --prefix packages/bt run typecheck && npm --prefix packages/bt test && npm --prefix packages/bt run format:check && npm --prefix packages/match run typecheck && npm --prefix packages/match test && npm --prefix packages/match run format:check"
   }
 }

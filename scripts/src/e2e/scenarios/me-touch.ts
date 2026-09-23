@@ -57,10 +57,9 @@ async function main(): Promise<void> {
     const before = await rankedNames(page)
     await firstOption.click()
     await page.waitForTimeout(600)
-    const active = await page.evaluate(
-      () => document.activeElement?.tagName ?? 'none',
-    )
-    if (active === 'INPUT') throw new Error('search input kept focus after select — keyboard would stay open')
+    const active = await page.evaluate(() => document.activeElement?.tagName ?? 'none')
+    if (active === 'INPUT')
+      throw new Error('search input kept focus after select — keyboard would stay open')
     console.log('pass: search input blurs on select (touch)')
 
     // Selection behavior depends on what's merged:
@@ -78,7 +77,9 @@ async function main(): Promise<void> {
       const afterAdd = await rankedNames(page)
       const added = afterAdd[afterAdd.length - 1]
       if (!added || afterAdd.length !== before.length + 1) {
-        throw new Error(`selection neither entered pending-add nor appended: ${afterAdd.length} vs ${before.length}`)
+        throw new Error(
+          `selection neither entered pending-add nor appended: ${afterAdd.length} vs ${before.length}`,
+        )
       }
       console.log(`pass: selection instantly added "${added}" at #${afterAdd.length}`)
 
@@ -104,14 +105,18 @@ async function main(): Promise<void> {
         await page.waitForTimeout(7000) // dissolve 280ms + undo 5000ms + refetch
         const final = await rankedNames(page)
         if (final.length !== before.length) {
-          throw new Error(`deferred delete did not commit: ${final.length} rows, want ${before.length}`)
+          throw new Error(
+            `deferred delete did not commit: ${final.length} rows, want ${before.length}`,
+          )
         }
         console.log('pass: deferred delete committed after undo window')
       } else {
         await page.waitForTimeout(1500) // immediate delete + refetch
         const afterRemove = await rankedNames(page)
         if (afterRemove.length !== before.length) {
-          throw new Error(`immediate remove failed: ${afterRemove.length} rows, want ${before.length}`)
+          throw new Error(
+            `immediate remove failed: ${afterRemove.length} rows, want ${before.length}`,
+          )
         }
         console.log('pass: remove committed immediately (pre-#103 behavior)')
       }
@@ -128,18 +133,21 @@ async function main(): Promise<void> {
     if (!dragTarget) throw new Error('missing row 3')
     const from = await dragHandleCenter(page, 2)
     const to = await dragHandleCenter(page, 0)
-    const { scrollYBefore, scrollYAfter } = await longPressDrag(
-      page,
-      from,
-      { x: to.x - from.x, y: to.y - from.y },
-    )
+    const { scrollYBefore, scrollYAfter } = await longPressDrag(page, from, {
+      x: to.x - from.x,
+      y: to.y - from.y,
+    })
     const after = await rankedNames(page)
     if (after[0] !== dragTarget) {
-      throw new Error(`long-press drag failed: expected ${dragTarget} at #1, got order ${after.slice(0, 5).join(', ')}`)
+      throw new Error(
+        `long-press drag failed: expected ${dragTarget} at #1, got order ${after.slice(0, 5).join(', ')}`,
+      )
     }
     console.log('pass: long-press drag moved row up two slots')
     if (scrollYBefore !== scrollYAfter) {
-      throw new Error(`scroll guard failed: page scrolled ${scrollYBefore} -> ${scrollYAfter} during drag`)
+      throw new Error(
+        `scroll guard failed: page scrolled ${scrollYBefore} -> ${scrollYAfter} during drag`,
+      )
     }
     console.log('pass: page did not scroll during drag')
 

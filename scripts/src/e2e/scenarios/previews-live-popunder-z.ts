@@ -19,13 +19,7 @@ config({ path: new URL('../../../../.env', import.meta.url).pathname })
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { chromium, type Browser } from 'playwright'
-import {
-  mockSupabase,
-  openPreview,
-  previewFile,
-  prSnippet,
-  waitForVisible,
-} from '../previews'
+import { mockSupabase, openPreview, previewFile, prSnippet, waitForVisible } from '../previews'
 import { ensureServer } from '../helpers'
 
 const SLUG = 'live-popunder-z'
@@ -135,7 +129,10 @@ async function main(): Promise<void> {
       await mkdir(dirname(outPath), { recursive: true })
       await page.screenshot({ path: outPath, fullPage: false })
       files.push(outPath)
-      console.log(`[${SLUG}/01-live-popunder-open-${kind}] prod reads:`, JSON.stringify(handle.prodReads()))
+      console.log(
+        `[${SLUG}/01-live-popunder-open-${kind}] prod reads:`,
+        JSON.stringify(handle.prodReads()),
+      )
       await page.context().close()
     }
     console.log(prSnippet(SLUG, files))

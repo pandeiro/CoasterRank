@@ -388,6 +388,9 @@ Cloudflare build vars / secrets (Workers → Settings → Variables & Secrets �
 ### 9.2 CI workflow (`.github/workflows/ci.yml`)
 
 - **`check` job** (display name `ci/check`): runs on every PR and on `main`; working directory `app/`. Steps: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:run`, `npm run format:check`.
+- **`check-scripts` job** (display name `ci/check-scripts`): same triggers; working directory `scripts/`. Steps: `npm ci`, `npm run typecheck`, `npm test`, `npm run format:check`.
+- **`check-bt` / `check-match` jobs**: same triggers; working directories `packages/bt/` / `packages/match/`. Steps: `npm ci`, `npm run typecheck`, `npm test`, `npm run format:check` (single shared root `.prettierrc` resolves from every sub-package; `packages/match` additionally ignores the frozen `fixtures/catalog.json`).
+- **Prettier scope**: one root `.prettierrc` (no per-package copies); a root `.prettierignore` encodes the deliberate skips (hand-formatted markdown, generated `docs/reference/`, synced email templates, stale social-preview mockups, `data/` artifacts, Deno Edge Functions, the frozen catalog fixture). `app/.prettierignore` still skips `*.md` for the app gate.
 
 ### 9.3 Supabase deploy workflow (`.github/workflows/deploy-supabase.yml`)
 

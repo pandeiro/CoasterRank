@@ -33,7 +33,7 @@ A minimal root `package.json` (no workspaces) delegates to the sub-packages:
 ```bash
 npm run dev          # = app dev server
 npm run gates        # app quality gates: typecheck + lint + test:run + format:check
-npm run gates:all    # gates + scripts typecheck + bt + match typecheck/test (run before touching scripts/ or packages/)
+npm run gates:all    # gates + scripts typecheck/test/format:check + bt + match typecheck/test/format:check (run before touching scripts/ or packages/)
 npm run install:all  # install all four sub-packages
 ```
 
@@ -134,8 +134,10 @@ coverage triage, location backfills) — not wired into `package.json`; run with
 npm run gates        # from repo root (or the cd app && … chain below)
 ```
 
-All must pass. CI runs the same set on every PR. If you changed `scripts/`, also run
-`cd scripts && npm run typecheck` (the scripts package has its own `tsc` setup; not yet in CI).
+All must pass. CI runs the same set on every PR, plus `ci/check-scripts`
+(typecheck + test + `format:check`) and `format:check` in the `bt`/`match` jobs.
+If you changed `scripts/`, also run `cd scripts && npm run typecheck && npm test`
+(the scripts package has its own `tsc` + vitest setup).
 If you changed `packages/bt/` or the Edge Function, also run
 `cd packages/bt && npm run typecheck && npm test` (Edge Function imports `packages/bt/src/mm.ts`
 via relative path; Deno type-checks it at deploy time).

@@ -59,12 +59,12 @@ independent uniform shuffles.
 
 ```bash
 npm run testride:seed -- --users 20 --rides 10-25 --apply --prod
-npm run testride:recompute -- --prod        # or wait ≤15 min for the cron, or click "Recompute now" on /admin
+npm run testride:recompute -- --prod        # or wait ≤5 min for the cron, or click "Recompute now" on /admin
 ```
 
 Examine the results on the board (ordering, "few votes" badges), coaster detail pages
 (comparisons / participants / wins), and the `/admin` rankings widget, which shows the last
-run's `durationMs`, pairs, iterations, and convergence. Every 15-minute cron run logs the same
+run's `durationMs`, pairs, iterations, and convergence. Every 5-minute cron run logs the same
 numbers to `cron_execution_logs`, so the "benchmark" is ambient: seed whatever scale you want
 and watch the scheduled runs. For deeper looks:
 

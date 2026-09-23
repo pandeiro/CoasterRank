@@ -1,0 +1,4 @@
+# Frozen catalog dump (one object per line) — Prettier would explode it to ~7k
+# lines of churn with no readability gain; the golden suite only cares about
+# parsed values.
+fixtures/catalog.json

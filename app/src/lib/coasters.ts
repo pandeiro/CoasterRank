@@ -1581,7 +1581,7 @@ export async function moveCoasterToPark(coasterId: string, newParkId: string) {
 // The whole board dataset (rankings + parks) --------------------------------
 //
 // Fetch path (Phase 4.2): the edge-cached worker endpoint `/api/ranking`
-// (Cloudflare Cache API, 15-minute TTL — mirrors the pg_cron recompute
+// (Cloudflare Cache API, 5-minute TTL — mirrors the pg_cron recompute
 // cadence) so board/homepage loads skip Supabase entirely. Falls back to
 // direct Supabase queries when the worker is unavailable (Vite dev server,
 // worker outage) so the board degrades gracefully.
@@ -1669,7 +1669,7 @@ async function fetchBoardData(): Promise<RankingBoardPayload> {
 // Post-mutation freshness for admin flows: refetches straight from Supabase
 // (bypassing the worker's edge cache) and seeds the ['board-data'] cache, so
 // the board reflects the change immediately — a plain invalidateQueries would
-// refetch through the edge cache and could serve up-to-15-minute-old data.
+// refetch through the edge cache and could serve up-to-5-minute-old data.
 export async function refreshBoardData(queryClient: QueryClient): Promise<void> {
   const data = await fetchBoardDataFromSupabase()
   queryClient.setQueryData(BOARD_QUERY_KEY, data)
@@ -1677,8 +1677,8 @@ export async function refreshBoardData(queryClient: QueryClient): Promise<void> 
 
 // The whole rankings dataset, fetched once. Ordered by BT score so filtering
 // preserves the ranking. Filters and pagination happen client-side.
-// refetchInterval (aligned with the 15-min recompute cadence): a tab that
-// sits open still lands each recompute within ~30 min (edge TTL + interval),
+// refetchInterval (aligned with the 5-min recompute cadence): a tab that
+// sits open still lands each recompute within ~10 min (edge TTL + interval),
 // which is what powers the board's turnover detection (useRankTurnover) —
 // without polling, the page would never show rank movement on its own.
 // refetchIntervalInBackground stays false: hidden tabs pick changes up on

@@ -290,9 +290,7 @@ type PgStatRow = {
 async function checkAutovacuumBloat(): Promise<Check[]> {
   const dbUrl = process.env.SUPABASE_DB_URL
   if (!dbUrl) {
-    return [
-      { name: 'autovacuum:bloat', ok: true, detail: 'skipped (SUPABASE_DB_URL not set)' },
-    ]
+    return [{ name: 'autovacuum:bloat', ok: true, detail: 'skipped (SUPABASE_DB_URL not set)' }]
   }
   try {
     const { default: pg } = await import('pg')

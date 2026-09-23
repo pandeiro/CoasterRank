@@ -39,7 +39,9 @@ async function main(): Promise<void> {
     await mouseDragRow(page, 1, 3)
     const after = await rankedNames(page)
     if (after[3] !== before[1]) {
-      throw new Error(`drag failed: expected ${before[1]} at #4, got order ${after.slice(0, 5).join(', ')}`)
+      throw new Error(
+        `drag failed: expected ${before[1]} at #4, got order ${after.slice(0, 5).join(', ')}`,
+      )
     }
     console.log('pass: desktop drag moved row down two slots')
 

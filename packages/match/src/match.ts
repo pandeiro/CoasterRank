@@ -128,7 +128,8 @@ function scoreEntry(norm: string, indexed: IndexedEntry): { score: number; via: 
   }
   for (const alias of indexed.normAliases) {
     const aliasSubset = tokenSubsetScore(norm, alias)
-    if (aliasSubset !== null && aliasSubset > best.score) best = { score: aliasSubset, via: 'alias' }
+    if (aliasSubset !== null && aliasSubset > best.score)
+      best = { score: aliasSubset, via: 'alias' }
     if (!lengthCompatible(norm, alias)) continue
     const s = jaroWinkler(norm, alias)
     if (s > best.score) best = { score: s, via: 'alias' }
@@ -230,7 +231,11 @@ export function createMatcher(catalog: readonly CatalogEntry[], options: Matcher
     if (aliasHits) {
       const resolved = autoFromTied(row, aliasHits, 'alias', 'alias', parkHint)
       if (resolved) return { ...resolved, row }
-      return { ...base, status: 'candidate', candidates: tieCandidates(aliasHits, 'alias', parkHint) }
+      return {
+        ...base,
+        status: 'candidate',
+        candidates: tieCandidates(aliasHits, 'alias', parkHint),
+      }
     }
 
     // Tier 3: fuzzy across names + aliases.
@@ -251,9 +256,10 @@ export function createMatcher(catalog: readonly CatalogEntry[], options: Matcher
     // agreement found nothing at all.
     if (parkHint) {
       const strictAgreeing = scored.filter((s) => parkStrictlyAgrees(parkHint, s.indexed.normPark))
-      const agreeing = strictAgreeing.length > 0
-        ? strictAgreeing
-        : scored.filter((s) => parkAgrees(parkHint, s.indexed.normPark))
+      const agreeing =
+        strictAgreeing.length > 0
+          ? strictAgreeing
+          : scored.filter((s) => parkAgrees(parkHint, s.indexed.normPark))
       const nearBest = agreeing.filter((s) => s.score >= best.score - 0.08)
       if (nearBest.length === 1) {
         const winner = nearBest[0]!
