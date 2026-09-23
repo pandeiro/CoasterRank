@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './db/client.js'
+import { normalizeName } from './normalize-name.js'
 
 const APPLY = process.argv.includes('--apply')
 const REPROCESS = process.argv.includes('--reprocess')
@@ -12,13 +13,6 @@ const LIMIT = (() => {
   }
   return val
 })()
-
-// Strip trailing parenthesized text: "Name (Park)" → "Name"
-// Also handles "Name (roller coaster)", "Name (disambiguation)", etc.
-export function normalizeName(name: string): { cleaned: string; changed: boolean } {
-  const cleaned = name.replace(/\s*\(.*\)\s*$/, '').trim()
-  return { cleaned, changed: cleaned !== name }
-}
 
 type Summary = {
   totalFetched: number

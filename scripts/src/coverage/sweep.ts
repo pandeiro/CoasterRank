@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import {
   COVERAGE_DIR,
   loadCsv,
@@ -320,8 +321,15 @@ async function main(): Promise<void> {
     console.log(`  dropped (no longer generated): ${merged.dropped.join(', ')}`)
 }
 
-main().catch((err) => {
-  console.error('Sweep failed:', err instanceof Error ? err.message : err)
-  if (err instanceof Error && err.stack) console.error(err.stack)
-  process.exit(1)
-})
+// Entry-point guard: importing this module (e.g. unit tests covering the
+// pure mergeDecisions helper) must not run the CLI sweep as a side effect.
+// Under tsx argv[1] is this file; under vitest it is the worker entry.
+const invokedAsCli =
+  process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href
+if (invokedAsCli) {
+  main().catch((err) => {
+    console.error('Sweep failed:', err instanceof Error ? err.message : err)
+    if (err instanceof Error && err.stack) console.error(err.stack)
+    process.exit(1)
+  })
+}
