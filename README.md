@@ -6,12 +6,12 @@ CoasterRank is a free, open-source leaderboard for roller coasters, ranked live 
 
 - **Users** sign up, mark the coasters they've ridden, and drag-sort them into a personal ranked list.
 - **Everyone** (no login required) sees a live public board of the world's coasters ordered by a principled, community-driven score — not a popularity contest, not a simple average.
-- The ranking is computed by a **Bradley-Terry** model fed from pairwise wins implied by each user's ordered list. Influence grows roughly in proportion to list length rather than pair count, so short lists still count without letting a single small list swing the board.
+- The ranking is computed by a **Bradley-Terry** model fed from pairwise wins implied by each user's ordered list. Influence grows roughly in proportion to list length rather than pair count, so short lists still count without letting a single small list swing the board. See [`docs/architecture/RANKINGS.md`](docs/architecture/RANKINGS.md) for the pipeline source of truth.
 - The reference catalog of coasters starts from an open, public-domain dataset and grows via an admin + community submission queue (RCDB data is intentionally avoided for licensing reasons).
 
 ## Features
 
-- **Live public board** — global ranking recomputed on a short cadence by a Bradley-Terry model (pg_cron → Supabase Edge Function); no login required
+- **Live public board** — global ranking recomputed every 5 minutes by an Edge-orchestrated, in-DB Bradley-Terry fit (pg_cron → Supabase Edge Function → Postgres); no login required
 - **Personal rankings** — sign up, search the catalog, and drag-sort your coasters with auto-save and optimistic updates
 - **Search & filters** — park, country, manufacturer, material, and status filters mirrored to URL search params
 - **Seeded and community-curated catalog** — Initially 1,087 coasters/279 parks/101 manufacturers imported from a CC0 public-domain dataset, then cleaned, deduped, growing through user submissions
@@ -27,7 +27,7 @@ All v1 phases complete (scaffold → live Bradley-Terry rankings → admin & mod
 
 - **Frontend**: React 19 + Vite + TypeScript SPA (Tailwind CSS, TanStack Query, React Router)
 - **Data / Auth**: Supabase (Postgres + PostgREST + Auth + Row-Level Security)
-- **Ranking**: Bradley-Terry batch job as a Supabase Edge Function, scheduled via pg_cron
+- **Ranking**: Edge-orchestrated, in-DB Bradley-Terry fit (Supabase Edge Function + Postgres), scheduled via pg_cron
 - **Hosting**: Cloudflare Workers (SPA, auto-deploy on push to `main`)
 - **CI/CD**: GitHub Actions (quality gates on PRs; Supabase migrations + function deploy on merge to `main`)
 - **Tooling**: Vitest (tests), oxlint (lint), Prettier (format)

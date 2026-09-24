@@ -9,13 +9,13 @@ CoasterRank uses a **Bradley-Terry model** to infer latent strengths from pairwi
 ```mermaid
 flowchart LR
     A[User ranks coasters] --> B[user_rides]
-    B --> C[pairwise_wins RPC]
-    B --> D[ranked_participants RPC]
-    C --> E[Edge Function: MM algorithm]
-    D --> E
-    E --> F[coaster_ratings]
-    F --> G[v_coaster_rankings view]
-    G --> H[SPA board]
+    B --> C[pair_dirty_users]
+    C --> D[user_pairs]
+    D --> E[pair_totals]
+    E --> F[pair_fit_agg / pair_fit_step]
+    F --> G[coaster_ratings]
+    G --> H[v_coaster_rankings view]
+    H --> I[SPA board]
 ```
 
 ## The Bradley-Terry model
@@ -40,7 +40,7 @@ Where:
 
 The algorithm iterates until the max per-item delta falls below ε = 1e-8, or hits a cap of 500 iterations.
 
-**Implementation:** `packages/bt/src/mm.ts` — pure TypeScript, no imports. Shared by the Edge Function (Deno) and the test suite (Vitest).
+**Implementation:** `packages/bt/src/mm.ts` is the pure-TypeScript reference implementation and test oracle. Production runs a parity-checked PL/pgSQL port inside Postgres (`pair_fit_step`) so pair rows never leave the database.
 
 ### Regularization
 
@@ -129,28 +129,44 @@ flowchart TD
 > layer (`user_pairs` → `pair_totals`) so recomputes no longer re-aggregate
 > `user_rides` from scratch, and the MM fit runs **inside Postgres**
 > (`pair_fit_step`, board-size payload — no pair rows over the gateway).
-> Production runs in 4.0s (1 warm-start iteration) vs 34.5s under the
-> pre-promotion JS fit. The `shadow` and `legacy` modes have been retired
-> (2026-09-23, PR #250).
+> The `shadow` and `legacy` modes have been retired (2026-09-23, PR #250).
 
-### Step 1: Pairwise maintenance & in-DB MM fitting (SQL RPCs)
+### Step 1: Pair maintenance (SQL RPCs)
 
-Two security-definer RPCs run inside Postgres and are called by the Edge Function via PostgREST with the service-role key. EXECUTE is revoked from anon/authenticated — they are not public APIs.
+The Edge Function calls security-definer RPCs through PostgREST with the service-role key. EXECUTE is revoked from anon/authenticated — these are not public APIs.
 
-**`pairwise_wins()`** — Aggregated, per-user-normalized pairwise wins:
+**`pair_maintain_step(p_batch)`** claims up to 25 dirty users, then performs one atomic transaction per call:
 
 ```sql
--- Simplified: the real SQL uses window functions for the per-user n count
-SELECT winner, loser,
-       SUM(pair_weight)::double precision,  -- normalized weight
-       COUNT(*)                             -- raw win count
-FROM pairs  -- self-join on user_rides where rank_a < rank_b
-GROUP BY winner, loser;
+claim dirty users
+  -> rebuild their current ranked user_pairs from user_rides
+  -> read their prior user_pairs slices
+  -> subtract old + add new, grouped by (winner, loser)
+  -> delta-upsert global pair_totals
+  -> delete old slices and insert new slices
+  -> clear dirty flags
 ```
 
-Returns: `table(winner uuid, loser uuid, weight double precision, wins bigint)`
+`user_pairs` holds one user's current directed pair contribution. `pair_totals` holds the global weighted sum and raw-win count for each directed pair, which is the only pair data the fit reads. Rebuilding a dirty user's complete slice keeps maintenance set-based and crash-safe; only their net contribution is applied to the global totals.
 
-**`ranked_participants()`** — Distinct users ranking each coaster:
+The Edge Function loops maintenance calls until the queue drains, or reaches its 60s per-run maintenance budget. It normally asks for 25 users per call, can halve that batch on a statement timeout, and makes at most 40 calls per recompute. A deeper queue carries into the next 5-minute slot; the queue age/depth watchdog makes that visible.
+
+The hourly `pair_reconcile_sweep()` re-marks users whose ranked rides changed after their last successful maintenance, or whose eligibility changed. This self-heals a missed dirty flag.
+
+### Step 2: Fit preparation and MM iteration (in-DB)
+
+**`pair_fit_agg()`** truncates and rebuilds the fit scratch tables from `pair_totals`:
+
+- `pair_fit_opp` is a sparse opponent list: each directed pair is mirrored so both coasters can look up their total meetings with the other.
+- `pair_fit_scores` has one row per ranked coaster: total weighted wins, raw comparisons/wins, and the prior `coaster_ratings.score` as its initial score. A coaster new to the board starts at `1.0`.
+
+This is a warm start: after a small ranking edit, the prior fitted board is already close to the next answer.
+
+**`pair_fit_step(p_max)`** runs simultaneous Hunter-MM iterations in Postgres, up to 25 iterations per call. It measures the maximum `|ln(new_score / score)|` across coasters and finishes when it is below `1e-8`, or stops at the 500-iteration termination guard. The Edge Function calls it again until finished, halves `p_max` on a statement timeout, and has a 120s fit budget plus a 200-call safety cap. These caps bound runtime; the 500 cap is a pathological-data guard, not a normal fitting target.
+
+**`pair_fit_rows()`** returns only the fitted board rows, not the pair rows. This board-size payload replaces the legacy O(pairs) JSON payload.
+
+**`ranked_participants()`** and **`first_place_counts()`** are sibling aggregate RPCs used for board metadata:
 
 ```sql
 SELECT coaster_id, COUNT(DISTINCT user_id)
@@ -158,19 +174,7 @@ FROM user_rides WHERE rank IS NOT NULL
 GROUP BY coaster_id;
 ```
 
-Returns: `table(coaster_id uuid, participants bigint)`
-
-### Step 2: MM fitting (in-DB)
-
-The Edge Function does not run the MM algorithm in memory. After the maintain
-loop, it calls `pair_fit_agg` (rebuilds the board warm-start state from
-`pair_totals`), then loops over `pair_fit_step` (resumable Hunter 2004
-iterations inside Postgres) until done, then calls `pair_fit_rows` to retrieve
-the fitted scores. The board-size payload (one row per ranked coaster) replaces
-the old O(pairs) payload that crossed the gateway under the legacy shape.
-
-For ~200 coasters with a warm start, this typically converges in 1–3 iterations
-in under 500ms of total step time.
+All aggregate RPC responses are range-paginated to avoid PostgREST's row cap silently truncating a result. Transient clock-drift and 504-family failures retry with 1s, 2s, and 4s exponential backoff plus jitter; statement timeouts instead reduce the relevant batch size.
 
 ### Step 3: Persist results
 
@@ -257,7 +261,7 @@ Every recompute (success or failure) inserts a row into `cron_execution_logs`:
 | `retries_used` | Max retries consumed across the aggregate RPCs |
 | `iterations` | MM iterations run (success only) |
 | `converged` | Whether ε threshold was reached (success only) |
-| `pairs` | Number of pairwise comparisons fed to MM (the DB-truth pair_totals count is in `rpc_stats.fit.db_pairs`) |
+| `pairs` | Number of directed aggregate pair rows fed to MM (the DB-truth `pair_totals` count is in `rpc_stats.fit.db_pairs`) |
 | `updated` | Number of coaster_ratings rows upserted |
 | `rpc_stats` | JSONB: per-RPC `{ ms, bytes, retries }` for `ranked_participants` / `first_place_counts`, plus the idle fingerprint (`rides_max_ts`, `ranked_count`) on success rows and the skip reason on `skipped` rows. Error rows carry partial timings. `fit` block on every full run: maintain/agg/step/rows ms + call counts, dirty `processed`/`remaining`/`oldest`, DB-truth `db_pairs`/`db_contributors`. |
 | `error_message` | Error text (failure only) |
@@ -364,9 +368,12 @@ ORDER BY score DESC LIMIT 10;
 |------|---------|
 | `packages/bt/src/mm.ts` | Bradley-Terry MM algorithm (pure TS) |
 | `packages/bt/src/mm.test.ts` | Algorithm unit tests |
-| `supabase/functions/recompute-rankings/index.ts` | Edge Function: auth, RPC calls, MM, persist, log, alert |
+| `supabase/functions/recompute-rankings/index.ts` | Edge Function: auth, idle skip, bounded maintenance/fit RPC loops, persist, log, alert |
 | `supabase/migrations/20260816183756_rankings_view.sql` | `coaster_ratings` table + `v_coaster_rankings` view |
-| `supabase/migrations/20260817170724_bt_recompute_pg_cron.sql` | RPCs, `recompute_rankings_cron()`, pg_cron schedule |
+| `supabase/migrations/20260913120000_pair_maintenance_schema.sql` | Dirty queue, per-user/global pair tables, dirty-mark triggers |
+| `supabase/migrations/20260913130000_pair_fit_functions.sql` | Pair maintenance, fit aggregation/iterations, reconciliation sweep |
+| `supabase/migrations/20260912190000_recompute_idle_skip_rpc_stats.sql` | Idle fingerprint/skip status and RPC telemetry |
+| `supabase/migrations/20260914120000_recompute_cadence_5min.sql` | 5-minute recompute cadence and stale/queue watchdog |
 | `supabase/migrations/20260910120000_bt_weighting_exponent.sql` | Evidence-scaled weighting: `pairwise_wins_custom()` + `pairwise_wins()` → (γ=0.5, c=28) |
 | `supabase/functions/compare-weightings/index.ts` | Admin-only, read-only weighting comparison (on-demand alternative-weighting refits) |
 | `supabase/migrations/20260829000422_cron_execution_logs.sql` | Execution logging table + RLS |
