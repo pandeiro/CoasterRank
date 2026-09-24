@@ -291,7 +291,22 @@ promotion (`docs/architecture/decisions/2026-09-incremental-ranking.md`) replace
   on the maintain loop (`MAINTAIN_MS_BUDGET`, recorded as
   `rpc_stats.fit.maintain_budget_hit`) so a future user larger than the
   statement budget degrades to a partial cross-slot drain instead of eating
-  the invocation.
+  the   invocation.
+- **Fit-stage statement budgets (2026-09-24 incident)** — `pair_fit_agg`
+  rebuilds the whole fit scratch in one statement (O(total pairs) every run);
+  at ~173k totals it needs 5-10s with run-to-run variance, but the PostgREST
+  path enforces ~8s per statement. Identical data failed twice at ~9.5s then
+  passed at 5.8s — boundary variance paging with no prior warning (`agg_ms`
+  had crept 4.6s → 5.8s over two days, untrended). Same PR-243 treatment:
+  function-level `SET statement_timeout = '60s'` on `pair_fit_agg` +
+  `pair_fit_step` (~6-10x measured need; any future `CREATE OR REPLACE` must
+  re-specify it, see migration `20260924024100`), a 120s wall-clock budget on
+  the step loop (`FIT_MS_BUDGET` — with 60s statements the halving ladder
+  could otherwise burn ~6 min before failing; the budget converts that to one
+  clean throw + Telegram), and a fit-slowness early warning in
+  `check_stale_recompute` (warns when a recent successful fit used over a
+  third of the 60s budget — lead time, not a page). Known next wall: a single
+  `fit_step` iteration is O(P) and halving bottoms at 1/call.
 
 ## 6. SPA routes
 
