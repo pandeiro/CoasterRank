@@ -2,7 +2,7 @@ name: tag-migrations
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 permissions:
   pull-requests: write
@@ -14,15 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch base branch
+        run: git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+
       - name: Check for new migrations
         id: check_migrations
         run: |
+          set -euo pipefail
           # Check if any files were added or modified in supabase/migrations/
           # compared to the base branch.
-          if git diff --name-only origin/${{ github.base_ref }} HEAD | grep -q '^supabase/migrations/.*\.sql$'; then
-            echo "has_migrations=true" >> $GITHUB_OUTPUT
+          changed_files="$(git diff --name-only "origin/${{ github.base_ref }}" HEAD -- 'supabase/migrations/*.sql')"
+          if [[ -n "$changed_files" ]]; then
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_migrations=false" >> $GITHUB_OUTPUT
+            echo "has_migrations=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Add migrations tag
