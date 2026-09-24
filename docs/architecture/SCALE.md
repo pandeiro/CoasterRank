@@ -20,7 +20,7 @@ flowchart TD
         SPA[SPA Board View]
     end
 
-    subgraph Supabase Postgres (Database Engine)
+    subgraph Supabase Postgres Database Engine
         TRG[Statement Trigger on user_rides]
         QUE[(pair_dirty_users Queue)]
         SWP[Hourly Reconciliation Sweep]
