@@ -146,8 +146,15 @@ const MAX_MAINTAIN_CALLS = 40
 const MAINTAIN_MS_BUDGET = 60000
 // MM iterations per fit_step call: adaptive-halved on statement timeouts.
 // 200 calls covers a cold board rebuild (80-160 iterations measured) with
-// headroom for halving.
+// headroom for halving. Per-call statements run under pair_fit_step's
+// function-level statement_timeout (60s — migration 20260924024100; a single
+// call needs ~8s at ~173k pairs, measured 2026-09-24). FIT_MS_BUDGET caps the
+// loop's total RPC time, checked between calls: with 60s statements the
+// halving ladder (25→…→1) could otherwise burn ~6 minutes before failing —
+// the budget converts that into one clean throw + Telegram instead of eating
+// the invocation (~3x the worst observed 42s fit).
 const MAX_STEP_CALLS = 200
+const FIT_MS_BUDGET = 120000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -472,7 +479,10 @@ Deno.serve(async (req) => {
     // O(R) rides scan) and MM-fits in-DB, warm-started and resumable. Every
     // maintain statement runs under pair_maintain_step's 60s function-level
     // statement_timeout (migration 20260922191500), and the loop additionally
-    // stops on MAINTAIN_MS_BUDGET.
+    // stops on MAINTAIN_MS_BUDGET. The fit stages run under their own 60s
+    // function-level budgets (pair_fit_agg + pair_fit_step — migration
+    // 20260924024100; incident 2026-09-24), with the step loop additionally
+    // stopping on FIT_MS_BUDGET.
     let maintainMs = 0
     let maintainBudgetHit = false
     let maintainCalls = 0
@@ -538,6 +548,12 @@ Deno.serve(async (req) => {
       // break again at the same size).
       let done = false
       while (!done && stepCalls < MAX_STEP_CALLS) {
+        if (stepMs >= FIT_MS_BUDGET) {
+          // Pathological fit (or halving ladder against 60s statements):
+          // fail closed on a bounded, legible error instead of eating the
+          // invocation. Next slots retry from the warm start.
+          throw new Error(`pair_fit_step: fit budget exceeded (${stepMs}ms over ${stepCalls} calls)`)
+        }
         const t = await timed(() =>
           rpcWithRetry<{ done: boolean }>(supabase, 'pair_fit_step', { p_max: stepPMax }),
         )
