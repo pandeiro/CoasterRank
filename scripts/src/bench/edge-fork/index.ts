@@ -4,6 +4,10 @@
 // payload — no pair rows cross the gateway). Deployed to the disposable
 // staging project only; never deployed to prod.
 //
+// NOTE (2026-09-23): The shadow/legacy modes in the production index.ts have
+// been retired. This fork (bench-only, staging-only) is kept for historical
+// reference only — see docs/architecture/decisions/2026-09-retire-shadow-legacy-modes.md.
+//
 // NOTE: rpc_stats keeps the 'pairwise_wins' key for the in-DB call so the
 // bench harness (which reads rpc_stats->'pairwise_wins') needs no branching.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'

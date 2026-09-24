@@ -205,26 +205,31 @@ source .env && curl -s -X POST \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 
-## Recompute cadence & BT fit mode (flip / rollback)
+## Recompute cadence & rollback
 
 - **Cadence**: pg_cron fires the recompute **every 5 minutes** (`*/5`, set in
   `20260914120000`; was `*/15` before the pair-promotion pipeline cut the
   per-run floor to ~4s). The `/api/ranking` edge TTL (300s) and the SPA's
   board staleTime mirror it — change all three together or staleness wins.
-- **Fit mode** (`BT_FIT_MODE` function secret): `indb` serves prod since
-  2026-09-14. Rollback ladder (each = one secrets set + redeploy, then the
-  next cron slot picks it up):
+- **Fit mode**: the `shadow` and `legacy` fit modes have been retired
+  (2026-09-23, PR #250). The Edge Function runs the in-DB pipeline only
+  (`pair_maintain_step` → `pair_fit_agg` → `pair_fit_step` → `pair_fit_rows`).
+  Setting `BT_FIT_MODE` in function secrets has no effect — the env var is no
+  longer read.
+- **Rollback procedure**: there is no secrets-flip rollback. If the in-DB
+  pipeline fails catastrophically after a deploy, roll back by reverting the
+  offending commit and redeploying via CI:
   ```bash
-  # instant rollback to the pre-promotion shape (JS fit, pair payload back)
-  source .env && supabase secrets set BT_FIT_MODE=legacy && \
-    supabase functions deploy recompute-rankings --no-verify-jwt
-  # or back to shadow (in-DB pipeline runs, JS still serves, parity logged)
-  #   ... and forward again:
-  source .env && supabase secrets set BT_FIT_MODE=indb && \
-    supabase functions deploy recompute-rankings --no-verify-jwt
+  # 1. Revert the commit on a local branch
+  git revert <sha>
+  # 2. Push to a PR and merge — CI deploys supabase functions automatically
+  #    on merge to main (path-filtered on supabase/** and packages/bt/**).
+  # 3. Confirm the next cron slot logs status='success' in cron_execution_logs.
   ```
-  `legacy` keeps draining the dirty queue by design — rollback does not age
-  the watchdog or strand re-marks.
+  The pipeline monitors immediately: Telegram alert within one failed slot
+  (~5 min), stale-board alert within 30 min (six dead slots). A failing run
+  does NOT corrupt data — it logs an error row and leaves `coaster_ratings`
+  untouched from the last success.
 - **Deploy trap (manual deploys only)**: the local Supabase CLI (< 2.116)
   ignores `verify_jwt = false` from `supabase/config.toml` — deploying
   without `--no-verify-jwt` turns the platform JWT gate back ON, and the

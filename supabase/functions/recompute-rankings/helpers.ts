@@ -6,8 +6,8 @@
 //   * backoffDelayMs      — exponential backoff base (caller adds jitter)
 //   * shouldSkipRecompute — idle-skip decision from fingerprints
 //   * estimatePayloadBytes — coarse payload-size instrumentation
-//   * parseFitMode / isStatementTimeoutMessage / computeParity — the
-//     in-DB fit pipeline (PROMOTION §4-§5)
+//   * isStatementTimeoutMessage — detects 57014 statement-timeout errors
+//   * drainPages          — page-by-page RPC drain (SCALE §9)
 
 // Structural slice of a PostgREST/supabase-js error; extra fields ignored.
 export type RpcErrorLike = {
@@ -117,27 +117,6 @@ export async function drainPages<T>(
   }
 }
 
-// ── In-DB fit pipeline (PROMOTION §4-§5) ────────────────────────────────
-
-// Which pipeline serves the board, via the BT_FIT_MODE function secret:
-//   legacy — today's shape: paged pairwise_wins over the gateway + JS MM fit.
-//   shadow — the in-DB fit (maintain batches + pair_totals + pair_fit_step)
-//            runs alongside, parity is logged per run, but the JS fit still
-//            SERVES the board. Default: the flip decision reads the soak.
-//   indb   — the in-DB fit serves; pair rows never cross the gateway
-//            (payload collapses to board-size; the memory wall disappears).
-export type FitMode = 'shadow' | 'indb' | 'legacy'
-
-export const DEFAULT_FIT_MODE: FitMode = 'shadow'
-
-// Unknown/unset values fall back to shadow: the served board never changes
-// by accident, and the misconfiguration shows up in rpc_stats.fit.mode.
-export function parseFitMode(value: string | null | undefined): FitMode {
-  const v = (value ?? '').trim().toLowerCase()
-  if (v === 'shadow' || v === 'indb' || v === 'legacy') return v
-  return DEFAULT_FIT_MODE
-}
-
 // Postgres statement timeouts (the ~8s platform per-statement default;
 // individual functions may raise it via a function-level SET) surface
 // through PostgREST as 57014 "canceling statement due to statement timeout".
@@ -145,47 +124,4 @@ export function parseFitMode(value: string | null | undefined): FitMode {
 // the pipeline responds by halving its batch size instead of retrying blind.
 export function isStatementTimeoutMessage(message: string): boolean {
   return /canceling statement due to statement timeout|statement timeout/i.test(message)
-}
-
-// Parity check between the served (JS) fit and the in-DB fit: max |Δ log
-// score| over coaster ids present in BOTH boards (log-space so a 1.03 vs
-// 1.04 wobble weighs the same as a 500 vs 503 move), plus board-membership
-// mismatches — which would mean the maintained pair totals diverged from the
-// live aggregation (a maintenance bug signature, not a fit bug).
-export type ScoreRowLike = { id: string; score: number }
-
-export type ParityResult = {
-  maxLogDelta: number
-  common: number
-  jsOnly: number
-  dbOnly: number
-}
-
-// Board disagreement is never acceptable; score deltas below this are float
-// noise from the two fixed-point solvers (the measured bench parity was
-// 5.6e-9 — three orders below).
-export const PARITY_DELTA_THRESHOLD = 1e-6
-
-export function computeParity(jsRows: ScoreRowLike[], dbRows: ScoreRowLike[]): ParityResult {
-  const js = new Map(jsRows.map((r) => [r.id, r.score]))
-  const db = new Map(dbRows.map((r) => [r.id, r.score]))
-  let maxLogDelta = 0
-  let common = 0
-  for (const [id, jsScore] of js) {
-    const dbScore = db.get(id)
-    if (dbScore === undefined) continue
-    common++
-    const delta = Math.abs(Math.log(jsScore) - Math.log(dbScore))
-    if (delta > maxLogDelta) maxLogDelta = delta
-  }
-  return {
-    maxLogDelta,
-    common,
-    jsOnly: jsRows.length - common,
-    dbOnly: dbRows.length - common,
-  }
-}
-
-export function parityOk(parity: ParityResult): boolean {
-  return parity.jsOnly === 0 && parity.dbOnly === 0 && parity.maxLogDelta < PARITY_DELTA_THRESHOLD
 }

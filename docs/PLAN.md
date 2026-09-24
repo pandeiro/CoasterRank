@@ -254,35 +254,31 @@ promotion (`docs/architecture/decisions/2026-09-incremental-ranking.md`) replace
   deltas over batch temp tables. The fit never re-scans `user_rides`.
 - **In-DB fit** — `pair_fit_agg` (O(P) rebuild + warm start from the
   previous board), `pair_fit_step` (resumable MM iterations),
-  `pair_fit_rows` (board-size payload). Parity with the TS reference is a
-  gate (`bench parity` on staging; per-run shadow parity in prod logs).
-- **Rollout** — `BT_FIT_MODE=shadow` (JS fit still serves; in-DB pipeline
-  runs + logs parity), then `indb` (payload collapses to board size) after a
-  clean soak; `legacy` rolls back. **Prod flipped to `indb` 2026-09-14**
-  after a clean soak (decision log same day); `shadow`/`legacy` remain one
-  `supabase secrets set` + redeploy away. Pair tables start empty; the
-  schema migration seeds the dirty queue so the first recompute backfills
-  cold.
-  **Failure policy (deliberate)**: shadow/legacy fail OPEN on in-DB pipeline
-  errors — the JS path still serves the board, `rpc_stats.fit.error` records
-  the failure, and the queue re-processes next slot (a shadow-only bug must
-  neither stall the board nor page oncall). `indb` fails closed (error row +
-  Telegram) because the in-DB fit IS the serving path. **`legacy` keeps
-  draining the dirty queue** (maintain loop only) — the trigger keeps
-  flagging during a rollback, and an undrained queue would age the watchdog
-  into false STUCK pages and leave a backlog on re-flip.
+  `pair_fit_rows` (board-size payload). Parity with the TS reference was
+  validated on staging bench and confirmed via per-run shadow parity during
+  the soak before `indb` was set as the only mode.
+- **Rollout** — `BT_FIT_MODE=shadow` (JS fit still served; in-DB pipeline
+  ran + logged parity), then `BT_FIT_MODE=indb` (payload collapsed to board
+  size) after a clean soak. **Prod flipped to `indb` 2026-09-14;
+  `shadow`/`legacy` modes retired 2026-09-23 (PR #250)** — see
+  `docs/architecture/decisions/2026-09-retire-shadow-legacy-modes.md`.
+  Pair tables start empty; the schema migration seeds the dirty queue so the
+  first recompute backfills cold.
+  **Failure policy**: `indb` fails closed (error row + Telegram) — the in-DB
+  fit is the serving path. A failing run leaves `coaster_ratings` untouched
+  from the last success. Rollback is a code revert + CI redeploy (no
+  secrets-flip path exists after PR #250).
 - **Idle-skip gate** — pg_cron slots skip only when the rides fingerprint is
   unchanged AND the dirty queue is empty (one head count). The backfill
   seed and the sweep's re-marks change neither fingerprint nor `user_rides`,
   so a fingerprint-only gate would starve the first cold backfill and strand
   re-marks until the next ride write (PR #213 review); a failed queue read
   fails open to a full run.
-- **Monitoring** — `rpc_stats.fit` (mode, per-phase ms, dirty counters, DB
-  truth), `rpc_stats.parity` (shadow), live queue state on `/admin/rankings`
-  (admin RLS), and queue-depth/oldest-entry alerts in
-  `check_stale_recompute`. The steady-state per-run floor is the warm 1-3
-  iteration fit + O(dirty) maintenance; idle slots with empty queues skip
-  exactly as before.
+- **Monitoring** — `rpc_stats.fit` (per-phase ms, dirty counters, DB truth),
+  live queue state on `/admin/rankings` (admin RLS), and
+  queue-depth/oldest-entry alerts in `check_stale_recompute`. The
+  steady-state per-run floor is the warm 1-3 iteration fit + O(dirty)
+  maintenance; idle slots with empty queues skip exactly as before.
 - **Per-user n² bound (2026-09-22 incident)** — a single 516-ride bulk import
   needs ~21s of statement time for first-time ingestion of ~133k pairs, but
   the PostgREST path enforces ~8s per statement. Adaptive batch-halving only

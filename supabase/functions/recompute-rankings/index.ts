@@ -2,20 +2,11 @@
 // user_rides and upserts them into coaster_ratings; the board's
 // v_coaster_rankings view reads the results live.
 //
-// Fit pipeline (PROMOTION spec: docs/architecture/decisions/2026-09-incremental-ranking.md) —
-// selected by the BT_FIT_MODE function secret, default 'shadow':
-//
-//   legacy — paged pairwise_wins over the gateway + JS MM fit (pre-promotion
-//            shape; rollback mode). Still drains the dirty queue (the
-//            trigger keeps flagging during rollback), skips the fit.
-//   shadow — the in-DB pipeline runs alongside (pair_maintain_step batches →
-//            pair_fit_agg → pair_fit_step loop → pair_fit_rows), parity vs
-//            the JS fit is logged per run, but the JS fit still SERVES the
-//            board. In-DB failures fail open (logged, JS keeps serving).
-//            The flip decision reads this soak.
-//   indb   — the in-DB fit serves; pair rows never cross the gateway
-//            (payload collapses to board-size; the edge-function memory
-//            wall disappears). In-DB failures fail closed (error + alert).
+// Fit pipeline: the in-DB pipeline (PROMOTION spec:
+// docs/architecture/decisions/2026-09-incremental-ranking.md) runs entirely
+// inside Postgres. pair_maintain_step batches maintain pair_totals from the
+// dirty-user queue; pair_fit_agg + pair_fit_step MM-fit in-DB; pair_fit_rows
+// returns a board-size payload. Pair rows never cross the gateway.
 //
 // Idle-skip gate: pg_cron runs skip only when BOTH the rides fingerprint is
 // unchanged AND the dirty queue is empty — the backfill seed and sweep
@@ -34,29 +25,22 @@
 // with `converged` added as a backward-compatible diagnostic).
 //
 // Observability: every execution is logged to cron_execution_logs
-// (rpc_stats carries per-RPC ms/bytes, the dirty-queue counters, the in-DB
-// fit timings and the shadow parity delta). On failure: Telegram alert via
-// CoasterRankAlerts bot. On #1 change: Telegram event via CoasterRankEvents
-// bot. Dispatch control: messages are prefixed with the APP_ENV function
-// secret ('prod' when unset). On non-prod clones/staging, simply do NOT set
-// the Telegram token secrets — the sends below no-op silently when they're
-// absent, so a staging function can never ping the prod channels.
+// (rpc_stats carries per-RPC ms/bytes, the dirty-queue counters, and the
+// in-DB fit timings). On failure: Telegram alert via CoasterRankAlerts bot.
+// On #1 change: Telegram event via CoasterRankEvents bot. Dispatch control:
+// messages are prefixed with the APP_ENV function secret ('prod' when unset).
+// On non-prod clones/staging, simply do NOT set the Telegram token secrets —
+// the sends below no-op silently when they're absent, so a staging function
+// can never ping the prod channels.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.112.3'
-// Pure-TS MM implementation shared with the Vitest suite; bundled at deploy.
-import { computeRankings, type Pair } from '../../../packages/bt/src/mm.ts'
 // Pure retry/skip/instrumentation helpers (unit-tested in helpers_test.ts).
 import {
   backoffDelayMs,
-  computeParity,
   drainPages,
   estimatePayloadBytes,
   isRetryableRpcError,
   isStatementTimeoutMessage,
-  parseFitMode,
-  parityOk,
   shouldSkipRecompute,
-  type FitMode,
-  type ParityResult,
   type RidesFingerprint,
 } from './helpers.ts'
 
@@ -73,7 +57,6 @@ function json(body: unknown, status: number): Response {
   })
 }
 
-type PairRow = { winner: string; loser: string; weight: number; wins: number }
 type ParticipantRow = { coaster_id: string; participants: number }
 type FirstPlaceRow = { coaster_id: string; first_place_votes: number }
 type FingerprintRow = { rides_max_ts: string | null; ranked_count: number | string }
@@ -104,11 +87,10 @@ type RecomputeResult = {
 // Per-RPC coarse instrumentation, stored as cron_execution_logs.rpc_stats:
 // wall-clock ms around each aggregate call + payload size (JSON length) +
 // retries consumed. Shared shape for success, error (partial), and skip rows
-// (which carry the idle fingerprint instead of timings). The fit/dirty/parity
-// blocks are present whenever the in-DB pipeline ran (shadow + indb modes).
+// (which carry the idle fingerprint instead of timings). The fit/dirty block
+// is present on every full run since the in-DB pipeline shipped.
 type RpcTiming = { ms: number; bytes: number; retries: number }
 type FitStats = {
-  mode: FitMode
   maintain_ms: number
   maintain_calls: number
   maintain_batch_final: number
@@ -126,19 +108,8 @@ type FitStats = {
   dirty_processed: number
   dirty_remaining: number
   dirty_oldest: string | null
-  /** Present on fail-open shadow/legacy runs whose in-DB pipeline threw. */
-  error?: string
-}
-type ParityStats = {
-  max_log_delta: number
-  js_pairs: number
-  db_pairs: number
-  board_match: boolean
-  js_only: number
-  db_only: number
 }
 type RpcStats = {
-  pairwise_wins?: RpcTiming
   ranked_participants?: RpcTiming
   first_place_counts?: RpcTiming
   rides_max_ts?: string | null
@@ -146,7 +117,6 @@ type RpcStats = {
   skipped?: boolean
   skip_reason?: string
   fit?: FitStats
-  parity?: ParityStats
 }
 
 const UPSERT_CHUNK = 500
@@ -387,10 +357,6 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   })
 
-  // Which pipeline serves the board (helpers.parseFitMode defaults unknown
-  // to 'shadow' — the served board never changes by accident).
-  const fitMode = parseFitMode(Deno.env.get('BT_FIT_MODE'))
-
   const auth = req.headers.get('Authorization') ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
 
@@ -502,22 +468,11 @@ Deno.serve(async (req) => {
     // pair_maintain_step claims + processes bounded dirty-user batches
     // (adaptive halving on statement timeouts) until the queue drains or the
     // per-run call budget is exhausted (a deeper queue drains across cron
-    // slots — the watchdog watches for that). Runs in EVERY mode: legacy
-    // rollback must keep draining the queue, or the trigger keeps flagging
-    // while nothing processes it — the queue ages, the watchdog false-pages
-    // through the whole rollback window, and a re-flip starts on a backlog.
-    // shadow + indb then aggregate pair_totals (no O(R) rides scan) and
-    // MM-fit in-DB, warm-started and resumable. Every maintain statement
-    // runs under pair_maintain_step's 60s function-level statement_timeout
-    // (migration 20260922191500), and the loop additionally stops on
-    // MAINTAIN_MS_BUDGET.
-    //
-    // Failure policy (deliberate): in shadow/legacy the JS fit serves the
-    // board, so an in-DB failure fails OPEN — record rpc_stats.fit.error and
-    // keep serving (a shadow-only bug must neither stall the board nor page
-    // oncall; the soak surfaces it). In indb the in-DB fit IS the serving
-    // path — fail closed (error row + Telegram), same as any serving
-    // failure.
+    // slots — the watchdog watches for that). Then aggregates pair_totals (no
+    // O(R) rides scan) and MM-fits in-DB, warm-started and resumable. Every
+    // maintain statement runs under pair_maintain_step's 60s function-level
+    // statement_timeout (migration 20260922191500), and the loop additionally
+    // stops on MAINTAIN_MS_BUDGET.
     let maintainMs = 0
     let maintainBudgetHit = false
     let maintainCalls = 0
@@ -536,10 +491,8 @@ Deno.serve(async (req) => {
     let fitted: FittedRow[] = []
     let dbIterations = 0
     let dbConverged = true
-    let fitError: string | null = null
 
-    try {
-      for (let call = 0; call < MAX_MAINTAIN_CALLS; call++) {
+    for (let call = 0; call < MAX_MAINTAIN_CALLS; call++) {
         if (maintainMs >= MAINTAIN_MS_BUDGET) {
           // A future giant-list user outgrew even the raised statement
           // budget — stop claiming and let the remainder drain next slots
@@ -572,102 +525,64 @@ Deno.serve(async (req) => {
         if (dirtyRemaining === 0) break
       }
 
-      if (fitMode !== 'legacy') {
-        const aggT = await timed(() => rpcWithRetry<AggRow>(supabase, 'pair_fit_agg'))
-        aggMs = aggT.ms
-        if (aggT.value.error) throw new Error(`pair_fit_agg: ${aggT.value.error.message}`)
-        inDbRetries = Math.max(inDbRetries, aggT.value.retriesUsed)
-        dbPairs = Number(aggT.value.data?.[0]?.pairs ?? 0)
-        dbContributors = Number(aggT.value.data?.[0]?.contributors ?? 0)
+    {
+      const aggT = await timed(() => rpcWithRetry<AggRow>(supabase, 'pair_fit_agg'))
+      aggMs = aggT.ms
+      if (aggT.value.error) throw new Error(`pair_fit_agg: ${aggT.value.error.message}`)
+      inDbRetries = Math.max(inDbRetries, aggT.value.retriesUsed)
+      dbPairs = Number(aggT.value.data?.[0]?.pairs ?? 0)
+      dbContributors = Number(aggT.value.data?.[0]?.contributors ?? 0)
 
-        // Warm-started MM, resumable across calls; halve p_max on statement
-        // timeouts rather than retrying blind (a step that broke once will
-        // break again at the same size).
-        let done = false
-        while (!done && stepCalls < MAX_STEP_CALLS) {
-          const t = await timed(() =>
-            rpcWithRetry<{ done: boolean }>(supabase, 'pair_fit_step', { p_max: stepPMax }),
-          )
-          stepMs += t.ms
-          stepCalls++
-          if (t.value.error) {
-            if (isStatementTimeoutMessage(t.value.error.message) && stepPMax > 1) {
-              stepPMax = Math.max(1, Math.floor(stepPMax / 2))
-              continue
-            }
-            throw new Error(`pair_fit_step: ${t.value.error.message}`)
+      // Warm-started MM, resumable across calls; halve p_max on statement
+      // timeouts rather than retrying blind (a step that broke once will
+      // break again at the same size).
+      let done = false
+      while (!done && stepCalls < MAX_STEP_CALLS) {
+        const t = await timed(() =>
+          rpcWithRetry<{ done: boolean }>(supabase, 'pair_fit_step', { p_max: stepPMax }),
+        )
+        stepMs += t.ms
+        stepCalls++
+        if (t.value.error) {
+          if (isStatementTimeoutMessage(t.value.error.message) && stepPMax > 1) {
+            stepPMax = Math.max(1, Math.floor(stepPMax / 2))
+            continue
           }
-          inDbRetries = Math.max(inDbRetries, t.value.retriesUsed)
-          done = t.value.data?.[0]?.done === true
+          throw new Error(`pair_fit_step: ${t.value.error.message}`)
         }
-
-        const rowsT = await timed(() => rpcWithRetry<FittedRow>(supabase, 'pair_fit_rows'))
-        rowsMs = rowsT.ms
-        if (rowsT.value.error) throw new Error(`pair_fit_rows: ${rowsT.value.error.message}`)
-        inDbRetries = Math.max(inDbRetries, rowsT.value.retriesUsed)
-        fitted = (rowsT.value.data ?? []) as FittedRow[]
-        dbIterations = fitted[0]?.iterations ?? 0
-        dbConverged = fitted[0]?.converged ?? true
+        inDbRetries = Math.max(inDbRetries, t.value.retriesUsed)
+        done = t.value.data?.[0]?.done === true
       }
-    } catch (err) {
-      if (fitMode === 'indb') throw err
-      // Fail open: the JS path below still serves the board; the queue
-      // state is left as-is (remaining users re-process next slot).
-      fitError = err instanceof Error ? err.message : 'in-DB pipeline failed'
+
+      const rowsT = await timed(() => rpcWithRetry<FittedRow>(supabase, 'pair_fit_rows'))
+      rowsMs = rowsT.ms
+      if (rowsT.value.error) throw new Error(`pair_fit_rows: ${rowsT.value.error.message}`)
+      inDbRetries = Math.max(inDbRetries, rowsT.value.retriesUsed)
+      fitted = (rowsT.value.data ?? []) as FittedRow[]
+      dbIterations = fitted[0]?.iterations ?? 0
+      dbConverged = fitted[0]?.converged ?? true
     }
 
     // ── Aggregates + served fit ──────────────────────────────────────────
-    // shadow/legacy: pairs cross the gateway (drained page-by-page — SCALE
-    // §9) and the JS MM fit serves the board. indb: the fitted board comes
-    // from pair_fit_rows (board-size payload) and only the two sibling
-    // aggregates remain paged.
-    let jsPairs: PairRow[] = []
-    let pairsTiming: RpcTiming | undefined
-    if (fitMode !== 'indb') {
-      const pairsT = await timed(() => rpcPagedWithRetry<PairRow>(supabase, 'pairwise_wins'))
-      if (pairsT.value.error) throw new Error(`pairwise_wins: ${pairsT.value.error.message}`)
-      jsPairs = (pairsT.value.data ?? []) as PairRow[]
-      pairsTiming = {
-        ms: pairsT.ms,
-        bytes: estimatePayloadBytes(jsPairs),
-        retries: pairsT.value.retriesUsed,
-      }
-      retriesUsed = Math.max(retriesUsed, pairsT.value.retriesUsed)
-    }
-
+    // The two sibling aggregates (participants, first-place votes) are still
+    // paged — PostgREST caps every response at platform max-rows (SCALE §9).
     const [participantsT, firstPlaceT] = await Promise.all([
       timed(() => rpcPagedWithRetry<ParticipantRow>(supabase, 'ranked_participants')),
       timed(() => rpcPagedWithRetry<FirstPlaceRow>(supabase, 'first_place_counts')),
     ])
     const participantsRes = participantsT.value
     const firstPlaceRes = firstPlaceT.value
-    if (pairsTiming) {
-      rpcStats = {
-        pairwise_wins: pairsTiming,
-        ranked_participants: {
-          ms: participantsT.ms,
-          bytes: estimatePayloadBytes(participantsRes.data),
-          retries: participantsRes.retriesUsed,
-        },
-        first_place_counts: {
-          ms: firstPlaceT.ms,
-          bytes: estimatePayloadBytes(firstPlaceRes.data),
-          retries: firstPlaceRes.retriesUsed,
-        },
-      }
-    } else {
-      rpcStats = {
-        ranked_participants: {
-          ms: participantsT.ms,
-          bytes: estimatePayloadBytes(participantsRes.data),
-          retries: participantsRes.retriesUsed,
-        },
-        first_place_counts: {
-          ms: firstPlaceT.ms,
-          bytes: estimatePayloadBytes(firstPlaceRes.data),
-          retries: firstPlaceRes.retriesUsed,
-        },
-      }
+    rpcStats = {
+      ranked_participants: {
+        ms: participantsT.ms,
+        bytes: estimatePayloadBytes(participantsRes.data),
+        retries: participantsRes.retriesUsed,
+      },
+      first_place_counts: {
+        ms: firstPlaceT.ms,
+        bytes: estimatePayloadBytes(firstPlaceRes.data),
+        retries: firstPlaceRes.retriesUsed,
+      },
     }
     if (participantsRes.error) {
       throw new Error(`ranked_participants: ${participantsRes.error.message}`)
@@ -692,47 +607,19 @@ Deno.serve(async (req) => {
       ]),
     )
 
-    // The served fit: indb serves the in-DB board; shadow/legacy fit in JS
-    // from the live aggregation. Shadow additionally records the parity
-    // between the two boards — drift here is a maintenance bug signature
-    // (maintained pair_totals vs live pairwise_wins), so the soak can gate
-    // the flip.
-    let boardRows: { coasterId: string; score: number; comparisons: number; wins: number }[]
-    let iterations: number
-    let converged: boolean
-    let parity: ParityResult | undefined
-    if (fitMode === 'indb') {
-      boardRows = fitted.map((r) => ({
-        coasterId: r.coaster_id,
-        score: r.score,
-        comparisons: r.comparisons,
-        wins: r.wins,
-      }))
-      iterations = dbIterations
-      converged = dbConverged
-    } else {
-      const fit = computeRankings(
-        jsPairs.map((r): Pair => {
-          return { winner: r.winner, loser: r.loser, weight: r.weight, wins: r.wins }
-        }),
-      )
-      boardRows = fit.rows
-      iterations = fit.iterations
-      converged = fit.converged
-      if (fitMode === 'shadow') {
-        parity = computeParity(
-          fit.rows.map((r) => ({ id: r.coasterId, score: r.score })),
-          fitted.map((r) => ({ id: r.coaster_id, score: r.score })),
-        )
-      }
-    }
+    // Board rows come from pair_fit_rows (in-DB fit).
+    const boardRows = fitted.map((r) => ({
+      coasterId: r.coaster_id,
+      score: r.score,
+      comparisons: r.comparisons,
+      wins: r.wins,
+    }))
+    const iterations = dbIterations
+    const converged = dbConverged
 
-    // Fit telemetry: every mode runs the maintain drain now, so the block
-    // is emitted unconditionally (legacy rows show maintain-only stats;
-    // fitError marks a fail-open shadow/legacy in-DB failure).
+    // Fit telemetry: emitted on every full run.
     {
       const fitStats: FitStats = {
-        mode: fitMode,
         maintain_ms: maintainMs,
         maintain_calls: maintainCalls,
         maintain_batch_final: maintainBatch,
@@ -749,19 +636,8 @@ Deno.serve(async (req) => {
         dirty_processed: dirtyProcessed,
         dirty_remaining: dirtyRemaining,
         dirty_oldest: dirtyOldest,
-        ...(fitError ? { error: fitError } : {}),
       }
       rpcStats = { ...rpcStats, fit: fitStats }
-      if (parity) {
-        rpcStats.parity = {
-          max_log_delta: parity.maxLogDelta,
-          js_pairs: jsPairs.length,
-          db_pairs: dbPairs,
-          board_match: parityOk(parity),
-          js_only: parity.jsOnly,
-          db_only: parity.dbOnly,
-        }
-      }
     }
 
     // Nothing ranked yet (or everything got un-ranked): clear stale ratings so
@@ -928,11 +804,6 @@ Deno.serve(async (req) => {
       await sendNumberOneEvent(newName, prevName)
     }
 
-    // `pairs` = the pair truth the served fit consumed: the drained
-    // pairwise_wins rows in shadow/legacy, the maintained pair_totals count
-    // in indb (board-size payload — the DB truth lives in rpc_stats.fit).
-    const pairsCount = fitMode === 'indb' ? dbPairs : jsPairs.length
-
     await logExecution(supabase, {
       status: 'success',
       duration_ms: durationMs,
@@ -940,7 +811,7 @@ Deno.serve(async (req) => {
       retries_used: retriesUsed,
       iterations,
       converged,
-      pairs: pairsCount,
+      pairs: dbPairs,
       updated: upserts.length,
       rpc_stats: {
         ...rpcStats,
