@@ -88,7 +88,9 @@ jobs:
           set -euo pipefail
           pg_prove -U postgres --dbname postgres \
             supabase/tests/rls/*.test.sql \
-            supabase/tests/pairs/*.test.sql
+            supabase/tests/pairs/*.test.sql \
+            supabase/tests/rpc/*.test.sql \
+            supabase/tests/auth/*.test.sql
           echo "DB_TESTS_END=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Report job timing
