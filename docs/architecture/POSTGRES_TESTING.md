@@ -10,7 +10,7 @@ Blocking per-PR database tests: full migration preflight + pgTAP suites against 
 2. **Platform shim** as `supabase_admin` (`supabase/tests/setup/00_platform_shim.sql`) — test-only compat, never shipped (see below).
 3. **Crash probe** (`supabase/postgres#2377`): revoked-`EXECUTE` call as `authenticated` must raise a clean `42501` with the server still up, or the job fails.
 4. **Migration preflight**: all `supabase/migrations/*.sql` applied in order as `postgres` with `ON_ERROR_STOP=1` — any failure fails the job.
-5. **pgTAP**: `pg_prove` as `postgres` over the `rls/`, `pairs/`, `rpc/`, and `auth/` suites (67 tests, <1s).
+5. **pgTAP**: `pg_prove` as `postgres` over the `rls/`, `pairs/`, `rpc/`, and `auth/` suites (71 tests, <1s).
 
 The job holds no production credentials; every connection targets the ephemeral localhost container.
 
@@ -21,7 +21,7 @@ supabase/tests/
 ├── setup/00_platform_shim.sql                  # supabase_admin, once per DB. Excluded from pg_prove glob.
 ├── rls/user_rides_rls.test.sql                 # P0 smoke (7): owner allow, cross-user deny, email gate, anon filter
 ├── pairs/pair_delta_deletion.test.sql          # P0 characterization (7): profile-delete delta invariant
-├── rpc/materialize_guest_rides.test.sql        # P1 (18): gapless merge, PGRD1 stale, validation, holding pen
+├── rpc/materialize_guest_rides.test.sql        # P1 (22): gapless merge, PGRD1 stale, validation, holding pen, discard telemetry
 ├── rpc/submission_payload_valid.test.sql       # P1 (24): accept/reject matrix + CHECK binding
 └── auth/handle_new_user.test.sql               # P1 (11): NULL fallback + downstream validity
 ```

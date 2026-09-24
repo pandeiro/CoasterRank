@@ -13,7 +13,7 @@
 
 BEGIN;
 
-SELECT plan(18);
+SELECT plan(22);
 
 -- Fixtures ------------------------------------------------------------------
 INSERT INTO auth.users (id, email, email_confirmed_at, raw_user_meta_data)
@@ -195,6 +195,42 @@ SELECT is(
      AND coaster_id = 'e0000000-0000-4000-8000-000000000004'),
   NULL,
   'holding-pen row not in the payload stays unranked'
+);
+
+-- Merge-discard telemetry -------------------------------------------------------
+SELECT set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', true);
+
+SELECT lives_ok(
+  $$ SELECT public.log_guest_merge_decision('merge_discard') $$,
+  'merge_discard decision records without error'
+);
+
+RESET ROLE;
+
+SELECT results_eq(
+  $$ SELECT kind, ride_count FROM public.guest_promotions
+     WHERE user_id = '44444444-4444-4444-4444-444444444444' AND kind = 'merge_discard' $$,
+  $$ VALUES ('merge_discard'::text, 0) $$,
+  'discard telemetry row exists with zero ride count'
+);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', true);
+
+SELECT throws_ok(
+  $$ SELECT public.log_guest_merge_decision('materialize') $$,
+  'P0001',
+  'log_guest_merge_decision only records merge_discard',
+  'other kinds are rejected'
+);
+
+SELECT set_config('request.jwt.claim.sub', NULL, true);
+
+SELECT throws_ok(
+  $$ SELECT public.log_guest_merge_decision('merge_discard') $$,
+  '42501',
+  'Not authenticated',
+  'discard without a JWT subject is denied'
 );
 
 SELECT * FROM finish();
