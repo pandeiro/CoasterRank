@@ -100,7 +100,7 @@ that bought that headroom: **dirty-batched incremental maintenance** and
 re-aggregation or per-pair write triggers is out of scope for exactly the
 reasons the promotion spec gives.
 
-## Recommendation 1: make the fit scratch tables temporary (easy, ~26 MB)
+## Recommendation 1: make the fit scratch table UNLOGGED (easy, saves churn — not footprint)
 
 `pair_fit_opp` is `TRUNCATE`d and rebuilt as a 2× mirror of `pair_totals` on
 every recompute (`pair_fit_agg()` in
@@ -108,35 +108,86 @@ every recompute (`pair_fit_agg()` in
 working memory persisted to disk: 26 MB of the 134 MB pair footprint, plus
 WAL and bloat churn from the every-5-minute truncate/insert cycle.
 
-Change: build the opponent structure as a **temp table inside the fit**
-(`ON COMMIT DROP`, same `temp_buffers = '16MB'` treatment the maintenance
-function already uses) instead of a persistent truncated table — or
-`UNLOGGED` at minimum. Keep `pair_fit_scores` persistent (765 rows; it
-carries the warm-start scores, which are the reason the steady state
-converges in 1–3 iterations).
+An earlier draft of this spike proposed a session-temp table
+(`ON COMMIT DROP`). That is **incorrect, not merely risky** — verified
+against the call path in `supabase/functions/recompute-rankings/index.ts`:
+`pair_fit_agg()` runs as one `supabase.rpc()` call and each `pair_fit_step()`
+iteration batch as further, separate `supabase.rpc()` calls (maintain loop,
+agg, step loop, rows fetch are all distinct PostgREST requests). Each RPC is
+its own transaction at minimum, so an `ON COMMIT DROP` temp created by the
+agg call is gone before the first step call runs. Worse, the failure would
+be silent rather than loud: the agg call truncates the persistent table
+first, so after the temp vanishes the steps would read back the persistent
+table — now empty (or stale) — and fit on it. Empty scores take the
+`boardRows.length === 0` path, which deletes all `coaster_ratings` and logs
+`success`; non-empty-but-wrong opponent data converges to a corrupt board,
+also logged as success. The persistent truncated table exists precisely
+because fit state must survive across RPC calls; only the temp tables
+*inside* `pair_maintain_step()`/`pair_fit_agg()` are safe, because each is
+created and consumed within a single call.
 
-- Saves ~26 MB persistent footprint (~8% of remaining free space) and the
-  associated WAL/bloat churn.
-- Correctness risk ~zero: the table is already rebuilt unconditionally
-  before every fit; nothing reads it across runs.
+Corrected change: `ALTER TABLE public.pair_fit_opp SET UNLOGGED` (same for
+`pair_fit_scores` if desired — it is 3.5 MB and carries the warm-start
+scores, which are the reason the steady state converges in 1–3 iterations,
+so it must stay persistent). UNLOGGED removes the WAL traffic from the
+every-5-minute rebuild and the associated bloat pressure, at the cost of the
+table not surviving a crash — acceptable for scratch that is rebuilt
+unconditionally before every fit.
+
+- Saves WAL/bloat churn, **not** the 26 MB footprint (UNLOGGED tables still
+  count toward `pg_database_size()`).
+- Correctness risk low but nonzero: crash between agg and steps now loses
+  the scratch (next slot rebuilds it; the run itself would fail loudly on
+  missing rows, not silently — unlike the temp variant).
 - Verify with the existing `db-tests` pgTAP suite (migration preflight +
   pair suites in `supabase/tests/`) plus a manual before/after board
-  comparison on a staging project.
+  comparison on a staging project, including a mid-fit restart if feasible.
 
-## Recommendation 2: store one weight scalar per user, not one per pair (easy, ~5–10% of `user_pairs`)
+## Recommendation 2: store one weight scalar per user, not one per pair (easy, ~3% of `user_pairs`)
 
 The `weight` on every `user_pairs` row is a function of list length only
 (`power((N(N-1)/2)+28, -0.5)` in `pair_maintain_step()`). Verified on prod:
 every account, including the largest, has exactly **1 distinct weight** —
 the same 8-byte float is stored 132,870 times for the biggest account.
 
+Measured basis for the saving (prod, 271,809 rows): heap 39,698,432 bytes
+(~146 B/row), PK index 34,480,128 bytes (~127 B/row), `pg_column_size`
+confirms the float is exactly 8 bytes in an 80-byte tuple. Dropping the
+column saves 8 heap bytes per row and nothing in the index (the PK is
+`(user_id, winner, loser)`, weight is not in it): ~2.1 MB, i.e. **~3% of
+the table's 71 MB total (~5.5% of heap)**. An earlier draft of this spike
+said 5–10% of the table — that was heap-only math applied to the wrong
+basis. Small in absolute terms; the argument for doing it is that the
+column is pure redundancy and the win compounds as the table grows.
+
 Change: store the scalar once per user (e.g. on `pair_user_state`) and join
 it in during maintenance and fit aggregation; drop the column from
-`user_pairs`. Narrower heap rows and a smaller PK, for identical fitted
+`user_pairs`. Narrower heap rows, unchanged PK, for identical fitted
 scores — the values joined back are bit-for-bit the same inputs.
 
-- Saves roughly one float per pair row (~5–10% of `user_pairs`, growing
-  with scale since the column is pure redundancy).
+Two things checked before calling this safe:
+
+1. **Savings basis** — corrected above: ~3% total, not 5–10%. Not a
+   runway-mover on its own; do it as hygiene alongside other work, not as
+   the headline fix.
+2. **Delta-application complexity vs the statement budgets** — the concern
+   is real enough to price. `pair_maintain_step()` runs under a 60s
+   function-level `statement_timeout` (migration `20260922191500`; a single
+   516-ride account needs ~21s for first-time ingestion of ~133k pairs,
+   measured 2026-09-22), and the Edge Function loop adds a 60s
+   `MAINTAIN_MS_BUDGET` across calls. With the scalar, `_old_pairs` needs a
+   join to the per-user scalar store and `_new_pairs` needs the scalar
+   joined in before the signed-delta `GROUP BY (winner, loser)` — but the
+   join is against a ≤25-row per-batch scalar set (one row per claimed
+   user), while the statement's cost is dominated by the O(N²) rides
+   self-join and the `pair_totals` delta upsert, both unchanged, as is the
+   `(winner, loser)` ordering that avoids deadlocks. Expected overhead:
+   negligible. Still, "expected" is doing work in that sentence given the
+   recent timeout history (fit side needed the same 60s treatment in
+   migration `20260924024100` after the 2026-09-24 incident) — so this must
+   be measured in the bench harness at the 500-ride shape before shipping,
+   not assumed.
+
 - Touches `pair_maintain_step()` (slice build + delta math) and
   `pair_fit_agg()` (winner-side aggregate); the MM iteration itself is
   untouched.
