@@ -5,18 +5,45 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- First-pass SEO: crawlers that never run JS (and the pre-hydration
+         render for everyone else) only ever see this static head — the
+         client Helmet tags and the worker's bot prerender supply the rest
+         after boot. og:url / og:image / canonical need an absolute origin
+         that isn't known at build time (forks deploy under their own
+         domains), so they are deliberately left to the runtime layers
+         rather than hard-coded here. -->
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#FEFCF3" />
     <meta
       name="description"
       content="Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
     />
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="CoasterRank" />
+    <meta
+      property="og:title"
+      content="CoasterRank — A live ranking of the world’s roller coasters"
+    />
+    <meta
+      property="og:description"
+      content="Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="CoasterRank — A live ranking of the world’s roller coasters"
+    />
+    <meta
+      name="twitter:description"
+      content="Rank the coasters you've ridden and get your own shareable ranking page. Live community board computed with a Bradley-Terry model."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Racing+Sans+One&display=swap"
       rel="stylesheet"
     />
-    <title>CoasterRank</title>
+    <title>CoasterRank — A live ranking of the world’s roller coasters</title>
     <!-- UI-mode pre-paint: apply `.dark` + the dark tab icon before first
          paint so themed visitors never flash the light canvas. Mirrors
          resolveIsDark()/syncFavicon() in src/lib/settings.ts
