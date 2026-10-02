@@ -5,7 +5,9 @@ main = "src/worker.ts"
 # reach the worker's OG-prerender branch (crawlers don't run JS; the bare SPA
 # shell unfurls without a preview image). Humans on "/" also invoke the
 # worker but fall through to the same static assets — one extra hop, no
-# behavior change. "/riders/*" and "/@*" cover the rider share pages (the /@
+# behavior change. "/about" and "/faq" are the same pattern for the static
+# search-engine prerenders (crawlers get full copy without JS; humans fall
+# through to the SPA). "/riders/*" and "/@*" cover the rider share pages (the /@
 # vanity alias prerenders with og:url canonicalized to /riders/*). "/%40*" is
 # the belt-and-suspenders twin: if Cloudflare matches globs against the raw
 # encoded path, a crawler on a chat-app-encoded /%40username share URL would
@@ -13,7 +15,7 @@ main = "src/worker.ts"
 # routes crawlers (and humans) to the worker's sitemap handler — without it
 # the SPA fallback would answer with index.html. All other
 # static paths still serve directly from the edge.
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml"] }
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/about", "/faq", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml"] }
 
 # NOTE: resvg-wasm ships as a precompiled module via wrangler's DEFAULT
 # CompiledWasm rule (**/*.wasm — do NOT add a custom [[rules]] entry; it

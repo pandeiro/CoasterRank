@@ -6,6 +6,8 @@ import worker, {
   handleSitemapRequest,
   isSocialCrawler,
   escapeHtml,
+  renderAboutHtml,
+  renderFaqHtml,
   renderHomeHtml,
   renderSitemap,
   homeMeta,
@@ -1004,7 +1006,7 @@ describe('worker: home top 10', () => {
     vi.unstubAllGlobals()
   })
 
-  it('falls back to the static card when the edge cache is empty', async () => {
+  it('falls back to a Supabase top-10 read when the edge cache is empty', async () => {
     const env = makeEnv()
     makeCacheStub()
     stubRankingUpstream()
@@ -1013,9 +1015,147 @@ describe('worker: home top 10', () => {
       env,
     )
     const html = await response.text()
+    expect(html).toContain('Topping the board right now')
+    expect(html).toContain('Steel Vengeance')
+    expect(html).toContain('"@type":"ItemList"')
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('falls back to the static card when Supabase also fails', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    stubRankingUpstream(500)
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      env,
+    )
+    const html = await response.text()
     expect(html).not.toContain('Topping the board right now')
     expect(html).toContain('property="og:type" content="website"')
     vi.unstubAllGlobals()
+  })
+
+  it('falls back to the static card when env vars are missing', async () => {
+    const env = makeEnv()
+    env.SUPABASE_URL = undefined
+    env.SUPABASE_ANON_KEY = undefined
+    makeCacheStub()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/', { headers: { 'user-agent': 'Twitterbot/1.0' } }),
+      env,
+    )
+    const html = await response.text()
+    expect(html).not.toContain('Topping the board right now')
+    expect(html).toContain('property="og:type" content="website"')
+    vi.unstubAllGlobals()
+  })
+})
+
+describe('worker: about/faq prerender', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders about meta + copy matching the SPA page', () => {
+    const html = renderAboutHtml('https://coasterrank.test')
+    expect(html).toContain('<title>About — CoasterRank</title>')
+    expect(html).toContain(
+      'how the live Bradley-Terry ranking works, and our commitments: always free, no ads, open source and open data.',
+    )
+    expect(html).toContain('rel="canonical" href="https://coasterrank.test/about"')
+    expect(html).toContain('property="og:url" content="https://coasterrank.test/about"')
+    expect(html).toContain('name="twitter:card" content="summary"')
+    expect(html).toContain('"@type":"Organization"')
+    expect(html).toContain('free, open-source leaderboard')
+    expect(html).toContain('Bradley-Terry')
+    expect(html).toContain('https://github.com/pandeiro/CoasterRank')
+    expect(html).toContain('https://coasterrank.test/faq')
+    expect(html).toContain('https://coasterrank.test/privacy')
+    expect(html).toContain('https://coasterrank.test/submit')
+    expect(html).toContain('https://aceonline.org/')
+    expect(html).toContain('https://votecoasters.com/')
+  })
+
+  it('renders every FAQ question with FAQPage JSON-LD', () => {
+    const html = renderFaqHtml('https://coasterrank.test')
+    expect(html).toContain('<title>FAQ — CoasterRank</title>')
+    expect(html).toContain('rel="canonical" href="https://coasterrank.test/faq"')
+    expect(html).toContain('property="og:url" content="https://coasterrank.test/faq"')
+    expect(html).toContain('"@type":"FAQPage"')
+    for (const q of [
+      'Why head-to-head instead of star ratings?',
+      'How do I add my rankings?',
+      'What do the scores mean?',
+      'Why is my favorite coaster ranked low?',
+      'A coaster is missing — or the data is wrong.',
+      'How often do the rankings update?',
+      'Can I use the rankings or data in my own project?',
+      'Who runs this?',
+    ]) {
+      expect(html, q).toContain(q)
+    }
+    expect(html).toContain('Bradley-Terry strength scores')
+  })
+
+  it('serves the prerender to search crawlers, the SPA shell to humans', async () => {
+    const cases = [
+      { path: '/about', title: '<title>About — CoasterRank</title>' },
+      { path: '/faq', title: '<title>FAQ — CoasterRank</title>' },
+    ] as const
+    for (const { path, title } of cases) {
+      const env = makeEnv()
+      const bot = await worker.fetch(
+        new Request(`https://coasterrank.test${path}`, {
+          headers: {
+            'user-agent':
+              'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          },
+        }),
+        env,
+      )
+      const html = await bot.text()
+      expect(html, path).toContain(title)
+      expect(bot.headers.get('Content-Type'), path).toContain('text/html')
+      expect(bot.headers.get('Cache-Control'), path).toContain('max-age=3600')
+      expect(bot.headers.get('Strict-Transport-Security'), path).toBeTruthy()
+      expect(env.ASSETS.fetch, path).not.toHaveBeenCalled()
+
+      const human = await worker.fetch(
+        new Request(`https://coasterrank.test${path}`, {
+          headers: { 'user-agent': 'Mozilla/5.0 Safari' },
+        }),
+        env,
+      )
+      expect(await human.text(), path).toBe('spa-shell')
+    }
+  })
+
+  it('serves the prerender to bingbot too', async () => {
+    const env = makeEnv()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/about', {
+        headers: {
+          'user-agent': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+        },
+      }),
+      env,
+    )
+    expect(await response.text()).toContain('<title>About — CoasterRank</title>')
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+  })
+
+  it('serves the prerender with a trailing slash', async () => {
+    const env = makeEnv()
+    const response = await worker.fetch(
+      new Request('https://coasterrank.test/faq/', {
+        headers: {
+          'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        },
+      }),
+      env,
+    )
+    expect(await response.text()).toContain('<title>FAQ — CoasterRank</title>')
   })
 })
 

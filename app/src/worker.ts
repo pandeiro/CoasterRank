@@ -24,8 +24,15 @@
  *  - `/` + social-crawler User-Agent → static prerendered OG HTML for the
  *    homepage unfurl: the shell only carries og:site_name, so shares of the
  *    base URL would otherwise unfurl with no preview image. Content is
- *    static (no Supabase dependency) and URLs are computed from the request
- *    origin, so forks stay zero-config. Humans fall through to assets.
+ *    mostly static (the live top 10 prefers the edge-cached /api/ranking
+ *    payload, falling back to a direct Supabase top-10 read on a cache miss)
+ *    and URLs are computed from the request origin, so forks stay zero-config.
+ *    Humans fall through to assets.
+ *  - `/about` + `/faq` + search/social-crawler User-Agent → static
+ *    prerendered HTML mirroring the SPA pages (same titles, descriptions,
+ *    copy, and links — no cloaking: bots see what humans see, just without
+ *    needing JS). Humans fall through to assets. These need no Supabase
+ *    access, so they serve even with env unconfigured.
  *  - Everything else → static assets directly (no Worker cost).
  *
  * Data comes from the same public PostgREST surfaces the SPA uses (anon key;
@@ -442,6 +449,186 @@ export function renderHomeHtml(origin: string, top: HomeTopCoaster[] = []): stri
 </html>`
 }
 
+// /about + /faq — search-engine prerenders ----------------------------------
+// The SPA shell carries none of these pages' content without JS, so crawlers
+// (especially non-Google ones with weak JS rendering) index thin shells.
+// These static builders mirror the React pages' titles, meta descriptions,
+// copy, and links one-to-one — bots see exactly what humans see, pre-JS.
+// Keep them in sync with app/src/pages/AboutPage.tsx and FaqPage.tsx when
+// that copy changes (titles/descriptions/JSON-LD must match the Helmet tags).
+
+export function aboutMeta(origin: string) {
+  return {
+    title: 'About — CoasterRank',
+    description:
+      'What CoasterRank is, how the live Bradley-Terry ranking works, and our commitments: always free, no ads, open source and open data.',
+    url: `${origin}/about`,
+  }
+}
+
+export function renderAboutHtml(origin: string): string {
+  const { title, description, url } = aboutMeta(origin)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'CoasterRank',
+    url: `${origin}/`,
+    logo: `${origin}/logo.svg`,
+    sameAs: ['https://github.com/pandeiro/CoasterRank'],
+  }
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(url)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+<style>${CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div>
+      <p class="eyebrow">About</p>
+      <h1>CoasterRank</h1>
+      <p class="meta">CoasterRank is a free, open-source leaderboard for roller coasters, built from the rankings of the people who ride them.</p>
+    </div>
+  </div>
+  <h2 class="section">Our purpose</h2>
+  <p class="meta">Our goal is to turn the community's collective experience into a useful, shared resource: a place to discover coasters, compare favorites, and contribute your own perspective throughout the year.</p>
+  <p class="meta">Rank the coasters you've ridden from best to worst, share your personal list, and help shape the public leaderboard. You can browse the community rankings without an account, and riders with a handful of coasters are as welcome as lifelong enthusiasts.</p>
+  <h2 class="section">How the ranking works</h2>
+  <p class="meta">Your ordered list provides a set of head-to-head preferences: each coaster is preferred to every coaster below it. These comparisons let us combine different riders' lists without asking everyone to agree on a rating scale.</p>
+  <p class="meta"><a href="https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model">Bradley-Terry</a> (BT) is the statistical model we use to turn those comparisons into a strength score for each coaster. It estimates how consistently a coaster is preferred to others, taking into account the strength of the coasters it is compared with.</p>
+  <p class="meta">Longer lists contain many more comparisons, so we weight each rider's contribution to balance that effect. The board is recalculated regularly as riders update their lists. Scores are shown on an index where 100 is the community average — anything above it was preferred more often.</p>
+  <h2 class="section">Our commitments</h2>
+  <p class="meta">Free access. Browsing the leaderboard and creating your own rankings are free. There are no ads or paid ranking placements.</p>
+  <p class="meta">An open method. We publish the ranking code and explain how contributions are weighted, so anyone can examine the method, question the results, or propose improvements.</p>
+  <p class="meta">Respect for your information. We do not sell your personal information. Your rankings and contributions are public; our <a href="${escapeHtml(`${origin}/privacy`)}">privacy policy</a> explains what we collect, how it is used, and your options for managing it.</p>
+  <p class="meta">A shared resource. The application code is MIT-licensed, the seed catalog is public-domain data, and community contributions are licensed under CC BY 4.0.</p>
+  <h2 class="section">Contribute</h2>
+  <p class="meta">CoasterRank is <a href="https://github.com/pandeiro/CoasterRank">open source on GitHub</a>. Code contributions, bug reports, and feedback on the ranking method are welcome. You can also help directly through the app: <a href="${escapeHtml(`${origin}/submit`)}">submit a missing coaster</a> or rank the coasters you've ridden.</p>
+  <h2 class="section">Origins</h2>
+  <p class="meta">CoasterRank grew out of an appreciation for the enthusiast community, including <a href="https://aceonline.org/">ACE</a> and ranking projects such as <a href="https://votecoasters.com/">VoteCoasters</a>. In that spirit, CoasterRank is a year-round ranking that riders can contribute to whenever they choose. The project is maintained by CoasterRank Contributors.</p>
+  <footer>
+    <a class="cta" href="${escapeHtml(`${origin}/faq`)}">More questions? Read the FAQ</a>
+    <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
+  </footer>
+</div>
+</body>
+</html>`
+}
+
+// Plain-text Q&A mirrors of FaqPage.tsx QUESTIONS (links flattened) — the
+// page keeps JSX + text side by side so they can't drift; update both here
+// and there together.
+const FAQ_ITEMS: Array<{ q: string; text: string }> = [
+  {
+    q: 'Why head-to-head instead of star ratings?',
+    text: "Star averages are easy to inflate, and everyone rates on a different scale — one rider's 8 is another's 10. Head-to-head results only ask which rode higher, so they compare cleanly across thousands of riders with different tastes and different strictness.",
+  },
+  {
+    q: 'How do I add my rankings?',
+    text: "Create an account, add the coasters you've ridden, then drag them into your own best-to-worst order. Everything saves as you go, and your list feeds the board automatically. You don't need hundreds of credits — rank whatever you've actually ridden, even if it's five.",
+  },
+  {
+    q: 'What do the scores mean?',
+    text: "They're Bradley-Terry strength scores on an index where 100 is the community average: a coaster at 112 rode higher than average more often, one at 93 rode lower. See the About page's How the ranking works section for the plain-English version.",
+  },
+  {
+    q: 'Why is my favorite coaster ranked low?',
+    text: 'The board reflects every rider, not any single list — disagreement is the point. Coasters with a few-votes badge have especially provisional scores, so the kindest thing you can do for an underrated gem is keep ranking it.',
+  },
+  {
+    q: 'A coaster is missing — or the data is wrong.',
+    text: 'Missing coasters can be submitted via the Submit page. Spotted an error on a coaster — a wrong stat, park, or manufacturer? Use the See something wrong? Suggest an edit link on that coaster’s page. For anything else, open an issue on GitHub or email coaster.rank.app@gmail.com.',
+  },
+  {
+    q: 'How often do the rankings update?',
+    text: 'The board is recalculated on a regular schedule as riders update their lists, with some caching to handle surges, so your changes generally show up within minutes.',
+  },
+  {
+    q: 'Can I use the rankings or data in my own project?',
+    text: 'Yes. The code is MIT-licensed on GitHub, and community-contributed data is CC BY 4.0 — attribute CoasterRank and go ride with it.',
+  },
+  {
+    q: 'Who runs this?',
+    text: 'CoasterRank is maintained by CoasterRank Contributors as a free, open-source project. There are no ads and we do not sell personal information. Contributions of code, data corrections, rankings, and feedback are all welcome.',
+  },
+]
+
+export function faqMeta(origin: string) {
+  return {
+    title: 'FAQ — CoasterRank',
+    description:
+      'How CoasterRank works: head-to-head rankings, Bradley-Terry scores, adding your list, missing coasters, reusing the data, and who runs it.',
+    url: `${origin}/faq`,
+  }
+}
+
+export function renderFaqHtml(origin: string): string {
+  const { title, description, url } = faqMeta(origin)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_ITEMS.map(({ q, text }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text },
+    })),
+  }
+  const items = FAQ_ITEMS.map(
+    ({ q, text }) =>
+      `<h2 class="section">${escapeHtml(q)}</h2>\n  <p class="meta">${escapeHtml(text)}</p>`,
+  ).join('\n  ')
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(url)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+<style>${CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div>
+      <p class="eyebrow">FAQ</p>
+      <h1>FAQ</h1>
+      <p class="meta">${escapeHtml(description)}</p>
+    </div>
+  </div>
+  ${items}
+  <footer>
+    <a class="cta" href="${escapeHtml(`${origin}/about`)}">How the ranking works</a>
+    <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
+  </footer>
+</div>
+</body>
+</html>`
+}
+
 async function fetchRiderPageFromSupabase(
   username: string,
   supabaseUrl: string,
@@ -726,30 +913,75 @@ export async function handleRankingRequest(request: Request, env: Env): Promise<
 }
 
 // Homepage prerender's live top 10 — read from the edge-cached /api/ranking
-// payload (same entry the board endpoint fills), never from Supabase. A cache
-// miss or any parse failure degrades to the static card: crawlers still get
-// full OG meta, just without the list. Humans never touch this path (bot-UA
-// branch only), so board pageloads are unaffected.
-async function readCachedTopCoasters(origin: string): Promise<HomeTopCoaster[]> {
+// payload (same entry the board endpoint fills) first; on an edge-cache miss
+// (the common case in a crawler's colo) fall back to a direct Supabase read
+// of the top 10, so search crawlers rarely index the list-less static card.
+// Any failure still degrades to the static card: crawlers get full OG meta,
+// just without the list. Humans never touch this path (bot-UA branch only),
+// so board pageloads are unaffected.
+async function readCachedTopCoasters(origin: string, env: Env): Promise<HomeTopCoaster[]> {
   try {
     const cache = getEdgeCache()
-    if (!cache) return []
-    const hit = await cache.match(rankingCacheKey(`${origin}/api/ranking`))
-    if (!hit) return []
-    const payload = (await hit.json()) as {
-      rankings?: Array<{ name?: unknown; slug?: unknown; park_name?: unknown }>
+    if (cache) {
+      const hit = await cache.match(rankingCacheKey(`${origin}/api/ranking`))
+      if (hit) {
+        const payload = (await hit.json()) as {
+          rankings?: Array<{ name?: unknown; slug?: unknown; park_name?: unknown }>
+        }
+        if (payload && Array.isArray(payload.rankings)) {
+          const top = toHomeTopCoasters(payload.rankings)
+          if (top.length > 0) return top
+        }
+      }
     }
-    if (!payload || !Array.isArray(payload.rankings)) return []
-    return payload.rankings.slice(0, 10).flatMap((row) => {
-      if (typeof row.name !== 'string' || typeof row.slug !== 'string') return []
-      return [
-        {
-          name: row.name,
-          slug: row.slug,
-          park_name: typeof row.park_name === 'string' ? row.park_name : null,
+  } catch {
+    // Fall through to the Supabase read below.
+  }
+  return fetchTopCoastersFromSupabase(env)
+}
+
+function toHomeTopCoasters(
+  rankings: Array<{ name?: unknown; slug?: unknown; park_name?: unknown }>,
+): HomeTopCoaster[] {
+  return rankings.slice(0, 10).flatMap((row) => {
+    if (typeof row.name !== 'string' || typeof row.slug !== 'string') return []
+    return [
+      {
+        name: row.name,
+        slug: row.slug,
+        park_name: typeof row.park_name === 'string' ? row.park_name : null,
+      },
+    ]
+  })
+}
+
+// Direct top-10 read for the crawler homepage prerender (edge-cache-miss
+// path only — a couple of bot hits per hour at most, never the human board
+// traffic). Best-effort: every failure resolves to [] (static card).
+async function fetchTopCoastersFromSupabase(env: Env): Promise<HomeTopCoaster[]> {
+  try {
+    const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+    const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseKey) return []
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/v_coaster_rankings?select=name,slug,park_name&order=score.desc.nullslast&limit=10`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Accept: 'application/json',
         },
-      ]
-    })
+        signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+      },
+    )
+    if (!res.ok) return []
+    const rows = (await res.json()) as Array<{
+      name?: unknown
+      slug?: unknown
+      park_name?: unknown
+    }>
+    if (!Array.isArray(rows)) return []
+    return toHomeTopCoasters(rows)
   } catch {
     return []
   }
@@ -977,7 +1209,7 @@ export default {
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {
       return withSecurityHeaders(
-        new Response(renderHomeHtml(url.origin, await readCachedTopCoasters(url.origin)), {
+        new Response(renderHomeHtml(url.origin, await readCachedTopCoasters(url.origin, env)), {
           status: 200,
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
@@ -990,6 +1222,28 @@ export default {
     }
 
     const rider = resolveRiderPath(url.pathname)
+
+    // Static informational pages — any search/social crawler gets the
+    // prerendered copy (content parity with the SPA, no Supabase needed);
+    // humans fall through to the SPA. Requires the wrangler
+    // run_worker_first entries (the static-asset SPA fallback would
+    // otherwise answer with index.html).
+    if (!rider && isSocialCrawler(request.headers.get('user-agent'))) {
+      if (pathname === '/about' || pathname === '/faq') {
+        const html = pathname === '/about' ? renderAboutHtml(url.origin) : renderFaqHtml(url.origin)
+        return withSecurityHeaders(
+          new Response(html, {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              // Static copy — cached an hour, so edits after a deploy
+              // propagate without a manual cache purge.
+              'Cache-Control': 'public, max-age=3600',
+            },
+          }),
+        )
+      }
+    }
 
     if (!rider || !isSocialCrawler(request.headers.get('user-agent'))) {
       return withSecurityHeaders(await env.ASSETS.fetch(request))
