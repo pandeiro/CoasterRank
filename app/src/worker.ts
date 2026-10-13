@@ -33,6 +33,13 @@
  *    copy, and links — no cloaking: bots see what humans see, just without
  *    needing JS). Humans fall through to assets. These need no Supabase
  *    access, so they serve even with env unconfigured.
+ *  - `/coasters/:slug` + `/parks/:slug` → trailing-slash 301s and the
+ *    `kennywood-park` rename 301 (any UA); search/social crawlers get a live
+ *    prerender (copy + canonical + JSON-LD mirroring the detail pages),
+ *    unknown slugs a real 404 + noindex. Supabase failures and missing env
+ *    degrade to the SPA shell, never a false 404. Humans fall through to
+ *    assets.
+ *  - `/about/` + `/faq/` (any UA) → 301 to the canonical slash-less form.
  *  - Everything else → static assets directly (no Worker cost).
  *
  * Data comes from the same public PostgREST surfaces the SPA uses (anon key;
@@ -44,7 +51,7 @@
  * VITE_-prefixed names already configured in the Cloudflare dashboard.
  */
 
-import type { RankingBoardPayload } from './lib/board-types'
+import type { Park, RankingBoardPayload, RankingRow } from './lib/board-types'
 import {
   fetchAvatarDataUri,
   ogImageUrl,
@@ -630,6 +637,438 @@ export function renderFaqHtml(origin: string): string {
 </html>`
 }
 
+// /coasters/:slug + /parks/:slug — search-engine prerenders ------------------
+// Every detail URL served the byte-identical SPA shell without JS, so
+// Google's first-pass index saw ~1,800 duplicate pages with no canonical
+// ("Duplicate without user-selected canonical", Oct 2026). Bots now get
+// server-rendered copy + canonical + JSON-LD mirroring the React pages'
+// Helmet tags one-to-one (titles, descriptions, entities) — same content
+// humans see, just without needing JS. Keep in sync with
+// CoasterDetailPage.tsx (buildMetaDescription/buildJsonLd) and
+// ParkDetailPage.tsx when that copy changes.
+
+const COASTER_PATH_RE = /^\/coasters\/([A-Za-z0-9-]+)\/?$/
+const PARK_PATH_RE = /^\/parks\/([A-Za-z0-9-]+)\/?$/
+
+// Renamed slugs redirect permanently (any UA — humans on the old URL deserve
+// the new page too, not the SPA's "not found" state). Unknown slugs 404 for
+// bots; humans keep the SPA shell (whose not-found branch carries a client
+// noindex — see the detail pages).
+const RENAMED_PARK_SLUGS: Record<string, string> = {
+  // Park renamed after launch; the old slug still circulates in GSC + links.
+  'kennywood-park': 'kennywood',
+}
+
+export type WorkerParkCoaster = {
+  name: string
+  slug: string
+  rank: number | null
+  score: number | null
+}
+
+export type WorkerParkDetail = {
+  park: Park
+  coasters: WorkerParkCoaster[]
+}
+
+// Mirrors lib/coasters.ts (worker-safe copies — the worker bundle can't
+// import client modules; keep these byte-identical in behavior).
+function workerCapitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
+}
+
+function workerFormatScore(score: number): string {
+  return (score * 100).toFixed(1)
+}
+
+function workerLineageNames(
+  row: Pick<RankingRow, 'manufacturer_names' | 'manufacturer_name'>,
+): string[] {
+  if (row.manufacturer_names && row.manufacturer_names.length > 0) {
+    return row.manufacturer_names.filter((n): n is string => Boolean(n))
+  }
+  return row.manufacturer_name ? [row.manufacturer_name] : []
+}
+
+// Mirrors buildMetaDescription in CoasterDetailPage.tsx.
+export function coasterMeta(coaster: RankingRow, origin: string) {
+  const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
+  const title = coaster.park_name
+    ? `${coaster.name} at ${coaster.park_name} — CoasterRank`
+    : `${coaster.name} — CoasterRank`
+  const parkBit = coaster.park_name ? ` at ${coaster.park_name}` : ''
+  const locationBit = location ? ` (${location})` : ''
+  const standingBit =
+    coaster.rank !== null && coaster.score !== null && coaster.comparisons !== null
+      ? ` — ranked #${coaster.rank} on CoasterRank with a ${workerFormatScore(coaster.score)} community score across ${coaster.comparisons} comparisons.`
+      : ' — not yet ranked on CoasterRank.'
+  const statBits = [
+    coaster.height_m !== null ? `${coaster.height_m} m tall` : null,
+    coaster.speed_kmh !== null ? `${coaster.speed_kmh} km/h` : null,
+    coaster.length_m !== null ? `${coaster.length_m} m long` : null,
+    coaster.inversions !== null
+      ? `${coaster.inversions} inversion${coaster.inversions === 1 ? '' : 's'}`
+      : null,
+  ].filter(Boolean)
+  const statsBit = statBits.length > 0 ? ` ${statBits.join(' · ')}.` : ''
+  return {
+    title,
+    description: `${coaster.name}${parkBit}${locationBit}${standingBit}${statsBit}`,
+    url: `${origin}/coasters/${coaster.slug}`,
+  }
+}
+
+// Mirrors buildJsonLd in CoasterDetailPage.tsx.
+export function coasterJsonLd(coaster: RankingRow, pageUrl: string, metaDescription: string) {
+  const specs: Array<{ '@type': 'PropertyValue'; name: string; value: string }> = []
+  const trackLabel = coaster.model ?? coaster.type
+  if (trackLabel) specs.push({ '@type': 'PropertyValue', name: 'track', value: trackLabel })
+  specs.push({
+    '@type': 'PropertyValue',
+    name: 'material',
+    value: workerCapitalize(coaster.material),
+  })
+  specs.push({ '@type': 'PropertyValue', name: 'status', value: workerCapitalize(coaster.status) })
+  if (coaster.height_m !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'height', value: `${coaster.height_m} m` })
+  if (coaster.speed_kmh !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'speed', value: `${coaster.speed_kmh} km/h` })
+  if (coaster.length_m !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'length', value: `${coaster.length_m} m` })
+  if (coaster.inversions !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'inversions',
+      value: String(coaster.inversions),
+    })
+  if (coaster.rank !== null)
+    specs.push({ '@type': 'PropertyValue', name: 'communityRank', value: String(coaster.rank) })
+  if (coaster.score !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'communityScore',
+      value: workerFormatScore(coaster.score),
+    })
+  if (coaster.comparisons !== null)
+    specs.push({
+      '@type': 'PropertyValue',
+      name: 'comparisons',
+      value: String(coaster.comparisons),
+    })
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'RollerCoaster',
+    name: coaster.name,
+    description: metaDescription,
+    url: pageUrl,
+    ...(coaster.park_name
+      ? {
+          containedInPlace: {
+            '@type': 'AmusementPark',
+            name: coaster.park_name,
+            ...(coaster.park_city || coaster.park_country
+              ? {
+                  address: {
+                    '@type': 'PostalAddress',
+                    ...(coaster.park_city ? { addressLocality: coaster.park_city } : {}),
+                    ...(coaster.park_country ? { addressCountry: coaster.park_country } : {}),
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(coaster.opening_date ? { openingDate: coaster.opening_date } : {}),
+    ...(workerLineageNames(coaster).length > 0
+      ? {
+          manufacturer: workerLineageNames(coaster).map((name) => ({
+            '@type': 'Organization',
+            name,
+          })),
+        }
+      : {}),
+    additionalProperty: specs,
+  }
+}
+
+export function renderCoasterHtml(coaster: RankingRow, origin: string): string {
+  const { title, description, url } = coasterMeta(coaster, origin)
+  const jsonLd = coasterJsonLd(coaster, url, description)
+  const location = [coaster.park_city, coaster.park_country].filter(Boolean).join(', ')
+  const lineage = workerLineageNames(coaster)
+  const standing =
+    coaster.rank !== null && coaster.score !== null && coaster.comparisons !== null
+      ? `Ranked #${coaster.rank} on the community board with a ${workerFormatScore(coaster.score)} score across ${coaster.comparisons} comparisons.`
+      : 'Not yet ranked on the community board.'
+  const trackLabel = coaster.model ?? coaster.type
+  const statBits = [
+    coaster.height_m !== null ? `Height ${coaster.height_m} m` : null,
+    coaster.speed_kmh !== null ? `Speed ${coaster.speed_kmh} km/h` : null,
+    coaster.length_m !== null ? `Length ${coaster.length_m} m` : null,
+    coaster.inversions !== null ? `Inversions ${coaster.inversions}` : null,
+    trackLabel ? `Track ${trackLabel}` : null,
+    `Material ${workerCapitalize(coaster.material)}`,
+    `Status ${workerCapitalize(coaster.status)}`,
+  ].filter((s): s is string => s !== null)
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(url)}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+<style>${CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div>
+      <p class="eyebrow">${coaster.park_name ? `<a href="${escapeHtml(`${origin}/parks/${coaster.park_slug}`)}">${escapeHtml(coaster.park_name)}</a>${location ? ` · ${escapeHtml(location)}` : ''}` : 'Coaster'}</p>
+      <h1>${escapeHtml(coaster.name)}</h1>
+      <p class="meta">${escapeHtml(standing)}</p>
+    </div>
+  </div>
+  <h2 class="section">Details</h2>
+  <p class="meta">${statBits.map(escapeHtml).join(' · ')}</p>
+  ${lineage.length > 0 ? `<p class="meta">Built by ${escapeHtml(lineage.join(' · '))}.</p>` : ''}
+  ${coaster.aliases && coaster.aliases.length > 0 ? `<p class="meta">Also known as: ${escapeHtml(coaster.aliases.join(' · '))}.</p>` : ''}
+  <footer>
+    <a class="cta" href="${escapeHtml(url)}">See the live ranking</a>
+    <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
+  </footer>
+</div>
+</body>
+</html>`
+}
+
+// Mirrors the title/description/JSON-LD in ParkDetailPage.tsx.
+export function parkMeta(park: Park, coasters: WorkerParkCoaster[], origin: string) {
+  const location = [park.city, park.region, park.country].filter(Boolean).join(' · ')
+  const title = `${park.name} — CoasterRank`
+  const topCoaster = coasters.find((c) => c.rank !== null)
+  const description =
+    topCoaster && topCoaster.rank !== null
+      ? `${park.name}${location ? ` (${location})` : ''} — ${coasters.length} coaster${coasters.length === 1 ? '' : 's'} ranked by the CoasterRank community. Top: ${topCoaster.name} (#${topCoaster.rank} on the board).`
+      : `${park.name}${location ? ` (${location})` : ''} — ${coasters.length} coaster${coasters.length === 1 ? '' : 's'} on CoasterRank. Rank the ones you've ridden.`
+  return { title, description, url: `${origin}/parks/${park.slug}` }
+}
+
+export function renderParkHtml(detail: WorkerParkDetail, origin: string): string {
+  const { park, coasters } = detail
+  const { title, description, url } = parkMeta(park, coasters, origin)
+  const location = [park.city, park.region, park.country].filter(Boolean).join(' · ')
+  const topCoaster = coasters.find((c) => c.rank !== null)
+  const listItems = coasters
+    .slice(0, 10)
+    .map(
+      (c) => `<li>
+        <span class="rank">${c.rank ?? '–'}</span>
+        <span><a class="name" href="${escapeHtml(`${origin}/coasters/${c.slug}`)}">${escapeHtml(c.name)}</a></span>
+      </li>`,
+    )
+    .join('\n')
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'AmusementPark',
+    name: park.name,
+    url,
+    ...(location
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...(park.city ? { addressLocality: park.city } : {}),
+            ...(park.region ? { addressRegion: park.region } : {}),
+            ...(park.country ? { addressCountry: park.country } : {}),
+          },
+        }
+      : {}),
+    ...(coasters.length > 0
+      ? {
+          containsPlace: coasters.slice(0, 10).map((c) => ({
+            '@type': 'RollerCoaster',
+            name: c.name,
+            url: `${origin}/coasters/${c.slug}`,
+          })),
+        }
+      : {}),
+  }
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(url)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+<style>${CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div>
+      <p class="eyebrow">Park</p>
+      <h1>${escapeHtml(park.name)}</h1>
+      <p class="meta">${location ? `${escapeHtml(location)} · ` : ''}${coasters.length} coaster${coasters.length === 1 ? '' : 's'}</p>
+      ${topCoaster && topCoaster.rank !== null ? `<p class="meta">Top coaster here: <a href="${escapeHtml(`${origin}/coasters/${topCoaster.slug}`)}">${escapeHtml(topCoaster.name)}</a> — #${topCoaster.rank} on the board.</p>` : ''}
+    </div>
+  </div>
+  ${listItems ? `<h2 class="section">Coasters at ${escapeHtml(park.name)}</h2><ol>${listItems}</ol>` : '<p class="meta">No coasters from this park on the board yet.</p>'}
+  <footer>
+    <a class="cta" href="${escapeHtml(url)}">See the park ranking</a>
+    <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
+  </footer>
+</div>
+</body>
+</html>`
+}
+
+// Unknown detail slug for bots: a real 404 (status + noindex, no canonical)
+// so dead URLs leave the index instead of clustering as duplicates or
+// soft-404s. Humans keep the SPA shell (client noindex on its not-found
+// branch) — a branded in-app message beats a bare edge 404.
+export function renderDetailNotFoundHtml(origin: string, kind: 'coaster' | 'park'): string {
+  const title =
+    kind === 'coaster' ? 'Coaster not found — CoasterRank' : 'Park not found — CoasterRank'
+  const message =
+    kind === 'coaster'
+      ? "This coaster doesn't exist on CoasterRank."
+      : "This park doesn't exist on CoasterRank."
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta name="robots" content="noindex">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:site_name" content="CoasterRank">
+<meta property="og:url" content="${escapeHtml(origin)}">
+<meta name="twitter:card" content="summary">
+</head>
+<body style="margin:0;background:#FEFCF3;color:#1A1A2E;font-family:Inter,system-ui,sans-serif">
+<p style="max-width:44rem;margin:20vh auto 0;padding:0 1.25rem;color:#4A4A5A">
+  ${escapeHtml(message)}
+  <a href="${escapeHtml(origin)}" style="color:#1A1A2E">Back to CoasterRank</a>
+</p>
+</body>
+</html>`
+}
+
+export function resolveDetailPath(
+  rawPathname: string,
+): { kind: 'coaster' | 'park'; slug: string; slashed: boolean } | null {
+  const coaster = COASTER_PATH_RE.exec(rawPathname)
+  if (coaster) return { kind: 'coaster', slug: coaster[1], slashed: rawPathname.endsWith('/') }
+  const park = PARK_PATH_RE.exec(rawPathname)
+  if (park) return { kind: 'park', slug: park[1], slashed: rawPathname.endsWith('/') }
+  return null
+}
+
+function supabaseGetHeaders(supabaseKey: string): Record<string, string> {
+  return {
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+    Accept: 'application/json',
+  }
+}
+
+// NULL = slug unknown (→ 404 for bots); throws = infra failure (→ SPA shell,
+// never a false 404). A found-but-malformed row also throws: serving the
+// shell is safer than 404ing a real page.
+async function fetchCoasterBySlug(
+  slug: string,
+  supabaseUrl: string,
+  supabaseKey: string,
+): Promise<RankingRow | null> {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/v_coaster_rankings?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`,
+    {
+      headers: supabaseGetHeaders(supabaseKey),
+      signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+    },
+  )
+  if (!res.ok) throw new Error(`coaster lookup failed: ${res.status}`)
+  const rows = (await res.json()) as Array<Partial<RankingRow>>
+  const row = rows[0]
+  if (!row) return null
+  if (typeof row.name !== 'string' || typeof row.slug !== 'string') {
+    throw new Error('coaster lookup returned a malformed row')
+  }
+  return row as RankingRow
+}
+
+async function fetchParkWithCoasters(
+  slug: string,
+  supabaseUrl: string,
+  supabaseKey: string,
+): Promise<WorkerParkDetail | null> {
+  const parkRes = await fetch(
+    `${supabaseUrl}/rest/v1/parks?select=id,name,slug,country,region,city&slug=eq.${encodeURIComponent(slug)}&limit=1`,
+    {
+      headers: supabaseGetHeaders(supabaseKey),
+      signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+    },
+  )
+  if (!parkRes.ok) throw new Error(`park lookup failed: ${parkRes.status}`)
+  const parks = (await parkRes.json()) as Array<Partial<Park>>
+  const park = parks[0]
+  if (!park) return null
+  if (
+    typeof park.id !== 'string' ||
+    typeof park.name !== 'string' ||
+    typeof park.slug !== 'string'
+  ) {
+    throw new Error('park lookup returned a malformed row')
+  }
+  const coastersRes = await fetch(
+    `${supabaseUrl}/rest/v1/v_coaster_rankings?select=name,slug,rank,score&park_id=eq.${encodeURIComponent(park.id)}&order=rank.asc.nullslast&limit=100`,
+    {
+      headers: supabaseGetHeaders(supabaseKey),
+      signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+    },
+  )
+  if (!coastersRes.ok) throw new Error(`park coasters lookup failed: ${coastersRes.status}`)
+  const rows = (await coastersRes.json()) as Array<{
+    name?: unknown
+    slug?: unknown
+    rank?: unknown
+    score?: unknown
+  }>
+  if (!Array.isArray(rows)) throw new Error('park coasters lookup returned non-array')
+  const coasters: WorkerParkCoaster[] = rows.flatMap((row) => {
+    if (typeof row.name !== 'string' || typeof row.slug !== 'string') return []
+    return [
+      {
+        name: row.name,
+        slug: row.slug,
+        rank: typeof row.rank === 'number' ? row.rank : null,
+        score: typeof row.score === 'number' ? row.score : null,
+      },
+    ]
+  })
+  return { park: park as Park, coasters }
+}
+
 async function fetchRiderPageFromSupabase(
   username: string,
   supabaseUrl: string,
@@ -1086,6 +1525,7 @@ export function renderSitemap(origin: string, coasterSlugs: string[], parkSlugs:
     `  <url><loc>${escapeHtml(`${origin}/`)}</loc><lastmod>${today}</lastmod></url>`,
     `  <url><loc>${escapeHtml(`${origin}/about`)}</loc><lastmod>${today}</lastmod></url>`,
     `  <url><loc>${escapeHtml(`${origin}/faq`)}</loc><lastmod>${today}</lastmod></url>`,
+    `  <url><loc>${escapeHtml(`${origin}/countries`)}</loc><lastmod>${today}</lastmod></url>`,
     ...coasterSlugs.map(
       (slug) => `  <url><loc>${escapeHtml(`${origin}/coasters/${slug}`)}</loc></url>`,
     ),
@@ -1182,6 +1622,89 @@ export async function handleSitemapRequest(requestUrl: string, env: Env): Promis
   )
 }
 
+// Permanent redirect to a same-origin canonical path (query string
+// preserved, fragment dropped). Long browser cache: renames and slash
+// forms are stable.
+function redirectToPath(requestUrl: string, path: string): Response {
+  const target = new URL(requestUrl)
+  target.pathname = path
+  target.hash = ''
+  return withSecurityHeaders(
+    new Response(null, {
+      status: 301,
+      headers: { Location: target.toString(), 'Cache-Control': 'public, max-age=86400' },
+    }),
+  )
+}
+
+// Bot prerender for a detail page: live copy + canonical (200), a real 404 +
+// noindex for unknown slugs, SPA-shell fallback when env is unconfigured or
+// Supabase fails (never a false 404 from an infra blip).
+async function handleDetailRequest(
+  request: Request,
+  kind: 'coaster' | 'park',
+  slug: string,
+  env: Env,
+): Promise<Response> {
+  const url = new URL(request.url)
+  const supabaseUrl = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+  const supabaseKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return withSecurityHeaders(await env.ASSETS.fetch(request))
+  }
+  try {
+    if (kind === 'coaster') {
+      const coaster = await fetchCoasterBySlug(slug, supabaseUrl, supabaseKey)
+      if (!coaster) {
+        return withSecurityHeaders(
+          new Response(renderDetailNotFoundHtml(url.origin, kind), {
+            status: 404,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'public, max-age=300',
+            },
+          }),
+        )
+      }
+      return withSecurityHeaders(
+        new Response(renderCoasterHtml(coaster, url.origin), {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            // Short cache: ranks/scores refit every 5 minutes.
+            'Cache-Control': 'public, max-age=300',
+          },
+        }),
+      )
+    }
+    const detail = await fetchParkWithCoasters(slug, supabaseUrl, supabaseKey)
+    if (!detail) {
+      return withSecurityHeaders(
+        new Response(renderDetailNotFoundHtml(url.origin, kind), {
+          status: 404,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=300',
+          },
+        }),
+      )
+    }
+    return withSecurityHeaders(
+      new Response(renderParkHtml(detail, url.origin), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=300',
+        },
+      }),
+    )
+  } catch {
+    // Supabase unreachable or malformed row: serve the SPA shell rather than
+    // an error page or a false 404.
+    return withSecurityHeaders(await env.ASSETS.fetch(request))
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -1213,6 +1736,35 @@ export default {
       return withSecurityHeaders(
         await handleOgImageRequest(request.url, ogMatch[1].toLowerCase(), env),
       )
+    }
+
+    // Detail pages: renames + trailing-slash 301s (any UA), bot prerenders.
+    // Requires the /coasters/* + /parks/* run_worker_first entries — without
+    // them these requests never reach the worker and serve the SPA shell.
+    const detail = resolveDetailPath(url.pathname)
+    if (detail) {
+      const canonicalDetailPath = `/${detail.kind === 'coaster' ? 'coasters' : 'parks'}/${detail.slug}`
+      // Renamed slugs (any UA — the old URL should land on the live page).
+      if (detail.kind === 'park' && RENAMED_PARK_SLUGS[detail.slug]) {
+        return redirectToPath(request.url, `/parks/${RENAMED_PARK_SLUGS[detail.slug]}`)
+      }
+      // Trailing-slash duplicates 301 to the canonical form. The slashed
+      // variants otherwise serve the shell with no server canonical
+      // ("Duplicate, Google chose different canonical", Oct 2026).
+      if (detail.slashed) {
+        return redirectToPath(request.url, canonicalDetailPath)
+      }
+      if (isSocialCrawler(request.headers.get('user-agent'))) {
+        return handleDetailRequest(request, detail.kind, detail.slug, env)
+      }
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
+    }
+
+    // /about/ + /faq/ 301 to the canonical form (any UA) — the exact-match
+    // run_worker_first entries don't cover the slashed variants. Needs the
+    // /about/ + /faq/ entries below so the worker sees these at all.
+    if (url.pathname === '/about/' || url.pathname === '/faq/') {
+      return redirectToPath(request.url, url.pathname.replace(/\/+$/, ''))
     }
 
     if (pathname === '/' && isSocialCrawler(request.headers.get('user-agent'))) {

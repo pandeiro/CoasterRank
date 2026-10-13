@@ -132,7 +132,18 @@ export default function CoasterDetailPage() {
   }
 
   if (!coaster) {
-    return <MessageState>Coaster not found.</MessageState>
+    // Dead slug (HTTP 200 — the SPA can't set statuses): keep it out of the
+    // index via noindex. Bots additionally get a real edge 404 from the
+    // worker's detail prerender; see renderDetailNotFoundHtml.
+    return (
+      <>
+        <Helmet>
+          <title>Coaster not found — CoasterRank</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <MessageState>Coaster not found.</MessageState>
+      </>
+    )
   }
 
   // Park display fields (name/slug/city/country) are denormalized onto the
