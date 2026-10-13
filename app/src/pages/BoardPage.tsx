@@ -24,6 +24,7 @@ import {
   toggleGuestRide,
   useGuestRides,
 } from '../lib/guest-rides'
+import { track, bulkAddBucket } from '../lib/analytics'
 import { fetchMyRankedRideIds, materializeGuestRides } from '../lib/guest-promotion'
 import { useRemoveRide } from '../lib/rides'
 import {
@@ -180,6 +181,9 @@ export default function BoardPage() {
   const handleParkCommit = useCallback((rows: RankingRow[]) => {
     const { added, duplicate, capped } = addRowsToGuestSelection(rows)
     setParkAddOpen(false)
+    if (added > 0) {
+      track('park_bulk_add_committed', { bulk_add_bucket: bulkAddBucket(added) })
+    }
     if (added === 0 && capped === 0) {
       // Stale-existingIds race (the picker already excludes listed coasters):
       // everything committed was already selected — say so, don't close silent.

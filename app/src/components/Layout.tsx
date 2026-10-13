@@ -5,6 +5,7 @@ import Footer from './Footer'
 import ImpersonationBanner from './ImpersonationBanner'
 import { useAuth } from '../lib/auth-context'
 import { enterGuestMarkMode, useGuestRides } from '../lib/guest-rides'
+import { initAnalytics, setAnalyticsAuth } from '../lib/analytics'
 import { fetchProfile } from '../lib/profile'
 import UserMenu from './UserMenu'
 import FeedbackProvider from './FeedbackProvider'
@@ -30,6 +31,18 @@ export default function Layout() {
   // engages — once Mark Mode is active (or while hovering), the button goes
   // business-time. Exiting Mark Mode resumes the idle attention loop.
   const { markMode } = useGuestRides()
+
+  // Anonymous session analytics (SESSION_ANALYTICS.md): one-shot boot per
+  // tab; nothing is created or sent unless every eligibility gate passes
+  // (production origin, human UA, not DNT/GPC-opted-out, collection on,
+  // session sampled). Auth segment stays coarse (guest|authed, no identity).
+  useEffect(() => {
+    void initAnalytics()
+  }, [])
+
+  useEffect(() => {
+    setAnalyticsAuth(!isLoading && Boolean(user))
+  }, [isLoading, user])
 
   // Header CTA (GUEST_UX.md §3.1): logged-out visitors get "Rank My Rides" —
   // Mark Mode pre-activated on the board — instead of a generic Sign up pill.

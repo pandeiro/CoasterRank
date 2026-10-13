@@ -28,6 +28,7 @@ import {
   useGuestRides,
   userRidesFromGuestState,
 } from '../lib/guest-rides'
+import { track, bulkAddBucket, saveRidesBucket } from '../lib/analytics'
 import { materializeGuestRides } from '../lib/guest-promotion'
 import { useMyRides } from '../lib/rides'
 
@@ -66,6 +67,19 @@ export default function GuestRankPage() {
   useEffect(() => {
     lockGuestOrderOnWorkbenchVisit()
   }, [])
+
+  // Funnel: a /rank visit WITH rides means the visitor started creating
+  // their own ranking (SESSION_ANALYTICS.md). Empty /rank visits stay
+  // ungated (the empty state is an informational surface); the reached
+  // dimension stays 'mark' for them.
+  const rankEnteredRef = useRef(false)
+  useEffect(() => {
+    if (rankEnteredRef.current) return
+    if ((guest.state?.orderedIds.length ?? 0) > 0) {
+      rankEnteredRef.current = true
+      track('rank_entered')
+    }
+  }, [guest.state])
 
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastSeq = useRef(0)
@@ -110,6 +124,9 @@ export default function GuestRankPage() {
     (rows: RankingRow[]) => {
       const { added, duplicate, capped } = addRowsToGuestSelection(rows)
       setParkOpen(false)
+      if (added > 0) {
+        track('park_bulk_add_committed', { bulk_add_bucket: bulkAddBucket(added) })
+      }
       if (added === 0 && capped === 0) {
         notify('Those coasters are already selected — nothing new to add.')
         return
@@ -177,11 +194,15 @@ export default function GuestRankPage() {
     if (!user) {
       // Guest path: the signup payload rides auth metadata (§4.1); the
       // confirmed login materializes it.
+      track('save_started', { rides_bucket: saveRidesBucket(state.orderedIds.length) })
       navigate('/signup?from=guest')
       return
     }
     // Seed mode (§3.1): a zero-ride account adopts the guest ranking
     // directly through the RPC.
+    if (state.orderedIds.length > 0) {
+      track('save_started', { rides_bucket: saveRidesBucket(state.orderedIds.length) })
+    }
     setSaving(true)
     void materializeGuestRides(
       state.orderedIds,
