@@ -309,11 +309,15 @@ Reference for the `/admin` → Sharing tab and ad-hoc funnel checks. Decision lo
   `AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject` (`requestPath_like: "/riders%"`,
   `bot: 0` excludes likely bots). Do NOT add a manual beacon snippet to `app/index.html` —
   it would double-count on top of auto-install.
-- **Workers Analytics Engine** (planned, phase 2): first-party CF feature — a worker binding
-  (`writeDataPoint`) for aggregate counters, queried over HTTPS via its SQL API. Free tier:
-  100k data points/day, 3-month retention. Intended for unfurl-side counts (crawler prerender
-  serves, not-found serves, og.png renders) that RUM structurally cannot see. No Supabase
-  table involved.
+- **Workers Analytics Engine** (live since the session-analytics build, 2026-10): first-party CF
+  feature — a worker `writeDataPoint` binding feeds two datasets,
+  `coasterrank_session_events` + `coasterrank_session_summary` (`POST /api/sessions` ingest,
+  spec + schema: `docs/research/SESSION_ANALYTICS.md`). Free tier: 100k data points/day,
+  3-month retention — the reason pageview-adjacent counters without `/riders/` attribution stay
+  RUM-side. Query via the SQL API (same token pattern as above, or read from the dashboard);
+  the anon ingest path never touches Supabase. Runtime kill switch: dashboard vars
+  `ANALYTICS_ENABLED` / `ANALYTICS_SAMPLE_RATE`
+  (var edit, no redeploy; effective within the 5-minute config TTL).
 
 ## Anti-abuse & rate limits (what's already in place)
 
