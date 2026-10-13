@@ -309,11 +309,81 @@ Reference for the `/admin` → Sharing tab and ad-hoc funnel checks. Decision lo
   `AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject` (`requestPath_like: "/riders%"`,
   `bot: 0` excludes likely bots). Do NOT add a manual beacon snippet to `app/index.html` —
   it would double-count on top of auto-install.
-- **Workers Analytics Engine** (planned, phase 2): first-party CF feature — a worker binding
-  (`writeDataPoint`) for aggregate counters, queried over HTTPS via its SQL API. Free tier:
-  100k data points/day, 3-month retention. Intended for unfurl-side counts (crawler prerender
-  serves, not-found serves, og.png renders) that RUM structurally cannot see. No Supabase
-  table involved.
+- **Workers Analytics Engine** (live since the session-analytics build, 2026-10): first-party CF
+  feature — a worker `writeDataPoint` binding feeds two datasets,
+  `coasterrank_session_events` + `coasterrank_session_summary` (`POST /api/sessions` ingest,
+  spec + schema: `docs/research/SESSION_ANALYTICS.md`). Free tier: 100k data points/day,
+  3-month retention — the reason pageview-adjacent counters without `/riders/` attribution stay
+  RUM-side. Query via the SQL API (same token pattern as above, or read from the dashboard);
+  the anon ingest path never touches Supabase. Runtime kill switch: dashboard vars
+  `ANALYTICS_ENABLED` / `ANALYTICS_SAMPLE_RATE`
+  (var edit, no redeploy; effective within the 5-minute config TTL). **Set these on the
+  Production environment only** — preview deploys inherit nothing and fail closed
+  (no code-level hostname gate exists by design; `?analytics=debug` is the sanctioned
+  zero-network path for any origin). Absent/blank `ANALYTICS_SAMPLE_RATE` → 100;
+  garbled/out-of-range → 0 (fail-closed). At sampling 100%, AE may still interval-sample
+  under load — the `_sample_interval` weighting below matters again.
+
+### Session analytics: how to query (what's where)
+
+The blob/double positions below are the wire contract — the authoritative table is
+`app/src/lib/analytics-schema.ts` (worker validation) and §3–4 of
+`docs/research/SESSION_ANALYTICS.md`. If either file changes positions, update these queries.
+
+- **Access**: AE SQL API — `POST https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql`
+  with `Authorization: Bearer <CLOUDFLARE_API_TOKEN>` (same Account-Analytics-Read token as the
+  RUM GraphQL example above) and the SQL string as the request **body**. The two datasets are
+  queried as virtual tables named after the binding datasets (`coasterrank_session_events`,
+  `coasterrank_session_summary`). Column names are positional: `timestamp`, `blob1…blob5`,
+  `double1…double7`, `_sample_interval`. `sampleRate < 100` sessions still write fully-weighted
+  datapoints, so averages must respect `_sample_interval` (see queries — and re-check the AE
+  SQL reference's sampling section before writing new aggregations).
+- **Summary dataset position map** (`coasterrank_session_summary`, 1 row/tab):
+  `blob1` entry_surface (`board|rank|rider_share|coaster|park|other`), `blob2` viewport
+  (`mobile|desktop`), `blob3` max_scroll (`none|shallow|mid|deep`), `blob4` reached
+  (`none|mark|rank|save`), `blob5` auth_state, `double1` ms→first interaction (−1 never),
+  `double2` ms→first mark (−1 never), `double3` session duration ms, `double4` mark count,
+  `double5` reorder count, `double6` did_search (0/1), `double7` did_filter (0/1).
+  Events dataset: `blob1` = event name, `blob2` = bucket prop (when the event carries one),
+  `double1` = 1 (use `SUM(_sample_interval * double1)` for counts).
+- **Funnel reach (last 7 days)** — "% of sampled sessions that reached each step":
+  ```sql
+  SELECT blob4 AS reached,
+         sum(_sample_interval) AS sessions
+  FROM coasterrank_session_summary
+  WHERE timestamp >= now() - interval '7' DAY
+  GROUP BY reached
+  ORDER BY sessions DESC
+  ```
+- **Timing to first addition (typical)** — exclude the −1 sentinels; the avg is
+  interval-weighted:
+  ```sql
+  SELECT avg(_sample_interval * double2) / sum(_sample_interval) * 1000 AS avg_ms_to_first_mark,
+         avg(_sample_interval * double1) / sum(_sample_interval) * 1000 AS avg_ms_to_first_interaction,
+         sum(_sample_interval * double4) / sum(_sample_interval) AS avg_marks
+  FROM coasterrank_session_summary
+  WHERE double2 >= 0 AND timestamp >= now() - interval '7' DAY
+  ```
+- **Event volume by day** — interaction counts, NOT session counts: the
+  events dataset records each sampled interaction (a `coaster_marked`
+  per tap; `search_used`/`filter_used`/scroll events fire once per
+  session), while the summary dataset is 1 row/tab — funnel % comes from
+  the summary flags, never from here:
+  ```sql
+  SELECT toDate(timestamp) AS day, blob1 AS event, sum(_sample_interval * double1) AS n
+  FROM coasterrank_session_events
+  WHERE timestamp >= now() - interval '7' DAY
+  GROUP BY day, event ORDER BY day, n DESC
+  ```
+- **Visualization**: for v1, ad-hoc runs of the above (or a browser fetch from the Worker's
+  own colo via `console`) are enough; CI Grafana-on-AE or an `/admin` tab (same
+  admin-gated Edge Function pattern as `admin-sharing-metrics`) is a deliberate follow-up,
+  not wired now. When ≥3-month history matters, revisit the Postgres-rollup decision in
+  SESSION_ANALYTICS §6 before building charts on raw AE data.
+- **Ingest health**: `POST /api/sessions` responses carry `{ ok, stored }` (202) — a brace of
+  `dropped:'binding-error'` responses means the AE binding failed; any `writeDataPoint` error
+  logs `[sessions] writeDataPoint failed:` to Workers Logs next to the `[ranking]`/`[sitemap]`
+  lines. Config drift is visible in `GET /api/sessions` (`enabled`/`sampleRate` echo).
 
 ## Anti-abuse & rate limits (what's already in place)
 

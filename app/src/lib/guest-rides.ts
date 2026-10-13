@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { track, importRowsBucket } from './analytics'
 import type { RankingRow } from './board-types'
 import type { UserRide } from './rides'
 
@@ -341,12 +342,14 @@ export function toggleGuestRide(row: RankingRow): GuestToggleResult {
   if (current?.orderedIds.includes(row.id)) {
     const next = removeGuestRide(current, row.id, now)
     setState(next.orderedIds.length > 0 ? next : null)
+    track('coaster_unmarked')
     return 'removed'
   }
   const base = current ?? emptyGuestRanking(now)
   const { state: next, capped } = addGuestRide(base, guestItemFromRankingRow(row, now), now)
   if (capped) return 'capped'
   setState(next)
+  track('coaster_marked')
   return 'added'
 }
 
@@ -401,6 +404,7 @@ export function reorderGuestRideList(orderedIds: string[]): void {
   const current = store.state
   if (!current) return
   setState(reorderGuestRides(current, orderedIds, Date.now()))
+  track('rank_reordered')
 }
 
 export function removeGuestRideById(coasterId: string): void {
@@ -408,6 +412,7 @@ export function removeGuestRideById(coasterId: string): void {
   if (!current) return
   const next = removeGuestRide(current, coasterId, Date.now())
   setState(next.orderedIds.length > 0 ? next : null)
+  track('rank_item_removed')
 }
 
 export function lockGuestOrderOnWorkbenchVisit(): void {
@@ -469,6 +474,7 @@ export function commitGuestImport(
   const outcome = applyGuestImport(store.state, orderedIds, resolveItem, Date.now())
   if (outcome.addedIds.length === 0) return null
   setState(outcome.state)
+  track('guest_import_applied', { rows_bucket: importRowsBucket(outcome.addedIds.length) })
   return outcome
 }
 
@@ -478,7 +484,10 @@ export function restoreGuestState(state: GuestRankingState | null): void {
 }
 
 export function enterGuestMarkMode(): void {
-  if (!store.markMode) setStore({ ...store, markMode: true })
+  if (!store.markMode) {
+    setStore({ ...store, markMode: true })
+    track('mark_mode_entered')
+  }
 }
 
 export function exitGuestMarkMode(): void {

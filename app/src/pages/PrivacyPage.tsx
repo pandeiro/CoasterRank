@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const LAST_UPDATED = 'August 29, 2026'
+const LAST_UPDATED = 'October 13, 2026'
 
 export default function PrivacyPage() {
   return (
@@ -63,6 +63,13 @@ export default function PrivacyPage() {
             We use Cloudflare Web Analytics, a privacy-friendly, cookieless analytics tool that does
             not collect personal data. It helps us understand aggregate traffic patterns without
             tracking individual users.
+          </p>
+          <p className="mt-3">
+            To improve the ranking flow, we also count aggregate, anonymous interactions — for
+            example, how many visits scroll the board, start a ranking, and how long those steps
+            typically take. These counts use no cookies, no identifiers, and no cross-session
+            tracking, are sent to our own servers only, and are never joined to accounts. Browser
+            Do-Not-Track and Global Privacy Control signals opt you out.
           </p>
         </section>
 

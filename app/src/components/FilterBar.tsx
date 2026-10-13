@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapPin, Search, SlidersHorizontal } from 'lucide-react'
+import { track } from '../lib/analytics'
 import type { CountryOption, MaterialView, RankingFilters } from '../lib/coasters'
 import { useMediaQuery } from '../lib/use-media-query'
 import { fieldClassName, Panel, selectClassName } from './ui'
@@ -123,6 +124,7 @@ export default function FilterBar({
         // trimmed value, so a trailing space survives the round-trip.
         const q = search.trim() || undefined
         lastSentRef.current = q ?? ''
+        if (q) track('search_used')
         onChange({ ...current, q })
       }
     }, 300)
@@ -156,6 +158,9 @@ export default function FilterBar({
   }, [moreOpen])
 
   function update(patch: Partial<RankingFilters>) {
+    // Non-search filter interactions (pills, selects, toggles) count as
+    // "visited used a filter" for the session summary.
+    track('filter_used')
     onChange({ ...filters, ...patch })
   }
 

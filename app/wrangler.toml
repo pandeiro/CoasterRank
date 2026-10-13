@@ -30,3 +30,18 @@ assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "singl
 # observed; Cache API operations do NOT appear in standard CDN cache analytics.
 [observability]
 enabled = true
+
+# Anonymous session analytics (docs/research/SESSION_ANALYTICS.md): the
+# /api/sessions endpoint expands validated, ID-less batches into these two
+# datasets (discrete events + one summary row per tab). No identifier, no
+# free text — the schema lives in app/src/lib/analytics-schema.ts.
+# Locally writeDataPoint is unavailable (cloudflare/workers-sdk#4258): the
+# endpoint degrades to 202 {dropped:'binding-error'} and the client silently
+# drops — dashboard vars ANALYTICS_ENABLED/ANALYTICS_SAMPLE_RATE gate export.
+[[analytics_engine_datasets]]
+binding = "SESSIONS_AE_EVENTS"
+dataset = "coasterrank_session_events"
+
+[[analytics_engine_datasets]]
+binding = "SESSIONS_AE_SUMMARY"
+dataset = "coasterrank_session_summary"

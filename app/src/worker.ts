@@ -53,8 +53,9 @@ import {
   type OgImageRider,
 } from './lib/og-image'
 import { truncate } from './lib/truncate'
+import { handleSessionsRequest, type SessionsEnv } from './sessions-endpoint'
 
-export interface Env {
+export interface Env extends SessionsEnv {
   ASSETS: { fetch(request: Request): Promise<Response> }
   SUPABASE_URL?: string
   SUPABASE_ANON_KEY?: string
@@ -1188,6 +1189,13 @@ export default {
 
     if (pathname === '/api/ranking') {
       return withSecurityHeaders(await handleRankingRequest(request, env))
+    }
+
+    // Analytics ingest + config (SESSION_ANALYTICS.md): same-origin browser
+    // → worker only, never Supabase. GET = runtime config echo (dashboard
+    // vars, 5-min TTL); POST = validated batches → Analytics Engine.
+    if (pathname === '/api/sessions') {
+      return withSecurityHeaders(await handleSessionsRequest(request, env))
     }
 
     // Sitemap — any user-agent (crawlers + humans). Checked before the

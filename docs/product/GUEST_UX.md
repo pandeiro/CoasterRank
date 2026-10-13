@@ -244,7 +244,7 @@ Authenticated users browsing `/` can also enter Mark Mode:
 | **Time-to-First-Ranking**        | < 90 seconds         | `guest_promotions.duration_ms`, server-computed from the client's `started_at` (first mark engagement) carried in the signup payload. Converters only.                                                  |
 | **Starter List Depth**           | Median $\ge 5$ rides | `guest_promotions.ride_count` (higher depth improves Bradley–Terry model accuracy).                                                                                                                     |
 | **Merge-Conflict Resolution**    | No modal dead-ends   | `guest_promotions.kind = 'merge_append' \| 'merge_discard'` distribution; silent no-ops count as neither.                                                                                               |
-| **Browse Experience Neutrality** | Qualitative in v1    | Bounce/scroll depth requires an analytics layer that doesn't exist yet; deferred (§5.1). Guarded by design instead: Mark Mode UI mounts only when activated, zero layout shift.                         |
+| **Browse Experience Neutrality** | Qualitative in v1    | Bounce/scroll depth requires an analytics layer that doesn't exist yet; deferred (§5.1). Guarded by design instead: Mark Mode UI mounts only when activated, zero layout shift. *(Scroll behavior is now measured anonymously — §5.1 2026-10 note.)*                         |
 | **Account Safety Guarantee**     | 0 overwrites         | Enforced structurally: no merge path can reach a `replace`-mode write (coverage guard + no replace option in the modal). Verified by unit + property tests.                                             |
 
 ---
@@ -525,7 +525,7 @@ Options presented:
 
 ### 5. Telemetry & Analytics
 
-**Constraint (v2.1):** guests leave no server-side trace — the no-anon-writable-tables rule holds and there is no pre-auth analytics layer. v2.1 therefore captures telemetry **post-auth only**, through `guest_promotions` rows written by the RPCs (server-authoritative) plus fields carried inside the signup metadata payload. Pre-auth events (mark-mode entered, drag-sorted) are explicitly **not captured in v1**.
+**Constraint (v2.1):** guests leave no server-side trace — the no-anon-writable-tables rule holds and there is no pre-auth analytics layer. v2.1 therefore captures telemetry **post-auth only**, through `guest_promotions` rows written by the RPCs (server-authoritative) plus fields carried inside the signup metadata payload. Pre-auth events (mark-mode entered, drag-sorted) are explicitly **not captured in v1**. *(2026-10-13 update: an anonymous, Supabase-free session-analytics layer landed — see the update note at the end of this section and `docs/research/SESSION_ANALYTICS.md`; nothing in this section's Supabase contract changed.)*
 
 | Signal                                    | Capture Point                               | Data                                                                                        |
 | :---------------------------------------- | :------------------------------------------ | :------------------------------------------------------------------------------------------ |
@@ -537,8 +537,8 @@ Options presented:
 
 #### 5.1 Measurement limitations (explicit)
 
-- Users who enter Mark Mode but never sign up leave **no trace**; Mark Mode entry rate and mid-funnel drop-off are unmeasurable without an analytics layer. Any "conversion" number is therefore a **cohort comparison** (verified-signup lift vs. a pre-launch baseline window), not a true funnel rate.
-- If a privacy-safe aggregate analytics layer lands later (e.g., Cloudflare Workers Analytics Engine counters), pre-auth funnel events (`mark_mode_entered`, `rides_swept`) become the first candidates.
+- Users who enter Mark Mode but never sign up leave **no trace** — on **Supabase**. Mark Mode entry rate and mid-funnel drop-off are unmeasurable without an analytics layer. Any "conversion" number is therefore a **cohort comparison** (verified-signup lift vs. a pre-launch baseline window), not a true funnel rate.
+- If a privacy-safe aggregate analytics layer lands later (e.g., Cloudflare Workers Analytics Engine counters), pre-auth funnel events (`mark_mode_entered`, `rides_swept`) become the first candidates. **Landed 2026-10-13** — anonymous, ID-less session analytics now capture `mark_mode_entered` (and scroll/add/reorder/search/filter behavior) via our Worker → Analytics Engine; the no-anon-**Supabase**-writes invariant above is intact and unchanged. Spec + event schema: `docs/research/SESSION_ANALYTICS.md`. A funnel rate (mark-aware) is now computable; the cohort comparison remains valid for signup lift.
 
 ---
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
+import { track } from '../lib/analytics'
 import {
   useAllCoasters,
   useParks,
@@ -109,6 +110,9 @@ export default function CoasterSearchBar({ existingCoasterIds, onAdd }: Props) {
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
+            // First real search input this session (analytics dedupes to one
+            // datapoint; coarse, no query text ever leaves the browser).
+            if (e.target.value.trim().length > 0) track('search_used')
             setIsOpen(true)
           }}
           onFocus={() => setIsOpen(true)}
