@@ -71,6 +71,18 @@ interface AnalyticsSessionState {
 // avoided here only to keep this module's hot path tiny; both stay in sync).
 const REACHED_ORDER: ReachedStep[] = ['none', 'mark', 'rank', 'save']
 
+// Events that answer "did this ever happen in the session" — exactly one
+// buffered datapoint per session, no matter how often the call site fires
+// (search keystrokes, filter toggles, every scroll tick). Funnel
+// denominators come from these; anything else in the catalog is an
+// interaction count (see RUNBOOKS "Session analytics: how to query").
+const FIRST_PER_SESSION: ReadonlySet<AnalyticsEventName> = new Set([
+  'search_used',
+  'filter_used',
+  'board_scrolled',
+  'board_scrolled_deep',
+])
+
 let state: AnalyticsSessionState | null = null
 
 // Test-only: jsdom cannot change the window origin, so tests aim the module
@@ -257,15 +269,10 @@ function installListeners(): void {
     lastSampled = now
     updateScrollBucket()
     if (state && state.eligible) {
-      // First-scroll + deep events fire at most once per session.
-      if (!state.firedOnce.has('board_scrolled')) {
-        state.firedOnce.add('board_scrolled')
-        track('board_scrolled')
-      }
-      if (state.maxScroll === 'deep' && !state.firedOnce.has('board_scrolled_deep')) {
-        state.firedOnce.add('board_scrolled_deep')
-        track('board_scrolled_deep')
-      }
+      // first-scroll/deep events are one-per-session by FIRST_PER_SESSION
+      // — repeat calls are no-ops, so just fire unconditionally.
+      track('board_scrolled')
+      if (state.maxScroll === 'deep') track('board_scrolled_deep')
     }
   }
   window.addEventListener('scroll', onScroll, { passive: true })
@@ -277,9 +284,14 @@ function installListeners(): void {
   }
 
   // pagehide covers navigation away, tab close, and (via bfcache semantics)
-  // is more reliable than beforeunload for beacons.
-  window.addEventListener('pagehide', () => {
-    if (state?.eligible) void flush({ includeSummary: true })
+  // is more reliable than beforeunload for beacons. When the page is
+  // entering bfcache, skip the summary — the tab may revive from cache and
+  // re-hide, and it can then legitimately continue (and double-count).
+  window.addEventListener('pagehide', (event) => {
+    if (!state?.eligible) return
+    const persisted = (event as PageTransitionEvent & { persisted?: boolean }).persisted
+    if (persisted === true) return // bfcache freeze: keep it a live session
+    void flush({ includeSummary: true })
   })
 }
 
@@ -400,6 +412,15 @@ function noteFirstMark(): void {
  */
 export function track(name: AnalyticsEventName, props: AnalyticsEventProps = {}): void {
   if (!state || !state.started) return
+
+  // One-per-session events work at the track gate, not per call site: any
+  // repeat (every search keystroke, filter toggle, scroll tick) is a full
+  // no-op — nothing buffered, nothing recomputed, and the callsites never
+  // have to debounce.
+  if (FIRST_PER_SESSION.has(name)) {
+    if (state.firedOnce.has(name)) return
+    state.firedOnce.add(name)
+  }
 
   // Session rollups (answers funnel questions without identity):
   // search/filter flags, first-add timing, highest funnel step.

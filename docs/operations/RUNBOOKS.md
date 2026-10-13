@@ -317,7 +317,12 @@ Reference for the `/admin` → Sharing tab and ad-hoc funnel checks. Decision lo
   RUM-side. Query via the SQL API (same token pattern as above, or read from the dashboard);
   the anon ingest path never touches Supabase. Runtime kill switch: dashboard vars
   `ANALYTICS_ENABLED` / `ANALYTICS_SAMPLE_RATE`
-  (var edit, no redeploy; effective within the 5-minute config TTL).
+  (var edit, no redeploy; effective within the 5-minute config TTL). **Set these on the
+  Production environment only** — preview deploys inherit nothing and fail closed
+  (no code-level hostname gate exists by design; `?analytics=debug` is the sanctioned
+  zero-network path for any origin). Absent/blank `ANALYTICS_SAMPLE_RATE` → 100;
+  garbled/out-of-range → 0 (fail-closed). At sampling 100%, AE may still interval-sample
+  under load — the `_sample_interval` weighting below matters again.
 
 ### Session analytics: how to query (what's where)
 
@@ -359,7 +364,11 @@ The blob/double positions below are the wire contract — the authoritative tabl
   FROM coasterrank_session_summary
   WHERE double2 >= 0 AND timestamp >= now() - interval '7' DAY
   ```
-- **Event volume by day** — plus daily search/filter rates (`double6/7` are per-row 0/1):
+- **Event volume by day** — interaction counts, NOT session counts: the
+  events dataset records each sampled interaction (a `coaster_marked`
+  per tap; `search_used`/`filter_used`/scroll events fire once per
+  session), while the summary dataset is 1 row/tab — funnel % comes from
+  the summary flags, never from here:
   ```sql
   SELECT toDate(timestamp) AS day, blob1 AS event, sum(_sample_interval * double1) AS n
   FROM coasterrank_session_events

@@ -80,12 +80,34 @@ describe('GET /api/sessions', () => {
     expect(await res.json()).toEqual({ enabled: false, sampleRate: 100 })
   })
 
-  it('clamps an out-of-range sample rate to the safe default', async () => {
+  it('keeps the intended default when the rate var is absent or blank', async () => {
+    const unset = await handleSessionsRequest(new Request('https://coasterrank.app/api/sessions'), {
+      ANALYTICS_ENABLED: 'true',
+    })
+    expect(await unset.json()).toEqual({ enabled: true, sampleRate: 100 })
+    const blank = await handleSessionsRequest(new Request('https://coasterrank.app/api/sessions'), {
+      ANALYTICS_ENABLED: 'true',
+      ANALYTICS_SAMPLE_RATE: '   ',
+    })
+    expect(await blank.json()).toEqual({ enabled: true, sampleRate: 100 })
+  })
+
+  it('fails to 0 on a garbled/out-of-range rate while enabled (operator error bleeds nothing)', async () => {
+    for (const bad of ['abc', '250', '-10', '100.5', '1e3']) {
+      const res = await handleSessionsRequest(new Request('https://coasterrank.app/api/sessions'), {
+        ANALYTICS_ENABLED: 'true',
+        ANALYTICS_SAMPLE_RATE: bad,
+      })
+      expect(await res.json()).toEqual({ enabled: true, sampleRate: 0 })
+    }
+  })
+
+  it('honors an explicit in-range rate', async () => {
     const res = await handleSessionsRequest(new Request('https://coasterrank.app/api/sessions'), {
       ANALYTICS_ENABLED: 'true',
-      ANALYTICS_SAMPLE_RATE: '250',
+      ANALYTICS_SAMPLE_RATE: '10',
     })
-    expect(await res.json()).toEqual({ enabled: true, sampleRate: 100 })
+    expect(await res.json()).toEqual({ enabled: true, sampleRate: 10 })
   })
 
   it('rejects other methods', async () => {

@@ -142,15 +142,17 @@ function sessionGPC(request: Request): boolean {
 export function parseConfig(env: SessionsEnv): { enabled: boolean; sampleRate: number } {
   const enabled = env.ANALYTICS_ENABLED === 'true'
   const raw = env.ANALYTICS_SAMPLE_RATE?.trim()
-  const rate = raw ? Number(raw) : Number.NaN
-  return {
-    enabled,
-    // Missing/garbled rate → the intended default (100) rather than silently 0.
-    sampleRate:
-      raw === undefined || raw === '' || !Number.isFinite(rate) || rate < 0 || rate > 100
-        ? 100
-        : rate,
+  if (raw === undefined || raw === '') {
+    // Var not set: keep the intended default (100). The enabled gate above
+    // (also unset → off) protects against accidental collection anyway.
+    return { enabled, sampleRate: 100 }
   }
+  const rate = Number(raw)
+  if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+    // Garbled/out-of-range IS operator error while enabled: bleed nothing.
+    return { enabled, sampleRate: 0 }
+  }
+  return { enabled, sampleRate: rate }
 }
 
 export async function handleSessionsRequest(request: Request, env: SessionsEnv): Promise<Response> {

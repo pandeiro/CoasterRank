@@ -189,6 +189,49 @@ describe('analytics: session aggregation (eligible session)', () => {
     expect(s?.buffer.map((e) => e.name)).toEqual(['coaster_marked', 'coaster_unmarked'])
   })
 
+  it('search_used dedupes per session: a 15-keystroke query buffers one event', () => {
+    // "Steel Vengeance", one keystroke at a time — a naive per-callsite fire
+    // would flood the 50-event window (companion test to a backend review).
+    const query = 'Steel Vengeance'
+    const chars = query.split('')
+    const noise: string[] = []
+    for (const _ of chars) {
+      track('search_used') // one per keystroke
+      noise.push('x')
+    }
+    track('filter_used')
+    track('filter_used') // repeated theme: same first-per-session shape
+    const s = __analyticsStateForTests()
+    expect(s?.didSearch).toBe(true)
+    expect(s?.didFilter).toBe(true)
+    expect(s?.buffer.filter((e) => e.name === 'search_used')).toHaveLength(1)
+    expect(s?.buffer.filter((e) => e.name === 'filter_used')).toHaveLength(1)
+    expect(noise).toHaveLength(15) // sanity: we really did fire 15 times
+  })
+
+  it('pagehide in bfcache (persisted=true) skips the summary beacon', async () => {
+    const beacon = vi.fn((_url: string, _body: string) => true)
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beacon })
+    track('coaster_marked')
+    const bfcacheEvent = new Event('pagehide')
+    Object.defineProperty(bfcacheEvent, 'persisted', { value: true })
+    window.dispatchEvent(bfcacheEvent)
+    expect(beacon).not.toHaveBeenCalled()
+    // A real unload still flushes after the skipped bfcache freeze.
+    track('rank_reordered')
+    const realUnload = new Event('pagehide')
+    Object.defineProperty(realUnload, 'persisted', { value: false })
+    window.dispatchEvent(realUnload)
+    const bodies = await beaconBodies(beacon)
+    expect(JSON.parse(bodies.find((b) => b.includes('"summary"'))!).summary.reached).toBe('mark')
+    // The bfcache-skipped call did NOT flush the earlier mark; it flushes now.
+    expect(
+      (
+        JSON.parse(bodies.find((b) => !b.includes('"summary"'))!) as { events: { name: string }[] }
+      ).events.map((e) => e.name),
+    ).toEqual(['coaster_marked', 'rank_reordered'])
+  })
+
   it('records the entry surface from the landing path', async () => {
     __resetAnalyticsForTests()
     __setAnalyticsLocationForTests('https://coasterrank.app/riders/someone')

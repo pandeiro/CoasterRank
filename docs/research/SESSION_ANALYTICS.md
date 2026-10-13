@@ -61,10 +61,15 @@ have (`guest_promotions`, `import_events`) rather than duplicated here.
 
 ## 3. V1 event catalog — `session_events`
 
-Fired at most once per meaningful action (first-per-session events dedupe
-in the client). Props are coarse buckets only. Transport batches up to
-50 events per POST; the Worker validates every field against
-`lib/analytics-schema.ts`.
+Fired at most once per meaningful action. Props are coarse buckets only.
+Transport batches up to 50 events per POST; the Worker validates every
+field against `lib/analytics-schema.ts`.
+
+Events marked **⚡ first-per-session** are deduped centrally in
+`track()` (`FIRST_PER_SESSION` set) — one buffered datapoint no matter
+how often the callsite fires (every search keystroke, filter toggle,
+scroll tick). Call sites do NOT debounce; funnel denominators come from
+these four, while everything else is an interaction count.
 
 | Event            | Fires when                              | Prop bucket            |
 |------------------|-----------------------------------------|------------------------|
@@ -72,10 +77,10 @@ in the client). Props are coarse buckets only. Transport batches up to
 | `coaster_marked` | Row toggled on (board, search, detail)  | — |
 | `coaster_unmarked` | Row toggled off                       | — |
 | `park_bulk_add_committed` | Park picker commit added rides | `1-3 \| 4-10 \| 11+` |
-| `search_used`    | First search input per session          | — |
-| `filter_used`    | First non-search filter change per session | — |
-| `board_scrolled` | First scroll per session                | — |
-| `board_scrolled_deep` | First ≥75% page scroll per session | — |
+| `search_used` ⚡ | First search input per session          | — |
+| `filter_used` ⚡ | First non-search filter change per session | — |
+| `board_scrolled` ⚡ | First scroll per session                | — |
+| `board_scrolled_deep` ⚡ | First ≥75% page scroll per session | — |
 | `rank_entered`   | `/rank` visited with ≥1 ride            | — |
 | `rank_reordered` | Drag commit on `/rank`                  | — |
 | `rank_item_removed` | Item deleted on `/rank`              | — |
@@ -111,9 +116,13 @@ routes through it) — `app/src/sessions-endpoint.ts`.
 
 - **GET** — `{ enabled, sampleRate }` from dashboard vars
   (`ANALYTICS_ENABLED` / `ANALYTICS_SAMPLE_RATE`, set true/100 at
-  launch), served `Cache-Control: max-age=300`. Fail closed when unset.
-  A KV- or admin-UI-backed config is the documented v2 upgrade path;
-  dashboard-var mutation makes the kill switch a no-redeploy operation.
+  launch), served `Cache-Control: max-age=300`. Defaults by intent:
+  absent/blank rate var → 100 (the enabled gate covers the unset-everything
+  case); present-but-garbled/out-of-range → 0 (operator error bleeds
+  nothing). Set these on the **production environment only** — preview
+  deploys inherit nothing and fail closed. A KV- or admin-UI-backed
+  config is the documented v2 upgrade path; dashboard-var mutation makes
+  the kill switch a no-redeploy operation.
 - **POST** — JSON `{ events?, summary? }`: allowlist + bucket validation
   (400 on anything unknown/oversized), ≤50 events per batch, 256KB body
   cap, 202 `dropped` when AE bindings are absent (dev/CI) so the client
@@ -153,8 +162,18 @@ routes through it) — `app/src/sessions-endpoint.ts`.
 3. Prop hygiene: no URLs, free text, IP, or UA anywhere in the wire
    schema; every new blob/double position is a reviewed schema change
    (the allowlist in `analytics-schema.ts` is both client and server).
-4. `track()` no-ops uninitialized (component tests stay quiet), and the
+4. Session-duration counting: the summary is beaconed once on a real
+   `pagehide`; a bfcache hide (`pagehide` with `persisted=true`) snaps
+   nothing, so a tab that revives from cache and continues staying one
+   live session. A row per tab remains the unit — two tabs open are two
+   sessions, by design (no cross-tab identity exists to dedupe).
+5. `track()` no-ops uninitialized (component tests stay quiet), and the
    capture rollups work fully offline — export is the only networked part.
+6. Preview-environment containment is by **config, not code**: no
+   hostname appears anywhere in the source; `ANALYTICS_ENABLED` /
+   `ANALYTICS_SAMPLE_RATE` are set on the production environment only, so
+   preview deploys fail closed (and `?analytics=debug` provides a
+   zero-network path anywhere the reviewer needs one) — see RUNBOOKS.
 
 ## 8. Verification notes
 
