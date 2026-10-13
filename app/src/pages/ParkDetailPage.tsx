@@ -36,7 +36,18 @@ export default function ParkDetailPage() {
   }
 
   if (!park.data) {
-    return <MessageState>Park not found.</MessageState>
+    // Dead slug (HTTP 200 — the SPA can't set statuses): keep it out of the
+    // index via noindex. Bots additionally get a real edge 404 from the
+    // worker's detail prerender; see renderDetailNotFoundHtml.
+    return (
+      <>
+        <Helmet>
+          <title>Park not found — CoasterRank</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <MessageState>Park not found.</MessageState>
+      </>
+    )
   }
 
   const location = [park.data.city, park.data.region, park.data.country].filter(Boolean).join(' · ')

@@ -7,7 +7,14 @@ main = "src/worker.ts"
 # worker but fall through to the same static assets — one extra hop, no
 # behavior change. "/about" and "/faq" are the same pattern for the static
 # search-engine prerenders (crawlers get full copy without JS; humans fall
-# through to the SPA). "/riders/*" and "/@*" cover the rider share pages (the /@
+# through to the SPA). "/about/" and "/faq/" are the explicit slashed twins:
+# exact-match entries don't cover them, so without these the slashed
+# variants bypass the worker and serve the shell with no server canonical
+# ("Duplicate, Google chose different canonical", Oct 2026). "/coasters/*"
+# and "/parks/*" cover the detail pages (live bot prerenders, rename 301s,
+# slash normalization, real 404s for dead slugs — humans on those paths also
+# invoke the worker but fall through to the same static assets, one extra
+# hop). "/riders/*" and "/@*" cover the rider share pages (the /@
 # vanity alias prerenders with og:url canonicalized to /riders/*). "/%40*" is
 # the belt-and-suspenders twin: if Cloudflare matches globs against the raw
 # encoded path, a crawler on a chat-app-encoded /%40username share URL would
@@ -15,7 +22,7 @@ main = "src/worker.ts"
 # routes crawlers (and humans) to the worker's sitemap handler — without it
 # the SPA fallback would answer with index.html. All other
 # static paths still serve directly from the edge.
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/about", "/faq", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml"] }
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/about", "/about/", "/faq", "/faq/", "/coasters/*", "/parks/*", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml"] }
 
 # NOTE: resvg-wasm ships as a precompiled module via wrangler's DEFAULT
 # CompiledWasm rule (**/*.wasm — do NOT add a custom [[rules]] entry; it
