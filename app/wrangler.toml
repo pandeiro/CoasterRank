@@ -20,9 +20,12 @@ main = "src/worker.ts"
 # encoded path, a crawler on a chat-app-encoded /%40username share URL would
 # otherwise bypass the worker and unfurl the bare SPA shell. "/sitemap.xml"
 # routes crawlers (and humans) to the worker's sitemap handler — without it
-# the SPA fallback would answer with index.html. All other
+# the SPA fallback would answer with index.html. "/llms.txt" routes the
+# LLM-agent digest (llmstxt.org) to its worker handler the same way — the
+# asset directory ships no llms.txt file (the digest is computed with live
+# catalog counts). All other
 # static paths still serve directly from the edge.
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/about", "/about/", "/faq", "/faq/", "/coasters/*", "/parks/*", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml"] }
+assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application", run_worker_first = ["/", "/about", "/about/", "/faq", "/faq/", "/coasters/*", "/parks/*", "/api/*", "/riders/*", "/@*", "/%40*", "/sitemap.xml", "/llms.txt"] }
 
 # NOTE: resvg-wasm ships as a precompiled module via wrangler's DEFAULT
 # CompiledWasm rule (**/*.wasm — do NOT add a custom [[rules]] entry; it
