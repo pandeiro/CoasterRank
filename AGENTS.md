@@ -190,6 +190,11 @@ used in CI (as a GitHub repo secret).
   Fix = re-stamp the file (`git mv <ts>_<name>.sql <newer-ts>_<name>.sql`, content unchanged).
   Not airtight: a competing PR can still merge between the check and your merge — the deploy's
   `db push` remains the backstop.
+- **Migration grants preflight**: PR CI also runs `ci/migration-grants`, which fails any PR-new
+  migration that creates a table in `public` without a `GRANT` in the same file (override marker:
+  `-nogrant-ok`). Driven by the Supabase platform change effective 2026-10-30 (notice 2026-10-20):
+  new tables in `public` no longer receive automatic Data API grants, so a grant-less table is
+  invisible to supabase-js/PostgREST at runtime. See the Conventions bullet below.
 
 ## Runbooks
 
@@ -207,6 +212,14 @@ One-time / rare operational tasks (admin bootstrap, Supabase project creation, r
 - Never hand-edit `docs/reference/*` — regen wipes edits (previously lost a `manufacturer_id` note).
 - **Supabase JS client defaults to 1000 rows per query.** Always paginate with `.range()` when fetching rows — the row count may be unknown at query time.
 - Always read Supabase `error` from awaited calls — enforced by the `supabase/require-error-check` oxlint plugin (`npm run lint`).
+- **Every migration that creates a table in `public` must `GRANT` in the same migration** to the
+  API roles the table serves (`anon`/`authenticated`; plus `service_role` when backend needs it),
+  and pair it with RLS enablement + policies. Enforced by `ci/migration-grants` (escape hatch:
+  `-nogrant-ok` marker). Driven by the Supabase change effective 2026-10-30 (auto-grants for new
+  public tables removed; notice 2026-10-20) — see decision log in `docs/PLAN.md` (Phase 21).
+  Deep Supabase guidance is vendored agent skills (`.agents/skills/supabase`, pinned in
+  `skills-lock.json` from `supabase/agent-skills`); update with `npx skills update` rather than
+  hand-editing them.
 
 ## PR workflow
 
