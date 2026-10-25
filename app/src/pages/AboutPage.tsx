@@ -41,7 +41,7 @@ export default function AboutPage() {
         of the people who ride them.
       </p>
 
-      <div className="mt-8 space-y-10 text-sm leading-7 text-muted">
+      <div className="mt-8 space-y-10 text-base leading-7 text-muted">
         <section>
           <h2 className="section-heading mb-3">Our purpose</h2>
           <p>
