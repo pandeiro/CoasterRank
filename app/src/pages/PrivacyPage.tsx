@@ -8,9 +8,9 @@ export default function PrivacyPage() {
       <h1 className="display-heading text-3xl text-ink">Privacy Policy</h1>
       <p className="mt-2 text-xs text-muted">Last updated: {LAST_UPDATED}</p>
 
-      <div className="mt-8 space-y-8 text-sm leading-7 text-muted">
+      <div className="mt-8 space-y-8 text-base leading-7 text-muted">
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">1. Introduction</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">1. Introduction</h2>
           <p>
             This Privacy Policy explains how CoasterRank Contributors (&ldquo;we&rdquo;,
             &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, uses, and protects your personal
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">2. Information We Collect</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">2. Information We Collect</h2>
           <p>We collect the following information:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">3. How We Use Your Information</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">3. How We Use Your Information</h2>
           <p>We use the information we collect to:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>Provide, operate, and maintain the Service.</li>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">4. Cookies &amp; Tracking</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">4. Cookies &amp; Tracking</h2>
           <p>
             CoasterRank uses essential cookies to maintain your login session. We do not currently
             use third-party analytics trackers, advertising cookies, or cross-site tracking
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">5. Data Sharing</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">5. Data Sharing</h2>
           <p>
             We do not sell your personal information. We share data only in the following
             circumstances:
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">6. Data Retention</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">6. Data Retention</h2>
           <p>
             We retain your account information and User Content for as long as your account is
             active. If you delete your account, we will remove your personal information within a
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">7. Your Rights</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">7. Your Rights</h2>
           <p>You have the right to:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>Access the personal information we hold about you.</li>
@@ -141,7 +141,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">8. Children&rsquo;s Privacy</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">8. Children&rsquo;s Privacy</h2>
           <p>
             CoasterRank is not directed at children under 13. We do not knowingly collect personal
             information from children under 13. If you believe a child has provided us with personal
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">9. International Users</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">9. International Users</h2>
           <p>
             CoasterRank is operated from the United States. If you access the Service from outside
             the US, your information may be transferred to and processed in the US. By using the
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">10. Changes to This Policy</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">10. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. If we make material changes, we
             will post a notice on the site and update the &ldquo;Last updated&rdquo; date above.
@@ -169,7 +169,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">11. Contact</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">11. Contact</h2>
           <p>
             For privacy-related questions or requests, email us at{' '}
             <a

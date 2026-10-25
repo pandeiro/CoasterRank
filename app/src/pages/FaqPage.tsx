@@ -162,10 +162,10 @@ export default function FaqPage() {
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       <h1 className="display-heading text-3xl text-ink">FAQ</h1>
 
-      <div className="mt-8 space-y-8 text-sm leading-7 text-muted">
+      <div className="mt-8 space-y-8 text-base leading-7 text-muted">
         {QUESTIONS.map(({ q, a }) => (
           <section key={q}>
-            <h2 className="mb-3 text-base font-semibold text-ink">{q}</h2>
+            <h2 className="mb-3 text-lg font-semibold text-ink">{q}</h2>
             {a}
           </section>
         ))}

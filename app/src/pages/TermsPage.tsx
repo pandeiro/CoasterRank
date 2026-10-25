@@ -8,9 +8,9 @@ export default function TermsPage() {
       <h1 className="display-heading text-3xl text-ink">Terms of Service</h1>
       <p className="mt-2 text-xs text-muted">Last updated: {LAST_UPDATED}</p>
 
-      <div className="mt-8 space-y-8 text-sm leading-7 text-muted">
+      <div className="mt-8 space-y-8 text-base leading-7 text-muted">
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">1. Acceptance of Terms</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">1. Acceptance of Terms</h2>
           <p>
             By creating an account, submitting coasters, or otherwise using CoasterRank (&ldquo;the
             Service&rdquo;), you agree to these Terms of Service. If you do not agree, please do not
@@ -19,7 +19,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">2. Description of Service</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">2. Description of Service</h2>
           <p>
             CoasterRank is a free, community-driven platform for ranking roller coasters. Users can
             submit coaster information, rate and rank coasters, and view aggregated community
@@ -28,7 +28,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">3. User Accounts</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">3. User Accounts</h2>
           <ul className="list-disc space-y-2 pl-5">
             <li>You must provide accurate information when creating an account.</li>
             <li>You are responsible for maintaining the security of your account credentials.</li>
@@ -39,7 +39,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">4. User Content &amp; License</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">4. User Content &amp; License</h2>
           <p>
             You retain ownership of any content you submit to CoasterRank, including coaster
             submissions, ratings, reviews, and rankings (&ldquo;User Content&rdquo;).
@@ -66,7 +66,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">5. Moderation</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">5. Moderation</h2>
           <p>We reserve the right to:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>Remove any User Content that violates these Terms or our community standards.</li>
@@ -80,7 +80,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">6. Prohibited Conduct</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">6. Prohibited Conduct</h2>
           <p>You may not use the Service to:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>Submit false, misleading, or deliberately inaccurate information.</li>
@@ -97,7 +97,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">7. Intellectual Property</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">7. Intellectual Property</h2>
           <p>
             The CoasterRank application code is released under the{' '}
             <Link to="/" className="underline transition-colors hover:text-ink">
@@ -112,7 +112,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">8. Disclaimers</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">8. Disclaimers</h2>
           <p>
             The Service is provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo; without
             warranties of any kind, whether express or implied. We do not guarantee that the Service
@@ -122,7 +122,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">9. Limitation of Liability</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">9. Limitation of Liability</h2>
           <p>
             To the maximum extent permitted by law, CoasterRank Contributors shall not be liable for
             any indirect, incidental, special, consequential, or punitive damages arising out of
@@ -132,7 +132,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">10. Changes to These Terms</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">10. Changes to These Terms</h2>
           <p>
             We may update these Terms from time to time. If we make material changes, we will notify
             users by posting a notice on the site. Your continued use of the Service after changes
@@ -141,7 +141,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-base font-semibold text-ink">11. Contact</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">11. Contact</h2>
           <p>
             Questions about these Terms? Email us at{' '}
             <a

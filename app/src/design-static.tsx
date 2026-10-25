@@ -29,8 +29,8 @@ const TIERS: Array<{ token: string; spec: string; note: string }> = [
   },
   {
     token: 'body',
-    spec: 'text-sm leading-7 text-muted',
-    note: 'mt-3 between paragraphs; space-y-10 between sections; mb-3 under section heads',
+    spec: 'text-base leading-7 text-muted',
+    note: 'mt-3 between paragraphs; space-y-10 between sections; mb-3 under section heads (bumped from text-sm — 14px read too small for long prose)',
   },
   {
     token: 'disclosure',
@@ -81,7 +81,7 @@ function StaticPageAnatomy() {
             CoasterRank is a free, open-source leaderboard for roller coasters.
           </p>
           <h2 className="section-heading mt-6">How the ranking works</h2>
-          <p className="mt-2 text-sm leading-7 text-muted">
+          <p className="mt-2 text-base leading-7 text-muted">
             When you rank the coasters here from best to worst, you&apos;re quietly casting
             thousands of votes at once — and{' '}
             <DeadLink>
