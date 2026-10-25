@@ -453,7 +453,7 @@ export function renderHomeHtml(origin: string, top: HomeTopCoaster[] = []): stri
     </div>
   </div>
   ${topItems ? `<h2 class="section">Topping the board right now</h2><ol>${topItems}</ol>` : ''}
-  <p class="meta"><a href="${escapeHtml(`${origin}/about`)}">How the ranking works</a> · <a href="${escapeHtml(`${origin}/faq`)}">FAQ</a></p>
+  <p class="meta">${siteNavHtml(origin)}</p>
   <footer>
     <a class="cta" href="${escapeHtml(url)}">See the live board</a>
     <p>Bradley–Terry scored · recomputed every 5 minutes.</p>
@@ -655,6 +655,9 @@ export function renderFaqHtml(origin: string): string {
 
 const COASTER_PATH_RE = /^\/coasters\/([A-Za-z0-9-]+)\/?$/
 const PARK_PATH_RE = /^\/parks\/([A-Za-z0-9-]+)\/?$/
+// suggest-edit sits under the detail path's second segment (RequireAuth
+// bounces anon humans to /login), so the detail regexes skip it.
+const SUGGEST_EDIT_PATH_RE = /^\/coasters\/([A-Za-z0-9-]+)\/suggest-edit\/?$/
 
 // Renamed slugs redirect permanently (any UA — humans on the old URL deserve
 // the new page too, not the SPA's "not found" state). Unknown slugs 404 for
@@ -694,6 +697,17 @@ function workerLineageNames(
     return row.manufacturer_names.filter((n): n is string => Boolean(n))
   }
   return row.manufacturer_name ? [row.manufacturer_name] : []
+}
+
+// Site nav for bot prerenders — one hop from any prerendered entry point to
+// /countries (and everything downstream of it) and the two static pages.
+function siteNavHtml(origin: string): string {
+  return [
+    `<a href="${escapeHtml(`${origin}/`)}">Board</a>`,
+    `<a href="${escapeHtml(`${origin}/countries`)}">Parks by country</a>`,
+    `<a href="${escapeHtml(`${origin}/about`)}">About</a>`,
+    `<a href="${escapeHtml(`${origin}/faq`)}">FAQ</a>`,
+  ].join(' · ')
 }
 
 // Mirrors buildMetaDescription in CoasterDetailPage.tsx.
@@ -849,6 +863,7 @@ export function renderCoasterHtml(coaster: RankingRow, origin: string): string {
   <p class="meta">${statBits.map(escapeHtml).join(' · ')}</p>
   ${lineage.length > 0 ? `<p class="meta">Built by ${escapeHtml(lineage.join(' · '))}.</p>` : ''}
   ${coaster.aliases && coaster.aliases.length > 0 ? `<p class="meta">Also known as: ${escapeHtml(coaster.aliases.join(' · '))}.</p>` : ''}
+  <p class="meta">${siteNavHtml(origin)}</p>
   <footer>
     <a class="cta" href="${escapeHtml(url)}">See the live ranking</a>
     <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
@@ -875,8 +890,9 @@ export function renderParkHtml(detail: WorkerParkDetail, origin: string): string
   const { title, description, url } = parkMeta(park, coasters, origin)
   const location = [park.city, park.region, park.country].filter(Boolean).join(' · ')
   const topCoaster = coasters.find((c) => c.rank !== null)
+  // Every coaster linked — a park page crawl reaches the whole lineup, not
+  // just the top 10 (the SPA page lists them all too — content parity).
   const listItems = coasters
-    .slice(0, 10)
     .map(
       (c) => `<li>
         <span class="rank">${c.rank ?? '–'}</span>
@@ -901,7 +917,7 @@ export function renderParkHtml(detail: WorkerParkDetail, origin: string): string
       : {}),
     ...(coasters.length > 0
       ? {
-          containsPlace: coasters.slice(0, 10).map((c) => ({
+          containsPlace: coasters.map((c) => ({
             '@type': 'RollerCoaster',
             name: c.name,
             url: `${origin}/coasters/${c.slug}`,
@@ -939,6 +955,7 @@ export function renderParkHtml(detail: WorkerParkDetail, origin: string): string
     </div>
   </div>
   ${listItems ? `<h2 class="section">Coasters at ${escapeHtml(park.name)}</h2><ol>${listItems}</ol>` : '<p class="meta">No coasters from this park on the board yet.</p>'}
+  <p class="meta">${siteNavHtml(origin)}</p>
   <footer>
     <a class="cta" href="${escapeHtml(url)}">See the park ranking</a>
     <p>Rank your own coasters at <a href="${escapeHtml(origin)}">CoasterRank</a>.</p>
@@ -988,6 +1005,14 @@ export function resolveDetailPath(
   const park = PARK_PATH_RE.exec(rawPathname)
   if (park) return { kind: 'park', slug: park[1], slashed: rawPathname.endsWith('/') }
   return null
+}
+
+export function resolveSuggestEditPath(
+  rawPathname: string,
+): { slug: string; slashed: boolean } | null {
+  const match = SUGGEST_EDIT_PATH_RE.exec(rawPathname)
+  if (!match) return null
+  return { slug: match[1], slashed: rawPathname.endsWith('/') }
 }
 
 function supabaseGetHeaders(supabaseKey: string): Record<string, string> {
@@ -1490,9 +1515,14 @@ export async function handleOgImageRequest(
 // /sitemap.xml — search-engine discovery -------------------------------------
 // Static pages plus every coaster/park slug, served to any user-agent.
 // Successes edge-cache for an hour (slugs change slowly); upstream failures
-// 502 without caching so crawlers retry against their held copy instead of
+// 502-no-store so crawlers retry against their held copy instead of
 // learning a shrunken sitemap. Missing env (fork without Supabase wired)
-// degrades to the three static URLs rather than erroring.
+// degrades to the static URLs rather than erroring. Detail URLs carry a
+// truthful lastmod scraped from `coaster_ratings.updated_at` (stamped by the
+// recompute cron whenever a score changes — i.e. whenever the page's dynamic
+// content changes); parks take the max over their rated coasters, rows with
+// no rating history get no lastmod. The overlay is best-effort: a ratings
+// fetch failure renders the sitemap without lastmod rather than 502ing.
 
 const SITEMAP_EDGE_TTL_SECONDS = 3600
 
@@ -1506,36 +1536,112 @@ function sitemapCacheKey(requestUrl: string): Request {
   return new Request(keyUrl.toString(), { method: 'GET' })
 }
 
-async function fetchSlugs(
+type SitemapSlugRow = { slug: string; id: string | null }
+
+async function fetchSitemapSlugs(
   supabaseUrl: string,
   headers: Record<string, string>,
   table: string,
-): Promise<string[]> {
-  const res = await fetch(`${supabaseUrl}/rest/v1/${table}?select=slug&order=slug&limit=10000`, {
-    headers,
-    signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
-  })
+  select: 'slug' | 'id,slug',
+): Promise<SitemapSlugRow[]> {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/${table}?select=${select}&order=slug&limit=10000`,
+    {
+      headers,
+      signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+    },
+  )
   if (!res.ok) throw new Error(`sitemap ${table} failed: ${res.status}`)
-  const rows = (await res.json()) as Array<{ slug?: unknown }>
+  const rows = (await res.json()) as Array<Record<string, unknown>>
   if (!Array.isArray(rows)) throw new Error(`sitemap ${table} returned non-array`)
-  const slugs = new Set<string>()
+  const seen = new Map<string, string | null>()
   for (const row of rows) {
-    if (typeof row.slug === 'string' && SLUG_RE.test(row.slug)) slugs.add(row.slug)
+    const slug = row.slug
+    if (typeof slug !== 'string' || !SLUG_RE.test(slug)) continue
+    const id = typeof row.id === 'string' ? row.id : null
+    if (!seen.has(slug)) seen.set(slug, id)
   }
-  return [...slugs]
+  return [...seen].map(([slug, id]) => ({ slug, id }))
 }
 
-export function renderSitemap(origin: string, coasterSlugs: string[], parkSlugs: string[]): string {
-  const today = new Date().toISOString().slice(0, 10)
+type SitemapLastmods = {
+  coaster: Map<string, string>
+  park: Map<string, string>
+}
+
+// Best-effort overlay: the recompute cron stamps coaster_ratings.updated_at
+// whenever a score changes, which is exactly when the detail page's dynamic
+// content changes. Coasters without a rating row (never ranked, view carries
+// them with score IS NULL) get no lastmod. Collects per-park max for the park
+// pages, whose lineup/ranks shift with the same refit.
+// Any failure → null → the sitemap renders without lastmod.
+async function fetchSitemapLastmods(
+  supabaseUrl: string,
+  headers: Record<string, string>,
+): Promise<SitemapLastmods | null> {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/coaster_ratings?select=updated_at,coasters!inner(slug,park_id)&limit=10000`,
+      {
+        headers,
+        signal: AbortSignal.timeout(RANKING_UPSTREAM_TIMEOUT_MS),
+      },
+    )
+    if (!res.ok) {
+      console.error(`[sitemap] lastmod fetch failed: ${res.status}`)
+      return null
+    }
+    const rows = (await res.json()) as Array<{
+      updated_at?: unknown
+      coasters?: { slug?: unknown; park_id?: unknown }
+    }>
+    if (!Array.isArray(rows)) {
+      console.error('[sitemap] lastmod fetch returned non-array')
+      return null
+    }
+    const coaster = new Map<string, string>()
+    const park = new Map<string, string>()
+    for (const row of rows) {
+      const inner = row.coasters
+      if (typeof row.updated_at !== 'string' || !inner) continue
+      const date = row.updated_at.slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+      if (typeof inner.slug !== 'string' || !SLUG_RE.test(inner.slug)) continue
+      if (typeof inner.park_id !== 'string') continue
+      if (!coaster.has(inner.slug)) coaster.set(inner.slug, date)
+      const current = park.get(inner.park_id)
+      if (!current || date > current) park.set(inner.park_id, date)
+    }
+    return { coaster, park }
+  } catch (error) {
+    console.error('[sitemap] lastmod fetch failed:', error)
+    return null
+  }
+}
+
+export type SitemapEntry = { slug: string; lastmod: string | null }
+
+// Static URLs deliberately carry no lastmod — their content changes on
+// deploys, not on a schedule, and a rolling "today" lastmod is a lie Google
+// discounts (sitemaps lastmod guidelines).
+function sitemapUrlLine(loc: string, lastmod: string | null): string {
+  return lastmod
+    ? `  <url><loc>${escapeHtml(loc)}</loc><lastmod>${escapeHtml(lastmod)}</lastmod></url>`
+    : `  <url><loc>${escapeHtml(loc)}</loc></url>`
+}
+
+export function renderSitemap(
+  origin: string,
+  coasters: SitemapEntry[],
+  parks: SitemapEntry[],
+): string {
   const urls = [
-    `  <url><loc>${escapeHtml(`${origin}/`)}</loc><lastmod>${today}</lastmod></url>`,
-    `  <url><loc>${escapeHtml(`${origin}/about`)}</loc><lastmod>${today}</lastmod></url>`,
-    `  <url><loc>${escapeHtml(`${origin}/faq`)}</loc><lastmod>${today}</lastmod></url>`,
-    `  <url><loc>${escapeHtml(`${origin}/countries`)}</loc><lastmod>${today}</lastmod></url>`,
-    ...coasterSlugs.map(
-      (slug) => `  <url><loc>${escapeHtml(`${origin}/coasters/${slug}`)}</loc></url>`,
-    ),
-    ...parkSlugs.map((slug) => `  <url><loc>${escapeHtml(`${origin}/parks/${slug}`)}</loc></url>`),
+    sitemapUrlLine(`${origin}/`, null),
+    sitemapUrlLine(`${origin}/about`, null),
+    sitemapUrlLine(`${origin}/faq`, null),
+    sitemapUrlLine(`${origin}/countries`, null),
+    ...coasters.map((entry) => sitemapUrlLine(`${origin}/coasters/${entry.slug}`, entry.lastmod)),
+    ...parks.map((entry) => sitemapUrlLine(`${origin}/parks/${entry.slug}`, entry.lastmod)),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`
 }
@@ -1583,11 +1689,19 @@ export async function handleSitemapRequest(requestUrl: string, env: Env): Promis
       Authorization: `Bearer ${supabaseKey}`,
       Accept: 'application/json',
     }
-    const [coasterSlugs, parkSlugs] = await Promise.all([
-      fetchSlugs(supabaseUrl, headers, 'v_coaster_rankings'),
-      fetchSlugs(supabaseUrl, headers, 'parks'),
+    const [coasterRows, parkRows] = await Promise.all([
+      fetchSitemapSlugs(supabaseUrl, headers, 'v_coaster_rankings', 'slug'),
+      fetchSitemapSlugs(supabaseUrl, headers, 'parks', 'id,slug'),
     ])
-    body = renderSitemap(origin, coasterSlugs, parkSlugs)
+    const lastmods = await fetchSitemapLastmods(supabaseUrl, headers)
+    const coasters: SitemapEntry[] = coasterRows.map((row) => ({
+      slug: row.slug,
+      lastmod: lastmods?.coaster.get(row.slug) ?? null,
+    }))
+    const parks: SitemapEntry[] = parkRows.flatMap((row) =>
+      row.id ? [{ slug: row.slug, lastmod: lastmods?.park.get(row.id) ?? null }] : [],
+    )
+    body = renderSitemap(origin, coasters, parks)
   } catch {
     body = null
   }
@@ -1919,6 +2033,25 @@ export default {
       }
       if (isSocialCrawler(request.headers.get('user-agent'))) {
         return handleDetailRequest(request, detail.kind, detail.slug, env)
+      }
+      return withSecurityHeaders(await env.ASSETS.fetch(request))
+    }
+
+    // suggest-edit: auth-walled (RequireAuth bounces anon humans to /login),
+    // linked from every coaster page — ~1,500 URLs each burning a full JS
+    // render just to redirect. A robots Disallow only froze them on their
+    // pre-fix "Page with redirect" state (Google can't refetch disallowed
+    // paths, so GSC validation stalled); instead bots now get a real 301 to
+    // the parent coaster. Humans fall through to the SPA unchanged (the
+    // logged-in form / anon login bounce still work — client-side).
+    const suggestEdit = resolveSuggestEditPath(url.pathname)
+    if (suggestEdit) {
+      const canonicalCoasterPath = `/coasters/${suggestEdit.slug}`
+      if (suggestEdit.slashed) {
+        return redirectToPath(request.url, canonicalCoasterPath)
+      }
+      if (isSocialCrawler(request.headers.get('user-agent'))) {
+        return redirectToPath(request.url, canonicalCoasterPath)
       }
       return withSecurityHeaders(await env.ASSETS.fetch(request))
     }

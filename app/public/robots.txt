@@ -4,12 +4,12 @@ Disallow: /me
 Disallow: /admin
 Disallow: /submit
 Disallow: /api/
-# Suggest-an-edit pages sit behind the login wall (RequireAuth bounces bots
-# to /login) — one per coaster, ~1,500 URLs that each burned a full JS render
-# just to redirect (GSC "Page with redirect", Oct 2026). Blocking them by URL
-# substring keeps crawlers out cheaply; users are unaffected. The * wildcard
-# is supported by Google and Bing.
-Disallow: /*suggest-edit
+# Note on suggest-edit URLs (one per coaster, behind RequireAuth): a
+# previous batch added a Disallow here — wrong call. Google can't refetch a
+# disallowed path, so the ~1,500 URLs froze on their pre-fix "Page with
+# redirect" status and GSC validation stalled at 81 remaining (Oct 2026).
+# The worker now 301s crawlers to the parent coaster page instead; humans
+# are unaffected (the SPA still routes them to the form or /login).
 
 # Rider share pages carry a noindex meta tag (unfurl targets, not search
 # results) — deliberately NOT disallowed here so crawlers can see the tag.
