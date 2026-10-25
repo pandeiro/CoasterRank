@@ -330,6 +330,13 @@ The blob/double positions below are the wire contract — the authoritative tabl
 `app/src/lib/analytics-schema.ts` (worker validation) and §3–4 of
 `docs/research/SESSION_ANALYTICS.md`. If either file changes positions, update these queries.
 
+- **Run this first (verification snapshot)**: `cd scripts && npx tsx src/oneoff/analytics-snapshot.ts`
+  (`--days=N` sets the daily-trend window, default 28) — one read-only pass that runs the
+  ingest-health checks and the funnel/pace/event queries below and prints a labeled report,
+  including the "shape-check, not a rate" n-warning for small samples. Read it before
+  hand-writing SQL; it also proves the pipe before attributing trims to backend changes
+  (when the positions contract changes, this header + the script must move together).
+
 - **Access**: AE SQL API — `POST https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql`
   with `Authorization: Bearer <CLOUDFLARE_API_TOKEN>` (same Account-Analytics-Read token as the
   RUM GraphQL example above) and the SQL string as the request **body**. The two datasets are
