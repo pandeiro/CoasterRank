@@ -39,8 +39,14 @@
  *    unknown slugs a real 404 + noindex. Supabase failures and missing env
  *    degrade to the SPA shell, never a false 404. Humans fall through to
  *    assets.
+ *  - `/llms.txt` (any UA) → LLM-agent digest, markdown per llmstxt.org:
+ *    digest + curated links with live catalog counts from the ranking
+ *    payload; qualitative wording when Supabase is unavailable (the file
+ *    never 404/502s — agents must always get an entry point). Details in
+ *    the llms.txt section below.
  *  - `/about/` + `/faq/` (any UA) → 301 to the canonical slash-less form.
  *  - Everything else → static assets directly (no Worker cost).
+ *
  *
  * Data comes from the same public PostgREST surfaces the SPA uses (anon key;
  * RLS-equivalent privacy enforced server-side — the rider RPC only returns
@@ -1622,6 +1628,155 @@ export async function handleSitemapRequest(requestUrl: string, env: Env): Promis
   )
 }
 
+// /llms.txt — LLM-agent digest (https://llmstxt.org) ---------------------------
+// A small markdown file agents read before (or instead of) JS-shelled pages:
+// project digest + curated links, so an assistant answering "what is
+// CoasterRank" describes the pairwise-vote methodology rather than guessing
+// from the SPA shell. Catalog counts in the summary derive from the same
+// ranking payload /api/ranking serves (the full v_coaster_rankings view, all
+// coasters — ranked last with null scores — plus the parks table): the edge
+// cache is preferred, with a direct read as fallback (never written back —
+// the ranking endpoint owns that entry). If Supabase is unavailable the file
+// still serves 200 with qualitative wording instead of counts — an agent's
+// entry point must never 404/502 the way other upstream-dependent paths can.
+// Edge-cached an hour (catalog counts move glacially).
+
+const LLMS_EDGE_TTL_SECONDS = 3600
+
+function llmsCacheKey(requestUrl: string): Request {
+  const keyUrl = new URL(requestUrl)
+  keyUrl.pathname = '/llms.txt'
+  keyUrl.search = ''
+  keyUrl.hash = ''
+  return new Request(keyUrl.toString(), { method: 'GET' })
+}
+
+type LlmsCounts = { coasters: number; parks: number; rated: number }
+
+// Same source /api/ranking uses; write-policy stays with the ranking handler.
+async function readRankingCounts(requestUrl: string, env: Env): Promise<LlmsCounts | null> {
+  let payload: RankingBoardPayload | null = null
+  try {
+    const cache = getEdgeCache()
+    if (cache) {
+      const hit = await cache.match(rankingCacheKey(`${new URL(requestUrl).origin}/api/ranking`))
+      if (hit) {
+        const cached = (await hit.json()) as RankingBoardPayload | null
+        if (cached && Array.isArray(cached.rankings) && Array.isArray(cached.parks)) {
+          payload = cached
+        }
+      }
+    }
+  } catch {
+    // Cache read blowups fall through to the direct read.
+  }
+  if (!payload) {
+    try {
+      payload = await fetchRankingBoardFromSupabase(env)
+    } catch {
+      payload = null
+    }
+  }
+  if (!payload || !Array.isArray(payload.rankings) || !Array.isArray(payload.parks)) return null
+  return {
+    coasters: payload.rankings.length,
+    parks: payload.parks.length,
+    rated: payload.rankings.filter((row) => Number(row.participants ?? 0) > 0).length,
+  }
+}
+
+export function renderLlmsTxt(origin: string, counts: LlmsCounts | null): string {
+  const coverage = counts
+    ? `CoasterRank covers ${formatNumber(counts.coasters)} coasters across ${formatNumber(counts.parks)} parks (${formatNumber(counts.rated)} currently rated by the community).`
+    : 'CoasterRank covers more than a thousand coasters across hundreds of parks worldwide.'
+  const site = (path: string, label: string, note = '') =>
+    `- [${label}](${origin}${path})${note ? `: ${note}` : ''}`
+  return `# CoasterRank
+
+> ${coverage} Rankings come from one-on-one votes fitted with a Bradley-Terry maximum-likelihood model — not survey scores or editorial picks.
+
+CoasterRank is a community ranking site for roller coasters. Riders record
+rides and cast pairwise "which is better?" votes; a job fits a Bradley-Terry
+model (Hunter 2004 MM algorithm with per-rider evidence weighting and L2
+regularization) and refreshes the global rankings. A rating of 100 means "at
+the community average"; scores move as votes accrue. Catalog data is seeded
+from the CC0-licensed coaster_db dataset and maintained through community
+submissions and a suggest-edit flow on every coaster page. The site is free,
+has no ads, and loads no third-party trackers. Open source (forks deploy
+under their own domain).
+
+## Site
+
+${site('/', 'Rankings (home)', 'the global board, filterable by country and coaster type')}
+${site('/about', 'About', 'the methodology and how voting works, in plain language')}
+${site('/faq', 'FAQ', 'common questions')}
+${site('/countries', 'Explore by country', 'per-country boards')}
+${site('/terms', 'Terms')}
+${site('/privacy', 'Privacy', 'what is and is not collected')}
+
+## Optional
+
+${site('/rank', 'Rank a sample without an account')}
+- Individual coasters live at ${origin}/coasters/<slug>; public rider boards at ${origin}/riders/<username>
+- Machine-readable page list: ${origin}/sitemap.xml
+`
+}
+
+// formatNumber returns "1,506" in both Node (tests) and the Workers runtime.
+function formatNumber(value: number): string {
+  return value.toLocaleString('en-US')
+}
+
+function llmsTextResponse(body: string, cacheState: string): Response {
+  return withSecurityHeaders(
+    new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Cache-Control': `public, max-age=${LLMS_EDGE_TTL_SECONDS}`,
+        'X-Llms-Cache': cacheState,
+      },
+    }),
+  )
+}
+
+export async function handleLlmsTxtRequest(requestUrl: string, env: Env): Promise<Response> {
+  const cache = getEdgeCache()
+  const cacheKey = llmsCacheKey(requestUrl)
+  if (cache) {
+    const hit = await cache.match(cacheKey)
+    if (hit) return llmsTextResponse(await hit.text(), 'HIT')
+  }
+
+  const counts = await readRankingCounts(requestUrl, env)
+  const body = renderLlmsTxt(new URL(requestUrl).origin, counts)
+
+  if (cache && counts) {
+    // Only cache when counts were computed — the qualitative fallback stays
+    // uncached so a computed file serves again on the next request.
+    try {
+      await cache.put(
+        cacheKey,
+        new Response(body, {
+          headers: {
+            'Content-Type': 'text/markdown; charset=utf-8',
+            'Cache-Control': `public, max-age=${LLMS_EDGE_TTL_SECONDS}`,
+          },
+        }),
+      )
+    } catch (error) {
+      // A cache-write failure must not take the endpoint down.
+      console.error('[llms.txt] cache.put failed:', error)
+    }
+  }
+  console.log(
+    counts
+      ? `[llms.txt] cache fill: ${counts.coasters} coasters / ${counts.parks} parks / ${counts.rated} rated`
+      : '[llms.txt] cache fill: fallback (upstream unavailable)',
+  )
+  return llmsTextResponse(body, !cache || !counts ? 'FALLBACK' : 'MISS')
+}
+
 // Permanent redirect to a same-origin canonical path (query string
 // preserved, fragment dropped). Long browser cache: renames and slash
 // forms are stable.
@@ -1727,6 +1882,14 @@ export default {
     // answer with index.html).
     if (pathname === '/sitemap.xml') {
       return handleSitemapRequest(request.url, env)
+    }
+
+    // llms.txt — LLM-agent digest (https://llmstxt.org), any user-agent.
+    // Checked before the crawler gate (agents fetch it directly); requires
+    // the wrangler run_worker_first entry, since nothing in the static asset
+    // directory answers this path.
+    if (pathname === '/llms.txt') {
+      return handleLlmsTxtRequest(request.url, env)
     }
 
     // Dynamic share card — any user-agent (crawlers + in-app previews).

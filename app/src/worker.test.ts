@@ -838,6 +838,174 @@ describe('worker: /api/ranking', () => {
   })
 })
 
+// /llms.txt -------------------------------------------------------------------
+
+// Two rated coasters (participants > 0), one unrated — rated count comes from
+// the ranking payload, coordinator-free.
+const llmsRankingRows = [
+  { ...rankingRows[0], park_id: 'p1', status: 'operating', material: 'steel', participants: 5 },
+  { ...rankingRows[0], id: 'c2', slug: 'fury-325', name: 'Fury 325', participants: 2 },
+  { ...rankingRows[0], id: 'c3', slug: 'copperhead', name: 'Copperhead', participants: null },
+]
+const llmsPayload = {
+  ...rankingPayload,
+  rankings: llmsRankingRows,
+  parks: [...parkRows, { ...parkRows[0], id: 'p2', name: 'Carowinds', slug: 'carowinds' }],
+}
+
+describe('worker: /llms.txt', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  // Local upstream stub: 3 coasters (2 with participants > 0) across 2 parks.
+  function stubLLmsUpstream() {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('v_coaster_rankings'))
+        return new Response(JSON.stringify(llmsRankingRows), { status: 200 })
+      if (url.includes('public_board_meta'))
+        return new Response(JSON.stringify(boardMetaRow), { status: 200 })
+      return new Response(
+        JSON.stringify([
+          ...parkRows,
+          { ...parkRows[0], id: 'p2', name: 'Carowinds', slug: 'carowinds' },
+        ]),
+        { status: 200 },
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('serves the digest with live counts and caches it at the edge', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    const fetchMock = stubLLmsUpstream()
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    const body = await response.text()
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8')
+    expect(response.headers.get('X-Llms-Cache')).toBe('MISS')
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(body).toContain(
+      'CoasterRank covers 3 coasters across 2 parks (2 currently rated by the community).',
+    )
+    expect(body).toContain('Bradley-Terry')
+    // Spec shape: H1 first, then one blockquote block, then plain prose.
+    expect(body.startsWith('# CoasterRank\n\n> ')).toBe(true)
+    // Curated links are absolute and fork-safe (origin from the request).
+    expect(body).toContain('https://coasterrank.test/about')
+    expect(body).toContain('https://coasterrank.test/privacy')
+    // Its own cache entry: canonical /llms.txt URL + the long edge TTL.
+    expect(cache.put).toHaveBeenCalledTimes(1)
+    const [putKey, putResponse] = cache.put.mock.calls[0] as unknown as [Request, Response]
+    expect(putKey.url).toBe('https://coasterrank.test/llms.txt')
+    expect(putResponse.headers.get('Cache-Control')).toContain('max-age=3600')
+    // One upstream read cycle (rankings + parks + board meta) filled the counts.
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('serves a hit on its own cache entry without touching Supabase', async () => {
+    const env = makeEnv()
+    const cache = makeCacheStub()
+    cache.match.mockResolvedValue(
+      new Response('# CoasterRank\n\n> cached', {
+        headers: {
+          'Content-Type': 'text/markdown; charset=utf-8',
+          'Cache-Control': `public, max-age=3600`,
+        },
+      }),
+    )
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    expect(await response.text()).toBe('# CoasterRank\n\n> cached')
+    expect(response.headers.get('X-Llms-Cache')).toBe('HIT')
+    expect(response.headers.get('Cache-Control')).toContain('max-age=3600')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(cache.put).not.toHaveBeenCalled()
+  })
+
+  it('prefers the edge-cached /api/ranking payload and never writes to it', async () => {
+    const env = makeEnv()
+    const put = vi.fn(async () => {})
+    const match = vi.fn(async (key: Request | string): Promise<Response | undefined> => {
+      const url = String((key as Request).url ?? key)
+      return url.endsWith('/ranking')
+        ? new Response(JSON.stringify(llmsPayload), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        : undefined
+    })
+    vi.stubGlobal('caches', { default: { match, put } })
+    const fetchMock = stubLLmsUpstream()
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    expect(await response.text()).toContain(
+      'CoasterRank covers 3 coasters across 2 parks (2 currently rated by the community).',
+    )
+    expect(response.headers.get('X-Llms-Cache')).toBe('MISS')
+    expect(fetchMock).not.toHaveBeenCalled()
+    const [putKey] = put.mock.calls[0] as unknown as [Request]
+    expect(putKey.url).toBe('https://coasterrank.test/llms.txt')
+  })
+
+  it('degrades to qualitative coverage (still 200) when Supabase is unavailable', async () => {
+    const env = makeEnv()
+    env.SUPABASE_URL = undefined
+    env.SUPABASE_ANON_KEY = undefined
+    const cache = makeCacheStub()
+    const fetchMock = stubRankingUpstream()
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-Llms-Cache')).toBe('FALLBACK')
+    expect(body).toContain(
+      'CoasterRank covers more than a thousand coasters across hundreds of parks worldwide.',
+    )
+    expect(body).not.toContain('1,506')
+    // The fallback never takes a cache slot, so computed content returns fast.
+    expect(cache.put).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('degrades to qualitative coverage when the upstream fetch throws', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('socket reset')
+      }),
+    )
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    const body = await response.text()
+    expect(response.status).toBe(200)
+    expect(body).toContain('more than a thousand coasters')
+    expect(response.headers.get('X-Llms-Cache')).toBe('FALLBACK')
+  })
+
+  it('treats a malformed cached payload as a miss (counts degrade, no crash)', async () => {
+    const env = makeEnv()
+    const put = vi.fn(async () => {})
+    const match = vi.fn(async (key: Request | string): Promise<Response | undefined> => {
+      const url = String((key as Request).url ?? key)
+      return url.endsWith('/ranking') ? new Response('[1,2,3', { status: 200 }) : undefined
+    })
+    vi.stubGlobal('caches', { default: { match, put } })
+    const fetchMock = stubLLmsUpstream()
+
+    const response = await worker.fetch(new Request('https://coasterrank.test/llms.txt'), env)
+    expect(await response.text()).toContain('CoasterRank covers 3 coasters across 2 parks')
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+})
+
 describe('worker: security headers', () => {
   beforeEach(() => {
     vi.unstubAllGlobals()
