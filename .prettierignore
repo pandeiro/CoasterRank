@@ -15,6 +15,14 @@ supabase/email-templates/
 # Static design mockups, intentionally stale (live OG text is in worker.ts).
 docs/social-preview/
 
+# Vendored Supabase agent skills — upstream supabase/agent-skills, update via
+# `npx skills update`; never hand-edit or reformat.
+.agents/skills/supabase/
+.agents/skills/supabase-postgres-best-practices/
+
+# Vendored skills lockfile (pins hashes of the vendored skills above).
+skills-lock.json
+
 # Committed external datasets + provenance artifacts, not source.
 data/
 
