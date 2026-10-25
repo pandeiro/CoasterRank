@@ -13,6 +13,7 @@ import worker, {
   renderParkHtml,
   renderDetailNotFoundHtml,
   resolveDetailPath,
+  resolveSuggestEditPath,
   coasterMeta,
   parkMeta,
   renderSitemap,
@@ -21,6 +22,7 @@ import worker, {
   renderRiderNotFoundHtml,
   type Env,
   type HomeTopCoaster,
+  type WorkerParkCoaster,
   type WorkerRiderPage,
 } from './worker'
 import type { Park, RankingRow } from './lib/board-types'
@@ -1534,6 +1536,37 @@ describe('worker: detail prerender', () => {
     expect(html).toContain('Millennium Force')
   })
 
+  it('links the full lineup on parks with more than 10 coasters', () => {
+    const bigLineup: WorkerParkCoaster[] = Array.from({ length: 16 }, (_, i) => ({
+      name: `Coaster ${i + 1}`,
+      slug: `coaster-${i + 1}`,
+      rank: i + 1,
+      score: 0.5,
+    }))
+    const html = renderParkHtml(
+      { park: detailPark, coasters: bigLineup },
+      'https://coasterrank.test',
+    )
+    for (let i = 1; i <= 16; i++) {
+      expect(html).toContain(`href="https://coasterrank.test/coasters/coaster-${i}"`)
+    }
+    expect(html.match(/"@type":"RollerCoaster"/g)).toHaveLength(16)
+  })
+
+  it('embeds the site nav in the home/coaster/park prerenders', () => {
+    const home = renderHomeHtml('https://coasterrank.test', [])
+    const coaster = renderCoasterHtml(detailCoaster, 'https://coasterrank.test')
+    const park = renderParkHtml(
+      { park: detailPark, coasters: detailParkCoasters },
+      'https://coasterrank.test',
+    )
+    for (const html of [home, coaster, park]) {
+      expect(html).toContain('href="https://coasterrank.test/countries"')
+      expect(html).toContain('href="https://coasterrank.test/about"')
+      expect(html).toContain('href="https://coasterrank.test/faq"')
+    }
+  })
+
   it('returns a real 404 + noindex for unknown slugs (bots), shell for humans', async () => {
     stubDetailUpstream({})
     const bot = await worker.fetch(botRequest('/coasters/no-such-ride'), makeEnv())
@@ -1585,6 +1618,47 @@ describe('worker: detail prerender', () => {
     )
   })
 
+  it('resolves suggest-edit paths (and rejects detail paths)', () => {
+    expect(resolveSuggestEditPath('/coasters/steel-vengeance/suggest-edit')).toEqual({
+      slug: 'steel-vengeance',
+      slashed: false,
+    })
+    expect(resolveSuggestEditPath('/coasters/steel-vengeance/suggest-edit/')).toEqual({
+      slug: 'steel-vengeance',
+      slashed: true,
+    })
+    expect(resolveSuggestEditPath('/parks/cedar-point/suggest-edit')).toBeNull()
+    expect(resolveSuggestEditPath('/coasters/steel-vengeance')).toBeNull()
+    expect(resolveSuggestEditPath('/coasters/steel-vengeance/suggest-edit/extra')).toBeNull()
+  })
+
+  it('301s suggest-edit bots to the parent coaster; humans get the SPA shell', async () => {
+    stubDetailUpstream({ coaster: detailCoaster })
+    const bot = await worker.fetch(botRequest('/coasters/steel-vengeance/suggest-edit'), makeEnv())
+    expect(bot.status).toBe(301)
+    expect(bot.headers.get('Location')).toBe('https://coasterrank.test/coasters/steel-vengeance')
+
+    const env = makeEnv()
+    stubDetailUpstream({ coaster: detailCoaster })
+    const human = await worker.fetch(humanRequest('/coasters/steel-vengeance/suggest-edit'), env)
+    expect(human.status).toBe(200)
+    expect(await human.text()).toBe('spa-shell')
+    expect(env.ASSETS.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('301s slashed suggest-edit URLs (any UA) to the parent coaster', async () => {
+    for (const req of [
+      botRequest('/coasters/steel-vengeance/suggest-edit/'),
+      humanRequest('/coasters/steel-vengeance/suggest-edit/'),
+    ]) {
+      const response = await worker.fetch(req, makeEnv())
+      expect(response.status).toBe(301)
+      expect(response.headers.get('Location')).toBe(
+        'https://coasterrank.test/coasters/steel-vengeance',
+      )
+    }
+  })
+
   it('301s /about/ and /faq/ to the canonical form for any user-agent', async () => {
     for (const path of ['/about/', '/faq/']) {
       for (const req of [botRequest(path), humanRequest(path)]) {
@@ -1606,7 +1680,23 @@ function stubSlugUpstream(status = 200) {
         status,
       })
     if (url.includes('/rest/v1/parks'))
-      return new Response(JSON.stringify([{ slug: 'cedar-point' }]), { status })
+      return new Response(JSON.stringify([{ slug: 'cedar-point', id: 'park-cedar-1' }]), {
+        status,
+      })
+    if (url.includes('coaster_ratings'))
+      return new Response(
+        JSON.stringify([
+          {
+            updated_at: '2026-10-20T08:00:00+00:00',
+            coasters: { slug: 'steel-vengeance', park_id: 'park-cedar-1' },
+          },
+          {
+            updated_at: '2026-10-15T08:00:00+00:00',
+            coasters: { slug: 'fury-325', park_id: 'park-other' },
+          },
+        ]),
+        { status },
+      )
     return new Response('unexpected', { status: 500 })
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -1619,14 +1709,26 @@ describe('worker: /sitemap.xml', () => {
   })
 
   it('renders static plus detail URLs', () => {
-    const xml = renderSitemap('https://coasterrank.test', ['steel-vengeance'], ['cedar-point'])
+    const xml = renderSitemap(
+      'https://coasterrank.test',
+      [{ slug: 'steel-vengeance', lastmod: '2026-10-20' }],
+      [{ slug: 'cedar-point', lastmod: null }],
+    )
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>')
     expect(xml).toContain('<loc>https://coasterrank.test/</loc>')
     expect(xml).toContain('<loc>https://coasterrank.test/about</loc>')
     expect(xml).toContain('<loc>https://coasterrank.test/faq</loc>')
     expect(xml).toContain('<loc>https://coasterrank.test/countries</loc>')
-    expect(xml).toContain('<loc>https://coasterrank.test/coasters/steel-vengeance</loc>')
-    expect(xml).toContain('<loc>https://coasterrank.test/parks/cedar-point</loc>')
+    expect(xml).toContain(
+      '<loc>https://coasterrank.test/coasters/steel-vengeance</loc><lastmod>2026-10-20</lastmod>',
+    )
+    expect(xml).toContain('<loc>https://coasterrank.test/parks/cedar-point</loc></url>')
+  })
+
+  it('static URLs carry no lastmod (no rolling updated-yesterday lie)', () => {
+    const xml = renderSitemap('https://coasterrank.test', [], [])
+    expect(xml).toContain('<loc>https://coasterrank.test/</loc></url>')
+    expect(xml).toContain('<loc>https://coasterrank.test/countries</loc></url>')
   })
 
   it('serves the full sitemap and caches it at the edge', async () => {
@@ -1639,12 +1741,19 @@ describe('worker: /sitemap.xml', () => {
     expect(response.headers.get('Content-Type')).toContain('application/xml')
     expect(response.headers.get('Cache-Control')).toContain('max-age=3600')
     expect(response.headers.get('X-Sitemap-Cache')).toBe('MISS')
-    expect(body).toContain('<loc>https://coasterrank.test/coasters/steel-vengeance</loc>')
-    expect(body).toContain('<loc>https://coasterrank.test/parks/cedar-point</loc>')
+    expect(body).toContain(
+      '<loc>https://coasterrank.test/coasters/steel-vengeance</loc><lastmod>2026-10-20</lastmod>',
+    )
+    expect(body).toContain(
+      '<loc>https://coasterrank.test/coasters/fury-325</loc><lastmod>2026-10-15</lastmod>',
+    )
+    expect(body).toContain(
+      '<loc>https://coasterrank.test/parks/cedar-point</loc><lastmod>2026-10-20</lastmod>',
+    )
     expect(cache.put).toHaveBeenCalledTimes(1)
     const [putKey] = cache.put.mock.calls[0] as unknown as [Request]
     expect(putKey.url).toBe('https://coasterrank.test/sitemap.xml')
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(response.headers.get('Strict-Transport-Security')).toBeTruthy()
   })
 
@@ -1668,9 +1777,12 @@ describe('worker: /sitemap.xml', () => {
     const env = makeEnv()
     const cache = makeCacheStub()
     cache.match.mockResolvedValue(
-      new Response(renderSitemap('https://coasterrank.test', ['steel-vengeance'], []), {
-        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-      }),
+      new Response(
+        renderSitemap('https://coasterrank.test', [{ slug: 'steel-vengeance', lastmod: null }], []),
+        {
+          headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+        },
+      ),
     )
     const fetchMock = stubSlugUpstream()
     const response = await handleSitemapRequest('https://coasterrank.test/sitemap.xml?utm=x', env)
@@ -1705,6 +1817,27 @@ describe('worker: /sitemap.xml', () => {
     ).text()
     expect(body.match(/coasters\/steel-vengeance/g)).toHaveLength(1)
     expect(body).not.toContain('EVIL')
+  })
+
+  it('renders without lastmod when the ratings overlay fails (no 502)', async () => {
+    const env = makeEnv()
+    makeCacheStub()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('v_coaster_rankings'))
+          return new Response(JSON.stringify([{ slug: 'steel-vengeance' }]))
+        if (url.includes('/rest/v1/parks'))
+          return new Response(JSON.stringify([{ slug: 'cedar-point', id: 'park-cedar-1' }]))
+        return new Response('upstream ratings down', { status: 500 })
+      }),
+    )
+    const response = await worker.fetch(new Request('https://coasterrank.test/sitemap.xml'), env)
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain(
+      '<loc>https://coasterrank.test/coasters/steel-vengeance</loc></url>',
+    )
   })
 
   it('returns 502 without caching when Supabase fails', async () => {
